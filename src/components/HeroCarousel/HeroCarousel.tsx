@@ -18,21 +18,21 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { ChevronDown } from 'lucide-react'
 
 // ── Slide data ────────────────────────────────────────────────────────────────
-const SLIDES = [
+const SLIDES: { type: 'image' | 'video'; src: string; title: string; subtitle: string }[] = [
   {
-    type: 'image' as const,
+    type: 'image',
     src: '/images/slides/slide1.svg',
     title: '多伦多华人一站式服务',
     subtitle: '搬家、保洁、接送、装修，一键找到靠谱服务',
   },
   {
-    type: 'image' as const,
+    type: 'image',
     src: '/images/slides/slide2.svg',
     title: '日常事务，一键搞定',
     subtitle: '海外生活不孤单，华人服务就在身边',
   },
   {
-    type: 'image' as const,
+    type: 'image',
     src: '/images/slides/slide3.svg',
     title: '有技能？来接单',
     subtitle: '免费发布服务，让附近客户轻松找到你',
