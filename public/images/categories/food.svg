@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <rect width="64" height="64" rx="14" fill="#FEE2E2"/>
+  <!-- chopsticks -->
+  <rect x="22" y="4" width="3" height="22" rx="1.5" transform="rotate(-12 22 4)" fill="#B91C1C"/>
+  <rect x="38" y="4" width="3" height="22" rx="1.5" transform="rotate(12 38 4)" fill="#B91C1C"/>
+  <!-- bowl rim -->
+  <rect x="6" y="26" width="52" height="7" rx="3.5" fill="#B91C1C"/>
+  <!-- bowl body -->
+  <path d="M8 33 Q8 56 32 56 Q56 56 56 33 Z" fill="#DC2626"/>
+  <!-- noodle lines -->
+  <path d="M16 40 Q24 36 32 40 Q40 44 48 40" stroke="white" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+  <path d="M16 47 Q24 43 32 47 Q40 51 48 47" stroke="white" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+</svg>

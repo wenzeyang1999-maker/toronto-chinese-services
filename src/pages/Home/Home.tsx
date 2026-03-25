@@ -1,0 +1,98 @@
+import { motion } from 'framer-motion'
+import HeroBanner from '../../components/HeroBanner/HeroBanner'
+import HeroCarousel from '../../components/HeroCarousel/HeroCarousel'
+import CategoryButtons from '../../components/CategoryButtons/CategoryButtons'
+import ServiceCard from '../../components/ServiceCard/ServiceCard'
+import SearchBar from '../../components/SearchBar/SearchBar'
+import { useAppStore } from '../../store/appStore'
+import { useGeolocation } from '../../hooks/useGeolocation'
+import { ChevronRight, MapPin } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+
+export default function Home() {
+  useGeolocation()
+  const getFilteredServices = useAppStore((s) => s.getFilteredServices)
+  const userLocation = useAppStore((s) => s.userLocation)
+  const navigate = useNavigate()
+
+  const recent = getFilteredServices().slice(0, 4)
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      {/* Sticky nav bar only */}
+      <div className="sticky top-0 z-40">
+        <HeroBanner />
+      </div>
+
+      {/* Carousel — scrolls normally */}
+      <HeroCarousel />
+
+      {/* Search bar — scrolls normally */}
+      <div className="w-full bg-primary-700 px-6 py-4">
+        <div className="flex items-center gap-1.5 mb-2">
+          <MapPin size={12} className="text-blue-200" />
+          <span className="text-blue-200 text-xs">
+            {userLocation ? '已获取您的位置' : '大多伦多地区'}
+          </span>
+        </div>
+        <SearchBar />
+      </div>
+
+      <div className="relative z-10 w-full px-6 bg-gray-50 rounded-t-3xl pt-6">
+        {/* Category buttons */}
+        <motion.section
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.15 }}
+          className="card p-4 mb-4"
+        >
+          <h3 className="text-sm font-semibold text-gray-700 mb-3">选择服务类型</h3>
+          <CategoryButtons />
+        </motion.section>
+
+        {/* Recent / nearby services */}
+        <motion.section
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="mb-6"
+        >
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-semibold text-gray-700">
+              {userLocation ? '附近服务' : '最新服务'}
+            </h3>
+            <button
+              onClick={() => navigate('/search')}
+              className="text-xs text-primary-600 flex items-center gap-0.5"
+            >
+              查看全部 <ChevronRight size={14} />
+            </button>
+          </div>
+
+          <div className="space-y-3">
+            {recent.map((svc) => (
+              <ServiceCard key={svc.id} service={svc} />
+            ))}
+          </div>
+        </motion.section>
+
+        {/* Post CTA */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.3 }}
+          className="bg-gradient-to-r from-primary-600 to-primary-800 rounded-2xl p-5 mb-8 text-white"
+        >
+          <h3 className="font-bold text-lg mb-1">有技能想接单？</h3>
+          <p className="text-red-100 text-sm mb-3">免费发布您的服务，让附近有需要的客户找到您</p>
+          <button
+            onClick={() => navigate('/post')}
+            className="bg-white text-primary-600 px-5 py-2 rounded-xl text-sm font-semibold hover:bg-red-50 transition-colors active:scale-95"
+          >
+            立即发布服务 →
+          </button>
+        </motion.div>
+      </div>
+    </div>
+  )
+}

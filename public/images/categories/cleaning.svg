@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <rect width="64" height="64" rx="14" fill="#D1FAE5"/>
+  <!-- main sparkle (4-pointed star) -->
+  <path d="M32 10 L36 28 L52 32 L36 36 L32 54 L28 36 L12 32 L28 28 Z" fill="#059669"/>
+  <!-- small sparkle dots -->
+  <circle cx="52" cy="12" r="3" fill="#10B981"/>
+  <circle cx="12" cy="14" r="2" fill="#10B981"/>
+  <circle cx="54" cy="50" r="2" fill="#10B981"/>
+</svg>
