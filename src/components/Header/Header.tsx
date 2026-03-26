@@ -1,46 +1,78 @@
 // ─── Header ───────────────────────────────────────────────────────────────────
 // Sticky navigation bar used on all pages EXCEPT Home.
-// (Home uses HeroBanner which has its own nav row.)
-//
-// Contains: logo (left) | location indicator + post-service button (right)
+// Desktop: logo | 浏览服务 | 成为服务商 | 注册 | 登录
+// Mobile:  logo | ☰ (浏览服务 + 成为服务商) | 注册 | 登录
+import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { ChevronDown } from 'lucide-react'
+import { ChevronDown, Menu, X } from 'lucide-react'
 
 export default function Header() {
   const navigate = useNavigate()
+  const [menuOpen, setMenuOpen] = useState(false)
+  const close = () => setMenuOpen(false)
 
   return (
     <header className="sticky top-0 z-40 bg-white border-b border-gray-200">
-      <div className="w-full px-6 h-14 flex items-center justify-between">
+      <div className="px-4 md:px-6 h-14 flex items-center justify-between">
+
         {/* Logo */}
-        <Link to="/" className="flex items-center gap-2">
+        <Link to="/" onClick={close} className="flex items-center gap-2 flex-shrink-0">
           <div className="w-8 h-8 rounded-full bg-primary-600 flex items-center justify-center text-white font-bold text-sm">
             T
           </div>
         </Link>
 
-        {/* Right nav */}
+        {/* Right side */}
         <div className="flex items-center gap-1">
-          <button className="flex items-center gap-1 text-sm text-gray-600 px-3 py-2 rounded-lg hover:bg-gray-100 transition-colors">
-            浏览服务 <ChevronDown size={14} />
-          </button>
+
+          {/* Desktop-only links */}
+          <div className="hidden md:flex items-center gap-1">
+            <button className="flex items-center gap-1 text-sm text-gray-600 px-3 py-2 rounded-lg hover:bg-gray-100 transition-colors">
+              浏览服务 <ChevronDown size={14} />
+            </button>
+            <button
+              onClick={() => navigate('/post')}
+              className="text-sm text-gray-600 px-3 py-2 rounded-lg hover:bg-gray-100 transition-colors"
+            >
+              成为服务商
+            </button>
+          </div>
+
+          {/* Mobile hamburger (浏览服务 + 成为服务商) */}
           <button
-            onClick={() => navigate('/post')}
-            className="text-sm text-gray-600 px-3 py-2 rounded-lg hover:bg-gray-100 transition-colors"
+            className="md:hidden text-gray-500 p-2 rounded-lg hover:bg-gray-100 transition-colors"
+            onClick={() => setMenuOpen((v) => !v)}
           >
-            成为服务商
+            {menuOpen ? <X size={20} /> : <Menu size={20} />}
           </button>
+
+          {/* Always visible: 注册 + 登录 */}
           <button
-            onClick={() => navigate('/register')}
-            className="text-sm bg-primary-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-primary-700 transition-colors ml-1"
+            onClick={() => { navigate('/register'); close() }}
+            className="text-xs md:text-sm bg-primary-600 text-white px-3 md:px-4 py-2 rounded-lg font-medium hover:bg-primary-700 transition-colors"
           >
             注册
           </button>
-          <button className="text-sm text-gray-600 px-3 py-2 rounded-lg hover:bg-gray-100 transition-colors">
+          <button className="text-xs md:text-sm text-gray-600 px-2 md:px-3 py-2 rounded-lg hover:bg-gray-100 transition-colors">
             登录
           </button>
         </div>
       </div>
+
+      {/* Mobile dropdown */}
+      {menuOpen && (
+        <div className="md:hidden absolute top-14 left-0 right-0 bg-white border-b border-gray-200 shadow-md z-50 flex flex-col px-4 py-2">
+          <button className="flex items-center gap-1 text-sm text-gray-600 px-3 py-3 rounded-lg hover:bg-gray-100 transition-colors text-left">
+            浏览服务 <ChevronDown size={14} />
+          </button>
+          <button
+            onClick={() => { navigate('/post'); close() }}
+            className="text-sm text-gray-600 px-3 py-3 rounded-lg hover:bg-gray-100 transition-colors text-left"
+          >
+            成为服务商
+          </button>
+        </div>
+      )}
     </header>
   )
 }
