@@ -9,6 +9,7 @@
 //   /service/:id    → Service detail view
 //   /post           → Post a new service form
 //   /register       → User registration page
+//   /login          → User login page
 import { Routes, Route } from 'react-router-dom'
 import { AnimatePresence } from 'framer-motion'
 import LoadingScreen from './components/LoadingScreen/LoadingScreen'
@@ -18,6 +19,7 @@ import Search from './pages/Search/Search'
 import ServiceDetail from './pages/ServiceDetail/ServiceDetail'
 import PostService from './pages/PostService/PostService'
 import Register from './pages/Auth/Register'
+import Login from './pages/Auth/Login'
 import { useAppStore } from './store/appStore'
 
 export default function App() {
@@ -38,6 +40,7 @@ export default function App() {
           <Route path="/service/:id" element={<ServiceDetail />} />
           <Route path="/post" element={<PostService />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/login" element={<Login />} />
         </Routes>
       )}
     </>

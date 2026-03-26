@@ -53,7 +53,10 @@ export default function HeroBanner() {
           >
             注册
           </button>
-          <button className="text-xs md:text-sm text-gray-600 px-2 md:px-3 py-2 rounded-lg hover:bg-gray-100 transition-colors">
+          <button
+            onClick={() => { navigate('/login'); close() }}
+            className="text-xs md:text-sm text-gray-600 px-2 md:px-3 py-2 rounded-lg hover:bg-gray-100 transition-colors"
+          >
             登录
           </button>
         </div>
