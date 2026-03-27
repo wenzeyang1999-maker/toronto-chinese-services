@@ -29,10 +29,12 @@ import { supabase } from './lib/supabase'
 
 export default function App() {
   const isLoadingDone = useAppStore((s) => s.isLoadingDone)
+  const fetchServices = useAppStore((s) => s.fetchServices)
   const setUser = useAuthStore((s) => s.setUser)
 
-  // Keep auth state in sync with Supabase session
+  // Keep auth state in sync + fetch services on mount
   useEffect(() => {
+    fetchServices()
     supabase.auth.getSession().then(({ data }) => {
       setUser(data.session?.user ?? null)
     })
@@ -40,7 +42,7 @@ export default function App() {
       setUser(session?.user ?? null)
     })
     return () => subscription.unsubscribe()
-  }, [setUser])
+  }, [setUser, fetchServices])
 
   return (
     <>

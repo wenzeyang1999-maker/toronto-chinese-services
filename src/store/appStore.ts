@@ -6,7 +6,7 @@
 // inside a separate action, then call it on app mount.
 import { create } from 'zustand'
 import type { Service, SearchFilters, ServiceCategory } from '../types'
-import { MOCK_SERVICES } from '../data/mockServices'
+import { supabase } from '../lib/supabase'
 
 interface AppState {
   services: Service[]
@@ -18,6 +18,7 @@ interface AppState {
   setUserLocation: (loc: { lat: number; lng: number } | null) => void
   setSearchFilters: (filters: Partial<SearchFilters>) => void
   addService: (service: Service) => void
+  fetchServices: () => Promise<void>
   getFilteredServices: () => Service[]
   getServicesByCategory: (category: ServiceCategory) => Service[]
 }
@@ -38,8 +39,42 @@ function calcDistance(
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
 }
 
+// Map a Supabase services row to the frontend Service type
+function mapRow(row: any): Service {
+  return {
+    id: row.id,
+    category: (row.category_id ?? 'other') as ServiceCategory,
+    title: row.title,
+    description: row.description,
+    price: row.price?.toString() ?? '0',
+    priceType: row.price_type ?? 'hourly',
+    location: {
+      lat: row.lat ?? 43.6532,
+      lng: row.lng ?? -79.3832,
+      address: row.area ?? 'Toronto',
+      city: row.city ?? 'Toronto',
+      area: row.area,
+    },
+    provider: {
+      id: row.provider?.id ?? row.provider_id,
+      name: row.provider?.name ?? '服务商',
+      phone: row.provider?.phone ?? '',
+      wechat: row.provider?.wechat ?? undefined,
+      rating: 5.0,
+      reviewCount: 0,
+      verified: row.is_verified ?? false,
+      joinedAt: row.created_at?.slice(0, 10) ?? '',
+      languages: ['中文'],
+    },
+    tags: row.tags ?? [],
+    available: row.is_available ?? true,
+    createdAt: row.created_at ?? new Date().toISOString(),
+    updatedAt: row.updated_at ?? new Date().toISOString(),
+  }
+}
+
 export const useAppStore = create<AppState>((set, get) => ({
-  services: MOCK_SERVICES,
+  services: [],
   userLocation: null,
   searchFilters: { sortBy: 'distance' },
   isLoadingDone: false,
@@ -53,9 +88,19 @@ export const useAppStore = create<AppState>((set, get) => ({
       searchFilters: { ...state.searchFilters, ...filters },
     })),
 
-  // Prepends a newly posted service to the list (client-side only)
   addService: (service) =>
     set((state) => ({ services: [service, ...state.services] })),
+
+  fetchServices: async () => {
+    const { data, error } = await supabase
+      .from('services')
+      .select('*, provider:users(id, name, phone, wechat, avatar_url)')
+      .eq('is_available', true)
+      .order('created_at', { ascending: false })
+    if (!error && data) {
+      set({ services: data.map(mapRow) })
+    }
+  },
 
   // Returns services filtered by keyword, category, rating and sorted accordingly.
   // Attaches calculated distance if user location is available.

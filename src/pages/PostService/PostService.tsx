@@ -3,8 +3,10 @@ import { useNavigate } from 'react-router-dom'
 import { ArrowLeft, CheckCircle, Search, ImagePlus, X } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { useAppStore } from '../../store/appStore'
+import { useAuthStore } from '../../store/authStore'
+import { supabase } from '../../lib/supabase'
 import { CATEGORIES } from '../../data/categories'
-import type { Service, PostServiceForm, ServiceCategory } from '../../types'
+import type { PostServiceForm } from '../../types'
 import Header from '../../components/Header/Header'
 
 const TORONTO_AREAS = [
@@ -84,9 +86,12 @@ const INITIAL_FORM: PostServiceForm = {
 
 export default function PostService() {
   const navigate = useNavigate()
-  const addService = useAppStore((s) => s.addService)
+  const fetchServices = useAppStore((s) => s.fetchServices)
+  const user = useAuthStore((s) => s.user)
   const [form, setForm] = useState<PostServiceForm>(INITIAL_FORM)
   const [submitted, setSubmitted] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [submitError, setSubmitError] = useState('')
   const [errors, setErrors] = useState<Partial<PostServiceForm>>({})
   const [catSearch, setCatSearch]         = useState('')
   const [areaSearch, setAreaSearch]       = useState('')
@@ -169,7 +174,7 @@ export default function PostService() {
     return errs
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     const errs = validate()
     if (Object.keys(errs).length > 0) {
@@ -177,41 +182,66 @@ export default function PostService() {
       return
     }
 
-    const newService: Service = {
-      id: `u_${Date.now()}`,
-      category: form.category as ServiceCategory,
-      title: form.title.trim(),
-      description: form.description.trim(),
-      price: form.price || '0',
-      priceType: form.priceType,
-      location: {
-        lat: 43.6532 + (Math.random() - 0.5) * 0.3,
-        lng: -79.3832 + (Math.random() - 0.5) * 0.3,
-        address: selectedAreas.join(', ') || 'Toronto',
-        city: 'Toronto',
-        area: selectedAreas[0] || 'Toronto',
-      },
-      provider: {
-        id: `up_${Date.now()}`,
-        name: form.name.trim(),
-        phone: form.phone.trim(),
-        wechat: form.wechat?.trim() || undefined,
-        rating: 5.0,
-        reviewCount: 0,
-        verified: false,
-        joinedAt: new Date().toISOString().slice(0, 10),
-        languages: ['中文'],
-      },
-      tags: form.tags
-        ? form.tags.split(/[,，\s]+/).filter(Boolean)
-        : [],
-      available: true,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
+    if (!user) {
+      navigate('/login')
+      return
     }
 
-    addService(newService)
-    setSubmitted(true)
+    setIsSubmitting(true)
+    setSubmitError('')
+    try {
+      // 1. Update user's contact info in users table
+      await supabase.from('users').upsert({
+        id: user.id,
+        name: form.name.trim(),
+        phone: form.phone.trim(),
+        wechat: form.wechat?.trim() || null,
+      })
+
+      // 2. Upload images to Supabase Storage
+      const imageUrls: string[] = []
+      for (const file of images) {
+        const ext = file.name.split('.').pop()
+        const path = `${user.id}/${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`
+        const { error: uploadError } = await supabase.storage
+          .from('service-images')
+          .upload(path, file, { upsert: false })
+        if (!uploadError) {
+          const { data: { publicUrl } } = supabase.storage
+            .from('service-images')
+            .getPublicUrl(path)
+          imageUrls.push(publicUrl)
+        }
+      }
+
+      // 3. Insert service into Supabase
+      const { error } = await supabase.from('services').insert({
+        category_id: form.category,
+        title: form.title.trim(),
+        description: form.description.trim(),
+        price: form.priceType === 'negotiable' ? 0 : parseFloat(form.price) || 0,
+        price_type: form.priceType,
+        lat: 43.6532,
+        lng: -79.3832,
+        area: selectedAreas.join(', ') || 'Toronto',
+        city: 'Toronto',
+        provider_id: user.id,
+        tags: form.tags ? form.tags.split(/[,，\s]+/).filter(Boolean) : [],
+        images: imageUrls,
+        is_available: true,
+        is_verified: false,
+      })
+
+      if (error) throw error
+
+      // 4. Refresh services list
+      await fetchServices()
+      setSubmitted(true)
+    } catch (err: any) {
+      setSubmitError(err?.message ?? '发布失败，请稍后重试')
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   if (submitted) {
@@ -581,12 +611,17 @@ export default function PostService() {
             </div>
           </div>
 
+          {submitError && (
+            <p className="text-sm text-red-500 text-center">{submitError}</p>
+          )}
+
           <motion.button
             type="submit"
-            whileTap={{ scale: 0.97 }}
-            className="w-full btn-primary py-4 text-base rounded-2xl"
+            disabled={isSubmitting}
+            whileTap={{ scale: isSubmitting ? 1 : 0.97 }}
+            className="w-full btn-primary py-4 text-base rounded-2xl disabled:opacity-60"
           >
-            免费发布服务
+            {isSubmitting ? '发布中...' : '免费发布服务'}
           </motion.button>
 
           <p className="text-xs text-center text-gray-400">
