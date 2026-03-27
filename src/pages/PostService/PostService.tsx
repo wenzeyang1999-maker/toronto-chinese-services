@@ -259,7 +259,7 @@ export default function PostService() {
               {/* 其他服务 */}
               <button
                 type="button"
-                onClick={() => { update('category', 'other'); scrollTo(serviceInfoRef) }}
+                onClick={() => update('category', 'other')}
                 className={`flex flex-col items-center gap-1 sm:gap-1.5 py-2 sm:p-3 rounded-xl border-2 transition-all ${
                   form.category === 'other'
                     ? 'border-primary-500 bg-gray-50'
