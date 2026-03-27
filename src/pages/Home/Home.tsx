@@ -29,16 +29,19 @@ export default function Home() {
 
       {/* Search bar — scrolls normally */}
       <div className="w-full bg-primary-700 px-6 py-4">
-        <div className="flex items-center gap-1.5 mb-2">
-          <MapPin size={12} className="text-blue-200" />
-          <span className="text-blue-200 text-xs">
-            {userLocation ? '已获取您的位置' : '大多伦多地区'}
-          </span>
+        <div className="max-w-2xl mx-auto">
+          <div className="flex items-center gap-1.5 mb-2">
+            <MapPin size={12} className="text-blue-200" />
+            <span className="text-blue-200 text-xs">
+              {userLocation ? '已获取您的位置' : '大多伦多地区'}
+            </span>
+          </div>
+          <SearchBar />
         </div>
-        <SearchBar />
       </div>
 
-      <div className="relative z-10 w-full px-6 bg-gray-50 rounded-t-3xl pt-6">
+      <div className="relative z-10 w-full bg-gray-50 rounded-t-3xl pt-6">
+      <div className="max-w-2xl mx-auto px-6">
         {/* Category buttons */}
         <motion.section
           initial={{ opacity: 0, y: 20 }}
@@ -92,6 +95,7 @@ export default function Home() {
             立即发布服务 →
           </button>
         </motion.div>
+      </div>
       </div>
     </div>
   )
