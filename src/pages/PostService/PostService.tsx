@@ -38,7 +38,14 @@ export default function PostService() {
   const [customCategory, setCustomCategory] = useState('')
   const [images, setImages] = useState<File[]>([])
   const [previews, setPreviews] = useState<string[]>([])
-  const fileInputRef = useRef<HTMLInputElement>(null)
+  const fileInputRef   = useRef<HTMLInputElement>(null)
+  const serviceInfoRef = useRef<HTMLDivElement>(null)
+  const contactRef     = useRef<HTMLDivElement>(null)
+  const areaRef        = useRef<HTMLDivElement>(null)
+
+  const scrollTo = (ref: React.RefObject<HTMLDivElement>) => {
+    setTimeout(() => ref.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100)
+  }
 
   const handleImageAdd = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files ?? [])
@@ -201,7 +208,7 @@ export default function PostService() {
                 <button
                   key={cat.id}
                   type="button"
-                  onClick={() => update('category', cat.id)}
+                  onClick={() => { update('category', cat.id); scrollTo(serviceInfoRef) }}
                   className={`flex flex-col items-center gap-1 sm:gap-1.5 py-2 sm:p-3 rounded-xl border-2 transition-all ${
                     form.category === cat.id
                       ? `border-primary-500 ${cat.bgColor}`
@@ -219,7 +226,7 @@ export default function PostService() {
               {/* 其他服务 */}
               <button
                 type="button"
-                onClick={() => update('category', 'other')}
+                onClick={() => { update('category', 'other'); scrollTo(serviceInfoRef) }}
                 className={`flex flex-col items-center gap-1 sm:gap-1.5 py-2 sm:p-3 rounded-xl border-2 transition-all ${
                   form.category === 'other'
                     ? 'border-primary-500 bg-gray-50'
@@ -246,7 +253,7 @@ export default function PostService() {
           </div>
 
           {/* Service info */}
-          <div className="card p-4 space-y-4">
+          <div ref={serviceInfoRef} className="card p-4 space-y-4">
             <h3 className="text-sm font-semibold text-gray-700">服务信息</h3>
 
             <Field label="服务标题" required error={errors.title}>
@@ -356,13 +363,14 @@ export default function PostService() {
                 className="input-base"
                 value={form.tags}
                 onChange={(e) => update('tags', e.target.value)}
+                onBlur={() => scrollTo(contactRef)}
                 placeholder="例：本地搬家, 打包服务, 有货车"
               />
             </Field>
           </div>
 
           {/* Contact */}
-          <div className="card p-4 space-y-4">
+          <div ref={contactRef} className="card p-4 space-y-4">
             <h3 className="text-sm font-semibold text-gray-700">联系方式</h3>
 
             <Field label="联系人姓名" required error={errors.name}>
@@ -389,13 +397,14 @@ export default function PostService() {
                 className="input-base"
                 value={form.wechat}
                 onChange={(e) => update('wechat', e.target.value)}
+                onBlur={() => scrollTo(areaRef)}
                 placeholder="您的微信号"
               />
             </Field>
           </div>
 
           {/* Area */}
-          <div className="card p-4">
+          <div ref={areaRef} className="card p-4">
             <h3 className="text-sm font-semibold text-gray-700 mb-3">服务区域</h3>
             <select
               className="input-base"
