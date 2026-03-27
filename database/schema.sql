@@ -53,7 +53,8 @@ INSERT INTO categories (id, label, description, image_path, sort_order) VALUES
   ('ride',        '找接送', '机场接送、包车、顺风车',         '/images/categories/ride.svg',         3),
   ('renovation',  '找装修', '室内装修、水电维修、家具安装',   '/images/categories/renovation.svg',  4),
   ('cashwork',    '现金工', '临时工作、日结工资、灵活就业',   '/images/categories/cashwork.svg',    5),
-  ('food',        '找餐饮', '私房菜、外卖配送、厨师上门',     '/images/categories/food.svg',         6)
+  ('food',        '找餐饮', '私房菜、外卖配送、厨师上门',     '/images/categories/food.svg',         6),
+  ('other',       '其他服务', '其他类型服务',                 NULL,                                  7)
 ON CONFLICT (id) DO NOTHING;
 
 
@@ -79,12 +80,17 @@ CREATE TABLE IF NOT EXISTS services (
   lat             NUMERIC(10,7),
   lng             NUMERIC(10,7),
 
+  images          TEXT[]        DEFAULT '{}',
+
   is_available    BOOLEAN       DEFAULT true,
   is_verified     BOOLEAN       DEFAULT false,
 
   created_at      TIMESTAMPTZ   DEFAULT NOW(),
   updated_at      TIMESTAMPTZ   DEFAULT NOW()
 );
+
+-- Add images column to existing tables (safe to run if column already exists)
+ALTER TABLE services ADD COLUMN IF NOT EXISTS images TEXT[] DEFAULT '{}';
 
 CREATE INDEX IF NOT EXISTS idx_services_provider   ON services (provider_id);
 CREATE INDEX IF NOT EXISTS idx_services_category   ON services (category_id);
@@ -185,10 +191,12 @@ DO $$ BEGIN
 EXCEPTION WHEN duplicate_object THEN NULL;
 END $$;
 
+-- Public read — needed so service cards can display provider name/phone via join.
+-- Any logged-in or anonymous user can read basic user info.
 DO $$ BEGIN
-  CREATE POLICY "users can read own profile"
+  CREATE POLICY "public can read all users"
     ON users FOR SELECT
-    USING (auth.uid() = id);
+    USING (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END $$;
 

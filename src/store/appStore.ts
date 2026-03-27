@@ -67,6 +67,7 @@ function mapRow(row: any): Service {
       languages: ['中文'],
     },
     tags: row.tags ?? [],
+    images: row.images ?? [],
     available: row.is_available ?? true,
     createdAt: row.created_at ?? new Date().toISOString(),
     updatedAt: row.updated_at ?? new Date().toISOString(),
