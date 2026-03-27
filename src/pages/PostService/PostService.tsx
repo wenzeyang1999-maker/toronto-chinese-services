@@ -1,6 +1,6 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ArrowLeft, CheckCircle, Search } from 'lucide-react'
+import { ArrowLeft, CheckCircle, Search, ImagePlus, X } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { useAppStore } from '../../store/appStore'
 import { CATEGORIES } from '../../data/categories'
@@ -36,6 +36,24 @@ export default function PostService() {
   const [errors, setErrors] = useState<Partial<PostServiceForm>>({})
   const [catSearch, setCatSearch] = useState('')
   const [customCategory, setCustomCategory] = useState('')
+  const [images, setImages] = useState<File[]>([])
+  const [previews, setPreviews] = useState<string[]>([])
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const handleImageAdd = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files ?? [])
+    const remaining = 3 - images.length
+    const toAdd = files.slice(0, remaining)
+    setImages((prev) => [...prev, ...toAdd])
+    setPreviews((prev) => [...prev, ...toAdd.map((f) => URL.createObjectURL(f))])
+    e.target.value = ''
+  }
+
+  const handleImageRemove = (index: number) => {
+    URL.revokeObjectURL(previews[index])
+    setImages((prev) => prev.filter((_, i) => i !== index))
+    setPreviews((prev) => prev.filter((_, i) => i !== index))
+  }
 
   const update = (field: keyof PostServiceForm, value: string) => {
     setForm((f) => ({ ...f, [field]: value }))
@@ -251,6 +269,45 @@ export default function PostService() {
               />
               <p className="text-xs text-gray-400 text-right mt-0.5">{form.description.length}/500</p>
             </Field>
+
+            {/* Images */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                服务图片 <span className="text-gray-400 font-normal">（最多 3 张）</span>
+              </label>
+              <div className="flex gap-2">
+                {previews.map((src, i) => (
+                  <div key={i} className="relative w-24 h-24 rounded-xl overflow-hidden border border-gray-200 flex-shrink-0">
+                    <img src={src} alt="" className="w-full h-full object-cover" />
+                    <button
+                      type="button"
+                      onClick={() => handleImageRemove(i)}
+                      className="absolute top-1 right-1 w-5 h-5 bg-black/50 rounded-full flex items-center justify-center text-white hover:bg-black/70"
+                    >
+                      <X size={11} />
+                    </button>
+                  </div>
+                ))}
+                {images.length < 3 && (
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="w-24 h-24 rounded-xl border-2 border-dashed border-gray-300 flex flex-col items-center justify-center gap-1 text-gray-400 hover:border-primary-400 hover:text-primary-500 transition-colors flex-shrink-0"
+                  >
+                    <ImagePlus size={22} />
+                    <span className="text-xs">{previews.length === 0 ? '添加图片' : '继续添加'}</span>
+                  </button>
+                )}
+              </div>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                multiple
+                className="hidden"
+                onChange={handleImageAdd}
+              />
+            </div>
 
             {/* Price */}
             <div>
