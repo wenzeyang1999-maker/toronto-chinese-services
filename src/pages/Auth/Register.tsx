@@ -65,6 +65,7 @@ export default function Register() {
   const [termsError, setTermsError]             = useState(false)
   const [loading, setLoading]                   = useState(false)
   const [serverError, setServerError]           = useState<string | null>(null)
+  const [emailExists, setEmailExists]           = useState(false)
   const [success, setSuccess]                   = useState(false)
 
   const update = (field: keyof RegisterForm, value: string) => {
@@ -84,6 +85,7 @@ export default function Register() {
 
     setLoading(true)
     setServerError(null)
+    setEmailExists(false)
 
     // Create auth user — the DB trigger handle_new_user() will automatically
     // insert into public.users using SECURITY DEFINER (bypasses RLS).
@@ -96,7 +98,12 @@ export default function Register() {
     })
 
     if (authError) {
-      setServerError(authError.message)
+      const msg = authError.message.toLowerCase()
+      if (msg.includes('already registered') || msg.includes('already exists') || msg.includes('user already')) {
+        setEmailExists(true)
+      } else {
+        setServerError(authError.message)
+      }
       setLoading(false)
       return
     }
@@ -262,6 +269,16 @@ export default function Register() {
             </div>
             {termsError && (
               <p className="text-xs text-red-500 -mt-2">请先同意服务条款</p>
+            )}
+
+            {/* Duplicate email */}
+            {emailExists && (
+              <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 text-xs rounded-xl px-4 py-3">
+                此邮箱已注册。{' '}
+                <Link to="/login" className="font-medium underline">
+                  立即登录
+                </Link>
+              </div>
             )}
 
             {/* Server error */}

@@ -58,7 +58,12 @@ export default function Login() {
     setLoading(false)
 
     if (error) {
-      setServerError('邮箱或密码不正确，请重试')
+      const msg = error.message.toLowerCase()
+      if (msg.includes('email not confirmed')) {
+        setServerError('邮箱尚未验证，请查收注册邮件并点击验证链接后再登录')
+      } else {
+        setServerError('邮箱或密码不正确，请重试')
+      }
       return
     }
 
