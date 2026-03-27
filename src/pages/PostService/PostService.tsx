@@ -34,9 +34,27 @@ export default function PostService() {
   const [form, setForm] = useState<PostServiceForm>(INITIAL_FORM)
   const [submitted, setSubmitted] = useState(false)
   const [errors, setErrors] = useState<Partial<PostServiceForm>>({})
-  const [catSearch, setCatSearch]       = useState('')
-  const [areaSearch, setAreaSearch]     = useState('')
+  const [catSearch, setCatSearch]         = useState('')
+  const [areaSearch, setAreaSearch]       = useState('')
+  const [areaDropdownOpen, setAreaDropdownOpen] = useState(false)
   const [selectedAreas, setSelectedAreas] = useState<string[]>([])
+
+  const HOT_AREAS = ['North York', 'Markham', 'Scarborough', 'Richmond Hill', 'Mississauga', 'Downtown Toronto', 'Vaughan']
+
+  const toggleArea = (a: string) =>
+    setSelectedAreas((prev) => prev.includes(a) ? prev.filter((x) => x !== a) : [...prev, a])
+
+  const confirmAreaInput = () => {
+    const val = areaSearch.trim()
+    if (!val) return
+    if (!selectedAreas.includes(val)) setSelectedAreas((prev) => [...prev, val])
+    setAreaSearch('')
+    setAreaDropdownOpen(false)
+  }
+
+  const filteredAreas = areaSearch
+    ? TORONTO_AREAS.filter((a) => a.toLowerCase().includes(areaSearch.toLowerCase()) && !selectedAreas.includes(a))
+    : []
   const [customCategory, setCustomCategory] = useState('')
   const [confirmedCustom, setConfirmedCustom] = useState('')
 
@@ -439,54 +457,55 @@ export default function PostService() {
           <div ref={areaRef} className="card p-4">
             <h3 className="text-sm font-semibold text-gray-700 mb-3">服务区域</h3>
 
-            {/* Selected tags */}
-            {selectedAreas.length > 0 && (
-              <div className="flex flex-wrap gap-2 mb-3">
-                {selectedAreas.map((a) => (
-                  <span
-                    key={a}
-                    className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary-50 border border-primary-300 text-primary-600 text-xs font-medium"
-                  >
-                    {a}
-                    <button
-                      type="button"
-                      onClick={() => setSelectedAreas((prev) => prev.filter((x) => x !== a))}
-                      className="text-primary-400 hover:text-red-400"
-                    >
-                      <X size={11} />
-                    </button>
-                  </span>
-                ))}
-              </div>
-            )}
-
-            {/* Search */}
-            <div className="relative mb-3">
-              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            {/* Search input + selected tags inline */}
+            <div className="flex flex-wrap items-center gap-2 border border-gray-200 rounded-xl px-3 py-2 focus-within:ring-2 focus-within:ring-primary-400 focus-within:border-transparent bg-white mb-3 relative">
+              {selectedAreas.map((a) => (
+                <span key={a} className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-primary-50 border border-primary-300 text-primary-600 text-xs font-medium flex-shrink-0">
+                  {a}
+                  <button type="button" onClick={() => toggleArea(a)} className="text-primary-400 hover:text-red-400">
+                    <X size={10} />
+                  </button>
+                </span>
+              ))}
               <input
                 type="text"
                 value={areaSearch}
-                onChange={(e) => setAreaSearch(e.target.value)}
-                placeholder="搜索区域..."
-                className="w-full pl-8 pr-3 py-2 text-sm border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-primary-400 focus:border-transparent"
+                onChange={(e) => { setAreaSearch(e.target.value); setAreaDropdownOpen(true) }}
+                onFocus={() => setAreaDropdownOpen(true)}
+                onBlur={() => setTimeout(() => setAreaDropdownOpen(false), 150)}
+                onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), confirmAreaInput())}
+                placeholder={selectedAreas.length === 0 ? '搜索或输入区域，Enter 确认...' : '继续添加...'}
+                className="flex-1 min-w-[120px] text-sm outline-none bg-transparent"
               />
+
+              {/* Dropdown */}
+              {areaDropdownOpen && filteredAreas.length > 0 && (
+                <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg z-20 max-h-48 overflow-y-auto">
+                  {filteredAreas.map((a) => (
+                    <button
+                      key={a}
+                      type="button"
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={() => { toggleArea(a); setAreaSearch(''); setAreaDropdownOpen(false) }}
+                      className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-primary-50 hover:text-primary-600 transition-colors"
+                    >
+                      {a}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
 
-            {/* Area grid */}
+            {/* Hot areas */}
+            <p className="text-xs text-gray-400 mb-2">热门地区</p>
             <div className="flex flex-wrap gap-2">
-              {TORONTO_AREAS.filter((a) =>
-                areaSearch === '' || a.toLowerCase().includes(areaSearch.toLowerCase())
-              ).map((a) => {
+              {HOT_AREAS.map((a) => {
                 const selected = selectedAreas.includes(a)
                 return (
                   <button
                     key={a}
                     type="button"
-                    onClick={() =>
-                      setSelectedAreas((prev) =>
-                        selected ? prev.filter((x) => x !== a) : [...prev, a]
-                      )
-                    }
+                    onClick={() => toggleArea(a)}
                     className={`px-3 py-1.5 rounded-full border text-xs font-medium transition-all ${
                       selected
                         ? 'bg-primary-50 border-primary-400 text-primary-600'
