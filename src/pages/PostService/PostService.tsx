@@ -192,7 +192,7 @@ export default function PostService() {
               />
             </div>
 
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-3 sm:grid-cols-3 gap-2">
               {CATEGORIES.filter((cat) =>
                 catSearch === '' ||
                 cat.postLabel.includes(catSearch) ||
@@ -202,13 +202,14 @@ export default function PostService() {
                   key={cat.id}
                   type="button"
                   onClick={() => update('category', cat.id)}
-                  className={`flex flex-col items-center gap-1.5 p-3 rounded-xl border-2 transition-all ${
+                  className={`flex flex-col items-center gap-1 sm:gap-1.5 py-2 sm:p-3 rounded-xl border-2 transition-all ${
                     form.category === cat.id
                       ? `border-primary-500 ${cat.bgColor}`
                       : 'border-gray-200 bg-white hover:border-gray-300'
                   }`}
                 >
-                  <img src={cat.image} alt={cat.postLabel} className="w-8 h-8 object-contain" />
+                  {/* Icon — hidden on mobile */}
+                  <img src={cat.image} alt={cat.postLabel} className="hidden sm:block w-8 h-8 object-contain" />
                   <span className={`text-xs font-medium ${form.category === cat.id ? cat.color : 'text-gray-600'}`}>
                     {cat.postLabel}
                   </span>
@@ -219,13 +220,13 @@ export default function PostService() {
               <button
                 type="button"
                 onClick={() => update('category', 'other')}
-                className={`flex flex-col items-center gap-1.5 p-3 rounded-xl border-2 transition-all ${
+                className={`flex flex-col items-center gap-1 sm:gap-1.5 py-2 sm:p-3 rounded-xl border-2 transition-all ${
                   form.category === 'other'
                     ? 'border-primary-500 bg-gray-50'
                     : 'border-gray-200 bg-white hover:border-gray-300'
                 }`}
               >
-                <span className="text-2xl">＋</span>
+                <span className="hidden sm:block text-2xl">＋</span>
                 <span className={`text-xs font-medium ${form.category === 'other' ? 'text-primary-600' : 'text-gray-600'}`}>
                   其他服务
                 </span>
