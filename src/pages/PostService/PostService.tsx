@@ -34,7 +34,9 @@ export default function PostService() {
   const [form, setForm] = useState<PostServiceForm>(INITIAL_FORM)
   const [submitted, setSubmitted] = useState(false)
   const [errors, setErrors] = useState<Partial<PostServiceForm>>({})
-  const [catSearch, setCatSearch] = useState('')
+  const [catSearch, setCatSearch]       = useState('')
+  const [areaSearch, setAreaSearch]     = useState('')
+  const [selectedAreas, setSelectedAreas] = useState<string[]>([])
   const [customCategory, setCustomCategory] = useState('')
   const [confirmedCustom, setConfirmedCustom] = useState('')
 
@@ -105,9 +107,9 @@ export default function PostService() {
       location: {
         lat: 43.6532 + (Math.random() - 0.5) * 0.3,
         lng: -79.3832 + (Math.random() - 0.5) * 0.3,
-        address: form.area,
+        address: selectedAreas.join(', ') || 'Toronto',
         city: 'Toronto',
-        area: form.area,
+        area: selectedAreas[0] || 'Toronto',
       },
       provider: {
         id: `up_${Date.now()}`,
@@ -436,15 +438,66 @@ export default function PostService() {
           {/* Area */}
           <div ref={areaRef} className="card p-4">
             <h3 className="text-sm font-semibold text-gray-700 mb-3">服务区域</h3>
-            <select
-              className="input-base"
-              value={form.area}
-              onChange={(e) => update('area', e.target.value)}
-            >
-              {TORONTO_AREAS.map((a) => (
-                <option key={a} value={a}>{a}</option>
-              ))}
-            </select>
+
+            {/* Selected tags */}
+            {selectedAreas.length > 0 && (
+              <div className="flex flex-wrap gap-2 mb-3">
+                {selectedAreas.map((a) => (
+                  <span
+                    key={a}
+                    className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary-50 border border-primary-300 text-primary-600 text-xs font-medium"
+                  >
+                    {a}
+                    <button
+                      type="button"
+                      onClick={() => setSelectedAreas((prev) => prev.filter((x) => x !== a))}
+                      className="text-primary-400 hover:text-red-400"
+                    >
+                      <X size={11} />
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
+
+            {/* Search */}
+            <div className="relative mb-3">
+              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+              <input
+                type="text"
+                value={areaSearch}
+                onChange={(e) => setAreaSearch(e.target.value)}
+                placeholder="搜索区域..."
+                className="w-full pl-8 pr-3 py-2 text-sm border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-primary-400 focus:border-transparent"
+              />
+            </div>
+
+            {/* Area grid */}
+            <div className="flex flex-wrap gap-2">
+              {TORONTO_AREAS.filter((a) =>
+                areaSearch === '' || a.toLowerCase().includes(areaSearch.toLowerCase())
+              ).map((a) => {
+                const selected = selectedAreas.includes(a)
+                return (
+                  <button
+                    key={a}
+                    type="button"
+                    onClick={() =>
+                      setSelectedAreas((prev) =>
+                        selected ? prev.filter((x) => x !== a) : [...prev, a]
+                      )
+                    }
+                    className={`px-3 py-1.5 rounded-full border text-xs font-medium transition-all ${
+                      selected
+                        ? 'bg-primary-50 border-primary-400 text-primary-600'
+                        : 'bg-white border-gray-200 text-gray-600 hover:border-gray-400'
+                    }`}
+                  >
+                    {a}
+                  </button>
+                )
+              })}
+            </div>
           </div>
 
           <motion.button
