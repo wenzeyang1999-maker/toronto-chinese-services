@@ -36,6 +36,16 @@ export default function PostService() {
   const [errors, setErrors] = useState<Partial<PostServiceForm>>({})
   const [catSearch, setCatSearch] = useState('')
   const [customCategory, setCustomCategory] = useState('')
+  const [confirmedCustom, setConfirmedCustom] = useState('')
+
+  const confirmCustom = () => {
+    const val = customCategory.trim()
+    if (!val) return
+    setConfirmedCustom(val)
+    setCustomCategory('')
+    update('category', 'other')
+    scrollTo(serviceInfoRef)
+  }
   const [images, setImages] = useState<File[]>([])
   const [previews, setPreviews] = useState<string[]>([])
   const fileInputRef   = useRef<HTMLInputElement>(null)
@@ -199,6 +209,29 @@ export default function PostService() {
               />
             </div>
 
+            {/* Confirmed custom tag */}
+            {confirmedCustom && (
+              <div className="flex flex-wrap gap-2 mb-3">
+                <button
+                  type="button"
+                  onClick={() => update('category', 'other')}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border-2 text-xs font-medium transition-all ${
+                    form.category === 'other'
+                      ? 'border-primary-500 bg-primary-50 text-primary-600'
+                      : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'
+                  }`}
+                >
+                  {confirmedCustom}
+                  <span
+                    onClick={(e) => { e.stopPropagation(); setConfirmedCustom(''); update('category', 'moving') }}
+                    className="text-gray-400 hover:text-red-400 leading-none"
+                  >
+                    ✕
+                  </span>
+                </button>
+              </div>
+            )}
+
             <div className="grid grid-cols-3 sm:grid-cols-3 gap-2">
               {CATEGORIES.filter((cat) =>
                 catSearch === '' ||
@@ -240,13 +273,16 @@ export default function PostService() {
               </button>
             </div>
 
-            {/* Custom category input */}
-            {form.category === 'other' && (
+            {/* Custom category input — shown when 其他 selected and not yet confirmed */}
+            {form.category === 'other' && !confirmedCustom && (
               <input
                 type="text"
                 value={customCategory}
                 onChange={(e) => setCustomCategory(e.target.value)}
-                placeholder="请输入您的服务类型，例：钢琴教学、翻译"
+                onBlur={confirmCustom}
+                onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), confirmCustom())}
+                placeholder="输入服务类型，按 Enter 确认，例：钢琴教学、翻译"
+                autoFocus
                 className="mt-3 w-full px-4 py-2.5 text-sm border border-primary-300 rounded-xl outline-none focus:ring-2 focus:ring-primary-400 focus:border-transparent"
               />
             )}
