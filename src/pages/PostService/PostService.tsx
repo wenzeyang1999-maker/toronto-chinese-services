@@ -44,7 +44,7 @@ export default function PostService() {
     setConfirmedCustom(val)
     setCustomCategory('')
     update('category', 'other')
-    scrollTo(serviceInfoRef)
+    setTimeout(() => scrollTo(serviceInfoRef), 400)
   }
   const [images, setImages] = useState<File[]>([])
   const [previews, setPreviews] = useState<string[]>([])
@@ -275,16 +275,24 @@ export default function PostService() {
 
             {/* Custom category input — shown when 其他 selected and not yet confirmed */}
             {form.category === 'other' && !confirmedCustom && (
-              <input
-                type="text"
-                value={customCategory}
-                onChange={(e) => setCustomCategory(e.target.value)}
-                onBlur={confirmCustom}
-                onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), confirmCustom())}
-                placeholder="输入服务类型，按 Enter 确认，例：钢琴教学、翻译"
-                autoFocus
-                className="mt-3 w-full px-4 py-2.5 text-sm border border-primary-300 rounded-xl outline-none focus:ring-2 focus:ring-primary-400 focus:border-transparent"
-              />
+              <div className="mt-3 flex gap-2">
+                <input
+                  type="text"
+                  value={customCategory}
+                  onChange={(e) => setCustomCategory(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), confirmCustom())}
+                  placeholder="例：钢琴教学、翻译"
+                  autoFocus
+                  className="flex-1 px-4 py-2.5 text-sm border border-primary-300 rounded-xl outline-none focus:ring-2 focus:ring-primary-400 focus:border-transparent"
+                />
+                <button
+                  type="button"
+                  onClick={confirmCustom}
+                  className="px-4 py-2.5 bg-primary-600 text-white text-sm font-medium rounded-xl hover:bg-primary-700 transition-colors flex-shrink-0"
+                >
+                  确认
+                </button>
+              </div>
             )}
           </div>
 
