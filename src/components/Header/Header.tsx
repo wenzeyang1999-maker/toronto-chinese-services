@@ -4,12 +4,14 @@
 // Mobile:  logo | ☰ (浏览服务 + 成为服务商) | 注册 | 登录
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { ChevronDown, Menu, X } from 'lucide-react'
+import { ChevronDown, Menu, X, UserCircle } from 'lucide-react'
+import { useAuthStore } from '../../store/authStore'
 
 export default function Header() {
   const navigate = useNavigate()
   const [menuOpen, setMenuOpen] = useState(false)
   const close = () => setMenuOpen(false)
+  const user = useAuthStore((s) => s.user)
 
   return (
     <header className="sticky top-0 z-40 bg-white border-b border-gray-200">
@@ -46,19 +48,31 @@ export default function Header() {
             {menuOpen ? <X size={20} /> : <Menu size={20} />}
           </button>
 
-          {/* Always visible: 注册 + 登录 */}
-          <button
-            onClick={() => { navigate('/register'); close() }}
-            className="text-xs md:text-sm bg-primary-600 text-white px-3 md:px-4 py-2 rounded-lg font-medium hover:bg-primary-700 transition-colors"
-          >
-            注册
-          </button>
-          <button
-            onClick={() => { navigate('/login'); close() }}
-            className="text-xs md:text-sm text-gray-600 px-2 md:px-3 py-2 rounded-lg hover:bg-gray-100 transition-colors"
-          >
-            登录
-          </button>
+          {/* Auth buttons */}
+          {user ? (
+            <button
+              onClick={() => { navigate('/profile'); close() }}
+              className="flex items-center gap-1.5 text-xs md:text-sm text-gray-700 px-3 py-2 rounded-lg hover:bg-gray-100 transition-colors font-medium"
+            >
+              <UserCircle size={18} />
+              我的
+            </button>
+          ) : (
+            <>
+              <button
+                onClick={() => { navigate('/register'); close() }}
+                className="text-xs md:text-sm bg-primary-600 text-white px-3 md:px-4 py-2 rounded-lg font-medium hover:bg-primary-700 transition-colors"
+              >
+                注册
+              </button>
+              <button
+                onClick={() => { navigate('/login'); close() }}
+                className="text-xs md:text-sm text-gray-600 px-2 md:px-3 py-2 rounded-lg hover:bg-gray-100 transition-colors"
+              >
+                登录
+              </button>
+            </>
+          )}
         </div>
       </div>
 

@@ -10,6 +10,8 @@
 //   /post           → Post a new service form
 //   /register       → User registration page
 //   /login          → User login page
+//   /profile        → User profile page
+import { useEffect } from 'react'
 import { Routes, Route } from 'react-router-dom'
 import { AnimatePresence } from 'framer-motion'
 import LoadingScreen from './components/LoadingScreen/LoadingScreen'
@@ -20,10 +22,25 @@ import ServiceDetail from './pages/ServiceDetail/ServiceDetail'
 import PostService from './pages/PostService/PostService'
 import Register from './pages/Auth/Register'
 import Login from './pages/Auth/Login'
+import Profile from './pages/Profile/Profile'
 import { useAppStore } from './store/appStore'
+import { useAuthStore } from './store/authStore'
+import { supabase } from './lib/supabase'
 
 export default function App() {
   const isLoadingDone = useAppStore((s) => s.isLoadingDone)
+  const setUser = useAuthStore((s) => s.setUser)
+
+  // Keep auth state in sync with Supabase session
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => {
+      setUser(data.session?.user ?? null)
+    })
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null)
+    })
+    return () => subscription.unsubscribe()
+  }, [setUser])
 
   return (
     <>
@@ -41,6 +58,7 @@ export default function App() {
           <Route path="/post" element={<PostService />} />
           <Route path="/register" element={<Register />} />
           <Route path="/login" element={<Login />} />
+          <Route path="/profile" element={<Profile />} />
         </Routes>
       )}
     </>
