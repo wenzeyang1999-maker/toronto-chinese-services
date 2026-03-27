@@ -5,6 +5,7 @@ export type ServiceCategory =
   | 'renovation'
   | 'cashwork'
   | 'food'
+  | 'other'
 
 export interface Location {
   lat: number

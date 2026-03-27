@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ArrowLeft, CheckCircle } from 'lucide-react'
+import { ArrowLeft, CheckCircle, Search } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { useAppStore } from '../../store/appStore'
 import { CATEGORIES } from '../../data/categories'
@@ -34,6 +34,8 @@ export default function PostService() {
   const [form, setForm] = useState<PostServiceForm>(INITIAL_FORM)
   const [submitted, setSubmitted] = useState(false)
   const [errors, setErrors] = useState<Partial<PostServiceForm>>({})
+  const [catSearch, setCatSearch] = useState('')
+  const [customCategory, setCustomCategory] = useState('')
 
   const update = (field: keyof PostServiceForm, value: string) => {
     setForm((f) => ({ ...f, [field]: value }))
@@ -159,8 +161,25 @@ export default function PostService() {
           {/* Category */}
           <div className="card p-4">
             <h3 className="text-sm font-semibold text-gray-700 mb-3">服务类型 *</h3>
+
+            {/* Search */}
+            <div className="relative mb-3">
+              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+              <input
+                type="text"
+                value={catSearch}
+                onChange={(e) => setCatSearch(e.target.value)}
+                placeholder="搜索服务类型..."
+                className="w-full pl-8 pr-3 py-2 text-sm border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-primary-400 focus:border-transparent"
+              />
+            </div>
+
             <div className="grid grid-cols-3 gap-2">
-              {CATEGORIES.map((cat) => (
+              {CATEGORIES.filter((cat) =>
+                catSearch === '' ||
+                cat.postLabel.includes(catSearch) ||
+                cat.searchTags.some((t) => t.includes(catSearch))
+              ).map((cat) => (
                 <button
                   key={cat.id}
                   type="button"
@@ -171,13 +190,40 @@ export default function PostService() {
                       : 'border-gray-200 bg-white hover:border-gray-300'
                   }`}
                 >
-                  <img src={cat.image} alt={cat.label} className="w-8 h-8 object-contain" />
+                  <img src={cat.image} alt={cat.postLabel} className="w-8 h-8 object-contain" />
                   <span className={`text-xs font-medium ${form.category === cat.id ? cat.color : 'text-gray-600'}`}>
-                    {cat.label}
+                    {cat.postLabel}
                   </span>
                 </button>
               ))}
+
+              {/* 其他服务 */}
+              <button
+                type="button"
+                onClick={() => update('category', 'other')}
+                className={`flex flex-col items-center gap-1.5 p-3 rounded-xl border-2 transition-all ${
+                  form.category === 'other'
+                    ? 'border-primary-500 bg-gray-50'
+                    : 'border-gray-200 bg-white hover:border-gray-300'
+                }`}
+              >
+                <span className="text-2xl">＋</span>
+                <span className={`text-xs font-medium ${form.category === 'other' ? 'text-primary-600' : 'text-gray-600'}`}>
+                  其他服务
+                </span>
+              </button>
             </div>
+
+            {/* Custom category input */}
+            {form.category === 'other' && (
+              <input
+                type="text"
+                value={customCategory}
+                onChange={(e) => setCustomCategory(e.target.value)}
+                placeholder="请输入您的服务类型，例：钢琴教学、翻译"
+                className="mt-3 w-full px-4 py-2.5 text-sm border border-primary-300 rounded-xl outline-none focus:ring-2 focus:ring-primary-400 focus:border-transparent"
+              />
+            )}
           </div>
 
           {/* Service info */}

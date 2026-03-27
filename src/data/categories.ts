@@ -2,7 +2,8 @@ import type { ServiceCategory } from '../types'
 
 export interface CategoryConfig {
   id: ServiceCategory
-  label: string
+  label: string       // used on Home / Search (e.g. '找搬家')
+  postLabel: string   // used on PostService form (e.g. '搬家')
   emoji: string
   image: string
   color: string
@@ -15,6 +16,7 @@ export const CATEGORIES: CategoryConfig[] = [
   {
     id: 'moving',
     label: '找搬家',
+    postLabel: '搬家',
     emoji: '🚚',
     image: '/images/categories/moving.svg',
     color: 'text-blue-600',
@@ -25,6 +27,7 @@ export const CATEGORIES: CategoryConfig[] = [
   {
     id: 'cleaning',
     label: '找保洁',
+    postLabel: '保洁',
     emoji: '✨',
     image: '/images/categories/cleaning.svg',
     color: 'text-emerald-600',
@@ -35,6 +38,7 @@ export const CATEGORIES: CategoryConfig[] = [
   {
     id: 'ride',
     label: '找接送',
+    postLabel: '接送',
     emoji: '🚗',
     image: '/images/categories/ride.svg',
     color: 'text-orange-600',
@@ -45,6 +49,7 @@ export const CATEGORIES: CategoryConfig[] = [
   {
     id: 'renovation',
     label: '找装修',
+    postLabel: '装修',
     emoji: '🔨',
     image: '/images/categories/renovation.svg',
     color: 'text-amber-600',
@@ -55,6 +60,7 @@ export const CATEGORIES: CategoryConfig[] = [
   {
     id: 'cashwork',
     label: '现金工',
+    postLabel: '现金工',
     emoji: '💰',
     image: '/images/categories/cashwork.svg',
     color: 'text-purple-600',
@@ -65,6 +71,7 @@ export const CATEGORIES: CategoryConfig[] = [
   {
     id: 'food',
     label: '找餐饮',
+    postLabel: '餐饮',
     emoji: '🍜',
     image: '/images/categories/food.svg',
     color: 'text-red-600',
