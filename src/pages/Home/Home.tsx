@@ -29,7 +29,7 @@ export default function Home() {
 
       {/* Search bar — scrolls normally */}
       <div className="w-full bg-primary-700 px-6 py-4">
-        <div className="w-[95%] md:w-4/5 lg:w-[70%] mx-auto">
+        <div className="w-[97%] md:w-[85%] lg:w-[70%] mx-auto">
           <div className="flex items-center gap-1.5 mb-2">
             <MapPin size={12} className="text-blue-200" />
             <span className="text-blue-200 text-xs">
@@ -41,7 +41,7 @@ export default function Home() {
       </div>
 
       <div className="relative z-10 w-full bg-gray-50 rounded-t-3xl pt-6">
-      <div className="w-[95%] md:w-4/5 lg:w-[70%] mx-auto px-6">
+      <div className="w-[97%] md:w-[85%] lg:w-[70%] mx-auto px-6">
         {/* Category buttons */}
         <motion.section
           initial={{ opacity: 0, y: 20 }}
