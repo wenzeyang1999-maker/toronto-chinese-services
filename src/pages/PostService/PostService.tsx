@@ -8,10 +8,64 @@ import type { Service, PostServiceForm, ServiceCategory } from '../../types'
 import Header from '../../components/Header/Header'
 
 const TORONTO_AREAS = [
-  'Downtown Toronto', 'North York', 'Scarborough', 'Etobicoke',
-  'East York', 'York', 'Mississauga', 'Brampton', 'Markham',
-  'Richmond Hill', 'Vaughan', 'Oakville', 'Burlington', 'Hamilton',
-  'Pickering', 'Ajax', 'Whitby', 'Oshawa',
+  // ── Greater Toronto Area ──
+  'Downtown Toronto 多伦多市中心',
+  'North York 北约克',
+  'Scarborough 士嘉堡',
+  'Etobicoke 怡陶碧谷',
+  'East York 东约克',
+  'York 约克',
+  'Markham 万锦',
+  'Richmond Hill 列治文山',
+  'Vaughan 万锦以北/旺市',
+  'Mississauga 密西沙加',
+  'Brampton 宾顿',
+  'Oakville 奥克维尔',
+  'Burlington 柏灵顿',
+  'Milton 米尔顿',
+  'Pickering 皮克灵',
+  'Ajax 阿积士',
+  'Whitby 惠特比',
+  'Oshawa 奥沙华',
+  'Newmarket 新市',
+  'Aurora 奥罗拉',
+  'King City 金城',
+  'Stouffville 士多福维尔',
+  'Georgina 乔治纳',
+  'Caledon 卡利顿',
+  'Halton Hills 哈顿山',
+  'Innisfil 因尼斯菲尔',
+  'Barrie 巴里',
+  'Collingwood 科灵伍德',
+  // ── 华人聚集区 ──
+  'Agincourt 阿金科特',
+  'Warden / Sheppard',
+  'Kennedy / Finch',
+  'Pacific Mall 太古广场',
+  'First Markham Place 首都广场',
+  // ── 南安省 ──
+  'Hamilton 汉密尔顿',
+  'Kitchener 基秦拿',
+  'Waterloo 滑铁卢',
+  'Cambridge 剑桥',
+  'Guelph 圭尔夫',
+  'London 伦敦市',
+  'Windsor 温莎',
+  'Niagara Falls 尼亚加拉瀑布',
+  'St. Catharines 圣凯瑟琳斯',
+  'Welland 韦兰',
+  // ── 东安省 ──
+  'Ottawa 渥太华',
+  'Kingston 金斯顿',
+  'Belleville 贝尔维尔',
+  'Peterborough 彼得堡',
+  'Cobourg 科堡',
+  // ── 北安省 ──
+  'Sudbury 萨德伯里',
+  'Thunder Bay 桑德贝',
+  'Sault Ste. Marie 苏圣玛丽',
+  'North Bay 北湾',
+  'Timmins 蒂明斯',
 ]
 
 const INITIAL_FORM: PostServiceForm = {
@@ -39,7 +93,15 @@ export default function PostService() {
   const [areaDropdownOpen, setAreaDropdownOpen] = useState(false)
   const [selectedAreas, setSelectedAreas] = useState<string[]>([])
 
-  const HOT_AREAS = ['North York', 'Markham', 'Scarborough', 'Richmond Hill', 'Mississauga', 'Downtown Toronto', 'Vaughan']
+  const HOT_AREAS = [
+    'North York 北约克',
+    'Markham 万锦',
+    'Scarborough 士嘉堡',
+    'Richmond Hill 列治文山',
+    'Mississauga 密西沙加',
+    'Downtown Toronto 多伦多市中心',
+    'Vaughan 万锦以北/旺市',
+  ]
 
   const toggleArea = (a: string) =>
     setSelectedAreas((prev) => prev.includes(a) ? prev.filter((x) => x !== a) : [...prev, a])
