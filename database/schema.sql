@@ -405,7 +405,7 @@ CREATE TABLE IF NOT EXISTS conversations (
   client_unread   INT         DEFAULT 0,
   provider_unread INT         DEFAULT 0,
   created_at      TIMESTAMPTZ DEFAULT NOW(),
-  UNIQUE (client_id, provider_id, service_id)
+  UNIQUE NULLS NOT DISTINCT (client_id, provider_id, service_id)
 );
 
 CREATE INDEX IF NOT EXISTS idx_conversations_client   ON conversations (client_id);
