@@ -7,14 +7,22 @@ import { Link, useNavigate } from 'react-router-dom'
 import { ChevronDown, Menu, X, UserCircle } from 'lucide-react'
 import { useAuthStore } from '../../store/authStore'
 
-export default function Header() {
+interface HeaderProps {
+  /** When false, renders as a static bar (used on Home page over carousel) */
+  sticky?: boolean
+}
+
+export default function Header({ sticky = true }: HeaderProps) {
   const navigate = useNavigate()
   const [menuOpen, setMenuOpen] = useState(false)
   const close = () => setMenuOpen(false)
   const user = useAuthStore((s) => s.user)
 
   return (
-    <header className="sticky top-0 z-40 bg-white border-b border-gray-200">
+    <header className={sticky
+      ? 'sticky top-0 z-40 bg-white border-b border-gray-200'
+      : 'w-full bg-white border-b border-gray-200 relative'
+    }>
       <div className="px-4 md:px-6 h-14 flex items-center justify-between">
 
         {/* Logo */}

@@ -1,15 +1,42 @@
+import { useEffect, useRef, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ArrowLeft, Star, MapPin, Phone, MessageCircle, ShieldCheck, Clock, Tag } from 'lucide-react'
+import { ArrowLeft, Star, MapPin, Phone, MessageCircle, ShieldCheck, Clock, Tag, MessageSquare } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { useAppStore } from '../../store/appStore'
+import { useAuthStore } from '../../store/authStore'
+import { supabase } from '../../lib/supabase'
 import { getCategoryById } from '../../data/categories'
+import type { BrowseEntry } from '../Profile/types'
+
+function recordBrowse(entry: BrowseEntry) {
+  try {
+    const key = 'tcs_browse_history'
+    const prev: BrowseEntry[] = JSON.parse(localStorage.getItem(key) ?? '[]')
+    const filtered = prev.filter(e => e.id !== entry.id)
+    localStorage.setItem(key, JSON.stringify([entry, ...filtered].slice(0, 20)))
+  } catch { /* ignore */ }
+}
 
 export default function ServiceDetail() {
   const { id } = useParams<{ id: string }>()
+  const user     = useAuthStore((s) => s.user)
   const navigate = useNavigate()
   const services = useAppStore((s) => s.services)
 
   const service = services.find((s) => s.id === id)
+
+  // Record browse history on view
+  useEffect(() => {
+    if (service) {
+      recordBrowse({
+        id: service.id,
+        title: service.title,
+        category: service.category,
+        area: service.location.area ?? null,
+        ts: Date.now(),
+      })
+    }
+  }, [service?.id])
 
   if (!service) {
     return (
@@ -28,13 +55,35 @@ export default function ServiceDetail() {
       : '价格面议'
 
   const handleCall = () => {
+    if (!service.provider.phone) return
     window.location.href = `tel:${service.provider.phone}`
   }
 
-  const handleWechat = () => {
-    if (service.provider.wechat) {
-      navigator.clipboard.writeText(service.provider.wechat)
+  const handleWechat = async () => {
+    if (!service.provider.wechat) return
+    try {
+      await navigator.clipboard.writeText(service.provider.wechat)
       alert(`微信号已复制：${service.provider.wechat}`)
+    } catch {
+      alert(`微信号：${service.provider.wechat}（请手动复制）`)
+    }
+  }
+
+  const handleMessage = async () => {
+    if (!user) { navigate('/login'); return }
+    const providerId = service.provider.id
+    if (!providerId || providerId === user.id) return
+    // Upsert conversation (unique on client+provider+service)
+    const { data, error } = await supabase
+      .from('conversations')
+      .upsert({ client_id: user.id, provider_id: providerId, service_id: service.id },
+               { onConflict: 'client_id,provider_id,service_id', ignoreDuplicates: false })
+      .select('id')
+      .single()
+    if (!error && data) {
+      navigate(`/conversation/${data.id}`)
+    } else if (error) {
+      alert('发起对话失败，请稍后再试')
     }
   }
 
@@ -42,7 +91,7 @@ export default function ServiceDetail() {
     <div className="min-h-screen bg-gray-50 pb-28">
       {/* Header */}
       <div className={`${cat?.bgColor ?? 'bg-gray-50'} px-4 pt-safe`}>
-        <div className="max-w-2xl mx-auto flex items-center gap-3 h-14">
+        <div className="max-w-2xl lg:max-w-4xl mx-auto flex items-center gap-3 h-14">
           <button
             onClick={() => navigate(-1)}
             className="flex items-center gap-1 text-gray-600 hover:text-gray-900"
@@ -55,7 +104,7 @@ export default function ServiceDetail() {
         </div>
       </div>
 
-      <div className="max-w-2xl mx-auto px-4 py-4 space-y-4">
+      <div className="max-w-2xl lg:max-w-4xl mx-auto px-4 py-4 space-y-4">
         {/* Main card */}
         <motion.div
           initial={{ opacity: 0, y: 16 }}
@@ -81,7 +130,7 @@ export default function ServiceDetail() {
 
           {/* Tags */}
           <div className="flex flex-wrap gap-2 mt-4">
-            {service.tags.map((tag) => (
+            {(service.tags ?? []).map((tag) => (
               <span key={tag} className="flex items-center gap-1 text-xs bg-gray-100 text-gray-600 px-3 py-1 rounded-full">
                 <Tag size={10} />
                 {tag}
@@ -92,19 +141,7 @@ export default function ServiceDetail() {
 
         {/* Service images */}
         {service.images && service.images.length > 0 && (
-          <motion.div
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.05 }}
-            className="card p-5"
-          >
-            <h3 className="text-sm font-semibold text-gray-700 mb-3">服务图片</h3>
-            <div className="grid grid-cols-3 gap-2">
-              {service.images.map((img, i) => (
-                <img key={i} src={img} alt={`服务图片${i + 1}`} className="w-full aspect-square object-cover rounded-xl" />
-              ))}
-            </div>
-          </motion.div>
+          <ImageBlock images={service.images} />
         )}
 
         {/* Provider card */}
@@ -142,7 +179,7 @@ export default function ServiceDetail() {
               </div>
               <div className="flex items-center gap-1 mt-1 text-xs text-gray-400">
                 <Clock size={11} />
-                <span>加入于 {service.provider.joinedAt.slice(0, 7)}</span>
+                <span>加入于 {service.provider.joinedAt ? service.provider.joinedAt.slice(0, 7) : '未知'}</span>
                 <span className="mx-1">·</span>
                 <span>语言：{service.provider.languages.join('、')}</span>
               </div>
@@ -174,7 +211,15 @@ export default function ServiceDetail() {
 
       {/* Bottom action bar */}
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 px-4 py-3 pb-safe">
-        <div className="max-w-2xl mx-auto flex gap-3">
+        <div className="max-w-2xl lg:max-w-4xl mx-auto flex gap-2">
+          <motion.button
+            whileTap={{ scale: 0.95 }}
+            onClick={handleMessage}
+            className="flex-1 flex items-center justify-center gap-2 bg-white border border-primary-300 text-primary-600 py-3 rounded-2xl font-medium hover:bg-primary-50 transition-colors"
+          >
+            <MessageSquare size={18} />
+            <span>发消息</span>
+          </motion.button>
           {service.provider.wechat && (
             <motion.button
               whileTap={{ scale: 0.95 }}
@@ -182,7 +227,7 @@ export default function ServiceDetail() {
               className="flex-1 flex items-center justify-center gap-2 bg-green-500 text-white py-3 rounded-2xl font-medium hover:bg-green-600 transition-colors"
             >
               <MessageCircle size={18} />
-              <span>微信联系</span>
+              <span>微信</span>
             </motion.button>
           )}
           <motion.button
@@ -191,10 +236,83 @@ export default function ServiceDetail() {
             className="flex-1 flex items-center justify-center gap-2 bg-primary-600 text-white py-3 rounded-2xl font-medium hover:bg-primary-700 transition-colors"
           >
             <Phone size={18} />
-            <span>电话联系</span>
+            <span>电话</span>
           </motion.button>
         </div>
       </div>
     </div>
+  )
+}
+
+// ── Image block: swipe carousel on mobile, grid on desktop ────────────────────
+function ImageBlock({ images }: { images: string[] }) {
+  const [current, setCurrent] = useState(0)
+  const scrollRef = useRef<HTMLDivElement>(null)
+
+  function onScroll() {
+    const el = scrollRef.current
+    if (!el) return
+    const index = Math.round(el.scrollLeft / el.clientWidth)
+    setCurrent(index)
+  }
+
+  // Desktop grid cols
+  const cols = images.length === 1 ? 'grid-cols-1'
+    : images.length === 2 ? 'grid-cols-2'
+    : images.length <= 4 ? 'grid-cols-2'
+    : 'grid-cols-3'
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.05 }}
+      className="card p-5"
+    >
+      <h3 className="text-sm font-semibold text-gray-700 mb-3">服务图片</h3>
+
+      {/* Mobile: swipe carousel */}
+      <div className="lg:hidden">
+        <div
+          ref={scrollRef}
+          onScroll={onScroll}
+          className="flex overflow-x-auto snap-x snap-mandatory scrollbar-none rounded-xl gap-0"
+          style={{ scrollbarWidth: 'none' }}
+        >
+          {images.map((img, i) => (
+            <img
+              key={i}
+              src={img}
+              alt={`服务图片${i + 1}`}
+              className="w-full flex-shrink-0 object-cover rounded-xl snap-start"
+              style={{ aspectRatio: '4/3' }}
+            />
+          ))}
+        </div>
+        {/* Dot indicators */}
+        {images.length > 1 && (
+          <div className="flex justify-center gap-1.5 mt-3">
+            {images.map((_, i) => (
+              <span
+                key={i}
+                className={`rounded-full transition-all ${i === current ? 'w-4 h-1.5 bg-primary-500' : 'w-1.5 h-1.5 bg-gray-300'}`}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Desktop: grid */}
+      <div className={`hidden lg:grid gap-2 ${cols}`}>
+        {images.map((img, i) => (
+          <img
+            key={i}
+            src={img}
+            alt={`服务图片${i + 1}`}
+            className={`w-full object-cover rounded-xl ${images.length === 1 ? '' : 'aspect-square'}`}
+          />
+        ))}
+      </div>
+    </motion.div>
   )
 }

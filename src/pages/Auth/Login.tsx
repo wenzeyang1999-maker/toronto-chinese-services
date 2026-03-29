@@ -135,9 +135,9 @@ export default function Login() {
 
             {/* Forgot password */}
             <div className="text-right">
-              <span className="text-xs text-primary-600 cursor-pointer hover:underline">
+              <Link to="/forgot-password" className="text-xs text-primary-600 hover:underline">
                 忘记密码？
-              </span>
+              </Link>
             </div>
 
             {/* Server error */}

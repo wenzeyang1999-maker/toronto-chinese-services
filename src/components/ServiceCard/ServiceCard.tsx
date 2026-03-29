@@ -28,7 +28,11 @@ export default function ServiceCard({ service }: Props) {
       <div className="flex items-start gap-3">
         {/* Category badge */}
         <div className={`${cat?.bgColor ?? 'bg-gray-50'} w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0`}>
-          <img src={cat?.image} alt={cat?.label} className="w-8 h-8 object-contain" />
+          {cat?.image ? (
+            <img src={cat.image} alt={cat.label} className="w-8 h-8 object-contain" />
+          ) : (
+            <span className="text-2xl">{cat?.emoji ?? '●'}</span>
+          )}
         </div>
 
         <div className="flex-1 min-w-0">
@@ -47,7 +51,7 @@ export default function ServiceCard({ service }: Props) {
 
           {/* Tags */}
           <div className="flex flex-wrap gap-1 mt-2">
-            {service.tags.slice(0, 3).map((tag) => (
+            {(service.tags ?? []).slice(0, 3).map((tag) => (
               <span
                 key={tag}
                 className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full"

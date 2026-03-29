@@ -1,18 +1,43 @@
 // ─── Global State (Zustand) ───────────────────────────────────────────────────
-// Single store for the entire app. Holds services, user location,
-// search filters, and loading state.
-//
-// To replace mock data with a real API: swap MOCK_SERVICES for an async fetch
-// inside a separate action, then call it on app mount.
 import { create } from 'zustand'
 import type { Service, SearchFilters, ServiceCategory } from '../types'
 import { supabase } from '../lib/supabase'
+
+// Shape of a raw row returned from Supabase (services + joined users)
+interface ServiceRow {
+  id: string
+  category_id: string | null
+  title: string
+  description: string
+  price: number | null
+  price_type: 'hourly' | 'fixed' | 'negotiable' | null
+  lat: number | null
+  lng: number | null
+  area: string | null
+  service_areas: string[] | null
+  city: string | null
+  tags: string[] | null
+  images: string[] | null
+  is_available: boolean | null
+  is_verified: boolean | null
+  created_at: string | null
+  updated_at: string | null
+  provider_id: string
+  provider: {
+    id: string
+    name: string | null
+    phone: string | null
+    wechat: string | null
+    avatar_url: string | null
+  } | null
+}
 
 interface AppState {
   services: Service[]
   userLocation: { lat: number; lng: number } | null
   searchFilters: SearchFilters
   isLoadingDone: boolean
+  isServicesReady: boolean
 
   setLoadingDone: () => void
   setUserLocation: (loc: { lat: number; lng: number } | null) => void
@@ -40,7 +65,7 @@ function calcDistance(
 }
 
 // Map a Supabase services row to the frontend Service type
-function mapRow(row: any): Service {
+function mapRow(row: ServiceRow): Service {
   return {
     id: row.id,
     category: (row.category_id ?? 'other') as ServiceCategory,
@@ -53,13 +78,14 @@ function mapRow(row: any): Service {
       lng: row.lng ?? -79.3832,
       address: row.area ?? 'Toronto',
       city: row.city ?? 'Toronto',
-      area: row.area,
+      area: row.area ?? undefined,
     },
     provider: {
       id: row.provider?.id ?? row.provider_id,
       name: row.provider?.name ?? '服务商',
       phone: row.provider?.phone ?? '',
       wechat: row.provider?.wechat ?? undefined,
+      avatar: row.provider?.avatar_url ?? undefined,
       rating: 5.0,
       reviewCount: 0,
       verified: row.is_verified ?? false,
@@ -79,6 +105,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   userLocation: null,
   searchFilters: { sortBy: 'distance' },
   isLoadingDone: false,
+  isServicesReady: false,
 
   setLoadingDone: () => set({ isLoadingDone: true }),
 
@@ -99,7 +126,10 @@ export const useAppStore = create<AppState>((set, get) => ({
       .eq('is_available', true)
       .order('created_at', { ascending: false })
     if (!error && data) {
-      set({ services: data.map(mapRow) })
+      set({ services: (data as ServiceRow[]).map(mapRow), isServicesReady: true })
+    } else {
+      // Mark ready even on error so loading screen doesn't hang
+      set({ isServicesReady: true })
     }
   },
 
@@ -118,7 +148,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         (s) =>
           s.title.toLowerCase().includes(kw) ||
           s.description.toLowerCase().includes(kw) ||
-          s.tags.some((t) => t.toLowerCase().includes(kw))
+          (s.tags ?? []).some((t) => t.toLowerCase().includes(kw))
       )
     }
     if (searchFilters.minRating) {

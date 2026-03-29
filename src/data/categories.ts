@@ -79,6 +79,17 @@ export const CATEGORIES: CategoryConfig[] = [
     description: '私房菜、外卖配送、厨师上门',
     searchTags: ['餐饮', '外卖', '私房菜', '厨师', 'food', '做饭'],
   },
+  {
+    id: 'other',
+    label: '其他服务',
+    postLabel: '其他',
+    emoji: '✦',
+    image: '',
+    color: 'text-gray-600',
+    bgColor: 'bg-gray-50',
+    description: '其他类型的服务',
+    searchTags: ['其他', '更多', 'other'],
+  },
 ]
 
 export const getCategoryById = (id: ServiceCategory): CategoryConfig | undefined =>

@@ -75,7 +75,8 @@ CREATE TABLE IF NOT EXISTS services (
   price_type      VARCHAR(20)   DEFAULT 'hourly'
                   CHECK (price_type IN ('hourly', 'fixed', 'negotiable')),
 
-  area            VARCHAR(80),
+  area            TEXT,
+  service_areas   TEXT[]        DEFAULT '{}',
   city            VARCHAR(80)   DEFAULT 'Toronto',
   lat             NUMERIC(10,7),
   lng             NUMERIC(10,7),
@@ -89,8 +90,45 @@ CREATE TABLE IF NOT EXISTS services (
   updated_at      TIMESTAMPTZ   DEFAULT NOW()
 );
 
--- Add images column to existing tables (safe to run if column already exists)
-ALTER TABLE services ADD COLUMN IF NOT EXISTS images TEXT[] DEFAULT '{}';
+-- Add columns to existing tables (safe to run if column already exists)
+ALTER TABLE services ADD COLUMN IF NOT EXISTS images       TEXT[] DEFAULT '{}';
+ALTER TABLE services ADD COLUMN IF NOT EXISTS service_areas TEXT[] DEFAULT '{}';
+ALTER TABLE services ALTER COLUMN area TYPE TEXT;
+
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- TABLE: service_types  (crowd-sourced service name library)
+-- Grows over time as providers post new custom service types.
+-- ─────────────────────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS service_types (
+  id          UUID          PRIMARY KEY DEFAULT gen_random_uuid(),
+  name        VARCHAR(100)  NOT NULL UNIQUE,
+  category_id VARCHAR(30)   REFERENCES categories(id) DEFAULT 'other',
+  usage_count INT           DEFAULT 1,
+  created_at  TIMESTAMPTZ   DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_service_types_name ON service_types (name);
+
+ALTER TABLE service_types ENABLE ROW LEVEL SECURITY;
+
+DO $$ BEGIN
+  CREATE POLICY "anyone can read service types"
+    ON service_types FOR SELECT USING (true);
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+DO $$ BEGIN
+  CREATE POLICY "authenticated users can insert service types"
+    ON service_types FOR INSERT TO authenticated WITH CHECK (true);
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+DO $$ BEGIN
+  CREATE POLICY "authenticated users can update usage count"
+    ON service_types FOR UPDATE TO authenticated USING (true);
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
 CREATE INDEX IF NOT EXISTS idx_services_provider   ON services (provider_id);
 CREATE INDEX IF NOT EXISTS idx_services_category   ON services (category_id);
@@ -135,7 +173,7 @@ BEGIN
   INSERT INTO public.users (id, name, email, phone, role)
   VALUES (
     NEW.id,
-    NEW.raw_user_meta_data->>'name',
+    COALESCE(NEW.raw_user_meta_data->>'name', '用户'),
     NEW.email,
     NEW.raw_user_meta_data->>'phone',
     'user'
@@ -274,6 +312,20 @@ DO $$ BEGIN
 EXCEPTION WHEN duplicate_object THEN NULL;
 END $$;
 
+DO $$ BEGIN
+  CREATE POLICY "users can update own reviews"
+    ON reviews FOR UPDATE
+    USING (auth.uid() = reviewer_id);
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+DO $$ BEGIN
+  CREATE POLICY "users can delete own reviews"
+    ON reviews FOR DELETE
+    USING (auth.uid() = reviewer_id);
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
 -- ── categories ───────────────────────────────────────────────────────────────
 ALTER TABLE categories ENABLE ROW LEVEL SECURITY;
 
@@ -281,5 +333,235 @@ DO $$ BEGIN
   CREATE POLICY "anyone can read categories"
     ON categories FOR SELECT
     USING (true);
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- TABLE: inquiries  ("获取报价" — users post a need, providers reach out)
+-- ─────────────────────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS inquiries (
+  id          UUID          PRIMARY KEY DEFAULT gen_random_uuid(),
+
+  user_id     UUID          REFERENCES users (id) ON DELETE SET NULL,
+  category_id VARCHAR(30)   REFERENCES categories (id),
+
+  description TEXT          NOT NULL,
+  budget      VARCHAR(100),
+  timing      VARCHAR(20)   DEFAULT 'flexible'
+              CHECK (timing IN ('asap', 'flexible', 'next_week')),
+
+  name        VARCHAR(100)  NOT NULL,
+  phone       VARCHAR(30)   NOT NULL,
+  wechat      VARCHAR(100),
+
+  status      VARCHAR(20)   DEFAULT 'open'
+              CHECK (status IN ('open', 'matched', 'closed')),
+
+  created_at  TIMESTAMPTZ   DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_inquiries_category ON inquiries (category_id);
+CREATE INDEX IF NOT EXISTS idx_inquiries_status   ON inquiries (status);
+
+ALTER TABLE inquiries ENABLE ROW LEVEL SECURITY;
+
+-- Anyone can submit an inquiry (even anonymous)
+DO $$ BEGIN
+  CREATE POLICY "anyone can insert inquiries"
+    ON inquiries FOR INSERT
+    WITH CHECK (true);
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+-- Users can read their own inquiries
+DO $$ BEGIN
+  CREATE POLICY "users can read own inquiries"
+    ON inquiries FOR SELECT
+    USING (auth.uid() = user_id);
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+-- Admins can read and manage all inquiries
+DO $$ BEGIN
+  CREATE POLICY "admins can manage all inquiries"
+    ON inquiries FOR ALL
+    USING (
+      EXISTS (SELECT 1 FROM public.users WHERE id = auth.uid() AND role = 'admin')
+    );
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- TABLE: conversations  (one per client+provider+service)
+-- ─────────────────────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS conversations (
+  id              UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  client_id       UUID        NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  provider_id     UUID        NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  service_id      UUID        REFERENCES services(id) ON DELETE SET NULL,
+  last_message    TEXT,
+  last_message_at TIMESTAMPTZ DEFAULT NOW(),
+  client_unread   INT         DEFAULT 0,
+  provider_unread INT         DEFAULT 0,
+  created_at      TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE (client_id, provider_id, service_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_conversations_client   ON conversations (client_id);
+CREATE INDEX IF NOT EXISTS idx_conversations_provider ON conversations (provider_id);
+
+ALTER TABLE conversations ENABLE ROW LEVEL SECURITY;
+
+DO $$ BEGIN
+  CREATE POLICY "participants can read own conversations"
+    ON conversations FOR SELECT
+    USING (auth.uid() = client_id OR auth.uid() = provider_id);
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+DO $$ BEGIN
+  CREATE POLICY "clients can create conversations"
+    ON conversations FOR INSERT
+    WITH CHECK (auth.uid() = client_id);
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+DO $$ BEGIN
+  CREATE POLICY "participants can update conversations"
+    ON conversations FOR UPDATE
+    USING (auth.uid() = client_id OR auth.uid() = provider_id);
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- TABLE: messages
+-- ─────────────────────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS messages (
+  id              UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  conversation_id UUID        NOT NULL REFERENCES conversations(id) ON DELETE CASCADE,
+  sender_id       UUID        NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  content         TEXT        NOT NULL,
+  created_at      TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_messages_conversation ON messages (conversation_id);
+
+ALTER TABLE messages ENABLE ROW LEVEL SECURITY;
+
+DO $$ BEGIN
+  CREATE POLICY "participants can read messages"
+    ON messages FOR SELECT
+    USING (
+      EXISTS (
+        SELECT 1 FROM conversations
+        WHERE id = conversation_id
+          AND (client_id = auth.uid() OR provider_id = auth.uid())
+      )
+    );
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+DO $$ BEGIN
+  CREATE POLICY "participants can send messages"
+    ON messages FOR INSERT
+    WITH CHECK (
+      auth.uid() = sender_id AND
+      EXISTS (
+        SELECT 1 FROM conversations
+        WHERE id = conversation_id
+          AND (client_id = auth.uid() OR provider_id = auth.uid())
+      )
+    );
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+
+-- ── admin overrides ───────────────────────────────────────────────────────────
+-- Admins (role = 'admin' in public.users) can manage any service.
+
+DO $$ BEGIN
+  CREATE POLICY "admins can manage all services"
+    ON services FOR ALL
+    USING (
+      EXISTS (SELECT 1 FROM public.users WHERE id = auth.uid() AND role = 'admin')
+    );
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+DO $$ BEGIN
+  CREATE POLICY "admins can manage all reviews"
+    ON reviews FOR ALL
+    USING (
+      EXISTS (SELECT 1 FROM public.users WHERE id = auth.uid() AND role = 'admin')
+    );
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- STORAGE POLICIES
+-- Buckets must be created manually in the Supabase dashboard first:
+--   • avatars        (Public, 2 MB limit,  image/*)
+--   • service-images (Public, 3 MB limit,  image/*)
+-- ─────────────────────────────────────────────────────────────────────────────
+
+-- ── avatars ──────────────────────────────────────────────────────────────────
+DO $$ BEGIN
+  CREATE POLICY "Users can upload own avatar"
+    ON storage.objects FOR INSERT
+    TO authenticated
+    WITH CHECK (
+      bucket_id = 'avatars'
+      AND auth.uid()::text = (storage.foldername(name))[1]
+    );
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+DO $$ BEGIN
+  CREATE POLICY "Users can update own avatar"
+    ON storage.objects FOR UPDATE
+    TO authenticated
+    USING (
+      bucket_id = 'avatars'
+      AND auth.uid()::text = (storage.foldername(name))[1]
+    );
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+DO $$ BEGIN
+  CREATE POLICY "Public can read avatars"
+    ON storage.objects FOR SELECT
+    TO public
+    USING (bucket_id = 'avatars');
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+-- ── service-images ────────────────────────────────────────────────────────────
+DO $$ BEGIN
+  CREATE POLICY "Authenticated users can upload service images"
+    ON storage.objects FOR INSERT
+    TO authenticated
+    WITH CHECK (bucket_id = 'service-images');
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+DO $$ BEGIN
+  CREATE POLICY "Users can delete own service images"
+    ON storage.objects FOR DELETE
+    TO authenticated
+    USING (
+      bucket_id = 'service-images'
+      AND auth.uid()::text = (storage.foldername(name))[1]
+    );
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+DO $$ BEGIN
+  CREATE POLICY "Public can read service images"
+    ON storage.objects FOR SELECT
+    TO public
+    USING (bucket_id = 'service-images');
 EXCEPTION WHEN duplicate_object THEN NULL;
 END $$;

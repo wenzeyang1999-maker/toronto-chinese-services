@@ -8,6 +8,7 @@ export default function LoadingScreen() {
   const [progress, setProgress] = useState(0)
   const [canSkip, setCanSkip] = useState(false)
 
+  // Purely visual progress animation — App.tsx controls actual completion timing
   useEffect(() => {
     const start = Date.now()
     const duration = 2800
@@ -19,17 +20,14 @@ export default function LoadingScreen() {
       const elapsed = Date.now() - start
       const p = Math.min((elapsed / duration) * 100, 100)
       setProgress(p)
-      if (p >= 100) {
-        clearInterval(interval)
-        setTimeout(() => setLoadingDone(), 300)
-      }
+      if (p >= 100) clearInterval(interval)
     }, 30)
 
     return () => {
       clearInterval(interval)
       clearTimeout(skipTimer)
     }
-  }, [setLoadingDone])
+  }, [])
 
   if (isLoadingDone) return null
 

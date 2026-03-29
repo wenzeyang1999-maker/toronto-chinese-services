@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ArrowLeft, CheckCircle, Search, ImagePlus, X } from 'lucide-react'
 import { motion } from 'framer-motion'
@@ -8,6 +8,116 @@ import { supabase } from '../../lib/supabase'
 import { CATEGORIES } from '../../data/categories'
 import type { PostServiceForm } from '../../types'
 import Header from '../../components/Header/Header'
+import { compressImage, validateImageFile } from '../../lib/compressImage'
+
+// ── 内置服务库（搜索用）──────────────────────────────────────────────────────
+type ServiceCat = 'moving' | 'cleaning' | 'ride' | 'renovation' | 'cashwork' | 'food' | 'other'
+interface ServiceSuggestion { name: string; category: ServiceCat; tags: string[] }
+
+const BUILTIN_SERVICES: ServiceSuggestion[] = [
+  // 搬家
+  { name: '本地搬家',       category: 'moving',     tags: ['搬家','搬运','货车','move'] },
+  { name: '长途搬运',       category: 'moving',     tags: ['搬家','长途','跨城'] },
+  { name: '钢琴搬运',       category: 'moving',     tags: ['钢琴','搬运','搬家'] },
+  { name: '办公室搬迁',     category: 'moving',     tags: ['搬迁','办公室','公司'] },
+  { name: '家具打包',       category: 'moving',     tags: ['打包','搬家','包装'] },
+  { name: '家具拆装',       category: 'moving',     tags: ['拆装','家具','安装','ikea','宜家'] },
+  // 保洁
+  { name: '日常保洁',       category: 'cleaning',   tags: ['保洁','清洁','打扫'] },
+  { name: '深度清洁',       category: 'cleaning',   tags: ['深度','清洁','打扫'] },
+  { name: '搬家清洁',       category: 'cleaning',   tags: ['搬家','清洁','交房'] },
+  { name: '地毯清洗',       category: 'cleaning',   tags: ['地毯','清洗','carpet'] },
+  { name: '窗户清洁',       category: 'cleaning',   tags: ['窗户','玻璃','清洁'] },
+  { name: '消毒杀菌',       category: 'cleaning',   tags: ['消毒','杀菌','除菌'] },
+  // 接送
+  { name: '机场接送',       category: 'ride',       tags: ['机场','接送','airport'] },
+  { name: '包车服务',       category: 'ride',       tags: ['包车','租车','司机'] },
+  { name: '顺风车',         category: 'ride',       tags: ['顺风','拼车','carpooling'] },
+  { name: '代驾服务',       category: 'ride',       tags: ['代驾','司机','开车'] },
+  { name: '学生接送',       category: 'ride',       tags: ['学生','接送','孩子','课外','上学'] },
+  { name: '跨城接送',       category: 'ride',       tags: ['跨城','长途','接送'] },
+  // 装修
+  { name: '室内装修',       category: 'renovation', tags: ['装修','室内','renovation'] },
+  { name: '水电维修',       category: 'renovation', tags: ['水电','维修','水管','电路'] },
+  { name: 'IKEA家具安装',   category: 'renovation', tags: ['ikea','宜家','安装','家具'] },
+  { name: '油漆涂装',       category: 'renovation', tags: ['油漆','涂装','刷漆','paint'] },
+  { name: '贴砖',           category: 'renovation', tags: ['贴砖','瓷砖','tile','铺砖'] },
+  { name: '木工地板',       category: 'renovation', tags: ['木工','地板','flooring'] },
+  { name: '管道疏通',       category: 'renovation', tags: ['管道','疏通','堵塞','plumbing'] },
+  { name: '屋顶维修',       category: 'renovation', tags: ['屋顶','roof','维修','漏水'] },
+  { name: '门窗安装',       category: 'renovation', tags: ['门','窗','安装','更换'] },
+  // 现金工
+  { name: '搬运工',         category: 'cashwork',   tags: ['搬运','力工','日结','现金'] },
+  { name: '清洁工',         category: 'cashwork',   tags: ['清洁','日结','现金工'] },
+  { name: '建筑工人',       category: 'cashwork',   tags: ['建筑','工地','现金','日结'] },
+  { name: '仓库工',         category: 'cashwork',   tags: ['仓库','工厂','日结','warehouse'] },
+  { name: '农场工',         category: 'cashwork',   tags: ['农场','farm','季节工','日结'] },
+  { name: '餐厅帮工',       category: 'cashwork',   tags: ['餐厅','帮工','后厨','日结'] },
+  { name: '装卸工',         category: 'cashwork',   tags: ['装卸','搬运','日结','现金'] },
+  // 餐饮
+  { name: '私房菜',         category: 'food',       tags: ['私房菜','做饭','厨师','上门'] },
+  { name: '月子餐',         category: 'food',       tags: ['月子','月子餐','坐月子','产后'] },
+  { name: '厨师上门',       category: 'food',       tags: ['厨师','上门','做饭','宴席'] },
+  { name: '烘焙甜点',       category: 'food',       tags: ['烘焙','甜点','蛋糕','面包'] },
+  { name: '外卖配送',       category: 'food',       tags: ['外卖','配送','delivery'] },
+  { name: '喜宴包办',       category: 'food',       tags: ['宴席','喜宴','包办','婚宴'] },
+  // 教育教学
+  { name: '钢琴教学',       category: 'other',      tags: ['钢琴','音乐','教学','piano','教练','老师'] },
+  { name: '吉他教学',       category: 'other',      tags: ['吉他','guitar','音乐','教学','教练'] },
+  { name: '小提琴教学',     category: 'other',      tags: ['小提琴','violin','音乐','教学','教练'] },
+  { name: '声乐教学',       category: 'other',      tags: ['声乐','唱歌','歌唱','教学','教练'] },
+  { name: '中文家教',       category: 'other',      tags: ['家教','中文','补习','tutor','教练','老师'] },
+  { name: '数学家教',       category: 'other',      tags: ['数学','math','补习','家教','教练','tutor'] },
+  { name: '英文家教',       category: 'other',      tags: ['英文','english','补习','家教','tutor','教练'] },
+  { name: '法语教学',       category: 'other',      tags: ['法语','french','教学','教练','tutor'] },
+  { name: '游泳教练',       category: 'other',      tags: ['游泳','swimming','教练','coach'] },
+  { name: '网球教练',       category: 'other',      tags: ['网球','tennis','教练','coach'] },
+  { name: '羽毛球教练',     category: 'other',      tags: ['羽毛球','badminton','教练','coach'] },
+  { name: '篮球教练',       category: 'other',      tags: ['篮球','basketball','教练','coach'] },
+  { name: '乒乓球教练',     category: 'other',      tags: ['乒乓球','乒乓','table tennis','教练','coach'] },
+  { name: '高尔夫教练',     category: 'other',      tags: ['高尔夫','golf','教练','coach'] },
+  { name: '滑冰教练',       category: 'other',      tags: ['滑冰','skating','冰球','教练','coach'] },
+  { name: '滑雪教练',       category: 'other',      tags: ['滑雪','skiing','教练','coach'] },
+  { name: '舞蹈教练',       category: 'other',      tags: ['舞蹈','dance','跳舞','教练','老师'] },
+  { name: '瑜伽教练',       category: 'other',      tags: ['瑜伽','yoga','教练','coach'] },
+  { name: '健身教练',       category: 'other',      tags: ['健身','gym','fitness','私人教练','教练','personal trainer'] },
+  { name: '武术教练',       category: 'other',      tags: ['武术','功夫','太极','教练','coach'] },
+  { name: '跆拳道教练',     category: 'other',      tags: ['跆拳道','教练','coach','武术'] },
+  { name: '驾照培训',       category: 'other',      tags: ['驾照','学车','G2','G牌','driving','教练','coach'] },
+  // 专业服务
+  { name: '英文翻译',       category: 'other',      tags: ['翻译','英文','口译','translation'] },
+  { name: '中英翻译',       category: 'other',      tags: ['翻译','中文','英文','口译'] },
+  { name: '法语翻译',       category: 'other',      tags: ['翻译','法语','french','口译'] },
+  { name: '报税会计',       category: 'other',      tags: ['报税','会计','税务','tax','cpa'] },
+  { name: '法律咨询',       category: 'other',      tags: ['律师','法律','咨询','legal'] },
+  { name: '移民咨询',       category: 'other',      tags: ['移民','pr','签证','申请','咨询'] },
+  { name: '保险服务',       category: 'other',      tags: ['保险','insurance','理赔','人寿'] },
+  { name: '留学申请',       category: 'other',      tags: ['留学','申请','大学','移民','学校'] },
+  { name: '房产中介',       category: 'other',      tags: ['房产','买房','卖房','租房','中介','realtor'] },
+  { name: '贷款咨询',       category: 'other',      tags: ['贷款','mortgage','咨询','银行'] },
+  // 生活服务
+  { name: '摄影服务',       category: 'other',      tags: ['摄影','拍照','photography','婚礼'] },
+  { name: '宠物照看',       category: 'other',      tags: ['宠物','狗','猫','寄养','pet','boarding'] },
+  { name: '遛狗',           category: 'other',      tags: ['遛狗','dog walker','宠物','狗'] },
+  { name: '美甲',           category: 'other',      tags: ['美甲','nail','指甲','美容'] },
+  { name: '美发理发',       category: 'other',      tags: ['美发','理发','剪发','hair','发型'] },
+  { name: '按摩推拿',       category: 'other',      tags: ['按摩','推拿','massage','理疗'] },
+  { name: '针灸',           category: 'other',      tags: ['针灸','中医','acupuncture','理疗'] },
+  { name: '网站开发',       category: 'other',      tags: ['网站','开发','设计','web','前端'] },
+  { name: '电脑维修',       category: 'other',      tags: ['电脑','维修','手机','修复','it'] },
+  { name: '室内设计',       category: 'other',      tags: ['室内','设计','装饰','interior'] },
+  { name: '花园园艺',       category: 'other',      tags: ['花园','园艺','除草','landscaping','草坪'] },
+  { name: '除雪服务',       category: 'other',      tags: ['除雪','铲雪','snow','冬天'] },
+  { name: '婚庆策划',       category: 'other',      tags: ['婚庆','婚礼','策划','wedding'] },
+  { name: '坐月子服务',     category: 'other',      tags: ['月子','产后','护理','月嫂'] },
+  { name: '老人护理',       category: 'other',      tags: ['老人','护理','照顾','陪伴','elderly'] },
+  { name: '儿童托管',       category: 'other',      tags: ['托管','儿童','孩子','babysitter','daycare'] },
+  { name: '心理咨询',       category: 'other',      tags: ['心理','咨询','counseling','辅导'] },
+  { name: '视频剪辑',       category: 'other',      tags: ['视频','剪辑','editing','后期','制作'] },
+  { name: '平面设计',       category: 'other',      tags: ['设计','平面','graphic','logo','海报'] },
+]
+
+const MAIN_CAT_IDS = ['moving', 'cleaning', 'ride', 'renovation', 'cashwork']
 
 const TORONTO_AREAS = [
   // ── Greater Toronto Area ──
@@ -87,6 +197,7 @@ const INITIAL_FORM: PostServiceForm = {
 export default function PostService() {
   const navigate = useNavigate()
   const fetchServices = useAppStore((s) => s.fetchServices)
+  const userLocation = useAppStore((s) => s.userLocation)
   const user = useAuthStore((s) => s.user)
   const [form, setForm] = useState<PostServiceForm>(INITIAL_FORM)
   const [submitted, setSubmitted] = useState(false)
@@ -122,6 +233,26 @@ export default function PostService() {
   const filteredAreas = areaSearch
     ? TORONTO_AREAS.filter((a) => a.toLowerCase().includes(areaSearch.toLowerCase()) && !selectedAreas.includes(a))
     : []
+  const [dbServices, setDbServices] = useState<ServiceSuggestion[]>([])
+
+  useEffect(() => {
+    supabase.from('service_types').select('name, category_id').order('usage_count', { ascending: false }).limit(200)
+      .then(({ data }) => {
+        if (data) {
+          setDbServices(data.map(r => ({
+            name: r.name,
+            category: (r.category_id ?? 'other') as ServiceCat,
+            tags: [r.name],
+          })))
+        }
+      })
+  }, [])
+
+  const ALL_SERVICES = [
+    ...BUILTIN_SERVICES,
+    ...dbServices.filter(d => !BUILTIN_SERVICES.some(b => b.name === d.name)),
+  ]
+
   const [customCategory, setCustomCategory] = useState('')
   const [confirmedCustom, setConfirmedCustom] = useState('')
 
@@ -140,12 +271,17 @@ export default function PostService() {
   const contactRef     = useRef<HTMLDivElement>(null)
   const areaRef        = useRef<HTMLDivElement>(null)
 
+  // Revoke blob URLs on unmount to avoid memory leaks
+  useEffect(() => () => { previews.forEach(url => URL.revokeObjectURL(url)) }, [])
+
   const scrollTo = (ref: React.RefObject<HTMLDivElement>) => {
     setTimeout(() => ref.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100)
   }
 
   const handleImageAdd = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files ?? [])
+    const invalid = files.map(validateImageFile).filter(Boolean)
+    if (invalid.length > 0) { alert(invalid.join('\n')); e.target.value = ''; return }
     const remaining = 3 - images.length
     const toAdd = files.slice(0, remaining)
     setImages((prev) => [...prev, ...toAdd])
@@ -170,7 +306,11 @@ export default function PostService() {
     if (!form.description.trim()) errs.description = '请填写服务描述'
     if (!form.price.trim() && form.priceType !== 'negotiable') errs.price = '请填写价格'
     if (!form.name.trim()) errs.name = '请填写联系人姓名'
-    if (!form.phone.trim()) errs.phone = '请填写联系电话'
+    if (!form.phone.trim()) {
+      errs.phone = '请填写联系电话'
+    } else if (!/^[\d\s\-+().]{7,20}$/.test(form.phone.trim())) {
+      errs.phone = '请输入有效的电话号码（如：647-xxx-xxxx）'
+    }
     return errs
   }
 
@@ -191,22 +331,26 @@ export default function PostService() {
     setSubmitError('')
     try {
       // 1. Update user's contact info in users table
-      await supabase.from('users').upsert({
-        id: user.id,
+      const { error: upsertError } = await supabase.from('users').update({
         name: form.name.trim(),
         phone: form.phone.trim(),
         wechat: form.wechat?.trim() || null,
-      })
+      }).eq('id', user.id)
+      if (upsertError) throw upsertError
 
-      // 2. Upload images to Supabase Storage
+      // 2. Upload images to Supabase Storage (compress first if needed)
       const imageUrls: string[] = []
+      const imageUploadErrors: string[] = []
       for (const file of images) {
-        const ext = file.name.split('.').pop()
+        const compressed = await compressImage(file)
+        const ext = compressed.name.split('.').pop()
         const path = `${user.id}/${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`
         const { error: uploadError } = await supabase.storage
           .from('service-images')
-          .upload(path, file, { upsert: false })
-        if (!uploadError) {
+          .upload(path, compressed, { upsert: false })
+        if (uploadError) {
+          imageUploadErrors.push(file.name)
+        } else {
           const { data: { publicUrl } } = supabase.storage
             .from('service-images')
             .getPublicUrl(path)
@@ -214,25 +358,47 @@ export default function PostService() {
         }
       }
 
+      // Build tags — include custom category label if applicable
+      const baseTags = form.tags ? form.tags.split(/[,，\s]+/).filter(Boolean) : []
+      const allTags = confirmedCustom
+        ? [...baseTags, `类型:${confirmedCustom}`]
+        : baseTags
+
       // 3. Insert service into Supabase
+      const areaDisplay = selectedAreas.join('、') || 'Toronto'
       const { error } = await supabase.from('services').insert({
         category_id: form.category,
         title: form.title.trim(),
         description: form.description.trim(),
         price: form.priceType === 'negotiable' ? 0 : parseFloat(form.price) || 0,
         price_type: form.priceType,
-        lat: 43.6532,
-        lng: -79.3832,
-        area: selectedAreas.join(', ') || 'Toronto',
+        lat: userLocation?.lat ?? 43.6532,
+        lng: userLocation?.lng ?? -79.3832,
+        area: areaDisplay,
+        service_areas: selectedAreas.length > 0 ? selectedAreas : ['Toronto'],
         city: 'Toronto',
         provider_id: user.id,
-        tags: form.tags ? form.tags.split(/[,，\s]+/).filter(Boolean) : [],
+        tags: allTags,
         images: imageUrls,
         is_available: true,
         is_verified: false,
       })
 
       if (error) throw error
+
+      // 4. Save service type to crowd-sourced table
+      const serviceTypeName = confirmedCustom || form.title.trim()
+      if (serviceTypeName) {
+        await supabase.from('service_types').upsert(
+          { name: serviceTypeName, category_id: form.category, usage_count: 1 },
+          { onConflict: 'name', ignoreDuplicates: false }
+        )
+      }
+
+      if (imageUploadErrors.length > 0) {
+        setSubmitError(`⚠️ 图片上传失败（${imageUploadErrors.join('、')}）— 请检查 Supabase Storage 权限设置，服务已发布但没有图片`)
+        return   // 不跳转成功页，让用户看到错误
+      }
 
       // 4. Refresh services list
       await fetchServices()
@@ -265,7 +431,12 @@ export default function PostService() {
             </button>
             <button
               onClick={() => {
+                previews.forEach(url => URL.revokeObjectURL(url))
                 setForm(INITIAL_FORM)
+                setImages([])
+                setPreviews([])
+                setSelectedAreas([])
+                setConfirmedCustom('')
                 setSubmitted(false)
               }}
               className="text-gray-500 text-sm underline"
@@ -302,17 +473,21 @@ export default function PostService() {
                 type="text"
                 value={catSearch}
                 onChange={(e) => setCatSearch(e.target.value)}
-                placeholder="搜索服务类型..."
-                className="w-full pl-8 pr-3 py-2 text-sm border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-primary-400 focus:border-transparent"
+                placeholder="搜索服务类型，如：钢琴教学、报税..."
+                className="w-full pl-8 pr-8 py-2 text-sm border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-primary-400 focus:border-transparent"
               />
+              {catSearch && (
+                <button type="button" onClick={() => setCatSearch('')}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                  <X size={14} />
+                </button>
+              )}
             </div>
 
             {/* Confirmed custom tag */}
             {confirmedCustom && (
               <div className="flex flex-wrap gap-2 mb-3">
-                <button
-                  type="button"
-                  onClick={() => update('category', 'other')}
+                <button type="button" onClick={() => update('category', 'other')}
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border-2 text-xs font-medium transition-all ${
                     form.category === 'other'
                       ? 'border-primary-500 bg-primary-50 text-primary-600'
@@ -320,56 +495,84 @@ export default function PostService() {
                   }`}
                 >
                   {confirmedCustom}
-                  <span
-                    onClick={(e) => { e.stopPropagation(); setConfirmedCustom(''); update('category', 'moving') }}
-                    className="text-gray-400 hover:text-red-400 leading-none"
-                  >
-                    ✕
-                  </span>
+                  <span onClick={(e) => { e.stopPropagation(); setConfirmedCustom(''); update('category', 'moving') }}
+                    className="text-gray-400 hover:text-red-400 leading-none">✕</span>
                 </button>
               </div>
             )}
 
-            <div className="grid grid-cols-3 sm:grid-cols-3 gap-2">
-              {CATEGORIES.filter((cat) =>
-                catSearch === '' ||
-                cat.postLabel.includes(catSearch) ||
-                cat.searchTags.some((t) => t.includes(catSearch))
-              ).map((cat) => (
-                <button
-                  key={cat.id}
-                  type="button"
-                  onClick={() => { update('category', cat.id); scrollTo(serviceInfoRef) }}
+            {/* Search results — shown when typing */}
+            {catSearch && (() => {
+              const q = catSearch.toLowerCase()
+              const results = ALL_SERVICES.filter(s =>
+                s.name.includes(catSearch) || s.tags.some(t => t.includes(q))
+              ).slice(0, 12)
+              return results.length > 0 ? (
+                <div className="flex flex-wrap gap-2 mb-3">
+                  {results.map(s => {
+                    const cat = CATEGORIES.find(c => c.id === s.category)
+                    const isSelected = confirmedCustom === s.name
+                    return (
+                      <button key={s.name} type="button"
+                        onClick={() => {
+                          if (MAIN_CAT_IDS.includes(s.category)) {
+                            setConfirmedCustom('')
+                            update('category', s.category)
+                          } else {
+                            setConfirmedCustom(s.name)
+                            update('category', s.category)
+                          }
+                          setCatSearch('')
+                          scrollTo(serviceInfoRef)
+                        }}
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-medium transition-all ${
+                          isSelected
+                            ? 'border-primary-500 bg-primary-50 text-primary-600'
+                            : `border-gray-200 bg-white text-gray-700 hover:border-primary-300 hover:text-primary-600 ${cat?.bgColor ?? ''}`
+                        }`}
+                      >
+                        {s.name}
+                      </button>
+                    )
+                  })}
+                </div>
+              ) : (
+                <p className="text-xs text-gray-400 mb-3">没有找到，可在「其他服务」里自定义</p>
+              )
+            })()}
+
+            {/* 6-grid — hidden when searching */}
+            {!catSearch && (
+              <div className="grid grid-cols-3 gap-2">
+                {CATEGORIES.filter(cat => MAIN_CAT_IDS.includes(cat.id)).map((cat) => (
+                  <button key={cat.id} type="button"
+                    onClick={() => { setConfirmedCustom(''); update('category', cat.id); scrollTo(serviceInfoRef) }}
+                    className={`flex flex-col items-center gap-1 sm:gap-1.5 py-2 sm:p-3 rounded-xl border-2 transition-all ${
+                      form.category === cat.id && !confirmedCustom
+                        ? `border-primary-500 ${cat.bgColor}`
+                        : 'border-gray-200 bg-white hover:border-gray-300'
+                    }`}
+                  >
+                    <img src={cat.image} alt={cat.postLabel} className="hidden sm:block w-8 h-8 object-contain" />
+                    <span className={`text-xs font-medium ${form.category === cat.id && !confirmedCustom ? cat.color : 'text-gray-600'}`}>
+                      {cat.postLabel}
+                    </span>
+                  </button>
+                ))}
+                <button type="button" onClick={() => update('category', 'other')}
                   className={`flex flex-col items-center gap-1 sm:gap-1.5 py-2 sm:p-3 rounded-xl border-2 transition-all ${
-                    form.category === cat.id
-                      ? `border-primary-500 ${cat.bgColor}`
+                    form.category === 'other' && !confirmedCustom
+                      ? 'border-primary-500 bg-gray-50'
                       : 'border-gray-200 bg-white hover:border-gray-300'
                   }`}
                 >
-                  {/* Icon — hidden on mobile */}
-                  <img src={cat.image} alt={cat.postLabel} className="hidden sm:block w-8 h-8 object-contain" />
-                  <span className={`text-xs font-medium ${form.category === cat.id ? cat.color : 'text-gray-600'}`}>
-                    {cat.postLabel}
+                  <span className="hidden sm:block text-2xl">＋</span>
+                  <span className={`text-xs font-medium ${form.category === 'other' && !confirmedCustom ? 'text-primary-600' : 'text-gray-600'}`}>
+                    其他服务
                   </span>
                 </button>
-              ))}
-
-              {/* 其他服务 */}
-              <button
-                type="button"
-                onClick={() => update('category', 'other')}
-                className={`flex flex-col items-center gap-1 sm:gap-1.5 py-2 sm:p-3 rounded-xl border-2 transition-all ${
-                  form.category === 'other'
-                    ? 'border-primary-500 bg-gray-50'
-                    : 'border-gray-200 bg-white hover:border-gray-300'
-                }`}
-              >
-                <span className="hidden sm:block text-2xl">＋</span>
-                <span className={`text-xs font-medium ${form.category === 'other' ? 'text-primary-600' : 'text-gray-600'}`}>
-                  其他服务
-                </span>
-              </button>
-            </div>
+              </div>
+            )}
 
             {/* Custom category input — shown when 其他 selected and not yet confirmed */}
             {form.category === 'other' && !confirmedCustom && (

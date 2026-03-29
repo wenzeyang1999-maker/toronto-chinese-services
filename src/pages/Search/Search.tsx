@@ -124,7 +124,7 @@ export default function Search() {
                     <button
                       key={opt.value}
                       onClick={() =>
-                        setSearchFilters({ sortBy: opt.value as never })
+                        setSearchFilters({ sortBy: opt.value as 'distance' | 'rating' | 'newest' | 'price' })
                       }
                       className={`text-xs px-3 py-1.5 rounded-full ${
                         searchFilters.sortBy === opt.value

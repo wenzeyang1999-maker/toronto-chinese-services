@@ -1,12 +1,14 @@
+import { useState } from 'react'
 import { motion } from 'framer-motion'
 import HeroBanner from '../../components/HeroBanner/HeroBanner'
 import HeroCarousel from '../../components/HeroCarousel/HeroCarousel'
 import CategoryButtons from '../../components/CategoryButtons/CategoryButtons'
 import ServiceCard from '../../components/ServiceCard/ServiceCard'
 import SearchBar from '../../components/SearchBar/SearchBar'
+import InquiryModal from '../../components/InquiryModal/InquiryModal'
 import { useAppStore } from '../../store/appStore'
 import { useGeolocation } from '../../hooks/useGeolocation'
-import { ChevronRight, MapPin } from 'lucide-react'
+import { ChevronRight, MapPin, Sparkles } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 
 export default function Home() {
@@ -14,6 +16,7 @@ export default function Home() {
   const getFilteredServices = useAppStore((s) => s.getFilteredServices)
   const userLocation = useAppStore((s) => s.userLocation)
   const navigate = useNavigate()
+  const [inquiryOpen, setInquiryOpen] = useState(false)
 
   const recent = getFilteredServices().slice(0, 4)
 
@@ -36,9 +39,28 @@ export default function Home() {
               {userLocation ? '已获取您的位置' : '大多伦多地区'}
             </span>
           </div>
-          <SearchBar />
+
+          {/* Search row: SearchBar (shrinks) + AI button */}
+          <div className="flex items-center gap-3.5">
+            <div className="flex-1 min-w-0">
+              <SearchBar />
+            </div>
+            <motion.button
+              whileTap={{ scale: 0.95 }}
+              onClick={() => setInquiryOpen(true)}
+              className="self-stretch flex-shrink-0 flex items-center justify-center gap-1.5
+                         bg-white hover:bg-blue-50 active:bg-blue-100
+                         text-primary-700 font-semibold rounded-2xl shadow-md
+                         transition-colors px-3.5 whitespace-nowrap"
+            >
+              <Sparkles size={14} className="text-primary-500 flex-shrink-0" />
+              <span className="text-sm font-bold">AI 帮你找</span>
+            </motion.button>
+          </div>
         </div>
       </div>
+
+      <InquiryModal open={inquiryOpen} onClose={() => setInquiryOpen(false)} />
 
       <div className="relative z-10 w-full bg-gray-50 rounded-t-3xl pt-6">
       <div className="w-full px-3 md:w-[85%] md:px-0 lg:w-[70%] mx-auto">
