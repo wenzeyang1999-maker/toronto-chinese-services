@@ -7,6 +7,7 @@ import { useAuthStore } from '../../store/authStore'
 import { supabase } from '../../lib/supabase'
 import { getCategoryById } from '../../data/categories'
 import type { BrowseEntry } from '../Profile/types'
+import ReviewsSection from './ReviewsSection'
 
 // ── Social platform display config ────────────────────────────────────────────
 const SOCIAL_PLATFORMS = [
@@ -318,6 +319,10 @@ export default function ServiceDetail() {
             )}
           </div>
         </motion.div>
+
+        {/* Reviews */}
+        <ReviewsSection serviceId={service.id} providerId={service.provider.id ?? ''} />
+
       </div>
 
       {/* Bottom action bar */}
