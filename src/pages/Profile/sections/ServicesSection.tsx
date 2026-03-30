@@ -167,30 +167,32 @@ export default function ServicesSection() {
                 <>
                   {/* Thumbnail strip */}
                   {svc.images.length > 0 && (
-                    <div className="flex gap-1.5 px-5 pt-4">
+                    <button onClick={() => navigate(`/service/${svc.id}`)}
+                      className="flex gap-1.5 px-5 pt-4 hover:opacity-70 transition-opacity w-full text-left">
                       {svc.images.slice(0, 3).map((url, i) => (
                         <img key={i} src={url} alt=""
                           className="w-16 h-16 rounded-xl object-cover border border-gray-100" />
                       ))}
-                    </div>
+                    </button>
                   )}
                   <div className="px-5 py-4 flex items-center gap-3">
-                    <div className="flex-1 min-w-0">
+                    <button onClick={() => navigate(`/service/${svc.id}`)}
+                      className="flex-1 min-w-0 text-left hover:opacity-70 transition-opacity">
                       <p className="text-sm font-semibold text-gray-800 truncate">{svc.title}</p>
                       <p className="text-xs text-gray-400 mt-0.5">{svc.created_at.slice(0, 10)}</p>
-                    </div>
+                    </button>
                     <button onClick={() => toggleAvailable(svc)}
                       className={`flex items-center gap-1 text-xs px-2.5 py-1 rounded-full font-medium flex-shrink-0 transition-colors
                         ${svc.is_available ? 'bg-green-100 text-green-600 hover:bg-green-200' : 'bg-gray-100 text-gray-400 hover:bg-gray-200'}`}>
                       {svc.is_available ? <><ToggleRight size={13} />上架中</> : <><ToggleLeft size={13} />已下架</>}
                     </button>
                     <button onClick={() => startEdit(svc)}
-                      className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:bg-blue-50 hover:text-blue-500 transition-colors">
-                      <Pencil size={15} />
+                      className="w-10 h-10 flex items-center justify-center rounded-xl text-gray-400 hover:bg-blue-50 hover:text-blue-500 transition-colors">
+                      <Pencil size={18} />
                     </button>
                     <button onClick={() => setConfirmDel(svc.id)}
-                      className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:bg-red-50 hover:text-red-500 transition-colors">
-                      <Trash2 size={15} />
+                      className="w-10 h-10 flex items-center justify-center rounded-xl text-gray-400 hover:bg-red-50 hover:text-red-500 transition-colors">
+                      <Trash2 size={18} />
                     </button>
                   </div>
                 </>

@@ -1,12 +1,23 @@
 import { useEffect, useRef, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ArrowLeft, Star, MapPin, Phone, MessageCircle, ShieldCheck, Clock, Tag, MessageSquare } from 'lucide-react'
+import { ArrowLeft, Star, MapPin, Phone, ShieldCheck, Clock, Tag, MessageSquare, CheckCircle2, ExternalLink } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { useAppStore } from '../../store/appStore'
 import { useAuthStore } from '../../store/authStore'
 import { supabase } from '../../lib/supabase'
 import { getCategoryById } from '../../data/categories'
 import type { BrowseEntry } from '../Profile/types'
+
+// ── Social platform display config ────────────────────────────────────────────
+const SOCIAL_PLATFORMS = [
+  { key: 'whatsapp',    label: 'WhatsApp',  icon: '📲', color: 'bg-emerald-50 text-emerald-700 border-emerald-200', getUrl: (v: string) => `https://wa.me/${v.replace(/\D/g, '')}` },
+  { key: 'xiaohongshu', label: '小红书',    icon: '📕', color: 'bg-rose-50 text-rose-700 border-rose-200',         getUrl: (v: string) => v.startsWith('http') ? v : null },
+  { key: 'instagram',   label: 'Instagram', icon: '📷', color: 'bg-pink-50 text-pink-700 border-pink-200',         getUrl: (v: string) => `https://instagram.com/${v.replace('@','')}` },
+  { key: 'facebook',    label: 'Facebook',  icon: '👥', color: 'bg-blue-50 text-blue-700 border-blue-200',         getUrl: (v: string) => v.startsWith('http') ? v : `https://facebook.com/${v}` },
+  { key: 'line',        label: 'Line',      icon: '🟢', color: 'bg-green-50 text-green-700 border-green-200',      getUrl: (v: string) => `https://line.me/ti/p/~${v}` },
+  { key: 'telegram',    label: 'Telegram',  icon: '✈️', color: 'bg-sky-50 text-sky-700 border-sky-200',            getUrl: (v: string) => `https://t.me/${v.replace('@','')}` },
+  { key: 'website',     label: '网站',      icon: '🌐', color: 'bg-violet-50 text-violet-700 border-violet-200',   getUrl: (v: string) => v.startsWith('http') ? v : `https://${v}` },
+] as const
 
 function recordBrowse(entry: BrowseEntry) {
   try {
@@ -24,6 +35,39 @@ export default function ServiceDetail() {
   const services = useAppStore((s) => s.services)
 
   const service = services.find((s) => s.id === id)
+
+  // Provider extra info — fetched separately, not in global store
+  const [socialLinks,   setSocialLinks]   = useState<Record<string, string>>({})
+  const [emailVerified, setEmailVerified] = useState(false)
+  const [phoneVerified, setPhoneVerified] = useState(false)
+  const [providerEmail, setProviderEmail] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!service?.provider.id) return
+    // Select columns one at a time so a missing column doesn't blank the whole card.
+    // email + is_email_verified have always existed; social_links + phone_verified
+    // require the latest schema migration to be applied.
+    supabase
+      .from('users')
+      .select('email, is_email_verified')
+      .eq('id', service.provider.id)
+      .single()
+      .then(({ data }) => {
+        if (data?.email)             setProviderEmail(data.email)
+        if (data?.is_email_verified) setEmailVerified(true)
+      })
+
+    supabase
+      .from('users')
+      .select('social_links, phone_verified')
+      .eq('id', service.provider.id)
+      .single()
+      .then(({ data, error }) => {
+        if (error) return // columns may not exist yet — silently skip
+        if (data?.social_links)   setSocialLinks(data.social_links as Record<string, string>)
+        if (data?.phone_verified) setPhoneVerified(true)
+      })
+  }, [service?.provider.id])
 
   // Record browse history on view
   useEffect(() => {
@@ -115,7 +159,7 @@ export default function ServiceDetail() {
             <div className={`${cat?.bgColor ?? 'bg-gray-50'} w-14 h-14 rounded-2xl flex items-center justify-center flex-shrink-0`}>
               <img src={cat?.image} alt={cat?.label} className="w-10 h-10 object-contain" />
             </div>
-            <div className="flex-1">
+            <div className="flex-1 min-w-0">
               <h2 className="text-lg font-bold text-gray-900 leading-snug">{service.title}</h2>
               <div className="flex items-center gap-2 mt-1">
                 <span className={`text-xs ${cat?.color} ${cat?.bgColor} px-2 py-0.5 rounded-full font-medium`}>
@@ -123,6 +167,16 @@ export default function ServiceDetail() {
                 </span>
                 <span className="text-primary-600 font-bold">{priceLabel}</span>
               </div>
+            </div>
+            {/* Provider name + star rating — prominent, top-right of main card */}
+            <div className="flex flex-col items-end flex-shrink-0">
+              <span className="text-sm font-semibold text-gray-800">{service.provider.name}</span>
+              <div className="flex items-center gap-0.5 mt-1">
+                {[1, 2, 3, 4, 5].map((i) => (
+                  <Star key={i} size={18} className="text-yellow-400 fill-yellow-400" />
+                ))}
+              </div>
+              <span className="text-xs text-gray-400 mt-0.5">{service.provider.reviewCount}条评价</span>
             </div>
           </div>
 
@@ -161,30 +215,83 @@ export default function ServiceDetail() {
               </div>
             )}
             <div className="flex-1">
-              <div className="flex items-center gap-1.5">
+              <div className="flex items-center gap-1.5 flex-wrap">
                 <span className="font-semibold text-gray-900">{service.provider.name}</span>
                 {service.provider.verified && (
                   <span className="flex items-center gap-0.5 text-xs text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded-full">
-                    <ShieldCheck size={10} />
-                    已认证
+                    <ShieldCheck size={10} /> 已认证
                   </span>
                 )}
-              </div>
-              <div className="flex items-center gap-3 mt-1">
-                <div className="flex items-center gap-0.5">
-                  <Star size={13} className="text-yellow-400 fill-yellow-400" />
-                  <span className="text-sm font-medium">{service.provider.rating}</span>
-                  <span className="text-xs text-gray-400">({service.provider.reviewCount}条评价)</span>
-                </div>
               </div>
               <div className="flex items-center gap-1 mt-1 text-xs text-gray-400">
                 <Clock size={11} />
                 <span>加入于 {service.provider.joinedAt ? service.provider.joinedAt.slice(0, 7) : '未知'}</span>
-                <span className="mx-1">·</span>
-                <span>语言：{service.provider.languages.join('、')}</span>
+              </div>
+
+              {/* Verification status row */}
+              <div className="flex items-center gap-2 mt-2 flex-wrap">
+                <span className={`flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-medium
+                  ${emailVerified ? 'text-green-600 bg-green-50' : 'text-gray-400 bg-gray-100'}`}>
+                  <CheckCircle2 size={10} />
+                  邮箱{emailVerified ? '已验证' : '未验证'}
+                </span>
+                <span className={`flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-medium
+                  ${phoneVerified ? 'text-green-600 bg-green-50' : 'text-gray-400 bg-gray-100'}`}>
+                  <CheckCircle2 size={10} />
+                  手机{phoneVerified ? '已验证' : '未验证'}
+                </span>
               </div>
             </div>
           </div>
+
+          {/* Contact info: email / phone / wechat */}
+          <div className="mt-4 pt-4 border-t border-gray-100 space-y-2">
+            {providerEmail && (
+              <a href={`mailto:${providerEmail}`}
+                className="flex items-center gap-2 text-sm text-gray-700 hover:text-primary-600 transition-colors">
+                <span className="text-base">📧</span>
+                <span className="truncate">{providerEmail}</span>
+              </a>
+            )}
+            {service.provider.phone && (
+              <a href={`tel:${service.provider.phone}`}
+                className="flex items-center gap-2 text-sm text-gray-700 hover:text-primary-600 transition-colors">
+                <span className="text-base">📞</span>
+                <span>{service.provider.phone}</span>
+              </a>
+            )}
+            {service.provider.wechat && (
+              <button onClick={handleWechat}
+                className="flex items-center gap-2 text-sm text-gray-700 hover:text-primary-600 transition-colors w-full text-left">
+                <span className="text-base">💬</span>
+                <span>{service.provider.wechat}</span>
+                <span className="text-xs text-gray-400 ml-1">（点击复制）</span>
+              </button>
+            )}
+          </div>
+
+          {/* Social links */}
+          {SOCIAL_PLATFORMS.some(p => socialLinks[p.key]?.trim()) && (
+            <div className="mt-3 flex flex-wrap gap-2">
+              {SOCIAL_PLATFORMS.filter(p => socialLinks[p.key]?.trim()).map(p => {
+                const url = p.getUrl(socialLinks[p.key])
+                return url ? (
+                  <a key={p.key} href={url} target="_blank" rel="noopener noreferrer"
+                    className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full border font-medium ${p.color}`}>
+                    <span>{p.icon}</span>
+                    <span>{p.label}</span>
+                    <ExternalLink size={10} />
+                  </a>
+                ) : (
+                  <span key={p.key}
+                    className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full border font-medium ${p.color}`}>
+                    <span>{p.icon}</span>
+                    <span>{socialLinks[p.key]}</span>
+                  </span>
+                )
+              })}
+            </div>
+          )}
         </motion.div>
 
         {/* Location card */}
@@ -220,16 +327,6 @@ export default function ServiceDetail() {
             <MessageSquare size={18} />
             <span>发消息</span>
           </motion.button>
-          {service.provider.wechat && (
-            <motion.button
-              whileTap={{ scale: 0.95 }}
-              onClick={handleWechat}
-              className="flex-1 flex items-center justify-center gap-2 bg-green-500 text-white py-3 rounded-2xl font-medium hover:bg-green-600 transition-colors"
-            >
-              <MessageCircle size={18} />
-              <span>微信</span>
-            </motion.button>
-          )}
           <motion.button
             whileTap={{ scale: 0.95 }}
             onClick={handleCall}
