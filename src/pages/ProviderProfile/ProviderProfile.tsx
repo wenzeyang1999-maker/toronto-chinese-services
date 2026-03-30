@@ -281,7 +281,7 @@ export default function ProviderProfile() {
             </div>
           )}
 
-          <div className="space-y-3">
+          <div className="grid grid-cols-2 gap-3">
             {services.map((svc, i) => {
               const cat = getCategoryById(svc.category_id as never)
               const priceLabel =
