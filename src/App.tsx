@@ -26,6 +26,7 @@ import Login from './pages/Auth/Login'
 import ForgotPassword from './pages/Auth/ForgotPassword'
 import Profile from './pages/Profile/Profile'
 import ConversationPage from './pages/Conversation/ConversationPage'
+import ResetPassword from './pages/Auth/ResetPassword'
 import ProviderProfile from './pages/ProviderProfile/ProviderProfile'
 import AiChatWidget from './components/AiChatWidget/AiChatWidget'
 import { useAppStore } from './store/appStore'
@@ -75,6 +76,7 @@ export default function App() {
           <Route path="/register" element={<Register />} />
           <Route path="/login" element={<Login />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/conversation/:id" element={<ConversationPage />} />
           <Route path="/provider/:id" element={<ProviderProfile />} />
