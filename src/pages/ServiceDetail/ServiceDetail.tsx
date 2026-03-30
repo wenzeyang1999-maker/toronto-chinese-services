@@ -174,10 +174,17 @@ export default function ServiceDetail() {
               <span className="text-sm font-semibold text-gray-800">{service.provider.name}</span>
               <div className="flex items-center gap-0.5 mt-1">
                 {[1, 2, 3, 4, 5].map((i) => (
-                  <Star key={i} size={18} className="text-yellow-400 fill-yellow-400" />
+                  <Star key={i} size={18}
+                    className={i <= Math.round(service.provider.rating)
+                      ? 'text-yellow-400 fill-yellow-400'
+                      : 'text-gray-200 fill-gray-200'} />
                 ))}
               </div>
-              <span className="text-xs text-gray-400 mt-0.5">{service.provider.reviewCount}条评价</span>
+              <span className="text-xs text-gray-400 mt-0.5">
+                {service.provider.reviewCount > 0
+                  ? `${service.provider.rating.toFixed(1)} · ${service.provider.reviewCount}条评价`
+                  : '暂无评价'}
+              </span>
             </div>
           </div>
 

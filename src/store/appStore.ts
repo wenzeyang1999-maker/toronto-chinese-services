@@ -30,6 +30,7 @@ interface ServiceRow {
     wechat: string | null
     avatar_url: string | null
   } | null
+  reviews: { rating: number }[] | null
 }
 
 interface AppState {
@@ -86,8 +87,10 @@ function mapRow(row: ServiceRow): Service {
       phone: row.provider?.phone ?? '',
       wechat: row.provider?.wechat ?? undefined,
       avatar: row.provider?.avatar_url ?? undefined,
-      rating: 5.0,
-      reviewCount: 0,
+      rating: row.reviews?.length
+        ? row.reviews.reduce((s, r) => s + r.rating, 0) / row.reviews.length
+        : 0,
+      reviewCount: row.reviews?.length ?? 0,
       verified: row.is_verified ?? false,
       joinedAt: row.created_at?.slice(0, 10) ?? '',
       languages: ['中文'],
@@ -122,7 +125,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   fetchServices: async () => {
     const { data, error } = await supabase
       .from('services')
-      .select('*, provider:users(id, name, phone, wechat, avatar_url)')
+      .select('*, provider:users(id, name, phone, wechat, avatar_url), reviews(rating)')
       .eq('is_available', true)
       .order('created_at', { ascending: false })
     if (!error && data) {
