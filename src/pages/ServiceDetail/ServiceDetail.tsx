@@ -205,32 +205,23 @@ export default function ServiceDetail() {
           transition={{ delay: 0.1 }}
           className="card p-5"
         >
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="text-sm font-semibold text-gray-700">服务提供者</h3>
-            {service.provider.id && (
-              <button onClick={() => navigate(`/provider/${service.provider.id}`)}
-                className="text-xs text-primary-600 hover:underline">
-                查看主页 →
-              </button>
+          <h3 className="text-sm font-semibold text-gray-700 mb-3">服务提供者</h3>
+
+          {/* Entire identity block is one big tap target */}
+          <button
+            onClick={() => service.provider.id && navigate(`/provider/${service.provider.id}`)}
+            className="w-full flex items-center gap-3 text-left hover:bg-gray-50 active:bg-gray-100 rounded-2xl transition-colors -mx-2 px-2 py-2"
+          >
+            {service.provider.avatar ? (
+              <img src={service.provider.avatar} alt={service.provider.name} className="w-12 h-12 rounded-full object-cover flex-shrink-0" />
+            ) : (
+              <div className="w-12 h-12 bg-gradient-to-br from-primary-400 to-primary-600 rounded-full flex items-center justify-center text-white font-bold text-lg flex-shrink-0">
+                {service.provider.name.charAt(0)}
+              </div>
             )}
-          </div>
-          <div className="flex items-center gap-3">
-            <button onClick={() => service.provider.id && navigate(`/provider/${service.provider.id}`)}
-              className="flex-shrink-0 hover:opacity-80 transition-opacity">
-              {service.provider.avatar ? (
-                <img src={service.provider.avatar} alt={service.provider.name} className="w-12 h-12 rounded-full object-cover" />
-              ) : (
-                <div className="w-12 h-12 bg-gradient-to-br from-primary-400 to-primary-600 rounded-full flex items-center justify-center text-white font-bold text-lg">
-                  {service.provider.name.charAt(0)}
-                </div>
-              )}
-            </button>
-            <div className="flex-1">
+            <div className="flex-1 min-w-0">
               <div className="flex items-center gap-1.5 flex-wrap">
-                <button onClick={() => service.provider.id && navigate(`/provider/${service.provider.id}`)}
-                  className="font-semibold text-gray-900 hover:text-primary-600 transition-colors">
-                  {service.provider.name}
-                </button>
+                <span className="font-semibold text-gray-900">{service.provider.name}</span>
                 {service.provider.verified && (
                   <span className="flex items-center gap-0.5 text-xs text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded-full">
                     <ShieldCheck size={10} /> 已认证
@@ -241,8 +232,6 @@ export default function ServiceDetail() {
                 <Clock size={11} />
                 <span>加入于 {service.provider.joinedAt ? service.provider.joinedAt.slice(0, 7) : '未知'}</span>
               </div>
-
-              {/* Verification status row */}
               <div className="flex items-center gap-2 mt-2 flex-wrap">
                 <span className={`flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-medium
                   ${emailVerified ? 'text-green-600 bg-green-50' : 'text-gray-400 bg-gray-100'}`}>
@@ -256,7 +245,8 @@ export default function ServiceDetail() {
                 </span>
               </div>
             </div>
-          </div>
+            <span className="text-xs text-primary-500 flex-shrink-0">查看主页 →</span>
+          </button>
 
           {/* Contact info: email / phone / wechat */}
           <div className="mt-4 pt-4 border-t border-gray-100 space-y-2">
