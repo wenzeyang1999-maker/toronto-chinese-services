@@ -58,19 +58,35 @@ export default function ProviderProfile() {
     if (!id) return
     setLoading(true)
 
-    // Fetch user profile
+    // Fetch core user profile (columns that always exist)
     supabase
       .from('users')
-      .select('id, name, avatar_url, email, phone, wechat, is_email_verified, phone_verified, social_links, created_at')
+      .select('id, name, avatar_url, email, phone, wechat, is_email_verified, created_at')
       .eq('id', id)
       .single()
       .then(({ data, error }) => {
         if (error || !data) { setNotFound(true); setLoading(false); return }
         setProvider({
           ...data,
-          social_links: (data.social_links as Record<string, string>) ?? {},
+          phone_verified: false,
+          social_links: {},
         })
         setLoading(false)
+      })
+
+    // Fetch newer columns separately — silently skip if migration not yet run
+    supabase
+      .from('users')
+      .select('phone_verified, social_links')
+      .eq('id', id)
+      .single()
+      .then(({ data, error }) => {
+        if (error || !data) return
+        setProvider(prev => prev ? {
+          ...prev,
+          phone_verified: data.phone_verified ?? false,
+          social_links: (data.social_links as Record<string, string>) ?? {},
+        } : prev)
       })
 
     // Fetch their active services
