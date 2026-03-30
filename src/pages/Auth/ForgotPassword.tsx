@@ -27,7 +27,7 @@ export default function ForgotPassword() {
     setLoading(false)
 
     if (error) {
-      setServerError('发送失败，请检查邮箱地址后重试')
+      setServerError(`发送失败：${error.message}`)
     } else {
       setSent(true)
     }
