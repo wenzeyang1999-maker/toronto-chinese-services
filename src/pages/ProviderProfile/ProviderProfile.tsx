@@ -4,7 +4,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { ArrowLeft, CheckCircle2, Clock, ExternalLink, MessageSquare, Phone, ShieldCheck, Star } from 'lucide-react'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import { supabase } from '../../lib/supabase'
 import { useAuthStore } from '../../store/authStore'
 import { getCategoryById } from '../../data/categories'
@@ -33,6 +33,15 @@ interface ProviderUser {
   created_at: string
 }
 
+interface ProviderReview {
+  id: string
+  rating: number
+  comment: string | null
+  created_at: string
+  service: { id: string; title: string } | null
+  reviewer: { id: string; name: string; avatar_url: string | null } | null
+}
+
 interface ServiceRow {
   id: string
   title: string
@@ -49,10 +58,11 @@ export default function ProviderProfile() {
   const navigate = useNavigate()
   const user     = useAuthStore((s) => s.user)
 
-  const [provider, setProvider] = useState<ProviderUser | null>(null)
-  const [services, setServices] = useState<ServiceRow[]>([])
-  const [loading,  setLoading]  = useState(true)
-  const [notFound, setNotFound] = useState(false)
+  const [provider,       setProvider]       = useState<ProviderUser | null>(null)
+  const [services,       setServices]       = useState<ServiceRow[]>([])
+  const [providerReviews, setProviderReviews] = useState<ProviderReview[]>([])
+  const [loading,        setLoading]        = useState(true)
+  const [notFound,       setNotFound]       = useState(false)
 
   useEffect(() => {
     if (!id) return
@@ -89,7 +99,7 @@ export default function ProviderProfile() {
         } : prev)
       })
 
-    // Fetch their active services
+    // Fetch their active services, then load reviews for those services
     supabase
       .from('services')
       .select('id, title, description, category_id, price, price_type, area, images')
@@ -97,7 +107,27 @@ export default function ProviderProfile() {
       .eq('is_available', true)
       .order('created_at', { ascending: false })
       .then(({ data }) => {
-        if (data) setServices(data.map(r => ({ ...r, images: r.images ?? [] })))
+        const rows = data?.map(r => ({ ...r, images: r.images ?? [] })) ?? []
+        setServices(rows)
+
+        if (rows.length === 0) return
+        const serviceIds = rows.map(r => r.id)
+        supabase
+          .from('reviews')
+          .select('id, rating, comment, created_at, service:service_id(id, title), reviewer:reviewer_id(id, name, avatar_url)')
+          .in('service_id', serviceIds)
+          .order('created_at', { ascending: false })
+          .then(({ data: rData }) => {
+            if (!rData) return
+            setProviderReviews(rData.map((r: any) => ({
+              id:         r.id,
+              rating:     r.rating,
+              comment:    r.comment,
+              created_at: r.created_at,
+              service:    Array.isArray(r.service)  ? r.service[0]  : r.service,
+              reviewer:   Array.isArray(r.reviewer) ? r.reviewer[0] : r.reviewer,
+            })))
+          })
       })
   }, [id])
 
@@ -354,6 +384,69 @@ export default function ProviderProfile() {
               )
             })}
           </div>
+        </div>
+
+        {/* ── All Reviews ──────────────────────────────────────────────────── */}
+        <div>
+          <h2 className="text-sm font-semibold text-gray-500 mb-3 px-1">
+            收到的评价（{providerReviews.length}）
+            {providerReviews.length > 0 && (
+              <span className="ml-2 text-yellow-500 font-bold">
+                {'★ ' + (providerReviews.reduce((s, r) => s + r.rating, 0) / providerReviews.length).toFixed(1)}
+              </span>
+            )}
+          </h2>
+
+          {providerReviews.length === 0 ? (
+            <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-8 text-center text-gray-400 text-sm">
+              暂无评价
+            </div>
+          ) : (
+            <div className="bg-white rounded-3xl border border-gray-100 shadow-sm divide-y divide-gray-50">
+              <AnimatePresence>
+                {providerReviews.map((r, i) => (
+                  <motion.div key={r.id}
+                    initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: i * 0.04 }}
+                    className="flex gap-3 p-4"
+                  >
+                    {r.reviewer?.avatar_url ? (
+                      <img src={r.reviewer.avatar_url} alt={r.reviewer.name}
+                        className="w-9 h-9 rounded-full object-cover flex-shrink-0 border border-gray-100" />
+                    ) : (
+                      <div className="w-9 h-9 rounded-full bg-gradient-to-br from-primary-400 to-primary-600
+                                      flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
+                        {r.reviewer?.name?.charAt(0) ?? '?'}
+                      </div>
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-sm font-semibold text-gray-800">
+                          {r.reviewer?.name ?? '匿名用户'}
+                        </span>
+                        <div className="flex items-center gap-0.5">
+                          {[1,2,3,4,5].map(s => (
+                            <Star key={s} size={12}
+                              className={s <= r.rating ? 'text-yellow-400 fill-yellow-400' : 'text-gray-200 fill-gray-200'} />
+                          ))}
+                        </div>
+                        <span className="text-xs text-gray-400 ml-auto">{r.created_at.slice(0, 10)}</span>
+                      </div>
+                      {r.service && (
+                        <button onClick={() => navigate(`/service/${r.service!.id}`)}
+                          className="text-xs text-primary-500 hover:underline mt-0.5">
+                          {r.service.title}
+                        </button>
+                      )}
+                      {r.comment && (
+                        <p className="text-sm text-gray-600 mt-1 leading-relaxed">{r.comment}</p>
+                      )}
+                    </div>
+                  </motion.div>
+                ))}
+              </AnimatePresence>
+            </div>
+          )}
         </div>
 
       </div>
