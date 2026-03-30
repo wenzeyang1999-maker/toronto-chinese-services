@@ -1,20 +1,30 @@
 // ─── Reset Password Page ───────────────────────────────────────────────────────
 // Route: /reset-password
-// Supabase sends the user here after clicking the reset email link.
-// The link may use either:
-//   • Implicit flow: hash fragment  #access_token=...&type=recovery
-//   • PKCE flow:     query param    ?code=...
-// We handle both cases.
+//
+// Supabase JS processes the auth token from the URL hash SYNCHRONOUSLY on init,
+// before any React component mounts. By the time useEffect runs, the hash is
+// already cleared and the PASSWORD_RECOVERY event has already fired.
+//
+// Fix: read the URL hash / query at module load time (before Supabase clears it),
+// then use that flag to decide which flow to run inside the effect.
+
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { Lock, Eye, EyeOff, CheckCircle, ChevronLeft } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 
+// ── Read URL BEFORE Supabase clears the hash (module-level, runs once) ────────
+const _hash   = new URLSearchParams(window.location.hash.replace(/^#/, ''))
+const _query  = new URLSearchParams(window.location.search)
+const IS_RECOVERY = _hash.get('type') === 'recovery'   // implicit flow
+const PKCE_CODE   = _query.get('code') ?? null          // PKCE flow
+// ─────────────────────────────────────────────────────────────────────────────
+
 type Stage = 'loading' | 'form' | 'success' | 'invalid'
 
 export default function ResetPassword() {
-  const navigate    = useNavigate()
+  const navigate     = useNavigate()
   const [stage,       setStage]       = useState<Stage>('loading')
   const [password,    setPassword]    = useState('')
   const [confirm,     setConfirm]     = useState('')
@@ -22,37 +32,54 @@ export default function ResetPassword() {
   const [showConfirm, setShowConfirm] = useState(false)
   const [error,       setError]       = useState<string | null>(null)
   const [loading,     setLoading]     = useState(false)
-
-  // Track whether we've already resolved so timeout doesn't override
   const resolved = useRef(false)
 
+  function resolve(to: Stage) {
+    if (resolved.current) return
+    resolved.current = true
+    setStage(to)
+  }
+
   useEffect(() => {
-    function resolve(to: Stage) {
-      if (resolved.current) return
-      resolved.current = true
-      setStage(to)
+    // ── PKCE flow: ?code=xxx ────────────────────────────────────────────────
+    if (PKCE_CODE) {
+      supabase.auth.exchangeCodeForSession(PKCE_CODE).then(({ error }) => {
+        resolve(error ? 'invalid' : 'form')
+      })
+      return
     }
 
-    // ── PKCE flow: ?code=xxx in query string ─────────────────────────────────
-    const params = new URLSearchParams(window.location.search)
-    const code   = params.get('code')
-    if (code) {
-      supabase.auth.exchangeCodeForSession(code).then(({ error }) => {
-        resolve(error ? 'invalid' : 'form')
+    // ── Implicit flow: #access_token=...&type=recovery ──────────────────────
+    if (IS_RECOVERY) {
+      // Supabase has already processed the hash and set up the session.
+      // getSession() gives us that session synchronously.
+      supabase.auth.getSession().then(({ data }) => {
+        if (data.session) {
+          resolve('form')
+        }
+        // If session not yet ready, the onAuthStateChange below will catch it
       })
     }
 
-    // ── Implicit flow: #access_token=...&type=recovery in hash ───────────────
-    // onAuthStateChange replays the current auth state immediately on subscribe,
-    // so PASSWORD_RECOVERY fires even if the hash was processed before mount.
+    // onAuthStateChange as a safety net (covers edge cases / slow processing)
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
       if (event === 'PASSWORD_RECOVERY') {
         resolve('form')
       }
+      // If Supabase fires SIGNED_IN (not PASSWORD_RECOVERY) but we know this
+      // was a recovery link, still show the form
+      if (event === 'SIGNED_IN' && IS_RECOVERY) {
+        resolve('form')
+      }
     })
 
-    // Fallback: if neither fires within 5 s, the link is invalid/expired
-    const timeout = setTimeout(() => resolve('invalid'), 5000)
+    // If neither PKCE nor recovery hash detected → invalid link
+    if (!IS_RECOVERY && !PKCE_CODE) {
+      resolve('invalid')
+    }
+
+    // Last-resort timeout
+    const timeout = setTimeout(() => resolve('invalid'), 6000)
 
     return () => {
       subscription.unsubscribe()
@@ -64,19 +91,17 @@ export default function ResetPassword() {
     e.preventDefault()
     setError(null)
 
-    if (password.length < 8)    { setError('密码至少需要 8 位'); return }
-    if (password !== confirm)   { setError('两次输入的密码不一致'); return }
+    if (password.length < 8)  { setError('密码至少需要 8 位'); return }
+    if (password !== confirm)  { setError('两次输入的密码不一致'); return }
 
     setLoading(true)
     const { error: updateError } = await supabase.auth.updateUser({ password })
     setLoading(false)
 
     if (updateError) {
-      // The most common cause is the recovery session expiring (default 1 h).
       setError(`修改失败：${updateError.message}`)
     } else {
       setStage('success')
-      // Sign out so the user starts fresh, then redirect to login
       await supabase.auth.signOut()
       setTimeout(() => navigate('/login'), 3000)
     }
@@ -101,7 +126,6 @@ export default function ResetPassword() {
           transition={{ duration: 0.4 }}
           className="w-full max-w-md bg-white rounded-3xl shadow-sm border border-gray-100 p-8"
         >
-          {/* ── Loading ── */}
           {stage === 'loading' && (
             <div className="text-center py-8">
               <div className="w-10 h-10 border-4 border-primary-200 border-t-primary-600 rounded-full animate-spin mx-auto mb-4" />
@@ -109,7 +133,6 @@ export default function ResetPassword() {
             </div>
           )}
 
-          {/* ── Invalid / expired ── */}
           {stage === 'invalid' && (
             <div className="text-center">
               <div className="w-14 h-14 rounded-full bg-red-50 flex items-center justify-center mx-auto mb-4">
@@ -126,7 +149,6 @@ export default function ResetPassword() {
             </div>
           )}
 
-          {/* ── Success ── */}
           {stage === 'success' && (
             <div className="text-center">
               <CheckCircle size={56} className="text-green-500 mx-auto mb-4" />
@@ -140,7 +162,6 @@ export default function ResetPassword() {
             </div>
           )}
 
-          {/* ── Form ── */}
           {stage === 'form' && (
             <>
               <div className="mb-8">
@@ -149,7 +170,6 @@ export default function ResetPassword() {
               </div>
 
               <form onSubmit={handleSubmit} className="space-y-4">
-                {/* New password */}
                 <div>
                   <label className="block text-xs font-medium text-gray-600 mb-1.5">新密码</label>
                   <div className="flex items-center gap-2.5 border border-gray-200 rounded-xl px-4 py-3
@@ -170,7 +190,6 @@ export default function ResetPassword() {
                   </div>
                 </div>
 
-                {/* Confirm password */}
                 <div>
                   <label className="block text-xs font-medium text-gray-600 mb-1.5">确认新密码</label>
                   <div className="flex items-center gap-2.5 border border-gray-200 rounded-xl px-4 py-3
