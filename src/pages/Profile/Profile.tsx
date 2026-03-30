@@ -6,23 +6,25 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import {
   ChevronLeft, ChevronRight, Camera, LogOut,
-  ShieldCheck, Briefcase, Clock, MessageSquare, Bot,
+  ShieldCheck, Briefcase, Clock, MessageSquare, Bot, BadgeCheck,
 } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { useAuthStore } from '../../store/authStore'
 import type { BrowseEntry, ChatSession, Section } from './types'
-import AccountSection  from './sections/AccountSection'
-import ServicesSection from './sections/ServicesSection'
-import BrowseSection   from './sections/BrowseSection'
-import ChatSection     from './sections/ChatSection'
-import MessagesSection from './sections/MessagesSection'
+import AccountSection      from './sections/AccountSection'
+import ServicesSection     from './sections/ServicesSection'
+import BrowseSection       from './sections/BrowseSection'
+import ChatSection         from './sections/ChatSection'
+import MessagesSection     from './sections/MessagesSection'
+import VerificationSection from './sections/VerificationSection'
 
 const MENU: { key: Section; icon: React.ReactNode; label: string; sub: string }[] = [
-  { key: 'account',  icon: <ShieldCheck   size={18} />, label: '帐号和安全',  sub: '个人信息、密码修改' },
-  { key: 'services', icon: <Briefcase     size={18} />, label: '我的服务',    sub: '已发布的服务列表' },
-  { key: 'messages', icon: <MessageSquare size={18} />, label: '我的消息',    sub: '与商家的对话记录' },
-  { key: 'browse',   icon: <Clock         size={18} />, label: '浏览记录',    sub: '最近查看的服务' },
-  { key: 'chat',     icon: <Bot           size={18} />, label: 'AI 对话记录', sub: '历史聊天记录' },
+  { key: 'account',      icon: <ShieldCheck  size={18} />, label: '帐号和安全',  sub: '个人信息、密码修改' },
+  { key: 'verification', icon: <BadgeCheck   size={18} />, label: '联系方式与资质验证',  sub: '社交媒体、手机验证、商户认证' },
+  { key: 'services',     icon: <Briefcase    size={18} />, label: '我的服务',    sub: '已发布的服务列表' },
+  { key: 'messages',     icon: <MessageSquare size={18} />, label: '我的消息',   sub: '与商家的对话记录' },
+  { key: 'browse',       icon: <Clock        size={18} />, label: '浏览记录',    sub: '最近查看的服务' },
+  { key: 'chat',         icon: <Bot          size={18} />, label: 'AI 对话记录', sub: '历史聊天记录' },
 ]
 
 export default function Profile() {
@@ -33,7 +35,7 @@ export default function Profile() {
   // On desktop default to 'account'; honour ?section=messages etc from URL
   const [section, setSection] = useState<Section | null>(() => {
     const param = searchParams.get('section') as Section | null
-    if (param && ['account','services','messages','browse','chat'].includes(param)) return param
+    if (param && ['account','verification','services','messages','browse','chat'].includes(param)) return param
     return typeof window !== 'undefined' && window.innerWidth >= 1024 ? 'account' : null
   })
   const [name,      setName]      = useState('')
@@ -153,12 +155,13 @@ export default function Profile() {
   // ── Section content renderer ─────────────────────────────────────────────────
   function renderSection(key: Section | null) {
     switch (key) {
-      case 'account':  return <AccountSection user={user!} name={name} phone={phone} onNameChange={setName} onPhoneChange={setPhone} />
-      case 'services': return <ServicesSection />
-      case 'messages': return <MessagesSection />
-      case 'browse':   return <BrowseSection items={browse} onClear={() => { localStorage.removeItem('tcs_browse_history'); setBrowse([]) }} />
-      case 'chat':     return <ChatSection sessions={chats} onClear={() => { localStorage.removeItem('tcs_chat_history'); setChats([]) }} />
-      default:         return null
+      case 'account':       return <AccountSection user={user!} name={name} phone={phone} onNameChange={setName} onPhoneChange={setPhone} />
+      case 'verification':  return <VerificationSection user={user!} />
+      case 'services':      return <ServicesSection />
+      case 'messages':      return <MessagesSection />
+      case 'browse':        return <BrowseSection items={browse} onClear={() => { localStorage.removeItem('tcs_browse_history'); setBrowse([]) }} />
+      case 'chat':          return <ChatSection sessions={chats} onClear={() => { localStorage.removeItem('tcs_chat_history'); setChats([]) }} />
+      default:              return null
     }
   }
 

@@ -51,8 +51,8 @@ export default function ReviewsSection({ serviceId, providerId }: Props) {
       .select('id, rating, comment, created_at, reviewer:reviewer_id(id, name, avatar_url)')
       .eq('service_id', serviceId)
       .order('created_at', { ascending: false })
-      .then(({ data }) => {
-        if (!data) { setLoading(false); return }
+      .then(({ data, error }) => {
+        if (error || !data) { setLoading(false); return }
         setReviews(data.map((r: any) => ({
           id:         r.id,
           rating:     r.rating,

@@ -62,7 +62,7 @@ export default function ConversationPage() {
         })
         // Reset unread count for current user
         const col = isClient ? 'client_unread' : 'provider_unread'
-        supabase.from('conversations').update({ [col]: 0 }).eq('id', id)
+        supabase.from('conversations').update({ [col]: 0 }).eq('id', id).then()
       })
 
     supabase

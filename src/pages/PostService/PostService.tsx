@@ -235,6 +235,21 @@ export default function PostService() {
     : []
   const [dbServices, setDbServices] = useState<ServiceSuggestion[]>([])
 
+  // Auto-fill contact fields from the user's saved profile
+  useEffect(() => {
+    if (!user) return
+    supabase.from('users').select('name, phone, wechat').eq('id', user.id).single()
+      .then(({ data }) => {
+        if (!data) return
+        setForm(prev => ({
+          ...prev,
+          name:   data.name  || prev.name,
+          phone:  data.phone || prev.phone,
+          wechat: data.wechat || prev.wechat || '',
+        }))
+      })
+  }, [user])
+
   useEffect(() => {
     supabase.from('service_types').select('name, category_id').order('usage_count', { ascending: false }).limit(200)
       .then(({ data }) => {

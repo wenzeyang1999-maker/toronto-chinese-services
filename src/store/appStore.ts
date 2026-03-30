@@ -179,7 +179,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         result.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
         break
       case 'price':
-        result.sort((a, b) => parseFloat(a.price) - parseFloat(b.price))
+        result.sort((a, b) => (parseFloat(a.price) || 0) - (parseFloat(b.price) || 0))
         break
     }
 
