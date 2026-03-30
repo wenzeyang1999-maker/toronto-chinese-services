@@ -45,7 +45,7 @@ export default function CategoryButtons() {
                        border border-white/60`}
         >
           <img src={cat.image} alt={cat.label} className="w-10 h-10 object-contain" />
-          <span className={`text-sm font-semibold ${cat.color}`}>{cat.label}</span>
+          <span className={`text-sm font-semibold ${cat.color}`}>找{cat.label}</span>
           <span className="text-xs text-gray-500 text-center leading-tight line-clamp-2">
             {cat.description}
           </span>

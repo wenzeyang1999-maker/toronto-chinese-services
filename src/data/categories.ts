@@ -15,7 +15,7 @@ export interface CategoryConfig {
 export const CATEGORIES: CategoryConfig[] = [
   {
     id: 'moving',
-    label: '找搬家',
+    label: '搬家',
     postLabel: '搬家',
     emoji: '🚚',
     image: '/images/categories/moving.svg',
@@ -26,7 +26,7 @@ export const CATEGORIES: CategoryConfig[] = [
   },
   {
     id: 'cleaning',
-    label: '找保洁',
+    label: '保洁',
     postLabel: '保洁',
     emoji: '✨',
     image: '/images/categories/cleaning.svg',
@@ -37,7 +37,7 @@ export const CATEGORIES: CategoryConfig[] = [
   },
   {
     id: 'ride',
-    label: '找接送',
+    label: '接送',
     postLabel: '接送',
     emoji: '🚗',
     image: '/images/categories/ride.svg',
@@ -48,7 +48,7 @@ export const CATEGORIES: CategoryConfig[] = [
   },
   {
     id: 'renovation',
-    label: '找装修',
+    label: '装修',
     postLabel: '装修',
     emoji: '🔨',
     image: '/images/categories/renovation.svg',
@@ -70,7 +70,7 @@ export const CATEGORIES: CategoryConfig[] = [
   },
   {
     id: 'food',
-    label: '找餐饮',
+    label: '餐饮',
     postLabel: '餐饮',
     emoji: '🍜',
     image: '/images/categories/food.svg',

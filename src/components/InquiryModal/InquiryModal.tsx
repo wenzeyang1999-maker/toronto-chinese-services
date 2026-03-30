@@ -183,7 +183,7 @@ export default function InquiryModal({ open, onClose }: Props) {
                         <option value="">请选择服务类型...</option>
                         {CATEGORIES.filter((c) => c.id !== 'other').map((c) => (
                           <option key={c.id} value={c.id}>
-                            {c.emoji} {c.label.replace('找', '')}
+                            {c.emoji} {c.label}
                           </option>
                         ))}
                         <option value="other">其他服务</option>
