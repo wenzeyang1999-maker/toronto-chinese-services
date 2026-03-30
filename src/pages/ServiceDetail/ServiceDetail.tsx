@@ -205,18 +205,32 @@ export default function ServiceDetail() {
           transition={{ delay: 0.1 }}
           className="card p-5"
         >
-          <h3 className="text-sm font-semibold text-gray-700 mb-3">服务提供者</h3>
-          <div className="flex items-center gap-3">
-            {service.provider.avatar ? (
-              <img src={service.provider.avatar} alt={service.provider.name} className="w-12 h-12 rounded-full object-cover" />
-            ) : (
-              <div className="w-12 h-12 bg-gradient-to-br from-primary-400 to-primary-600 rounded-full flex items-center justify-center text-white font-bold text-lg">
-                {service.provider.name.charAt(0)}
-              </div>
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-semibold text-gray-700">服务提供者</h3>
+            {service.provider.id && (
+              <button onClick={() => navigate(`/provider/${service.provider.id}`)}
+                className="text-xs text-primary-600 hover:underline">
+                查看主页 →
+              </button>
             )}
+          </div>
+          <div className="flex items-center gap-3">
+            <button onClick={() => service.provider.id && navigate(`/provider/${service.provider.id}`)}
+              className="flex-shrink-0 hover:opacity-80 transition-opacity">
+              {service.provider.avatar ? (
+                <img src={service.provider.avatar} alt={service.provider.name} className="w-12 h-12 rounded-full object-cover" />
+              ) : (
+                <div className="w-12 h-12 bg-gradient-to-br from-primary-400 to-primary-600 rounded-full flex items-center justify-center text-white font-bold text-lg">
+                  {service.provider.name.charAt(0)}
+                </div>
+              )}
+            </button>
             <div className="flex-1">
               <div className="flex items-center gap-1.5 flex-wrap">
-                <span className="font-semibold text-gray-900">{service.provider.name}</span>
+                <button onClick={() => service.provider.id && navigate(`/provider/${service.provider.id}`)}
+                  className="font-semibold text-gray-900 hover:text-primary-600 transition-colors">
+                  {service.provider.name}
+                </button>
                 {service.provider.verified && (
                   <span className="flex items-center gap-0.5 text-xs text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded-full">
                     <ShieldCheck size={10} /> 已认证

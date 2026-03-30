@@ -11,8 +11,8 @@
 //   /register       → User registration page
 //   /login          → User login page
 //   /profile        → User profile page
-import { useEffect, useState } from 'react'
-import { Routes, Route, useNavigate } from 'react-router-dom'
+import { useCallback, useEffect, useState } from 'react'
+import { Routes, Route, useNavigate, useLocation } from 'react-router-dom'
 import { AnimatePresence } from 'framer-motion'
 import { MessageSquare } from 'lucide-react'
 import LoadingScreen from './components/LoadingScreen/LoadingScreen'
@@ -26,6 +26,7 @@ import Login from './pages/Auth/Login'
 import ForgotPassword from './pages/Auth/ForgotPassword'
 import Profile from './pages/Profile/Profile'
 import ConversationPage from './pages/Conversation/ConversationPage'
+import ProviderProfile from './pages/ProviderProfile/ProviderProfile'
 import AiChatWidget from './components/AiChatWidget/AiChatWidget'
 import { useAppStore } from './store/appStore'
 import { useAuthStore } from './store/authStore'
@@ -76,6 +77,7 @@ export default function App() {
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/conversation/:id" element={<ConversationPage />} />
+          <Route path="/provider/:id" element={<ProviderProfile />} />
         </Routes>
       )}
 
@@ -88,35 +90,39 @@ export default function App() {
 
 // ── Floating messages button with unread badge ─────────────────────────────
 function MessagesButton() {
-  const user    = useAuthStore((s) => s.user)
+  const user     = useAuthStore((s) => s.user)
   const navigate = useNavigate()
+  const location = useLocation()
   const [unread, setUnread] = useState(0)
 
-  useEffect(() => {
+  const fetchUnread = useCallback(async () => {
     if (!user) { setUnread(0); return }
+    const { data } = await supabase
+      .from('conversations')
+      .select('client_unread, provider_unread, client_id')
+      .or(`client_id.eq.${user.id},provider_id.eq.${user.id}`)
+    if (!data) return
+    const total = data.reduce((sum, row) => {
+      const mine = row.client_id === user.id ? row.client_unread : row.provider_unread
+      return sum + (mine ?? 0)
+    }, 0)
+    setUnread(total)
+  }, [user])
 
-    async function fetchUnread() {
-      const { data } = await supabase
-        .from('conversations')
-        .select('client_unread, provider_unread, client_id')
-        .or(`client_id.eq.${user!.id},provider_id.eq.${user!.id}`)
-      if (!data) return
-      const total = data.reduce((sum, row) => {
-        const mine = row.client_id === user!.id ? row.client_unread : row.provider_unread
-        return sum + (mine ?? 0)
-      }, 0)
-      setUnread(total)
-    }
-
+  // Refetch on every route change (e.g. after leaving a conversation the count is fresh)
+  useEffect(() => {
     fetchUnread()
+  }, [location.pathname, fetchUnread])
 
-    // Re-check when conversations table changes
+  // Realtime subscription — also updates when another device/tab changes the count
+  useEffect(() => {
+    if (!user) return
     const channel = supabase
       .channel('global-unread')
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'conversations' }, fetchUnread)
       .subscribe()
     return () => { supabase.removeChannel(channel) }
-  }, [user])
+  }, [user, fetchUnread])
 
   if (!user) return null
 
