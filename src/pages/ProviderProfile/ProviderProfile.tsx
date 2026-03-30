@@ -294,11 +294,13 @@ export default function ProviderProfile() {
                   transition={{ delay: i * 0.05 }}
                   className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden"
                 >
-                  {/* Image strip */}
+                  {/* Image */}
                   {svc.images.length > 0 && (
-                    <button onClick={() => navigate(`/service/${svc.id}`)} className="w-full text-left">
-                      <img src={svc.images[0]} alt={svc.title}
-                        className="w-full h-40 object-cover" />
+                    <button onClick={() => navigate(`/service/${svc.id}`)} className="w-full text-left block">
+                      <div className="w-full aspect-[4/3] overflow-hidden">
+                        <img src={svc.images[0]} alt={svc.title}
+                          className="w-full h-full object-cover hover:scale-105 transition-transform duration-300" />
+                      </div>
                     </button>
                   )}
 
