@@ -1,9 +1,11 @@
 // ─── Reset Password Page ───────────────────────────────────────────────────────
 // Route: /reset-password
-// Supabase sends the user here after they click the email link.
-// The access_token arrives in the URL hash — Supabase JS picks it up automatically
-// and fires onAuthStateChange with event='PASSWORD_RECOVERY'.
-import { useEffect, useState } from 'react'
+// Supabase sends the user here after clicking the reset email link.
+// The link may use either:
+//   • Implicit flow: hash fragment  #access_token=...&type=recovery
+//   • PKCE flow:     query param    ?code=...
+// We handle both cases.
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { Lock, Eye, EyeOff, CheckCircle, ChevronLeft } from 'lucide-react'
@@ -12,7 +14,7 @@ import { supabase } from '../../lib/supabase'
 type Stage = 'loading' | 'form' | 'success' | 'invalid'
 
 export default function ResetPassword() {
-  const navigate = useNavigate()
+  const navigate    = useNavigate()
   const [stage,       setStage]       = useState<Stage>('loading')
   const [password,    setPassword]    = useState('')
   const [confirm,     setConfirm]     = useState('')
@@ -21,24 +23,36 @@ export default function ResetPassword() {
   const [error,       setError]       = useState<string | null>(null)
   const [loading,     setLoading]     = useState(false)
 
-  // Supabase JS v2 automatically exchanges the hash fragment token.
-  // We listen for PASSWORD_RECOVERY to know the token is valid.
+  // Track whether we've already resolved so timeout doesn't override
+  const resolved = useRef(false)
+
   useEffect(() => {
+    function resolve(to: Stage) {
+      if (resolved.current) return
+      resolved.current = true
+      setStage(to)
+    }
+
+    // ── PKCE flow: ?code=xxx in query string ─────────────────────────────────
+    const params = new URLSearchParams(window.location.search)
+    const code   = params.get('code')
+    if (code) {
+      supabase.auth.exchangeCodeForSession(code).then(({ error }) => {
+        resolve(error ? 'invalid' : 'form')
+      })
+    }
+
+    // ── Implicit flow: #access_token=...&type=recovery in hash ───────────────
+    // onAuthStateChange replays the current auth state immediately on subscribe,
+    // so PASSWORD_RECOVERY fires even if the hash was processed before mount.
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
       if (event === 'PASSWORD_RECOVERY') {
-        setStage('form')
+        resolve('form')
       }
     })
 
-    // Fallback: if user already has an active session with recovery token
-    supabase.auth.getSession().then(({ data }) => {
-      if (data.session) setStage('form')
-    })
-
-    // If no event fires after 4s, the link is invalid/expired
-    const timeout = setTimeout(() => {
-      setStage(prev => prev === 'loading' ? 'invalid' : prev)
-    }, 4000)
+    // Fallback: if neither fires within 5 s, the link is invalid/expired
+    const timeout = setTimeout(() => resolve('invalid'), 5000)
 
     return () => {
       subscription.unsubscribe()
@@ -50,23 +64,20 @@ export default function ResetPassword() {
     e.preventDefault()
     setError(null)
 
-    if (password.length < 8) {
-      setError('密码至少需要 8 位')
-      return
-    }
-    if (password !== confirm) {
-      setError('两次输入的密码不一致')
-      return
-    }
+    if (password.length < 8)    { setError('密码至少需要 8 位'); return }
+    if (password !== confirm)   { setError('两次输入的密码不一致'); return }
 
     setLoading(true)
     const { error: updateError } = await supabase.auth.updateUser({ password })
     setLoading(false)
 
     if (updateError) {
-      setError('密码重置失败，链接可能已过期，请重新申请')
+      // The most common cause is the recovery session expiring (default 1 h).
+      setError(`修改失败：${updateError.message}`)
     } else {
       setStage('success')
+      // Sign out so the user starts fresh, then redirect to login
+      await supabase.auth.signOut()
       setTimeout(() => navigate('/login'), 3000)
     }
   }
@@ -90,7 +101,7 @@ export default function ResetPassword() {
           transition={{ duration: 0.4 }}
           className="w-full max-w-md bg-white rounded-3xl shadow-sm border border-gray-100 p-8"
         >
-          {/* Loading */}
+          {/* ── Loading ── */}
           {stage === 'loading' && (
             <div className="text-center py-8">
               <div className="w-10 h-10 border-4 border-primary-200 border-t-primary-600 rounded-full animate-spin mx-auto mb-4" />
@@ -98,7 +109,7 @@ export default function ResetPassword() {
             </div>
           )}
 
-          {/* Invalid / expired */}
+          {/* ── Invalid / expired ── */}
           {stage === 'invalid' && (
             <div className="text-center">
               <div className="w-14 h-14 rounded-full bg-red-50 flex items-center justify-center mx-auto mb-4">
@@ -115,7 +126,7 @@ export default function ResetPassword() {
             </div>
           )}
 
-          {/* Success */}
+          {/* ── Success ── */}
           {stage === 'success' && (
             <div className="text-center">
               <CheckCircle size={56} className="text-green-500 mx-auto mb-4" />
@@ -129,7 +140,7 @@ export default function ResetPassword() {
             </div>
           )}
 
-          {/* Form */}
+          {/* ── Form ── */}
           {stage === 'form' && (
             <>
               <div className="mb-8">
