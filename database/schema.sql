@@ -22,9 +22,11 @@ CREATE TABLE IF NOT EXISTS users (
   phone           VARCHAR(30),
   wechat          VARCHAR(100),
   avatar_url      TEXT,
+  social_links    JSONB         DEFAULT '{}',
 
   password_hash   TEXT,
   is_email_verified BOOLEAN     DEFAULT false,
+  phone_verified    BOOLEAN     DEFAULT false,
 
   role            VARCHAR(20)   DEFAULT 'user'
                   CHECK (role IN ('user', 'provider', 'admin')),
@@ -91,9 +93,20 @@ CREATE TABLE IF NOT EXISTS services (
 );
 
 -- Add columns to existing tables (safe to run if column already exists)
-ALTER TABLE services ADD COLUMN IF NOT EXISTS images       TEXT[] DEFAULT '{}';
+ALTER TABLE services ADD COLUMN IF NOT EXISTS images        TEXT[] DEFAULT '{}';
 ALTER TABLE services ADD COLUMN IF NOT EXISTS service_areas TEXT[] DEFAULT '{}';
 ALTER TABLE services ALTER COLUMN area TYPE TEXT;
+ALTER TABLE users    ADD COLUMN IF NOT EXISTS social_links    JSONB    DEFAULT '{}';
+ALTER TABLE users    ADD COLUMN IF NOT EXISTS phone_verified  BOOLEAN  DEFAULT false;
+
+-- Backfill email verification for users who already confirmed their email.
+-- Safe to re-run: only updates rows where auth has confirmed but public hasn't caught up.
+UPDATE public.users u
+SET is_email_verified = true
+FROM auth.users a
+WHERE u.id = a.id
+  AND a.email_confirmed_at IS NOT NULL
+  AND u.is_email_verified = false;
 
 
 -- ─────────────────────────────────────────────────────────────────────────────
@@ -187,6 +200,26 @@ DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- TRIGGER: sync email verification from auth.users → public.users
+-- Fires when the user clicks the verification link in their email.
+-- ─────────────────────────────────────────────────────────────────────────────
+CREATE OR REPLACE FUNCTION public.handle_email_confirmed()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF NEW.email_confirmed_at IS NOT NULL AND OLD.email_confirmed_at IS NULL THEN
+    UPDATE public.users SET is_email_verified = true WHERE id = NEW.id;
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+DROP TRIGGER IF EXISTS on_auth_user_email_confirmed ON auth.users;
+CREATE TRIGGER on_auth_user_email_confirmed
+  AFTER UPDATE ON auth.users
+  FOR EACH ROW EXECUTE FUNCTION public.handle_email_confirmed();
 
 
 -- ─────────────────────────────────────────────────────────────────────────────
