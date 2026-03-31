@@ -6,6 +6,7 @@ import CategoryButtons from '../../components/CategoryButtons/CategoryButtons'
 import ServiceCard from '../../components/ServiceCard/ServiceCard'
 import SearchBar from '../../components/SearchBar/SearchBar'
 import InquiryModal from '../../components/InquiryModal/InquiryModal'
+import SectionTabs, { type SectionTab } from '../../components/SectionTabs/SectionTabs'
 import { useAppStore } from '../../store/appStore'
 import { useGeolocation } from '../../hooks/useGeolocation'
 import { ChevronRight, MapPin, Sparkles } from 'lucide-react'
@@ -17,6 +18,7 @@ export default function Home() {
   const userLocation = useAppStore((s) => s.userLocation)
   const navigate = useNavigate()
   const [inquiryOpen, setInquiryOpen] = useState(false)
+  const [activeTab, setActiveTab] = useState<SectionTab>('services')
 
   const recent = getFilteredServices().slice(0, 4)
 
@@ -62,7 +64,14 @@ export default function Home() {
 
       <InquiryModal open={inquiryOpen} onClose={() => setInquiryOpen(false)} />
 
-      <div className="relative z-10 w-full bg-gray-50 rounded-t-3xl pt-6">
+      {/* Section tabs */}
+      <div className="relative z-10 w-full bg-white">
+        <div className="w-full md:w-[85%] lg:w-[70%] mx-auto">
+          <SectionTabs active={activeTab} onChange={setActiveTab} />
+        </div>
+      </div>
+
+      <div className="relative z-10 w-full bg-gray-50 pt-6">
       <div className="w-full px-3 md:w-[85%] md:px-0 lg:w-[70%] mx-auto">
         {/* Category buttons */}
         <motion.section

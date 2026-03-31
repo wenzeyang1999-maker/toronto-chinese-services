@@ -1,0 +1,103 @@
+// ─── Section Tabs ──────────────────────────────────────────────────────────────
+// Horizontal tab bar that sits between the search bar and category grid.
+// "找服务" is live; other sections show a "即将上线" placeholder.
+import { useState, useRef } from 'react'
+import { motion } from 'framer-motion'
+
+export type SectionTab = 'services' | 'jobs' | 'secondhand' | 'realestate' | 'events'
+
+interface Tab {
+  id:       SectionTab
+  label:    string
+  emoji:    string
+  live:     boolean
+  sublabel: string
+}
+
+const TABS: Tab[] = [
+  { id: 'services',    label: '找服务',  emoji: '🔧', live: true,  sublabel: '家政·搬家·装修' },
+  { id: 'jobs',        label: '招聘求职', emoji: '💼', live: false, sublabel: '兼职·全职·现金工' },
+  { id: 'secondhand',  label: '二手交易', emoji: '🛒', live: false, sublabel: '家具·电子·服饰' },
+  { id: 'realestate',  label: '租房买房', emoji: '🏠', live: false, sublabel: '出租·出售·合租' },
+  { id: 'events',      label: '同城活动', emoji: '🎉', live: false, sublabel: '聚会·展览·课程' },
+]
+
+interface Props {
+  active:   SectionTab
+  onChange: (tab: SectionTab) => void
+}
+
+export default function SectionTabs({ active, onChange }: Props) {
+  const [toastTab, setToastTab] = useState<SectionTab | null>(null)
+  const scrollRef = useRef<HTMLDivElement>(null)
+
+  function handleClick(tab: Tab) {
+    if (!tab.live) {
+      setToastTab(tab.id)
+      setTimeout(() => setToastTab(null), 2000)
+      return
+    }
+    onChange(tab.id)
+  }
+
+  return (
+    <div className="relative">
+      {/* Scrollable tab strip */}
+      <div
+        ref={scrollRef}
+        className="flex gap-1 overflow-x-auto scrollbar-hide px-4 border-b border-gray-100"
+        style={{ scrollbarWidth: 'none' }}
+      >
+        {TABS.map((tab) => {
+          const isActive = active === tab.id
+          return (
+            <button
+              key={tab.id}
+              onClick={() => handleClick(tab)}
+              className={`relative flex-shrink-0 flex items-center gap-1.5 px-3 py-3 text-sm
+                          font-medium transition-colors whitespace-nowrap
+                          ${isActive
+                            ? 'text-primary-600'
+                            : tab.live
+                              ? 'text-gray-500 hover:text-gray-800'
+                              : 'text-gray-400 hover:text-gray-500'
+                          }`}
+            >
+              <span className="text-base leading-none">{tab.emoji}</span>
+              <span>{tab.label}</span>
+              {!tab.live && (
+                <span className="text-[9px] font-semibold text-amber-500 bg-amber-50
+                                 px-1 py-0.5 rounded-full leading-none border border-amber-200">
+                  即将上线
+                </span>
+              )}
+
+              {/* Active underline */}
+              {isActive && (
+                <motion.div
+                  layoutId="tab-underline"
+                  className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary-600 rounded-full"
+                  transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                />
+              )}
+            </button>
+          )
+        })}
+      </div>
+
+      {/* Coming soon toast */}
+      {toastTab && (
+        <motion.div
+          initial={{ opacity: 0, y: -8 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0 }}
+          className="absolute top-14 left-1/2 -translate-x-1/2 z-50
+                     bg-gray-800 text-white text-xs font-medium px-4 py-2
+                     rounded-full shadow-lg whitespace-nowrap"
+        >
+          {TABS.find(t => t.id === toastTab)?.label} 板块即将上线，敬请期待 ✨
+        </motion.div>
+      )}
+    </div>
+  )
+}
