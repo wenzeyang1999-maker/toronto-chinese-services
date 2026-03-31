@@ -24,7 +24,7 @@ import MembershipSection   from './sections/MembershipSection'
 const MENU: { key: Section; icon: React.ReactNode; label: string; sub: string }[] = [
   { key: 'account',      icon: <ShieldCheck   size={18} />, label: '帐号和安全',        sub: '个人信息、密码修改' },
   { key: 'verification', icon: <BadgeCheck    size={18} />, label: '联系方式与资质验证', sub: '社交媒体、手机验证、商户认证' },
-  { key: 'membership',   icon: <Crown         size={18} />, label: '会员等级',           sub: 'L1 / L2 / L3 商家会员权益' },
+  { key: 'membership',   icon: <Crown         size={18} />, label: '会员等级',           sub: '查看商家会员权益' },
   { key: 'services',     icon: <Briefcase     size={18} />, label: '我的服务',           sub: '已发布的服务列表' },
   { key: 'messages',     icon: <MessageSquare size={18} />, label: '我的消息',           sub: '与商家的对话记录' },
   { key: 'browse',       icon: <Clock         size={18} />, label: '浏览记录',           sub: '最近查看的服务' },
