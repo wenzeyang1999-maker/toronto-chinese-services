@@ -54,7 +54,7 @@ export default function SectionTabs({ active, onChange }: Props) {
             <button
               key={tab.id}
               onClick={() => handleClick(tab)}
-              className={`relative flex-shrink-0 flex items-center gap-1.5 px-3 py-3 text-sm
+              className={`relative flex-shrink-0 flex items-center gap-2 px-4 py-4 text-sm
                           font-medium transition-colors whitespace-nowrap
                           ${isActive
                             ? 'text-primary-600'
@@ -63,8 +63,8 @@ export default function SectionTabs({ active, onChange }: Props) {
                               : 'text-gray-400 hover:text-gray-500'
                           }`}
             >
-              <span className="text-base leading-none">{tab.emoji}</span>
-              <span>{tab.label}</span>
+              <span className="text-lg leading-none">{tab.emoji}</span>
+              <span className="text-[15px]">{tab.label}</span>
               {!tab.live && (
                 <span className="text-[9px] font-semibold text-amber-500 bg-amber-50
                                  px-1 py-0.5 rounded-full leading-none border border-amber-200">
