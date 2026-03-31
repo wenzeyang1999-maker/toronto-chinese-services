@@ -107,10 +107,10 @@ export default function ServiceCard({ service }: Props) {
             )}
           </div>
 
-          {service.area && (
+          {service.location?.area && (
             <div className="flex items-center gap-0.5 text-gray-400 flex-shrink-0">
               <MapPin size={10} />
-              <span className="text-[11px]">{service.area}</span>
+              <span className="text-[11px]">{service.location?.area}</span>
             </div>
           )}
         </div>
