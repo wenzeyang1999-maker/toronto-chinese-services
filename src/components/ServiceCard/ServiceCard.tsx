@@ -23,7 +23,7 @@ export default function ServiceCard({ service }: Props) {
       whileTap={{ scale: 0.97 }}
       onClick={() => navigate(`/service/${service.id}`)}
       className="bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100
-                 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 cursor-pointer group"
+                 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 cursor-pointer group w-full"
     >
       {/* ── Hero image ─────────────────────────────────────────────────────── */}
       <div className="relative aspect-[4/3] overflow-hidden">

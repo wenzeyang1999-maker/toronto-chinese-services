@@ -161,7 +161,7 @@ export default function Search() {
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid gap-3" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))' }}>
             {results.map((svc) => (
               <ServiceCard key={svc.id} service={svc} />
             ))}

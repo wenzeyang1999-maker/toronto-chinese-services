@@ -96,7 +96,8 @@ export default function Category() {
             initial="hidden"
             animate="show"
             variants={{ show: { transition: { staggerChildren: 0.06 } } }}
-            className="grid grid-cols-2 gap-3 mb-6"
+            className="grid gap-3 mb-6"
+            style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))' }}
           >
             {sorted.map((svc) => (
               <motion.div
