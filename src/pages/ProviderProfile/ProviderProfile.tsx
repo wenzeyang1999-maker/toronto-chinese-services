@@ -8,6 +8,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { supabase } from '../../lib/supabase'
 import { useAuthStore } from '../../store/authStore'
 import { getCategoryById } from '../../data/categories'
+import MembershipBadge, { type MemberLevel } from '../../components/MembershipBadge/MembershipBadge'
 
 // ── Social platform display config (mirrors ServiceDetail) ────────────────────
 const SOCIAL_PLATFORMS = [
@@ -31,6 +32,7 @@ interface ProviderUser {
   phone_verified: boolean
   social_links: Record<string, string>
   created_at: string
+  membership_level: MemberLevel
 }
 
 interface ProviderReview {
@@ -80,6 +82,7 @@ export default function ProviderProfile() {
           ...data,
           phone_verified: false,
           social_links: {},
+          membership_level: 'L1',
         })
         setLoading(false)
       })
@@ -87,7 +90,7 @@ export default function ProviderProfile() {
     // Fetch newer columns separately — silently skip if migration not yet run
     supabase
       .from('users')
-      .select('phone_verified, social_links')
+      .select('phone_verified, social_links, membership_level')
       .eq('id', id)
       .single()
       .then(({ data, error }) => {
@@ -96,6 +99,7 @@ export default function ProviderProfile() {
           ...prev,
           phone_verified: data.phone_verified ?? false,
           social_links: (data.social_links as Record<string, string>) ?? {},
+          membership_level: (data.membership_level as MemberLevel) ?? 'L1',
         } : prev)
       })
 
@@ -209,7 +213,10 @@ export default function ProviderProfile() {
               </div>
             )}
             <div className="flex-1 min-w-0">
-              <h1 className="text-xl font-bold text-gray-900 truncate">{provider.name}</h1>
+              <div className="flex items-center gap-2 flex-wrap">
+                <h1 className="text-xl font-bold text-gray-900 truncate">{provider.name}</h1>
+                <MembershipBadge level={provider.membership_level} size="md" />
+              </div>
               <div className="flex items-center gap-1.5 mt-1 text-xs text-gray-400">
                 <Clock size={12} />
                 <span>加入于 {joinedMonth}</span>

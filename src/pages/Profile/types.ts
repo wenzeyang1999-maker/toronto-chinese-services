@@ -6,4 +6,4 @@ export interface ChatSession {
   id: string; preview: string; ts: number; count: number
 }
 
-export type Section = 'account' | 'services' | 'messages' | 'browse' | 'chat' | 'verification'
+export type Section = 'account' | 'services' | 'messages' | 'browse' | 'chat' | 'verification' | 'membership'

@@ -6,25 +6,29 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import {
   ChevronLeft, ChevronRight, Camera, LogOut,
-  ShieldCheck, Briefcase, Clock, MessageSquare, Bot, BadgeCheck,
+  ShieldCheck, Briefcase, Clock, MessageSquare, Bot, BadgeCheck, Crown,
 } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { useAuthStore } from '../../store/authStore'
 import type { BrowseEntry, ChatSession, Section } from './types'
+import type { MemberLevel } from '../../components/MembershipBadge/MembershipBadge'
+import MembershipBadge from '../../components/MembershipBadge/MembershipBadge'
 import AccountSection      from './sections/AccountSection'
 import ServicesSection     from './sections/ServicesSection'
 import BrowseSection       from './sections/BrowseSection'
 import ChatSection         from './sections/ChatSection'
 import MessagesSection     from './sections/MessagesSection'
 import VerificationSection from './sections/VerificationSection'
+import MembershipSection   from './sections/MembershipSection'
 
 const MENU: { key: Section; icon: React.ReactNode; label: string; sub: string }[] = [
-  { key: 'account',      icon: <ShieldCheck  size={18} />, label: '帐号和安全',  sub: '个人信息、密码修改' },
-  { key: 'verification', icon: <BadgeCheck   size={18} />, label: '联系方式与资质验证',  sub: '社交媒体、手机验证、商户认证' },
-  { key: 'services',     icon: <Briefcase    size={18} />, label: '我的服务',    sub: '已发布的服务列表' },
-  { key: 'messages',     icon: <MessageSquare size={18} />, label: '我的消息',   sub: '与商家的对话记录' },
-  { key: 'browse',       icon: <Clock        size={18} />, label: '浏览记录',    sub: '最近查看的服务' },
-  { key: 'chat',         icon: <Bot          size={18} />, label: 'AI 对话记录', sub: '历史聊天记录' },
+  { key: 'account',      icon: <ShieldCheck   size={18} />, label: '帐号和安全',        sub: '个人信息、密码修改' },
+  { key: 'verification', icon: <BadgeCheck    size={18} />, label: '联系方式与资质验证', sub: '社交媒体、手机验证、商户认证' },
+  { key: 'membership',   icon: <Crown         size={18} />, label: '会员等级',           sub: 'L1 / L2 / L3 商家会员权益' },
+  { key: 'services',     icon: <Briefcase     size={18} />, label: '我的服务',           sub: '已发布的服务列表' },
+  { key: 'messages',     icon: <MessageSquare size={18} />, label: '我的消息',           sub: '与商家的对话记录' },
+  { key: 'browse',       icon: <Clock         size={18} />, label: '浏览记录',           sub: '最近查看的服务' },
+  { key: 'chat',         icon: <Bot           size={18} />, label: 'AI 对话记录',        sub: '历史聊天记录' },
 ]
 
 export default function Profile() {
@@ -32,16 +36,16 @@ export default function Profile() {
   const [searchParams] = useSearchParams()
   const user     = useAuthStore((s) => s.user)
 
-  // On desktop default to 'account'; honour ?section=messages etc from URL
   const [section, setSection] = useState<Section | null>(() => {
     const param = searchParams.get('section') as Section | null
-    if (param && ['account','verification','services','messages','browse','chat'].includes(param)) return param
+    if (param && ['account','verification','membership','services','messages','browse','chat'].includes(param)) return param
     return typeof window !== 'undefined' && window.innerWidth >= 1024 ? 'account' : null
   })
-  const [name,      setName]      = useState('')
-  const [phone,     setPhone]     = useState('')
-  const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
-  const [uploading, setUploading] = useState(false)
+  const [name,            setName]            = useState('')
+  const [phone,           setPhone]           = useState('')
+  const [avatarUrl,       setAvatarUrl]       = useState<string | null>(null)
+  const [memberLevel,     setMemberLevel]     = useState<MemberLevel>('L1')
+  const [uploading,       setUploading]       = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
 
   const [myServices, setMyServices] = useState<{
@@ -61,6 +65,11 @@ export default function Profile() {
           setPhone(data.phone ?? user.user_metadata?.phone ?? '')
           setAvatarUrl(data.avatar_url ?? null)
         }
+      })
+    // Fetch membership_level separately (new column — skip silently if not migrated yet)
+    supabase.from('users').select('membership_level').eq('id', user.id).single()
+      .then(({ data }) => {
+        if (data?.membership_level) setMemberLevel(data.membership_level as MemberLevel)
       })
     supabase.from('services')
       .select('id, title, category_id, is_available, created_at')
@@ -110,7 +119,10 @@ export default function Profile() {
           <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
         </div>
         <div className="min-w-0">
-          <p className="text-base font-bold text-gray-900 truncate">{name}</p>
+          <div className="flex items-center gap-2">
+            <p className="text-base font-bold text-gray-900 truncate">{name}</p>
+            <MembershipBadge level={memberLevel} size="sm" />
+          </div>
           <p className="text-xs text-gray-400 mt-0.5 truncate">{user.email}</p>
         </div>
       </div>
@@ -155,13 +167,14 @@ export default function Profile() {
   // ── Section content renderer ─────────────────────────────────────────────────
   function renderSection(key: Section | null) {
     switch (key) {
-      case 'account':       return <AccountSection user={user!} name={name} phone={phone} onNameChange={setName} onPhoneChange={setPhone} />
-      case 'verification':  return <VerificationSection user={user!} />
-      case 'services':      return <ServicesSection />
-      case 'messages':      return <MessagesSection />
-      case 'browse':        return <BrowseSection items={browse} onClear={() => { localStorage.removeItem('tcs_browse_history'); setBrowse([]) }} />
-      case 'chat':          return <ChatSection sessions={chats} onClear={() => { localStorage.removeItem('tcs_chat_history'); setChats([]) }} />
-      default:              return null
+      case 'account':      return <AccountSection user={user!} name={name} phone={phone} onNameChange={setName} onPhoneChange={setPhone} />
+      case 'verification': return <VerificationSection user={user!} />
+      case 'membership':   return <MembershipSection level={memberLevel} />
+      case 'services':     return <ServicesSection />
+      case 'messages':     return <MessagesSection />
+      case 'browse':       return <BrowseSection items={browse} onClear={() => { localStorage.removeItem('tcs_browse_history'); setBrowse([]) }} />
+      case 'chat':         return <ChatSection sessions={chats} onClear={() => { localStorage.removeItem('tcs_chat_history'); setChats([]) }} />
+      default:             return null
     }
   }
 
@@ -170,51 +183,38 @@ export default function Profile() {
 
       {/* ── Top bar ─────────────────────────────────────────────────────────── */}
       <div className="w-full bg-white border-b-2 border-gray-200 px-4 h-14 flex items-center gap-3 sticky top-0 z-20">
-        {/* Mobile: back goes to menu (if in section) or previous page */}
         <button
           onClick={() => section ? setSection(null) : navigate(-1)}
           className="text-gray-500 hover:text-gray-800 lg:hidden"
         >
           <ChevronLeft size={22} />
         </button>
-        {/* Desktop: always goes back to previous page */}
         <button onClick={() => navigate(-1)} className="hidden lg:block text-gray-500 hover:text-gray-800">
           <ChevronLeft size={22} />
         </button>
-
-        {/* Mobile title: changes to section name */}
         <span className="font-semibold text-gray-800 lg:hidden">
           {section ? MENU.find(m => m.key === section)?.label : '我的账号'}
         </span>
-        {/* Desktop title: always "我的账号" */}
         <span className="hidden lg:block font-semibold text-gray-800">我的账号</span>
       </div>
 
       {/* ── DESKTOP layout ──────────────────────────────────────────────────── */}
       <div className="hidden lg:flex flex-1 overflow-hidden">
-
-        {/* Left sidebar */}
         <aside className="w-96 flex-shrink-0 border-r-2 border-gray-200 bg-white overflow-y-auto shadow-[2px_0_8px_0_rgba(0,0,0,0.04)]">
           <div className="p-8">
             <SidebarInner compact />
           </div>
         </aside>
-
-        {/* Right content — sections handle their own mobile padding;
-            on desktop we just give top/bottom spacing and let them fill the width */}
         <main className="flex-1 overflow-y-auto bg-gray-50">
           <div className="py-6 px-4">
             {renderSection(section ?? 'account')}
           </div>
         </main>
-
       </div>
 
       {/* ── MOBILE layout ───────────────────────────────────────────────────── */}
       <div className="lg:hidden flex-1 flex flex-col">
         <AnimatePresence mode="wait">
-
-          {/* Menu screen */}
           {!section && (
             <motion.div key="menu"
               initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}
@@ -224,8 +224,6 @@ export default function Profile() {
               <SidebarInner />
             </motion.div>
           )}
-
-          {/* Section screen */}
           {section && (
             <motion.div key={section}
               initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}
@@ -235,7 +233,6 @@ export default function Profile() {
               {renderSection(section)}
             </motion.div>
           )}
-
         </AnimatePresence>
       </div>
 
