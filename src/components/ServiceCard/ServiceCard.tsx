@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { Star, MapPin, MessageCircle, Phone, ShieldCheck } from 'lucide-react'
+import { Star, MapPin, ShieldCheck } from 'lucide-react'
 import type { Service } from '../../types'
 import { getCategoryById } from '../../data/categories'
 
@@ -9,89 +9,110 @@ interface Props {
 }
 
 export default function ServiceCard({ service }: Props) {
-  const navigate = useNavigate()
-  const cat = getCategoryById(service.category)
+  const navigate  = useNavigate()
+  const cat       = getCategoryById(service.category)
+  const hasImage  = (service.images?.length ?? 0) > 0
+  const hasReviews = service.provider.reviewCount > 0
 
   const priceLabel =
-    service.priceType === 'hourly'
-      ? `$${service.price}/小时`
-      : service.priceType === 'fixed'
-      ? `$${service.price} 起`
-      : '价格面议'
+    service.priceType === 'hourly' ? `$${service.price}/时` :
+    service.priceType === 'fixed'  ? `$${service.price}起`  : '面议'
 
   return (
     <motion.div
-      whileTap={{ scale: 0.98 }}
+      whileTap={{ scale: 0.97 }}
       onClick={() => navigate(`/service/${service.id}`)}
-      className="card p-4 cursor-pointer hover:shadow-md transition-shadow"
+      className="bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100
+                 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 cursor-pointer group"
     >
-      <div className="flex items-start gap-3">
-        {/* Category badge */}
-        <div className={`${cat?.bgColor ?? 'bg-gray-50'} w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0`}>
-          {cat?.image ? (
-            <img src={cat.image} alt={cat.label} className="w-8 h-8 object-contain" />
-          ) : (
-            <span className="text-2xl">{cat?.emoji ?? '●'}</span>
-          )}
-        </div>
+      {/* ── Hero image ─────────────────────────────────────────────────────── */}
+      <div className="relative aspect-[4/3] overflow-hidden">
 
-        <div className="flex-1 min-w-0">
-          {/* Title row */}
-          <div className="flex items-start justify-between gap-2">
-            <h3 className="text-sm font-semibold text-gray-900 leading-snug line-clamp-2 flex-1">
-              {service.title}
-            </h3>
-            <span className="text-primary-600 font-bold text-sm whitespace-nowrap">{priceLabel}</span>
+        {hasImage ? (
+          <img
+            src={service.images![0]}
+            alt={service.title}
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+          />
+        ) : (
+          /* Styled no-image placeholder */
+          <div className={`w-full h-full ${cat?.bgColor ?? 'bg-gray-100'}
+                           flex flex-col items-center justify-center gap-2`}>
+            {cat?.image
+              ? <img src={cat.image} alt="" className="w-12 h-12 object-contain opacity-30" />
+              : <span className="text-4xl opacity-25">{cat?.emoji}</span>
+            }
           </div>
+        )}
 
-          {/* Description */}
-          <p className="text-xs text-gray-500 mt-1 line-clamp-2 leading-relaxed">
-            {service.description}
-          </p>
+        {/* Dark gradient at bottom of image */}
+        <div className="absolute inset-x-0 bottom-0 h-14
+                        bg-gradient-to-t from-black/50 to-transparent" />
 
-          {/* Tags */}
-          <div className="flex flex-wrap gap-1 mt-2">
-            {(service.tags ?? []).slice(0, 3).map((tag) => (
-              <span
-                key={tag}
-                className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full"
-              >
-                {tag}
+        {/* Category pill — top left */}
+        <span className={`absolute top-2.5 left-2.5 inline-flex items-center gap-1
+                          px-2 py-0.5 rounded-full text-[11px] font-semibold
+                          bg-white/90 backdrop-blur-sm shadow-sm ${cat?.color}`}>
+          <span>{cat?.emoji}</span>
+          <span>{cat?.label}</span>
+        </span>
+
+        {/* Price — top right */}
+        <span className="absolute top-2.5 right-2.5 px-2.5 py-0.5 rounded-full
+                         text-[11px] font-bold bg-primary-600 text-white shadow">
+          {priceLabel}
+        </span>
+
+        {/* Rating — bottom left of image (only when reviews exist) */}
+        {hasReviews && (
+          <span className="absolute bottom-2.5 left-2.5 inline-flex items-center gap-1
+                           px-2 py-0.5 rounded-full bg-black/35 backdrop-blur-sm">
+            <Star size={10} className="text-yellow-400 fill-yellow-400" />
+            <span className="text-white text-[11px] font-semibold">
+              {service.provider.rating.toFixed(1)}
+            </span>
+            <span className="text-white/65 text-[10px]">
+              ({service.provider.reviewCount})
+            </span>
+          </span>
+        )}
+      </div>
+
+      {/* ── Content ────────────────────────────────────────────────────────── */}
+      <div className="p-3">
+
+        <h3 className="font-semibold text-gray-900 text-[13px] leading-snug line-clamp-2 mb-1">
+          {service.title}
+        </h3>
+
+        <p className="text-[11px] text-gray-400 line-clamp-1 mb-2.5 leading-relaxed">
+          {service.description}
+        </p>
+
+        {/* Provider row */}
+        <div className="flex items-center justify-between gap-1">
+          <div className="flex items-center gap-1.5 min-w-0">
+            {/* Avatar initial */}
+            <div className="w-[18px] h-[18px] rounded-full bg-primary-100 flex items-center
+                            justify-center flex-shrink-0">
+              <span className="text-[9px] font-bold text-primary-700 leading-none">
+                {service.provider.name.slice(0, 1)}
               </span>
-            ))}
+            </div>
+            <span className="text-[11px] text-gray-600 truncate">
+              {service.provider.name}
+            </span>
+            {service.provider.verified && (
+              <ShieldCheck size={11} className="text-blue-500 flex-shrink-0" />
+            )}
           </div>
 
-          {/* Footer */}
-          <div className="flex items-center justify-between mt-3 pt-2 border-t border-gray-50">
-            <div className="flex items-center gap-2">
-              <div className="flex items-center gap-0.5">
-                <span className="text-xs font-medium text-gray-800">{service.provider.name}</span>
-                {service.provider.verified && (
-                  <ShieldCheck size={12} className="text-blue-500" />
-                )}
-              </div>
-              <div className="flex items-center gap-0.5">
-                <Star size={11} className="text-yellow-400 fill-yellow-400" />
-                <span className="text-xs text-gray-600">{service.provider.rating}</span>
-                <span className="text-xs text-gray-400">({service.provider.reviewCount})</span>
-              </div>
+          {service.area && (
+            <div className="flex items-center gap-0.5 text-gray-400 flex-shrink-0">
+              <MapPin size={10} />
+              <span className="text-[11px]">{service.area}</span>
             </div>
-
-            <div className="flex items-center gap-2 text-gray-400">
-              {service.distance !== undefined && (
-                <span className="flex items-center gap-0.5 text-xs">
-                  <MapPin size={11} />
-                  {service.distance < 1
-                    ? `${(service.distance * 1000).toFixed(0)}m`
-                    : `${service.distance.toFixed(1)}km`}
-                </span>
-              )}
-              {service.provider.wechat && (
-                <MessageCircle size={14} className="text-green-500" />
-              )}
-              <Phone size={14} className="text-blue-400" />
-            </div>
-          </div>
+          )}
         </div>
       </div>
     </motion.div>

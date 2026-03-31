@@ -161,7 +161,7 @@ export default function Search() {
             </p>
           </div>
         ) : (
-          <div className="space-y-3">
+          <div className="grid grid-cols-2 gap-3">
             {results.map((svc) => (
               <ServiceCard key={svc.id} service={svc} />
             ))}
