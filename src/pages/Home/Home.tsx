@@ -43,7 +43,7 @@ export default function Home() {
           </div>
 
           {/* Search row: SearchBar (shrinks) + AI button */}
-          <div className="flex items-center gap-3.5">
+          <div className="flex items-center gap-2 md:gap-3.5">
             <div className="flex-1 min-w-0">
               <SearchBar />
             </div>
@@ -53,7 +53,7 @@ export default function Home() {
               className="self-stretch flex-shrink-0 flex items-center justify-center gap-1.5
                          bg-white hover:bg-blue-50 active:bg-blue-100
                          text-primary-700 font-semibold rounded-2xl shadow-md
-                         transition-colors px-3.5 whitespace-nowrap"
+                         transition-colors px-3 md:px-3.5 whitespace-nowrap"
             >
               <Sparkles size={14} className="text-primary-500 flex-shrink-0" />
               <span className="text-sm font-bold">AI 帮你找</span>

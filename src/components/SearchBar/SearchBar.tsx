@@ -59,9 +59,10 @@ export default function SearchBar() {
         <motion.button
           whileTap={{ scale: 0.95 }}
           onClick={() => handleSearch(query)}
-          className="bg-primary-600 text-white px-4 py-1.5 rounded-xl text-sm font-medium hover:bg-primary-700 transition-colors"
+          className="bg-primary-600 text-white px-3 py-1.5 rounded-xl text-sm font-medium hover:bg-primary-700 transition-colors flex items-center gap-1 flex-shrink-0"
         >
-          搜索
+          <Search size={14} className="flex-shrink-0 sm:hidden" />
+          <span className="hidden sm:inline">搜索</span>
         </motion.button>
       </div>
 
