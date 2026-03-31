@@ -2,7 +2,7 @@
 // Horizontal tab bar that sits between the search bar and category grid.
 // "找服务" is live; other sections show a "即将上线" placeholder.
 import { useState, useRef } from 'react'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 
 export type SectionTab = 'services' | 'jobs' | 'secondhand' | 'realestate' | 'events'
 
@@ -88,18 +88,21 @@ export default function SectionTabs({ active, onChange }: Props) {
       </div>
 
       {/* Coming soon toast */}
-      {toastTab && (
-        <motion.div
-          initial={{ opacity: 0, y: -8 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0 }}
-          className="absolute top-14 left-1/2 -translate-x-1/2 z-50
-                     bg-gray-800 text-white text-xs font-medium px-4 py-2
-                     rounded-full shadow-lg whitespace-nowrap"
-        >
-          {TABS.find(t => t.id === toastTab)?.label} 板块即将上线，敬请期待 ✨
-        </motion.div>
-      )}
+      <AnimatePresence>
+        {toastTab && (
+          <motion.div
+            key="toast"
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -4 }}
+            className="absolute top-14 left-1/2 -translate-x-1/2 z-50
+                       bg-gray-800 text-white text-xs font-medium px-4 py-2
+                       rounded-full shadow-lg whitespace-nowrap"
+          >
+            {TABS.find(t => t.id === toastTab)?.label} 板块即将上线，敬请期待 ✨
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }

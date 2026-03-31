@@ -64,7 +64,8 @@ src/
 │   │       ├── ServicesSection.tsx
 │   │       ├── MessagesSection.tsx
 │   │       ├── BrowseSection.tsx
-│   │       └── VerificationSection.tsx  # 联系方式 + 手机验证 + 社交媒体
+│   │       ├── VerificationSection.tsx  # 联系方式 + 手机验证 + 社交媒体
+│   │       └── MembershipSection.tsx    # 会员等级展示 + 升级对比
 │   ├── Conversation/              # 聊天对话页
 │   ├── Auth/
 │   │   ├── Login.tsx
@@ -72,7 +73,12 @@ src/
 │   │   ├── ForgotPassword.tsx
 │   │   └── ResetPassword.tsx      # 邮件链接重置密码
 │   └── AiChatWidget/              # AI 客服浮窗
-└── types.ts                       # 全局类型（Service, Provider 等）
+├── components/
+│   ├── MembershipBadge/           # L1/L2/L3 会员徽章组件
+│   ├── SectionTabs/               # 首页横向板块切换 Tab
+│   ├── ServiceCard/               # 服务卡片（图片优先设计）
+│   └── Header/                    # 顶部导航（含浏览服务下拉菜单）
+└── types/index.ts                 # 全局类型（Service, Provider 等）
 ```
 
 ---
@@ -124,8 +130,18 @@ src/
 - 联系方式与资质验证：手机 OTP、社交媒体链接（微信、WhatsApp、小红书等）
 - 商家公开主页（`/provider/:id`）：资料 + 服务列表 + 全部评价
 
+### 会员制度
+- L1（绿色）/ L2 黄金（金色）/ L3 至尊（黑金）三级会员徽章
+- 徽章显示在个人中心侧边栏、商家主页名字旁
+- Profile 内"会员等级"板块展示当前权益 + 悬停查看升级对比
+- 会员等级存储于 `users.membership_level`，管理员可直接更新 SQL
+
 ### AI 助手
 - 全局悬浮 AI 对话窗口（右下角），支持中文服务咨询
+
+### 首页板块导航
+- 搜索栏下方横向 Tab：找服务（已上线）/ 招聘求职 / 二手交易 / 租房买房 / 同城活动
+- 未上线板块显示"即将上线"标识，点击弹出提示 toast
 
 ---
 
@@ -150,6 +166,8 @@ Schema 在 `database/schema.sql`，可安全重复运行（所有语句带 `IF N
 ```sql
 ALTER TABLE users ADD COLUMN IF NOT EXISTS phone_verified BOOLEAN DEFAULT false;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS social_links JSONB DEFAULT '{}';
+ALTER TABLE users ADD COLUMN IF NOT EXISTS membership_level TEXT DEFAULT 'L1'
+  CHECK (membership_level IN ('L1', 'L2', 'L3'));
 
 UPDATE public.users u
 SET is_email_verified = true
@@ -157,6 +175,11 @@ FROM auth.users a
 WHERE u.id = a.id
   AND a.email_confirmed_at IS NOT NULL
   AND u.is_email_verified = false;
+```
+
+**手动升级会员等级：**
+```sql
+UPDATE public.users SET membership_level = 'L2' WHERE id = '用户id';
 ```
 
 **关键设计决策：**
