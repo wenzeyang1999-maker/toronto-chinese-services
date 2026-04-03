@@ -28,6 +28,9 @@ import Profile from './pages/Profile/Profile'
 import ConversationPage from './pages/Conversation/ConversationPage'
 import ResetPassword from './pages/Auth/ResetPassword'
 import ProviderProfile from './pages/ProviderProfile/ProviderProfile'
+import JobList from './pages/Jobs/JobList'
+import JobDetail from './pages/Jobs/JobDetail'
+import PostJob from './pages/Jobs/PostJob'
 import AiChatWidget from './components/AiChatWidget/AiChatWidget'
 import { useAppStore } from './store/appStore'
 import { useAuthStore } from './store/authStore'
@@ -80,6 +83,9 @@ export default function App() {
           <Route path="/profile" element={<Profile />} />
           <Route path="/conversation/:id" element={<ConversationPage />} />
           <Route path="/provider/:id" element={<ProviderProfile />} />
+          <Route path="/jobs" element={<JobList />} />
+          <Route path="/jobs/post" element={<PostJob />} />
+          <Route path="/jobs/:id" element={<JobDetail />} />
         </Routes>
       )}
 

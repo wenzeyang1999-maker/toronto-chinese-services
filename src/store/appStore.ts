@@ -170,7 +170,7 @@ export const useAppStore = create<AppState>((set, get) => ({
 
     switch (searchFilters.sortBy) {
       case 'distance':
-        if (userLocation) result.sort((a, b) => (a.distance ?? 99) - (b.distance ?? 99))
+        if (userLocation) result.sort((a, b) => (a.distance ?? Infinity) - (b.distance ?? Infinity))
         break
       case 'rating':
         result.sort((a, b) => b.provider.rating - a.provider.rating)
@@ -197,7 +197,7 @@ export const useAppStore = create<AppState>((set, get) => ({
           : s
       )
     if (userLocation) {
-      result.sort((a, b) => (a.distance ?? 99) - (b.distance ?? 99))
+      result.sort((a, b) => (a.distance ?? Infinity) - (b.distance ?? Infinity))
     } else {
       result.sort((a, b) => b.provider.rating - a.provider.rating)
     }

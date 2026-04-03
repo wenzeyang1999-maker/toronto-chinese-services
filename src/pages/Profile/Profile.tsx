@@ -36,11 +36,22 @@ export default function Profile() {
   const [searchParams] = useSearchParams()
   const user     = useAuthStore((s) => s.user)
 
+  const VALID_SECTIONS = ['account','verification','membership','services','messages','browse','chat']
+
   const [section, setSection] = useState<Section | null>(() => {
     const param = searchParams.get('section') as Section | null
-    if (param && ['account','verification','membership','services','messages','browse','chat'].includes(param)) return param
+    if (param && VALID_SECTIONS.includes(param)) return param
     return typeof window !== 'undefined' && window.innerWidth >= 1024 ? 'account' : null
   })
+
+  // React to URL param changes while Profile is already mounted
+  // (e.g. clicking the floating Messages button when already on /profile)
+  useEffect(() => {
+    const param = searchParams.get('section') as Section | null
+    if (param && VALID_SECTIONS.includes(param)) {
+      setSection(param)
+    }
+  }, [searchParams])
   const [name,            setName]            = useState('')
   const [phone,           setPhone]           = useState('')
   const [avatarUrl,       setAvatarUrl]       = useState<string | null>(null)
@@ -48,9 +59,6 @@ export default function Profile() {
   const [uploading,       setUploading]       = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
 
-  const [myServices, setMyServices] = useState<{
-    id: string; title: string; category_id: string; is_available: boolean; created_at: string
-  }[]>([])
   const [browse, setBrowse] = useState<BrowseEntry[]>([])
   const [chats,  setChats]  = useState<ChatSession[]>([])
 
@@ -71,11 +79,7 @@ export default function Profile() {
       .then(({ data }) => {
         if (data?.membership_level) setMemberLevel(data.membership_level as MemberLevel)
       })
-    supabase.from('services')
-      .select('id, title, category_id, is_available, created_at')
-      .eq('provider_id', user.id).order('created_at', { ascending: false })
-      .then(({ data }) => { if (data) setMyServices(data) })
-    try { setBrowse(JSON.parse(localStorage.getItem('tcs_browse_history') ?? '[]')) } catch { /* */ }
+try { setBrowse(JSON.parse(localStorage.getItem('tcs_browse_history') ?? '[]')) } catch { /* */ }
     try { setChats(JSON.parse(localStorage.getItem('tcs_chat_history')   ?? '[]')) } catch { /* */ }
   }, [user])
 

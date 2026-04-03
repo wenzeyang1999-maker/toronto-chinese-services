@@ -3,6 +3,7 @@
 // "找服务" is live; other sections show a "即将上线" placeholder.
 import { useState, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { useNavigate } from 'react-router-dom'
 
 export type SectionTab = 'services' | 'jobs' | 'secondhand' | 'realestate' | 'events'
 
@@ -12,29 +13,36 @@ interface Tab {
   emoji:    string
   live:     boolean
   sublabel: string
+  href?:    string   // if set, navigate to this path instead of calling onChange
 }
 
 const TABS: Tab[] = [
-  { id: 'services',    label: '找服务',  emoji: '🔧', live: true,  sublabel: '家政·搬家·装修' },
-  { id: 'jobs',        label: '招聘求职', emoji: '💼', live: false, sublabel: '兼职·全职·现金工' },
+  { id: 'services',    label: '找服务',  emoji: '🔧', live: true,  sublabel: '家政·搬家·装修', href: '/?from=tabs' },
+  { id: 'jobs',        label: '招聘求职', emoji: '💼', live: true,  sublabel: '兼职·全职·现金工', href: '/jobs' },
   { id: 'secondhand',  label: '二手交易', emoji: '🛒', live: false, sublabel: '家具·电子·服饰' },
   { id: 'realestate',  label: '租房买房', emoji: '🏠', live: false, sublabel: '出租·出售·合租' },
   { id: 'events',      label: '同城活动', emoji: '🎉', live: false, sublabel: '聚会·展览·课程' },
 ]
 
 interface Props {
-  active:   SectionTab
-  onChange: (tab: SectionTab) => void
+  active:             SectionTab
+  onChange:           (tab: SectionTab) => void
+  containerClassName?: string
 }
 
-export default function SectionTabs({ active, onChange }: Props) {
+export default function SectionTabs({ active, onChange, containerClassName }: Props) {
   const [toastTab, setToastTab] = useState<SectionTab | null>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
+  const navigate  = useNavigate()
 
   function handleClick(tab: Tab) {
     if (!tab.live) {
       setToastTab(tab.id)
       setTimeout(() => setToastTab(null), 2000)
+      return
+    }
+    if (tab.href) {
+      navigate(tab.href)
       return
     }
     onChange(tab.id)
@@ -45,7 +53,7 @@ export default function SectionTabs({ active, onChange }: Props) {
       {/* Scrollable tab strip */}
       <div
         ref={scrollRef}
-        className="flex gap-1 overflow-x-auto scrollbar-hide px-4 border-b border-gray-100"
+        className={`flex gap-1 overflow-x-auto scrollbar-hide border-b border-gray-100 ${containerClassName ?? 'px-4'}`}
         style={{ scrollbarWidth: 'none' }}
       >
         {TABS.map((tab) => {
@@ -55,8 +63,8 @@ export default function SectionTabs({ active, onChange }: Props) {
               key={tab.id}
               onClick={() => handleClick(tab)}
               className={`relative flex-shrink-0 flex items-center gap-1.5 md:gap-2.5
-                          px-3 py-3.5 md:px-5 md:py-5
-                          text-sm md:text-base
+                          px-3 py-2 md:px-4 md:py-2.5
+                          text-sm
                           font-medium transition-colors whitespace-nowrap
                           ${isActive
                             ? 'text-primary-600'

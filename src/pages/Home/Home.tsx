@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
 import HeroBanner from '../../components/HeroBanner/HeroBanner'
 import HeroCarousel from '../../components/HeroCarousel/HeroCarousel'
@@ -10,30 +10,53 @@ import SectionTabs, { type SectionTab } from '../../components/SectionTabs/Secti
 import { useAppStore } from '../../store/appStore'
 import { useGeolocation } from '../../hooks/useGeolocation'
 import { ChevronRight, MapPin, Sparkles } from 'lucide-react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 
 export default function Home() {
   useGeolocation()
-  const getFilteredServices = useAppStore((s) => s.getFilteredServices)
+  const services     = useAppStore((s) => s.services)
+  const setSearchFilters = useAppStore((s) => s.setSearchFilters)
   const userLocation = useAppStore((s) => s.userLocation)
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const [inquiryOpen, setInquiryOpen] = useState(false)
   const [activeTab, setActiveTab] = useState<SectionTab>('services')
+  const [searchQuery, setSearchQuery] = useState('')
+  const searchRef = useRef<HTMLDivElement>(null)
 
-  const recent = getFilteredServices().slice(0, 4)
+  // If navigated here from another tab, skip carousel and scroll to search bar
+  useEffect(() => {
+    if (searchParams.get('from') === 'tabs' && searchRef.current) {
+      const top = searchRef.current.getBoundingClientRect().top + window.scrollY + 60
+      window.scrollTo({ top, behavior: 'instant' })
+    }
+  }, [])
+
+  const handleSearch = (kw: string) => {
+    if (!kw.trim()) return
+    setSearchFilters({ keyword: kw.trim(), category: undefined })
+    navigate(`/search?q=${encodeURIComponent(kw.trim())}`)
+  }
+
+  const recent = services.filter((s) => s.available).slice(0, 4)
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Sticky nav bar only */}
+      {/* Sticky: banner + section tabs */}
       <div className="sticky top-0 z-40">
         <HeroBanner />
+        <div className="bg-white border-b border-gray-100">
+          <div className="w-full px-3 md:w-[85%] md:px-0 lg:w-[70%] mx-auto">
+            <SectionTabs active={activeTab} onChange={setActiveTab} containerClassName="px-0" />
+          </div>
+        </div>
       </div>
 
       {/* Carousel — scrolls normally */}
       <HeroCarousel />
 
       {/* Search bar — scrolls normally */}
-      <div className="w-full bg-primary-700 px-6 py-4">
+      <div ref={searchRef} className="w-full bg-primary-700 px-6 py-4">
         <div className="w-full px-3 md:w-[85%] md:px-0 lg:w-[70%] mx-auto">
           <div className="flex items-center gap-1.5 mb-2">
             <MapPin size={12} className="text-blue-200" />
@@ -42,10 +65,14 @@ export default function Home() {
             </span>
           </div>
 
-          {/* Search row: SearchBar (shrinks) + AI button */}
+          {/* Search row: SearchBar + search button + AI button */}
           <div className="flex items-center gap-2 md:gap-3.5">
             <div className="flex-1 min-w-0">
-              <SearchBar />
+              <SearchBar
+                value={searchQuery}
+                onChange={setSearchQuery}
+                onSearch={handleSearch}
+              />
             </div>
             <motion.button
               whileTap={{ scale: 0.95 }}
@@ -64,14 +91,7 @@ export default function Home() {
 
       <InquiryModal open={inquiryOpen} onClose={() => setInquiryOpen(false)} />
 
-      {/* Section tabs */}
-      <div className="relative z-10 w-full bg-white">
-        <div className="w-full md:w-[85%] lg:w-[70%] mx-auto">
-          <SectionTabs active={activeTab} onChange={setActiveTab} />
-        </div>
-      </div>
-
-      <div className="relative z-10 w-full bg-gray-50 pt-6">
+<div className="relative z-10 w-full bg-gray-50 pt-6">
       <div className="w-full px-3 md:w-[85%] md:px-0 lg:w-[70%] mx-auto">
         {/* Category buttons */}
         <motion.section

@@ -41,7 +41,8 @@ src/
 ├── App.tsx                        # 路由 + 全局浮动按钮（消息、AI客服）
 ├── store/
 │   ├── appStore.ts                # 服务列表、搜索筛选、地理位置、评分
-│   └── authStore.ts               # 当前登录用户
+│   ├── authStore.ts               # 当前登录用户
+│   └── jobStore.ts                # 职位列表、筛选（listing_type / 分类 / 地区）
 ├── lib/
 │   ├── supabase.ts                # Supabase 客户端
 │   └── compressImage.ts           # 图片压缩工具
@@ -54,7 +55,12 @@ src/
 │   │   ├── ServiceDetail.tsx      # 服务详情
 │   │   └── ReviewsSection.tsx     # 评价区（查看 + 提交 + 编辑）
 │   ├── ProviderProfile/
-│   │   └── ProviderProfile.tsx    # 商家主页（资料 + 服务列表 + 全部评价）
+│   │   └── ProviderProfile.tsx    # 用户公开主页（资料 + 服务列表 + 职位列表 + 全部评价）
+│   ├── Jobs/
+│   │   ├── types.ts               # 职位类型定义（ListingType, Job, getCategoryLabel…）
+│   │   ├── JobList.tsx            # 职位列表（桌面 Indeed 分栏 / 移动端单列）
+│   │   ├── JobDetail.tsx          # 职位详情页（移动端独立路由）
+│   │   └── PostJob.tsx            # 发布职位（招聘 / 求职 切换）
 │   ├── PostService/               # 发布服务
 │   ├── Profile/
 │   │   ├── Profile.tsx
@@ -95,6 +101,9 @@ src/
 | `/post` | 发布服务 |
 | `/profile` | 个人中心 |
 | `/conversation/:id` | 消息对话 |
+| `/jobs` | 招聘求职列表 |
+| `/jobs/post` | 发布招聘 / 求职帖 |
+| `/jobs/:id` | 职位详情（移动端） |
 | `/login` | 登录 |
 | `/register` | 注册 |
 | `/forgot-password` | 忘记密码 |
@@ -136,6 +145,23 @@ src/
 - Profile 内"会员等级"板块展示当前权益 + 悬停查看升级对比
 - 会员等级存储于 `users.membership_level`，管理员可直接更新 SQL
 
+### 招聘求职（Jobs 模块）
+- 双模式发布：**招聘**（雇主找人）/ **求职**（个人发布技能），顶部切换
+- 桌面端 Indeed 风格分栏：左侧帖子列表 + 右侧详情面板，宽度与首页搜索栏对齐
+- 移动端：独立详情页 `/jobs/:id`
+- 多选工作地区（GTA 各区，TEXT[] 存储）
+- 职位类别：9 大类，选择"其他"时可自由填写自定义类别（存入 `category_other`）
+- 薪资类型：时薪 / 日薪 / 月薪 / 面议，支持最低-最高区间
+- 列表页多维度筛选：关键词、职位类别、工作性质、地区
+- 发布者头像 / 名字可点击，直接进入其公开主页
+- Schema：`database/jobs_schema.sql`，独立于主 schema，可单独运行
+
+### 用户公开主页（Universal Profile）
+- 路由 `/provider/:id` 对**所有用户**开放，不限商家角色
+- 展示：个人资料 + 验证状态 + 社交链接 + 服务列表 + **职位列表（招聘/求职 Tab）** + 收到的评价
+- 从职位帖、服务帖点击发布者均可进入
+- 类似小红书「博主主页」体验
+
 ### AI 助手
 - 全局悬浮 AI 对话窗口（右下角），支持中文服务咨询
 
@@ -160,8 +186,21 @@ Schema 在 `database/schema.sql`，可安全重复运行（所有语句带 `IF N
 | `conversations` | 对话（含未读计数） |
 | `messages` | 聊天消息 |
 | `reviews` | 服务评价（星级 + 文字） |
+| `jobs` | 职位帖子（招聘 + 求职，含 RLS） |
 
-**首次部署需额外运行的迁移 SQL：**
+**Jobs 模块迁移 SQL（首次运行 `database/jobs_schema.sql` 即可，迁移段已内含）：**
+
+```sql
+-- 如果 jobs 表已存在（旧版），手动补跑以下三条：
+ALTER TABLE jobs ALTER COLUMN area TYPE TEXT[]
+  USING CASE WHEN area IS NULL THEN NULL ELSE ARRAY[area::TEXT] END;
+ALTER TABLE jobs ADD COLUMN IF NOT EXISTS listing_type VARCHAR(10) NOT NULL DEFAULT 'hiring';
+ALTER TABLE jobs DROP CONSTRAINT IF EXISTS jobs_listing_type_check;
+ALTER TABLE jobs ADD CONSTRAINT jobs_listing_type_check CHECK (listing_type IN ('hiring', 'seeking'));
+ALTER TABLE jobs ADD COLUMN IF NOT EXISTS category_other VARCHAR(100);
+```
+
+**users 表首次部署需额外运行的迁移 SQL：**
 
 ```sql
 ALTER TABLE users ADD COLUMN IF NOT EXISTS phone_verified BOOLEAN DEFAULT false;
@@ -183,6 +222,10 @@ UPDATE public.users SET membership_level = 'L2' WHERE id = '用户id';
 ```
 
 **关键设计决策：**
+- Jobs 模块 schema 独立在 `database/jobs_schema.sql`，不影响主 schema
+- `listing_type` 区分招聘（hiring）和求职（seeking），默认 'hiring'，旧数据兼容
+- `category_other` 仅在 category='other' 时写入，其余为 NULL，展示时用 `getCategoryLabel()` 统一处理
+- 公开主页路由 `/provider/:id` 不限用户角色，所有人均可访问
 - Supabase JS 懒执行：所有查询必须 `.then()` 或 `await` 才会发出请求
 - 新字段单独查询，避免未迁移时整体失败（split-fetch 模式）
 - 密码重置在模块级别读取 `window.location.hash`（Supabase JS 在组件挂载前清除 hash）
