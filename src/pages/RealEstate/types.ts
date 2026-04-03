@@ -42,6 +42,7 @@ export interface Property {
   contact_wechat: string | null
 
   is_active: boolean
+  is_filled: boolean
   created_at: string
   updated_at: string
 }

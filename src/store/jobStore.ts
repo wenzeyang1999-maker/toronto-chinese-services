@@ -28,6 +28,7 @@ interface JobRow {
   contact_phone: string
   contact_wechat: string | null
   is_active: boolean
+  is_filled: boolean
   created_at: string
   updated_at: string
 }
@@ -59,6 +60,7 @@ function mapRow(row: JobRow): Job {
     contact_phone: row.contact_phone,
     contact_wechat: row.contact_wechat,
     is_active:     row.is_active,
+    is_filled:     row.is_filled ?? false,
     created_at:    row.created_at,
     updated_at:    row.updated_at,
   }

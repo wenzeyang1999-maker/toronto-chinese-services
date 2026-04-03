@@ -6,7 +6,7 @@ import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Plus, Pencil, Trash2, X, Check, ToggleLeft, ToggleRight,
-  ImagePlus, Wrench, Briefcase, Home, ShoppingBag, Calendar, ChevronDown,
+  ImagePlus, Wrench, Briefcase, Home, ShoppingBag, Calendar, ChevronDown, CheckCircle2,
 } from 'lucide-react'
 import { supabase } from '../../../lib/supabase'
 import { useAuthStore } from '../../../store/authStore'
@@ -160,6 +160,20 @@ export default function ServicesSection() {
     setEvents(prev => prev.map(x => x.id === ev.id ? { ...x, is_active: !x.is_active } : x))
   }
 
+  // ── Mark as filled / sold ─────────────────────────────────────────────────
+  async function markJobFilled(job: Job) {
+    await supabase.from('jobs').update({ is_filled: true, is_active: false }).eq('id', job.id)
+    setJobs(prev => prev.map(j => j.id === job.id ? { ...j, is_filled: true, is_active: false } : j))
+  }
+  async function markPropertyFilled(p: Property) {
+    await supabase.from('properties').update({ is_filled: true, is_active: false }).eq('id', p.id)
+    setProperties(prev => prev.map(x => x.id === p.id ? { ...x, is_filled: true, is_active: false } : x))
+  }
+  async function markSecondhandSold(item: SecondhandItem) {
+    await supabase.from('secondhand').update({ is_sold: true, is_active: false }).eq('id', item.id)
+    setSecondhand(prev => prev.map(x => x.id === item.id ? { ...x, is_sold: true, is_active: false } : x))
+  }
+
   async function deleteItem(table: string, id: string) {
     await supabase.from(table).delete().eq('id', id)
     if (table === 'services')   setServices(prev => prev.filter(x => x.id !== id))
@@ -172,12 +186,14 @@ export default function ServicesSection() {
 
   // ── Shared row wrapper ─────────────────────────────────────────────────────
   function Row({
-    id, table, title, subtitle, badge, active,
-    onNavigate, onToggle, children,
+    id, table, title, subtitle, badge, active, filled, filledLabel,
+    onNavigate, onToggle, onMarkFilled, children,
   }: {
     id: string; table: string; title: string; subtitle?: string
     badge?: React.ReactNode; active: boolean
+    filled?: boolean; filledLabel?: string
     onNavigate: () => void; onToggle: () => void
+    onMarkFilled?: () => void
     children?: React.ReactNode
   }) {
     return (
@@ -185,17 +201,41 @@ export default function ServicesSection() {
         initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }}
         className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden"
       >
-        <div className="px-4 py-3.5 flex items-center gap-3">
+        <div className="px-4 py-3.5 flex items-center gap-2">
           <button onClick={onNavigate} className="flex-1 min-w-0 text-left hover:opacity-70 transition-opacity">
             {badge && <div className="mb-1">{badge}</div>}
             <p className="text-sm font-semibold text-gray-800 truncate">{title}</p>
             {subtitle && <p className="text-xs text-gray-400 mt-0.5">{subtitle}</p>}
           </button>
-          <button onClick={onToggle}
-            className={`flex items-center gap-1 text-xs px-2.5 py-1 rounded-full font-medium flex-shrink-0 transition-colors
-              ${active ? 'bg-green-100 text-green-600 hover:bg-green-200' : 'bg-gray-100 text-gray-400 hover:bg-gray-200'}`}>
-            {active ? <><ToggleRight size={13} />上架中</> : <><ToggleLeft size={13} />已下架</>}
-          </button>
+
+          {/* Mark as filled — shown only when not yet filled */}
+          {onMarkFilled && !filled && (
+            <button onClick={onMarkFilled}
+              className="flex items-center gap-1 text-xs px-2.5 py-1 rounded-full font-medium flex-shrink-0
+                         border border-dashed border-gray-300 text-gray-400
+                         hover:border-emerald-400 hover:text-emerald-600 hover:bg-emerald-50 transition-colors">
+              <CheckCircle2 size={12} />
+              标记完成
+            </button>
+          )}
+
+          {/* Already filled badge */}
+          {filled && (
+            <span className="flex items-center gap-1 text-xs px-2.5 py-1 rounded-full font-medium flex-shrink-0
+                             bg-emerald-50 text-emerald-600 border border-emerald-200">
+              <CheckCircle2 size={12} />{filledLabel ?? '已完成'}
+            </span>
+          )}
+
+          {/* Active toggle — hidden when filled */}
+          {!filled && (
+            <button onClick={onToggle}
+              className={`flex items-center gap-1 text-xs px-2.5 py-1 rounded-full font-medium flex-shrink-0 transition-colors
+                ${active ? 'bg-green-100 text-green-600 hover:bg-green-200' : 'bg-gray-100 text-gray-400 hover:bg-gray-200'}`}>
+              {active ? <><ToggleRight size={13} />上架中</> : <><ToggleLeft size={13} />已下架</>}
+            </button>
+          )}
+
           <button onClick={() => setConfirmDel(id)}
             className="w-9 h-9 flex items-center justify-center rounded-xl text-gray-400 hover:bg-red-50 hover:text-red-500 transition-colors flex-shrink-0">
             <Trash2 size={16} />
@@ -397,8 +437,11 @@ export default function ServicesSection() {
                       </div>
                     }
                     active={job.is_active}
+                    filled={job.is_filled}
+                    filledLabel={job.listing_type === 'hiring' ? '已招到' : '已找到'}
                     onNavigate={() => navigate(`/jobs/${job.id}`)}
                     onToggle={() => toggleJob(job)}
+                    onMarkFilled={() => markJobFilled(job)}
                   />
                 ))}
               </AnimatePresence>
@@ -425,8 +468,11 @@ export default function ServicesSection() {
                       </div>
                     }
                     active={p.is_active}
+                    filled={p.is_filled}
+                    filledLabel={p.listing_type === 'sale' ? '已售出' : '已出租'}
                     onNavigate={() => navigate(`/realestate/${p.id}`)}
                     onToggle={() => toggleProperty(p)}
+                    onMarkFilled={() => markPropertyFilled(p)}
                   />
                 ))}
               </AnimatePresence>
@@ -450,12 +496,14 @@ export default function ServicesSection() {
                           {ITEM_CONDITION_CONFIG[item.condition].label}
                         </span>
                         <span className="text-[10px] font-bold text-primary-600">{itemPrice(item)}</span>
-                        {item.is_sold && <span className="text-[10px] bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded-full">已售出</span>}
                       </div>
                     }
                     active={item.is_active && !item.is_sold}
+                    filled={item.is_sold}
+                    filledLabel="已售出"
                     onNavigate={() => navigate(`/secondhand/${item.id}`)}
                     onToggle={() => toggleSecondhand(item)}
+                    onMarkFilled={() => markSecondhandSold(item)}
                   />
                 ))}
               </AnimatePresence>
