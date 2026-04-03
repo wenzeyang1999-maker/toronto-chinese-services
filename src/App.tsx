@@ -31,6 +31,9 @@ import ProviderProfile from './pages/ProviderProfile/ProviderProfile'
 import JobList from './pages/Jobs/JobList'
 import JobDetail from './pages/Jobs/JobDetail'
 import PostJob from './pages/Jobs/PostJob'
+import SecondhandList from './pages/Secondhand/SecondhandList'
+import SecondhandDetail from './pages/Secondhand/SecondhandDetail'
+import PostListing from './pages/Secondhand/PostListing'
 import AiChatWidget from './components/AiChatWidget/AiChatWidget'
 import { useAppStore } from './store/appStore'
 import { useAuthStore } from './store/authStore'
@@ -86,6 +89,9 @@ export default function App() {
           <Route path="/jobs" element={<JobList />} />
           <Route path="/jobs/post" element={<PostJob />} />
           <Route path="/jobs/:id" element={<JobDetail />} />
+          <Route path="/secondhand" element={<SecondhandList />} />
+          <Route path="/secondhand/post" element={<PostListing />} />
+          <Route path="/secondhand/:id" element={<SecondhandDetail />} />
         </Routes>
       )}
 

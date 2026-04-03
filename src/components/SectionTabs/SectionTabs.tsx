@@ -19,7 +19,7 @@ interface Tab {
 const TABS: Tab[] = [
   { id: 'services',    label: '找服务',  emoji: '🔧', live: true,  sublabel: '家政·搬家·装修', href: '/?from=tabs' },
   { id: 'jobs',        label: '招聘求职', emoji: '💼', live: true,  sublabel: '兼职·全职·现金工', href: '/jobs' },
-  { id: 'secondhand',  label: '二手交易', emoji: '🛒', live: false, sublabel: '家具·电子·服饰' },
+  { id: 'secondhand',  label: '二手交易', emoji: '🛒', live: true,  sublabel: '家具·电子·服饰', href: '/secondhand' },
   { id: 'realestate',  label: '租房买房', emoji: '🏠', live: false, sublabel: '出租·出售·合租' },
   { id: 'events',      label: '同城活动', emoji: '🎉', live: false, sublabel: '聚会·展览·课程' },
 ]
