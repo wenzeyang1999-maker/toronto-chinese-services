@@ -438,10 +438,10 @@ export default function ProviderProfile() {
 
             <div className="space-y-2">
               {jobs
-                .filter(j => jobs.some(x => x.listing_type === 'hiring') && jobs.some(x => x.listing_type === 'seeking')
-                  ? j.listing_type === jobTab
-                  : true
-                )
+                .filter(j => {
+                  const hasBoth = jobs.some(x => x.listing_type === 'hiring') && jobs.some(x => x.listing_type === 'seeking')
+                  return hasBoth ? j.listing_type === jobTab : true
+                })
                 .map((job, i) => {
                   const salaryLabel = job.salary_type === 'negotiable'
                     ? '薪资面议'

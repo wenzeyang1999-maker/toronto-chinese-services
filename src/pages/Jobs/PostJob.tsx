@@ -136,7 +136,7 @@ export default function PostJob() {
     }
 
     if (data) {
-      addJob({ ...data, poster: Array.isArray(data.poster) ? data.poster[0] : data.poster } as Job)
+      addJob({ ...data, poster: Array.isArray(data.poster) ? (data.poster[0] ?? null) : (data.poster ?? null) } as Job)
     }
     setDone(true)
   }

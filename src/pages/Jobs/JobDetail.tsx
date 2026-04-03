@@ -33,7 +33,7 @@ export default function JobDetail() {
         if (!error && data) {
           setJob({
             ...data,
-            poster: Array.isArray(data.poster) ? data.poster[0] : data.poster,
+            poster: Array.isArray(data.poster) ? (data.poster[0] ?? null) : (data.poster ?? null),
           } as Job)
         }
         setLoading(false)
