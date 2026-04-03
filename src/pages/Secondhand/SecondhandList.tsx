@@ -38,12 +38,7 @@ export default function SecondhandList() {
   const items       = getFilteredItems()
   const selectedItem = items.find((i) => i.id === selectedId) ?? null
 
-  // Auto-select first item on desktop
-  useEffect(() => {
-    if (window.innerWidth >= 1024 && items.length > 0 && !selectedId) {
-      setSelectedId(items[0].id)
-    }
-  }, [isReady])
+  // No auto-selection — user clicks to open detail panel
 
   // Scroll detail panel to top on selection change
   useEffect(() => {

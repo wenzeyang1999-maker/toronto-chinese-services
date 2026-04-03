@@ -44,12 +44,7 @@ export default function JobList() {
   const jobs       = getFilteredJobs()
   const selectedJob = jobs.find((j) => j.id === selectedId) ?? null
 
-  // Auto-select first job on desktop when list loads
-  useEffect(() => {
-    if (window.innerWidth >= 1024 && jobs.length > 0 && !selectedId) {
-      setSelectedId(jobs[0].id)
-    }
-  }, [isReady])
+  // No auto-selection — user clicks to open detail panel
 
   // Scroll detail panel back to top when selection changes
   useEffect(() => {
