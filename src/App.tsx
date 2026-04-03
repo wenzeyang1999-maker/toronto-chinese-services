@@ -37,6 +37,9 @@ import PostListing from './pages/Secondhand/PostListing'
 import RealEstateList from './pages/RealEstate/RealEstateList'
 import RealEstateDetail from './pages/RealEstate/RealEstateDetail'
 import PostProperty from './pages/RealEstate/PostProperty'
+import EventList from './pages/Events/EventList'
+import EventDetail from './pages/Events/EventDetail'
+import PostEvent from './pages/Events/PostEvent'
 import AiChatWidget from './components/AiChatWidget/AiChatWidget'
 import { useAppStore } from './store/appStore'
 import { useAuthStore } from './store/authStore'
@@ -98,6 +101,9 @@ export default function App() {
           <Route path="/realestate" element={<RealEstateList />} />
           <Route path="/realestate/post" element={<PostProperty />} />
           <Route path="/realestate/:id" element={<RealEstateDetail />} />
+          <Route path="/events" element={<EventList />} />
+          <Route path="/events/post" element={<PostEvent />} />
+          <Route path="/events/:id" element={<EventDetail />} />
         </Routes>
       )}
 
