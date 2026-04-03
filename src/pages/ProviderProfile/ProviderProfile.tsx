@@ -11,6 +11,10 @@ import { getCategoryById } from '../../data/categories'
 import MembershipBadge, { type MemberLevel } from '../../components/MembershipBadge/MembershipBadge'
 import { JOB_CATEGORY_CONFIG, JOB_TYPE_CONFIG, SALARY_TYPE_LABEL, getCategoryLabel } from '../Jobs/types'
 import type { Job } from '../Jobs/types'
+import { LISTING_TYPE_CONFIG as RE_LISTING_TYPE_CONFIG, PROPERTY_TYPE_CONFIG, getPriceLabel as getPropertyPriceLabel } from '../RealEstate/types'
+import type { Property } from '../RealEstate/types'
+import { SECONDHAND_CATEGORY_CONFIG, ITEM_CONDITION_CONFIG, getPriceLabel as getItemPriceLabel } from '../Secondhand/types'
+import type { SecondhandItem } from '../Secondhand/types'
 
 // ── Social platform display config (mirrors ServiceDetail) ────────────────────
 const SOCIAL_PLATFORMS = [
@@ -67,6 +71,8 @@ export default function ProviderProfile() {
   const [providerReviews, setProviderReviews] = useState<ProviderReview[]>([])
   const [jobs,            setJobs]           = useState<Job[]>([])
   const [jobTab,          setJobTab]         = useState<'hiring' | 'seeking'>('hiring')
+  const [properties,      setProperties]     = useState<Property[]>([])
+  const [secondhandItems, setSecondhandItems] = useState<SecondhandItem[]>([])
   const [loading,         setLoading]        = useState(true)
   const [notFound,        setNotFound]       = useState(false)
 
@@ -105,6 +111,29 @@ export default function ProviderProfile() {
           social_links: (data.social_links as Record<string, string>) ?? {},
           membership_level: (data.membership_level as MemberLevel) ?? 'L1',
         } : prev)
+      })
+
+    // Fetch their active property listings
+    supabase
+      .from('properties')
+      .select('*')
+      .eq('poster_id', id)
+      .eq('is_active', true)
+      .order('created_at', { ascending: false })
+      .then(({ data }) => {
+        if (data) setProperties(data.map(p => ({ ...p, images: p.images ?? [] })) as Property[])
+      })
+
+    // Fetch their active secondhand listings
+    supabase
+      .from('secondhand')
+      .select('*')
+      .eq('seller_id', id)
+      .eq('is_active', true)
+      .eq('is_sold', false)
+      .order('created_at', { ascending: false })
+      .then(({ data }) => {
+        if (data) setSecondhandItems(data.map(i => ({ ...i, images: i.images ?? [] })) as SecondhandItem[])
       })
 
     // Fetch their active job posts (hiring + seeking)
@@ -478,6 +507,83 @@ export default function ProviderProfile() {
                   )
                 })
               }
+            </div>
+          </div>
+        )}
+
+        {/* ── Properties ───────────────────────────────────────────────────── */}
+        {properties.length > 0 && (
+          <div>
+            <h2 className="text-sm font-semibold text-gray-500 mb-3 px-1">
+              发布的房源（{properties.length}）
+            </h2>
+            <div className="space-y-2">
+              {properties.map((p, i) => (
+                <motion.div key={p.id}
+                  initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: i * 0.04 }}
+                  onClick={() => navigate(`/realestate/${p.id}`)}
+                  className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden
+                             cursor-pointer hover:border-primary-200 hover:shadow-md transition-all flex gap-3"
+                >
+                  <div className="w-20 h-20 flex-shrink-0 bg-gray-100 overflow-hidden">
+                    {p.images.length > 0
+                      ? <img src={p.images[0]} alt={p.title} className="w-full h-full object-cover" />
+                      : <div className="w-full h-full flex items-center justify-center text-2xl">{PROPERTY_TYPE_CONFIG[p.property_type].emoji}</div>
+                    }
+                  </div>
+                  <div className="flex-1 min-w-0 py-3 pr-3">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${RE_LISTING_TYPE_CONFIG[p.listing_type].color}`}>
+                        {RE_LISTING_TYPE_CONFIG[p.listing_type].label}
+                      </span>
+                      <span className="text-sm font-bold text-primary-600">{getPropertyPriceLabel(p)}</span>
+                    </div>
+                    <p className="text-sm font-semibold text-gray-900 line-clamp-1">{p.title}</p>
+                    {p.area && p.area.length > 0 && (
+                      <p className="text-[11px] text-gray-400 mt-0.5 flex items-center gap-0.5">
+                        <MapPin size={10} />{p.area.join('·')}
+                      </p>
+                    )}
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* ── Secondhand ────────────────────────────────────────────────────── */}
+        {secondhandItems.length > 0 && (
+          <div>
+            <h2 className="text-sm font-semibold text-gray-500 mb-3 px-1">
+              发布的闲置（{secondhandItems.length}）
+            </h2>
+            <div className="grid grid-cols-2 gap-3">
+              {secondhandItems.map((item, i) => (
+                <motion.div key={item.id}
+                  initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: i * 0.04 }}
+                  onClick={() => navigate(`/secondhand/${item.id}`)}
+                  className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden
+                             cursor-pointer hover:border-primary-200 hover:shadow-md transition-all"
+                >
+                  <div className="aspect-square bg-gray-100 overflow-hidden">
+                    {item.images.length > 0
+                      ? <img src={item.images[0]} alt={item.title} className="w-full h-full object-cover" />
+                      : <div className="w-full h-full flex items-center justify-center text-3xl">
+                          {SECONDHAND_CATEGORY_CONFIG[item.category].emoji}
+                        </div>
+                    }
+                  </div>
+                  <div className="p-3">
+                    <p className="text-sm font-bold text-primary-600 mb-0.5">{getItemPriceLabel(item)}</p>
+                    <p className="text-sm font-semibold text-gray-900 line-clamp-2 leading-snug">{item.title}</p>
+                    <span className={`inline-block mt-1.5 text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${ITEM_CONDITION_CONFIG[item.condition].color}`}>
+                      {ITEM_CONDITION_CONFIG[item.condition].label}
+                    </span>
+                  </div>
+                </motion.div>
+              ))}
             </div>
           </div>
         )}

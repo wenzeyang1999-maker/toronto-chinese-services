@@ -34,6 +34,9 @@ import PostJob from './pages/Jobs/PostJob'
 import SecondhandList from './pages/Secondhand/SecondhandList'
 import SecondhandDetail from './pages/Secondhand/SecondhandDetail'
 import PostListing from './pages/Secondhand/PostListing'
+import RealEstateList from './pages/RealEstate/RealEstateList'
+import RealEstateDetail from './pages/RealEstate/RealEstateDetail'
+import PostProperty from './pages/RealEstate/PostProperty'
 import AiChatWidget from './components/AiChatWidget/AiChatWidget'
 import { useAppStore } from './store/appStore'
 import { useAuthStore } from './store/authStore'
@@ -92,6 +95,9 @@ export default function App() {
           <Route path="/secondhand" element={<SecondhandList />} />
           <Route path="/secondhand/post" element={<PostListing />} />
           <Route path="/secondhand/:id" element={<SecondhandDetail />} />
+          <Route path="/realestate" element={<RealEstateList />} />
+          <Route path="/realestate/post" element={<PostProperty />} />
+          <Route path="/realestate/:id" element={<RealEstateDetail />} />
         </Routes>
       )}
 
