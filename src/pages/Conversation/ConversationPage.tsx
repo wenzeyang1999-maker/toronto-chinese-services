@@ -198,7 +198,7 @@ export default function ConversationPage() {
     <div className="bg-gray-50 flex flex-col min-h-screen lg:min-h-0 lg:h-[90vh] lg:w-full lg:max-w-2xl lg:rounded-2xl lg:shadow-xl lg:overflow-hidden">
       {/* Header */}
       <div className="bg-white border-b border-gray-100 px-4 h-14 flex items-center gap-3 sticky top-0 z-10">
-        <button onClick={() => window.history.length > 1 ? navigate(-1) : navigate('/profile?section=chat')} className="text-gray-500 hover:text-gray-800">
+        <button onClick={() => window.history.length > 1 ? navigate(-1) : navigate('/profile?section=messages')} className="text-gray-500 hover:text-gray-800">
           <ChevronLeft size={22} />
         </button>
         <div className="flex-1 min-w-0">
