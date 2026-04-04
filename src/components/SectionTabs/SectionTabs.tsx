@@ -5,7 +5,7 @@ import { useState, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
 
-export type SectionTab = 'services' | 'jobs' | 'secondhand' | 'realestate' | 'events'
+export type SectionTab = 'services' | 'jobs' | 'secondhand' | 'realestate' | 'events' | 'community'
 
 interface Tab {
   id:       SectionTab
@@ -22,6 +22,7 @@ const TABS: Tab[] = [
   { id: 'secondhand',  label: '二手交易', emoji: '🛒', live: true,  sublabel: '家具·电子·服饰', href: '/secondhand' },
   { id: 'realestate',  label: '租房买房', emoji: '🏠', live: true,  sublabel: '出租·出售·合租', href: '/realestate' },
   { id: 'events',      label: '同城活动', emoji: '🎉', live: true,  sublabel: '聚会·展览·课程', href: '/events' },
+  { id: 'community',   label: '社区圈子', emoji: '🏘️', live: true,  sublabel: '问答·推荐·分享', href: '/community' },
 ]
 
 interface Props {

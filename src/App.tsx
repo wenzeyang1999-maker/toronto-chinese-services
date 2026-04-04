@@ -44,6 +44,9 @@ const EventDetail     = lazy(() => import('./pages/Events/EventDetail'))
 const PostEvent       = lazy(() => import('./pages/Events/PostEvent'))
 const AdminPage       = lazy(() => import('./pages/Admin/AdminPage'))
 const GlobalSearch    = lazy(() => import('./pages/GlobalSearch/GlobalSearch'))
+const CommunityPage   = lazy(() => import('./pages/Community/CommunityPage'))
+const CommunityDetail = lazy(() => import('./pages/Community/CommunityDetail'))
+const PostCommunity   = lazy(() => import('./pages/Community/PostCommunity'))
 import { useAppStore } from './store/appStore'
 import { useAuthStore } from './store/authStore'
 import { supabase } from './lib/supabase'
@@ -110,6 +113,9 @@ export default function App() {
           <Route path="/events/:id" element={<EventDetail />} />
           <Route path="/search-all" element={<GlobalSearch />} />
           <Route path="/admin" element={<AdminPage />} />
+          <Route path="/community" element={<CommunityPage />} />
+          <Route path="/community/post" element={<PostCommunity />} />
+          <Route path="/community/:id" element={<CommunityDetail />} />
         </Routes>
         </Suspense>
       )}
