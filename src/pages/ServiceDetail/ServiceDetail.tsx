@@ -10,6 +10,7 @@ import type { BrowseEntry } from '../Profile/types'
 import ReviewsSection from './ReviewsSection'
 import RelatedServices from '../../components/RelatedServices/RelatedServices'
 import ReplyTimeBadge from '../../components/ReplyTimeBadge/ReplyTimeBadge'
+import QASection from './QASection'
 import SaveButton from '../../components/SaveButton/SaveButton'
 import ShareButton from '../../components/ShareButton/ShareButton'
 import PageMeta from '../../components/PageMeta/PageMeta'
@@ -357,6 +358,9 @@ export default function ServiceDetail() {
             )}
           </div>
         </motion.div>
+
+        {/* Q&A */}
+        <QASection serviceId={service.id} providerId={service.provider.id ?? ''} />
 
         {/* Related services */}
         <RelatedServices currentId={service.id} categoryId={service.category} />
