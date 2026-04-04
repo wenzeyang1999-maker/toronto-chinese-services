@@ -19,6 +19,7 @@ import { SECONDHAND_CATEGORY_CONFIG, ITEM_CONDITION_CONFIG, getPriceLabel as ite
 import type { SecondhandItem } from '../../Secondhand/types'
 import { EVENT_TYPE_CONFIG, getPriceLabel as eventPrice, formatEventDate } from '../../Events/types'
 import type { Event } from '../../Events/types'
+import ViewCount from '../../../components/ViewCount/ViewCount'
 
 type Tab = 'services' | 'jobs' | 'properties' | 'secondhand' | 'events'
 
@@ -187,11 +188,12 @@ export default function ServicesSection() {
   // ── Shared row wrapper ─────────────────────────────────────────────────────
   function Row({
     id, table, title, subtitle, badge, active, filled, filledLabel,
-    onNavigate, onToggle, onMarkFilled, children,
+    viewType, onNavigate, onToggle, onMarkFilled, children,
   }: {
     id: string; table: string; title: string; subtitle?: string
     badge?: React.ReactNode; active: boolean
     filled?: boolean; filledLabel?: string
+    viewType?: 'service' | 'job' | 'property' | 'secondhand' | 'event'
     onNavigate: () => void; onToggle: () => void
     onMarkFilled?: () => void
     children?: React.ReactNode
@@ -205,7 +207,10 @@ export default function ServicesSection() {
           <button onClick={onNavigate} className="flex-1 min-w-0 text-left hover:opacity-70 transition-opacity">
             {badge && <div className="mb-1">{badge}</div>}
             <p className="text-sm font-semibold text-gray-800 truncate">{title}</p>
-            {subtitle && <p className="text-xs text-gray-400 mt-0.5">{subtitle}</p>}
+            <div className="flex items-center gap-2 mt-0.5">
+              {subtitle && <span className="text-xs text-gray-400">{subtitle}</span>}
+              {viewType && <ViewCount type={viewType} id={id} />}
+            </div>
           </button>
 
           {/* Mark as filled — shown only when not yet filled */}
@@ -313,7 +318,10 @@ export default function ServicesSection() {
                           <button onClick={() => navigate(`/service/${svc.id}`)}
                             className="flex-1 min-w-0 text-left hover:opacity-70 transition-opacity">
                             <p className="text-sm font-semibold text-gray-800 truncate">{svc.title}</p>
-                            <p className="text-xs text-gray-400 mt-0.5">{svc.created_at.slice(0, 10)}</p>
+                            <div className="flex items-center gap-2 mt-0.5">
+                              <span className="text-xs text-gray-400">{svc.created_at.slice(0, 10)}</span>
+                              <ViewCount type="service" id={svc.id} />
+                            </div>
                           </button>
                           <button onClick={() => toggleService(svc)}
                             className={`flex items-center gap-1 text-xs px-2.5 py-1 rounded-full font-medium flex-shrink-0 transition-colors
@@ -425,7 +433,7 @@ export default function ServicesSection() {
               <AnimatePresence>
                 {jobs.map(job => (
                   <Row key={job.id} id={job.id} table="jobs" title={job.title}
-                    subtitle={job.created_at.slice(0, 10)}
+                    viewType="job" subtitle={job.created_at.slice(0, 10)}
                     badge={
                       <div className="flex items-center gap-1.5">
                         <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-primary-50 text-primary-600">
@@ -455,7 +463,7 @@ export default function ServicesSection() {
               <AnimatePresence>
                 {properties.map(p => (
                   <Row key={p.id} id={p.id} table="properties" title={p.title}
-                    subtitle={p.created_at.slice(0, 10)}
+                    viewType="property" subtitle={p.created_at.slice(0, 10)}
                     badge={
                       <div className="flex items-center gap-1.5">
                         <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${RE_CONFIG[p.listing_type].color}`}>
@@ -486,7 +494,7 @@ export default function ServicesSection() {
               <AnimatePresence>
                 {secondhand.map(item => (
                   <Row key={item.id} id={item.id} table="secondhand" title={item.title}
-                    subtitle={item.created_at.slice(0, 10)}
+                    viewType="secondhand" subtitle={item.created_at.slice(0, 10)}
                     badge={
                       <div className="flex items-center gap-1.5">
                         <span className="text-[10px] text-gray-400">
@@ -519,7 +527,7 @@ export default function ServicesSection() {
                   const cfg = EVENT_TYPE_CONFIG[ev.event_type]
                   return (
                     <Row key={ev.id} id={ev.id} table="events" title={ev.title}
-                      subtitle={formatEventDate(ev.event_date)}
+                      viewType="event" subtitle={formatEventDate(ev.event_date)}
                       badge={
                         <div className="flex items-center gap-1.5">
                           <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${cfg.color}`}>

@@ -9,6 +9,8 @@ import { useAuthStore } from '../../store/authStore'
 import { SECONDHAND_CATEGORY_CONFIG, ITEM_CONDITION_CONFIG, getPriceLabel, type SecondhandItem } from './types'
 import SaveButton from '../../components/SaveButton/SaveButton'
 import ShareButton from '../../components/ShareButton/ShareButton'
+import PageMeta from '../../components/PageMeta/PageMeta'
+import ViewCount from '../../components/ViewCount/ViewCount'
 
 export default function SecondhandDetail() {
   const { id }   = useParams<{ id: string }>()
@@ -79,6 +81,11 @@ export default function SecondhandDetail() {
         </div>
       ) : (
         <div className="max-w-2xl mx-auto pb-8">
+          <PageMeta
+            title={item.title}
+            description={item.description?.slice(0, 120)}
+            image={item.images?.[0]}
+          />
 
           {/* Images */}
           {item.images.length > 0 ? (
@@ -146,6 +153,7 @@ export default function SecondhandDetail() {
                 <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">物品描述</p>
                 <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{item.description}</p>
               </div>
+              <ViewCount type="secondhand" id={item.id} className="mt-3" />
             </motion.div>
 
             {/* Contact card */}

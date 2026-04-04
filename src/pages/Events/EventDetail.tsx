@@ -12,6 +12,8 @@ import {
 } from './types'
 import SaveButton from '../../components/SaveButton/SaveButton'
 import ShareButton from '../../components/ShareButton/ShareButton'
+import PageMeta from '../../components/PageMeta/PageMeta'
+import ViewCount from '../../components/ViewCount/ViewCount'
 
 export default function EventDetail() {
   const { id }   = useParams<{ id: string }>()
@@ -83,6 +85,11 @@ export default function EventDetail() {
         </div>
       ) : (
         <div className="max-w-2xl mx-auto pb-8">
+          <PageMeta
+            title={ev.title}
+            description={ev.description?.slice(0, 120)}
+            image={ev.images?.[0]}
+          />
 
           {/* Images */}
           {ev.images.length > 0 ? (
@@ -168,6 +175,7 @@ export default function EventDetail() {
                 <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">活动详情</p>
                 <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{ev.description}</p>
               </div>
+              <ViewCount type="event" id={ev.id} className="mt-3" />
             </motion.div>
 
             {/* Contact */}

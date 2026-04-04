@@ -10,6 +10,8 @@ import type { BrowseEntry } from '../Profile/types'
 import ReviewsSection from './ReviewsSection'
 import SaveButton from '../../components/SaveButton/SaveButton'
 import ShareButton from '../../components/ShareButton/ShareButton'
+import PageMeta from '../../components/PageMeta/PageMeta'
+import ViewCount from '../../components/ViewCount/ViewCount'
 
 // ── Social platform display config ────────────────────────────────────────────
 const SOCIAL_PLATFORMS = [
@@ -136,6 +138,11 @@ export default function ServiceDetail() {
 
   return (
     <div className="min-h-screen bg-gray-50 pb-28">
+      <PageMeta
+        title={service.title}
+        description={service.description?.slice(0, 120)}
+        image={service.images?.[0]}
+      />
       {/* Header */}
       <div className={`${cat?.bgColor ?? 'bg-gray-50'} px-4 pt-safe`}>
         <div className="max-w-2xl lg:max-w-4xl mx-auto flex items-center gap-3 h-14">
@@ -193,6 +200,8 @@ export default function ServiceDetail() {
           </div>
 
           <p className="text-gray-600 text-sm leading-relaxed">{service.description}</p>
+
+          <ViewCount type="service" id={service.id} className="mt-2" />
 
           {/* Tags */}
           <div className="flex flex-wrap gap-2 mt-4">

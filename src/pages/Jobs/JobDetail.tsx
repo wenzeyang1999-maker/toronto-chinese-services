@@ -14,6 +14,8 @@ import {
 } from './types'
 import SaveButton from '../../components/SaveButton/SaveButton'
 import ShareButton from '../../components/ShareButton/ShareButton'
+import PageMeta from '../../components/PageMeta/PageMeta'
+import ViewCount from '../../components/ViewCount/ViewCount'
 
 export default function JobDetail() {
   const { id }   = useParams<{ id: string }>()
@@ -90,6 +92,11 @@ export default function JobDetail() {
             className="mt-3 text-primary-600 text-sm underline">返回列表</button>
         </div>
       ) : (
+        <>
+        <PageMeta
+          title={job.title}
+          description={job.description?.slice(0, 120)}
+        />
         <div className="max-w-2xl mx-auto px-4 py-4 space-y-4">
 
           {/* ── Main card ─────────────────────────────────────────────────── */}
@@ -146,6 +153,8 @@ export default function JobDetail() {
                 </p>
               </Section>
             )}
+
+            <ViewCount type="job" id={job.id} className="mt-3" />
           </motion.div>
 
           {/* ── Contact card ──────────────────────────────────────────────── */}
@@ -241,6 +250,7 @@ export default function JobDetail() {
           ) : null}
 
         </div>
+        </>
       )}
     </div>
   )
