@@ -6,7 +6,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import {
   ChevronLeft, ChevronRight, Camera, LogOut,
-  ShieldCheck, Briefcase, Clock, MessageSquare, Bot, BadgeCheck, Crown, Heart,
+  ShieldCheck, Briefcase, Clock, MessageSquare, Bot, BadgeCheck, Crown, Heart, UserCheck,
 } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { useAuthStore } from '../../store/authStore'
@@ -21,6 +21,7 @@ import ChatSection         from './sections/ChatSection'
 import MessagesSection     from './sections/MessagesSection'
 import VerificationSection from './sections/VerificationSection'
 import MembershipSection   from './sections/MembershipSection'
+import FollowsSection      from './sections/FollowsSection'
 
 const MENU: { key: Section; icon: React.ReactNode; label: string; sub: string }[] = [
   { key: 'account',      icon: <ShieldCheck   size={18} />, label: '帐号和安全',        sub: '个人信息、密码修改' },
@@ -28,6 +29,7 @@ const MENU: { key: Section; icon: React.ReactNode; label: string; sub: string }[
   { key: 'membership',   icon: <Crown         size={18} />, label: '会员等级',           sub: '查看商家会员权益' },
   { key: 'services',     icon: <Briefcase     size={18} />, label: '我的发布',           sub: '服务·招聘·房源·闲置·活动' },
   { key: 'saves',        icon: <Heart         size={18} />, label: '我的收藏',           sub: '已收藏的服务、招聘、房源等' },
+  { key: 'follows',      icon: <UserCheck     size={18} />, label: '我的关注',           sub: '已关注的服务商' },
   { key: 'messages',     icon: <MessageSquare size={18} />, label: '我的消息',           sub: '与商家的对话记录' },
   { key: 'browse',       icon: <Clock         size={18} />, label: '浏览记录',           sub: '最近查看的服务' },
   { key: 'chat',         icon: <Bot           size={18} />, label: 'AI 对话记录',        sub: '历史聊天记录' },
@@ -38,7 +40,7 @@ export default function Profile() {
   const [searchParams] = useSearchParams()
   const user     = useAuthStore((s) => s.user)
 
-  const VALID_SECTIONS = ['account','verification','membership','services','saves','messages','browse','chat']
+  const VALID_SECTIONS = ['account','verification','membership','services','saves','follows','messages','browse','chat']
 
   const [section, setSection] = useState<Section | null>(() => {
     const param = searchParams.get('section') as Section | null
@@ -178,6 +180,7 @@ try { setBrowse(JSON.parse(localStorage.getItem('tcs_browse_history') ?? '[]')) 
       case 'membership':   return <MembershipSection level={memberLevel} />
       case 'services':     return <ServicesSection />
       case 'saves':        return <SavesSection />
+      case 'follows':      return <FollowsSection />
       case 'messages':     return <MessagesSection />
       case 'browse':       return <BrowseSection items={browse} onClear={() => { localStorage.removeItem('tcs_browse_history'); setBrowse([]) }} />
       case 'chat':         return <ChatSection sessions={chats} onClear={() => { localStorage.removeItem('tcs_chat_history'); setChats([]) }} />

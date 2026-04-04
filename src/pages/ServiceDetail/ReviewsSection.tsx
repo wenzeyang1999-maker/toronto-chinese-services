@@ -3,9 +3,10 @@
 //   • Submit / edit reviews with star rating
 //   • 👍/👎 helpful votes — affects sort order, never hides reviews
 //   • 🚩 Report — sends to admin review queue
+//   • 💬 Provider reply — service owner can reply once per review
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Star, Send, Pencil, X, Check, ThumbsUp, ThumbsDown, Flag } from 'lucide-react'
+import { Star, Send, Pencil, X, Check, ThumbsUp, ThumbsDown, Flag, MessageCircle, CornerDownRight } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { supabase } from '../../lib/supabase'
 import { useAuthStore } from '../../store/authStore'
@@ -22,6 +23,13 @@ interface Review {
   unhelpful_count: number
   my_vote:         boolean | null   // true = 👍, false = 👎, null = no vote
   score:           number           // helpful - unhelpful (sort key)
+}
+
+interface Reply {
+  id:         string
+  content:    string
+  created_at: string
+  updated_at: string
 }
 
 const REPORT_REASONS: { key: string; label: string }[] = [
@@ -67,6 +75,16 @@ export default function ReviewsSection({ serviceId, providerId }: Props) {
   const [reportSubmitting, setReportSubmitting] = useState(false)
   const [reportedIds,     setReportedIds]     = useState<Set<string>>(new Set())
 
+  // Reply state (provider replies)
+  const [replies,          setReplies]         = useState<Record<string, Reply>>({})
+  const [replyingId,       setReplyingId]      = useState<string | null>(null)
+  const [replyText,        setReplyText]       = useState('')
+  const [replySubmitting,  setReplySubmitting] = useState(false)
+  const [replyError,       setReplyError]      = useState<string | null>(null)
+  const [editingReplyId,   setEditingReplyId]  = useState<string | null>(null)
+  const [editReplyText,    setEditReplyText]   = useState('')
+  const [editReplySubmitting, setEditReplySubmitting] = useState(false)
+
   const isOwnService    = user?.id === providerId
   const myReview        = reviews.find(r => r.reviewer?.id === user?.id)
   const alreadyReviewed = !!myReview
@@ -97,6 +115,18 @@ export default function ReviewsSection({ serviceId, providerId }: Props) {
     const reports = reportData ?? []
 
     setReportedIds(new Set(reports.map((r: any) => r.review_id)))
+
+    // Fetch provider replies for these reviews
+    const { data: replyData } = ids.length > 0
+      ? await supabase.from('review_replies').select('id, review_id, content, created_at, updated_at')
+          .in('review_id', ids).eq('replier_id', providerId)
+      : { data: [] }
+
+    const replyMap: Record<string, Reply> = {}
+    ;(replyData ?? []).forEach((rep: any) => {
+      replyMap[rep.review_id] = { id: rep.id, content: rep.content, created_at: rep.created_at, updated_at: rep.updated_at }
+    })
+    setReplies(replyMap)
 
     const mapped: Review[] = reviewData.map((r: any) => {
       const rvotes      = votes.filter((v: any) => v.review_id === r.id)
@@ -215,6 +245,50 @@ export default function ReviewsSection({ serviceId, providerId }: Props) {
     }
     setReportingId(null)
     setReportReason('')
+  }
+
+  // ── Provider reply ─────────────────────────────────────────────────────────
+
+  function openReply(reviewId: string, existing?: Reply) {
+    if (existing) {
+      setEditingReplyId(reviewId)
+      setEditReplyText(existing.content)
+    } else {
+      setReplyingId(reviewId)
+      setReplyText('')
+      setReplyError(null)
+    }
+  }
+
+  async function submitReply(reviewId: string) {
+    if (!user || !replyText.trim()) return
+    setReplySubmitting(true); setReplyError(null)
+    const { error } = await supabase.from('review_replies').insert({
+      review_id: reviewId, replier_id: user.id, content: replyText.trim(),
+    })
+    setReplySubmitting(false)
+    if (error) { setReplyError('回复失败，请稍后再试') }
+    else { setReplyingId(null); setReplyText(''); load() }
+  }
+
+  async function saveReply(reviewId: string) {
+    if (!user || !editReplyText.trim()) return
+    setEditReplySubmitting(true)
+    const reply = replies[reviewId]
+    if (!reply) return
+    const { error } = await supabase.from('review_replies')
+      .update({ content: editReplyText.trim() })
+      .eq('id', reply.id).eq('replier_id', user.id)
+    setEditReplySubmitting(false)
+    if (!error) { setEditingReplyId(null); setEditReplyText(''); load() }
+  }
+
+  async function deleteReply(reviewId: string) {
+    if (!user) return
+    const reply = replies[reviewId]
+    if (!reply) return
+    await supabase.from('review_replies').delete().eq('id', reply.id).eq('replier_id', user.id)
+    load()
   }
 
   // ── Render ─────────────────────────────────────────────────────────────────
@@ -429,6 +503,89 @@ export default function ReviewsSection({ serviceId, providerId }: Props) {
                             </motion.div>
                           )}
                         </AnimatePresence>
+
+                        {/* ── Provider reply ── */}
+                        {(() => {
+                          const reply = replies[r.id]
+                          // Show existing reply
+                          if (reply && editingReplyId !== r.id) return (
+                            <div className="mt-3 flex gap-2">
+                              <CornerDownRight size={14} className="text-primary-300 flex-shrink-0 mt-0.5" />
+                              <div className="flex-1 bg-primary-50 border border-primary-100 rounded-xl px-3 py-2">
+                                <div className="flex items-center justify-between mb-1">
+                                  <span className="text-xs font-semibold text-primary-700">商家回复</span>
+                                  <span className="text-[10px] text-gray-400">{reply.updated_at.slice(0,10)}</span>
+                                </div>
+                                <p className="text-xs text-gray-600 leading-relaxed">{reply.content}</p>
+                                {isOwnService && (
+                                  <div className="flex gap-2 mt-1.5">
+                                    <button onClick={() => openReply(r.id, reply)}
+                                      className="text-[11px] text-primary-500 hover:text-primary-700 transition-colors flex items-center gap-0.5">
+                                      <Pencil size={10} /> 编辑
+                                    </button>
+                                    <button onClick={() => deleteReply(r.id)}
+                                      className="text-[11px] text-gray-400 hover:text-red-400 transition-colors flex items-center gap-0.5">
+                                      <X size={10} /> 删除
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          )
+                          // Edit reply form
+                          if (reply && editingReplyId === r.id) return (
+                            <div className="mt-3 flex gap-2">
+                              <CornerDownRight size={14} className="text-primary-300 flex-shrink-0 mt-0.5" />
+                              <div className="flex-1">
+                                <textarea value={editReplyText} onChange={e => setEditReplyText(e.target.value)}
+                                  rows={2} placeholder="编辑回复…"
+                                  className="w-full border border-primary-200 rounded-xl px-3 py-2 text-xs resize-none
+                                             focus:outline-none focus:ring-2 focus:ring-primary-300 bg-white" />
+                                <div className="flex gap-2 mt-1.5">
+                                  <button onClick={() => setEditingReplyId(null)}
+                                    className="flex items-center gap-0.5 text-xs px-3 py-1.5 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-100 transition-colors">
+                                    <X size={11} /> 取消
+                                  </button>
+                                  <button onClick={() => saveReply(r.id)} disabled={editReplySubmitting || !editReplyText.trim()}
+                                    className="flex items-center gap-0.5 text-xs px-3 py-1.5 rounded-lg bg-primary-600 text-white hover:bg-primary-700 disabled:opacity-60 transition-colors">
+                                    <Check size={11} /> {editReplySubmitting ? '保存中…' : '保存'}
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          )
+                          // No reply yet — show reply button for provider
+                          if (!reply && isOwnService) return (
+                            replyingId === r.id ? (
+                              <div className="mt-3 flex gap-2">
+                                <CornerDownRight size={14} className="text-primary-300 flex-shrink-0 mt-0.5" />
+                                <div className="flex-1">
+                                  <textarea value={replyText} onChange={e => setReplyText(e.target.value)}
+                                    rows={2} placeholder="回复这条评价…"
+                                    className="w-full border border-primary-200 rounded-xl px-3 py-2 text-xs resize-none
+                                               focus:outline-none focus:ring-2 focus:ring-primary-300 bg-white" />
+                                  {replyError && <p className="text-xs text-red-500 mt-0.5">{replyError}</p>}
+                                  <div className="flex gap-2 mt-1.5">
+                                    <button onClick={() => setReplyingId(null)}
+                                      className="flex items-center gap-0.5 text-xs px-3 py-1.5 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-100 transition-colors">
+                                      <X size={11} /> 取消
+                                    </button>
+                                    <button onClick={() => submitReply(r.id)} disabled={replySubmitting || !replyText.trim()}
+                                      className="flex items-center gap-0.5 text-xs px-3 py-1.5 rounded-lg bg-primary-600 text-white hover:bg-primary-700 disabled:opacity-60 transition-colors">
+                                      <Send size={11} /> {replySubmitting ? '回复中…' : '回复'}
+                                    </button>
+                                  </div>
+                                </div>
+                              </div>
+                            ) : (
+                              <button onClick={() => openReply(r.id)}
+                                className="mt-2 flex items-center gap-1 text-[11px] text-primary-500 hover:text-primary-700 transition-colors">
+                                <MessageCircle size={11} /> 回复此评价
+                              </button>
+                            )
+                          )
+                          return null
+                        })()}
                       </>
                     )}
                   </div>

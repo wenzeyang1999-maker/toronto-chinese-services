@@ -9,6 +9,7 @@ import { supabase } from '../../lib/supabase'
 import { useAuthStore } from '../../store/authStore'
 import { getCategoryById } from '../../data/categories'
 import MembershipBadge, { type MemberLevel } from '../../components/MembershipBadge/MembershipBadge'
+import FollowButton from '../../components/FollowButton/FollowButton'
 import { JOB_CATEGORY_CONFIG, JOB_TYPE_CONFIG, SALARY_TYPE_LABEL, getCategoryLabel } from '../Jobs/types'
 import type { Job } from '../Jobs/types'
 import { LISTING_TYPE_CONFIG as RE_LISTING_TYPE_CONFIG, PROPERTY_TYPE_CONFIG, getPriceLabel as getPropertyPriceLabel } from '../RealEstate/types'
@@ -79,6 +80,7 @@ export default function ProviderProfile() {
   const [events,          setEvents]         = useState<Event[]>([])
   const [loading,         setLoading]        = useState(true)
   const [notFound,        setNotFound]       = useState(false)
+  const [followerCount,   setFollowerCount]  = useState(0)
 
   useEffect(() => {
     if (!id) return
@@ -193,6 +195,13 @@ export default function ProviderProfile() {
             })))
           })
       })
+
+    // Fetch follower count
+    supabase
+      .from('follows')
+      .select('id', { count: 'exact', head: true })
+      .eq('provider_id', id)
+      .then(({ count }) => { if (count !== null) setFollowerCount(count) })
   }, [id])
 
   async function handleMessage() {
@@ -366,14 +375,24 @@ export default function ProviderProfile() {
             </div>
           )}
 
-          {/* Message button — only for other users */}
+          {/* Follower count */}
+          {followerCount > 0 && (
+            <p className="mt-3 text-xs text-gray-400 flex items-center gap-1">
+              <span className="font-semibold text-gray-600">{followerCount}</span> 位粉丝关注
+            </p>
+          )}
+
+          {/* Action buttons — only for other users */}
           {!isOwnProfile && (
-            <button onClick={handleMessage}
-              className="mt-5 w-full flex items-center justify-center gap-2 bg-primary-600 text-white
-                         py-3 rounded-2xl font-medium hover:bg-primary-700 active:scale-[0.98] transition-all">
-              <MessageSquare size={18} />
-              发消息给 {provider.name}
-            </button>
+            <div className="mt-5 flex gap-3">
+              <button onClick={handleMessage}
+                className="flex-1 flex items-center justify-center gap-2 bg-primary-600 text-white
+                           py-3 rounded-2xl font-medium hover:bg-primary-700 active:scale-[0.98] transition-all">
+                <MessageSquare size={18} />
+                发消息
+              </button>
+              <FollowButton providerId={provider.id} />
+            </div>
           )}
         </motion.div>
 
