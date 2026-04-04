@@ -55,6 +55,7 @@ interface ProviderReview {
   created_at: string
   service: { id: string; title: string } | null
   reviewer: { id: string; name: string; avatar_url: string | null } | null
+  reply: string | null
 }
 
 interface ServiceRow {
@@ -193,14 +194,32 @@ export default function ProviderProfile() {
           .order('created_at', { ascending: false })
           .then(({ data: rData }) => {
             if (!rData) return
-            setProviderReviews(rData.map((r: any) => ({
+            const mapped = rData.map((r: any) => ({
               id:         r.id,
               rating:     r.rating,
               comment:    r.comment,
               created_at: r.created_at,
               service:    Array.isArray(r.service)  ? r.service[0]  : r.service,
               reviewer:   Array.isArray(r.reviewer) ? r.reviewer[0] : r.reviewer,
-            })))
+              reply:      null as string | null,
+            }))
+            setProviderReviews(mapped)
+
+            // Fetch replies for all reviews
+            const reviewIds = mapped.map((r: any) => r.id)
+            supabase
+              .from('review_replies')
+              .select('review_id, content')
+              .in('review_id', reviewIds)
+              .then(({ data: replies }) => {
+                if (!replies) return
+                const replyMap: Record<string, string> = {}
+                replies.forEach((rp: any) => { replyMap[rp.review_id] = rp.content })
+                setProviderReviews(prev => prev.map(r => ({
+                  ...r,
+                  reply: replyMap[r.id] ?? null,
+                })))
+              })
           })
       })
 
@@ -777,6 +796,15 @@ export default function ProviderProfile() {
                       )}
                       {r.comment && (
                         <p className="text-sm text-gray-600 mt-1 leading-relaxed">{r.comment}</p>
+                      )}
+                      {r.reply && (
+                        <div className="mt-2 flex gap-1.5">
+                          <div className="w-0.5 bg-primary-200 rounded-full flex-shrink-0" />
+                          <div className="bg-primary-50 rounded-lg px-3 py-2 flex-1">
+                            <p className="text-xs font-semibold text-primary-600 mb-0.5">🏪 商家回复</p>
+                            <p className="text-xs text-gray-600 leading-relaxed">{r.reply}</p>
+                          </div>
+                        </div>
                       )}
                     </div>
                   </motion.div>
