@@ -3,6 +3,7 @@ import { motion } from 'framer-motion'
 import { Star, MapPin, ShieldCheck } from 'lucide-react'
 import type { Service } from '../../types'
 import { getCategoryById } from '../../data/categories'
+import { thumb } from '../../lib/imgTransform'
 
 interface Props {
   service: Service
@@ -30,8 +31,9 @@ export default function ServiceCard({ service }: Props) {
 
         {hasImage ? (
           <img
-            src={service.images![0]}
+            src={thumb(service.images![0])}
             alt={service.title}
+            loading="lazy"
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
           />
         ) : (

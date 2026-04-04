@@ -11,38 +11,39 @@
 //   /register       → User registration page
 //   /login          → User login page
 //   /profile        → User profile page
-import { useCallback, useEffect, useState } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useState } from 'react'
 import { Routes, Route, useNavigate, useLocation } from 'react-router-dom'
 import { AnimatePresence } from 'framer-motion'
 import { MessageSquare } from 'lucide-react'
 import LoadingScreen from './components/LoadingScreen/LoadingScreen'
 import Home from './pages/Home/Home'
-import Category from './pages/Category/Category'
-import Search from './pages/Search/Search'
-import ServiceDetail from './pages/ServiceDetail/ServiceDetail'
-import PostService from './pages/PostService/PostService'
-import Register from './pages/Auth/Register'
-import Login from './pages/Auth/Login'
-import ForgotPassword from './pages/Auth/ForgotPassword'
-import Profile from './pages/Profile/Profile'
-import ConversationPage from './pages/Conversation/ConversationPage'
-import ResetPassword from './pages/Auth/ResetPassword'
-import ProviderProfile from './pages/ProviderProfile/ProviderProfile'
-import JobList from './pages/Jobs/JobList'
-import JobDetail from './pages/Jobs/JobDetail'
-import PostJob from './pages/Jobs/PostJob'
-import SecondhandList from './pages/Secondhand/SecondhandList'
-import SecondhandDetail from './pages/Secondhand/SecondhandDetail'
-import PostListing from './pages/Secondhand/PostListing'
-import RealEstateList from './pages/RealEstate/RealEstateList'
-import RealEstateDetail from './pages/RealEstate/RealEstateDetail'
-import PostProperty from './pages/RealEstate/PostProperty'
-import EventList from './pages/Events/EventList'
-import EventDetail from './pages/Events/EventDetail'
-import PostEvent from './pages/Events/PostEvent'
-import AdminPage from './pages/Admin/AdminPage'
-import GlobalSearch from './pages/GlobalSearch/GlobalSearch'
 import AiChatWidget from './components/AiChatWidget/AiChatWidget'
+
+const Category        = lazy(() => import('./pages/Category/Category'))
+const Search          = lazy(() => import('./pages/Search/Search'))
+const ServiceDetail   = lazy(() => import('./pages/ServiceDetail/ServiceDetail'))
+const PostService     = lazy(() => import('./pages/PostService/PostService'))
+const Register        = lazy(() => import('./pages/Auth/Register'))
+const Login           = lazy(() => import('./pages/Auth/Login'))
+const ForgotPassword  = lazy(() => import('./pages/Auth/ForgotPassword'))
+const Profile         = lazy(() => import('./pages/Profile/Profile'))
+const ConversationPage = lazy(() => import('./pages/Conversation/ConversationPage'))
+const ResetPassword   = lazy(() => import('./pages/Auth/ResetPassword'))
+const ProviderProfile = lazy(() => import('./pages/ProviderProfile/ProviderProfile'))
+const JobList         = lazy(() => import('./pages/Jobs/JobList'))
+const JobDetail       = lazy(() => import('./pages/Jobs/JobDetail'))
+const PostJob         = lazy(() => import('./pages/Jobs/PostJob'))
+const SecondhandList  = lazy(() => import('./pages/Secondhand/SecondhandList'))
+const SecondhandDetail = lazy(() => import('./pages/Secondhand/SecondhandDetail'))
+const PostListing     = lazy(() => import('./pages/Secondhand/PostListing'))
+const RealEstateList  = lazy(() => import('./pages/RealEstate/RealEstateList'))
+const RealEstateDetail = lazy(() => import('./pages/RealEstate/RealEstateDetail'))
+const PostProperty    = lazy(() => import('./pages/RealEstate/PostProperty'))
+const EventList       = lazy(() => import('./pages/Events/EventList'))
+const EventDetail     = lazy(() => import('./pages/Events/EventDetail'))
+const PostEvent       = lazy(() => import('./pages/Events/PostEvent'))
+const AdminPage       = lazy(() => import('./pages/Admin/AdminPage'))
+const GlobalSearch    = lazy(() => import('./pages/GlobalSearch/GlobalSearch'))
 import { useAppStore } from './store/appStore'
 import { useAuthStore } from './store/authStore'
 import { supabase } from './lib/supabase'
@@ -81,6 +82,7 @@ export default function App() {
       </AnimatePresence>
 
       {isLoadingDone && (
+        <Suspense fallback={<div className="min-h-screen flex items-center justify-center text-gray-400 text-sm">加载中…</div>}>
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/category/:id" element={<Category />} />
@@ -109,6 +111,7 @@ export default function App() {
           <Route path="/search-all" element={<GlobalSearch />} />
           <Route path="/admin" element={<AdminPage />} />
         </Routes>
+        </Suspense>
       )}
 
       {/* Global AI chat widget — always visible after loading */}
