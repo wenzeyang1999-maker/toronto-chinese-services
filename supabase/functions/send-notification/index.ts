@@ -15,7 +15,7 @@ const CORS = {
 }
 
 const FROM = 'Toronto-Chinese-Service <noreply@huarenq.com>'
-const SITE = 'https://huarenq.com'
+const SITE = 'https://toronto-chinese-services.vercel.app'
 
 // ── Email templates ───────────────────────────────────────────────────────────
 
