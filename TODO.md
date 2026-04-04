@@ -14,37 +14,37 @@
 - [x] 「我的发布」里加快捷「标记完成」按钮，标记后自动下架
 - [ ] 活动：过期活动详情页加提示横幅（前端已灰显，详情页未提示）
 
-### 2. 收藏/关注功能
+### 2. 收藏/关注功能 ✅
 **问题：** 用户看到好的服务/房源，现在无法保存，下次找不到。
-- [ ] 新建 `saves` 表（`user_id`, `target_type`, `target_id`, `created_at`）
-- [ ] 写 SQL schema（`database/saves_schema.sql`）
-- [ ] 每个详情页/卡片右上角加❤️收藏按钮
-- [ ] Profile → 新增「我的收藏」section，分类展示（服务/房源/闲置/活动）
+- [x] 新建 `saves` 表（`user_id`, `target_type`, `target_id`, `created_at`）
+- [x] 写 SQL schema（`database/saves_schema.sql`）— **需在 Supabase 执行**
+- [x] 每个详情页右上角加 ♡ 收藏按钮（SaveButton 组件）
+- [x] Profile → 新增「我的收藏」section，分类展示（服务/房源/闲置/活动/招聘）
 
-### 3. 管理后台 — 举报处理
+### 3. 管理后台 — 举报处理 ✅
 **问题：** 举报功能已上线，但没有地方处理，等于摆设。
-- [ ] 新建 `/admin` 路由（仅 `role=admin` 可见，否则跳首页）
-- [ ] 举报列表：展示 `review_reports` 所有 `pending` 条目
-- [ ] 每条举报显示：评价内容、举报原因、举报人、被举报服务
-- [ ] 操作按钮：「忽略」（`dismissed`）/ 「删除评价」（删 review + 标 `removed`）
-- [ ] 数据概览：各板块帖子数、用户数、待处理举报数
+- [x] 新建 `/admin` 路由（仅 `role=admin` 可见，否则跳首页）
+- [x] 举报列表：展示 `review_reports` 所有 `pending` 条目
+- [x] 每条举报显示：评价内容、举报原因、举报人、被举报服务
+- [x] 操作按钮：「忽略」（`dismissed`）/ 「删除评价」（删 review + 标 `removed`）
+- [x] 数据概览：各板块帖子数、用户数、待处理举报数
 
-### 4. 全局搜索
+### 4. 全局搜索 ✅
 **问题：** 5个板块搜索完全独立，用户找人找东西要翻5个地方。
-- [ ] Header 搜索框改为全局入口
-- [ ] 新建 `/search?q=xxx` 页面，并行查询5张表
-- [ ] 结果分类展示（tab 切换：全部 / 服务 / 招聘 / 房源 / 闲置 / 活动）
-- [ ] 关键词高亮
+- [x] Header 加全局搜索图标 → `/search-all`
+- [x] 新建 `/search-all?q=xxx` 页面，并行查询5张表
+- [x] 结果分类展示（tab 切换：全部 / 服务 / 招聘 / 房源 / 闲置 / 活动）
+- [x] 关键词高亮
 
 ---
 
 ## 🟡 P2 — 提升留存（重要但不紧急）
 
-### 5. Provider Profile — 个人简介
+### 5. Provider Profile — 个人简介 ✅
 **问题：** 公开主页没有 bio，服务提供者/求职者无法介绍自己。
-- [ ] `users` 表加 `bio TEXT` 列（migration SQL）
-- [ ] Profile → 账号设置 加 bio 编辑框（最多 300 字）
-- [ ] ProviderProfile 展示 bio 卡片
+- [x] `users` 表加 `bio TEXT` 列（`database/bio_migration.sql`）— **需在 Supabase 执行**
+- [x] Profile → 账号设置 加 bio 编辑框
+- [x] ProviderProfile 展示 bio
 
 ### 6. 消息通知 — 邮件提醒
 **问题：** 有人发消息，用户如果不主动刷 app 完全不知道。
@@ -52,17 +52,18 @@
 - [ ] 用 Supabase Auth email 发提醒（「您有一条新消息来自 XXX」）
 - [ ] 用户可在设置里关闭邮件通知（`users` 表加 `email_notify BOOLEAN DEFAULT true`）
 
-### 7. 帖子详情页 — 分享按钮
+### 7. 帖子详情页 — 分享按钮 ✅
 **问题：** 用户无法把好的房源/服务分享给朋友，缺少传播入口。
-- [ ] 详情页加「分享」按钮（复制链接 / 原生 Web Share API）
-- [ ] 分享链接直接跳到对应详情页（路由已有，直接用）
+- [x] 详情页加「分享」按钮（ShareButton 组件，Web Share API + clipboard fallback）
+- [x] 分享链接直接跳到对应详情页
 - [ ] Open Graph meta tags（分享到微信/朋友圈时显示标题+图片）
 
-### 8. 图片加载优化
+### 8. 图片加载优化 ✅
 **问题：** 用户上传原图经过简单压缩后仍可能很大，移动端加载慢。
-- [ ] 使用 Supabase Image Transformation（URL 加 `?width=800&quality=80`）
-- [ ] 列表页缩略图统一用小尺寸（`?width=200`），详情页用中尺寸（`?width=800`）
-- [ ] 图片懒加载（`loading="lazy"` 属性）
+- [x] Supabase Image Transformation 工具函数（`src/lib/imgTransform.ts`）
+- [x] ServiceCard 列表缩略图使用 `thumb()` (width=400)
+- [x] `loading="lazy"` 添加到列表图片
+- [ ] 其他板块列表卡片图片也接入 thumb() + lazy（jobs/realestate/secondhand/events）
 
 ---
 
@@ -95,11 +96,20 @@
 
 ## 🔧 技术债务
 
-- [ ] 代码分割（Code splitting）：当前 bundle 808KB，超过 Vite 500KB 警告阈值
-      → 对各板块页面用 `React.lazy()` + `Suspense` 做懒加载
+- [x] 代码分割（Code splitting）：React.lazy + Suspense 对所有非首页路由
 - [ ] 统一错误边界（Error Boundary）：任何页面崩溃目前直接白屏
 - [ ] 环境变量审计：确认 `.env` 没有被提交到 git（`.gitignore` 检查）
 - [ ] Supabase RLS 审计：所有表的 policy 二次核查，确认没有越权漏洞
+
+---
+
+## ⏳ 待执行 SQL（需在 Supabase SQL Editor 手动执行）
+
+- `database/saves_schema.sql` — 收藏表
+- `database/bio_migration.sql` — 用户简介字段
+- `database/post_status_migration.sql` — 帖子标记完成字段
+- `database/events_schema.sql` — 活动表
+- `database/review_interactions_schema.sql` — 评价投票+举报表
 
 ---
 
@@ -115,6 +125,13 @@
 - [x] SectionTabs 对齐 + 宽度统一
 - [x] 发布房源从列表页带 listing_type 参数
 - [x] 消息浮窗 + 未读角标
+- [x] 收藏/关注功能（SaveButton + SavesSection）
+- [x] 分享按钮（ShareButton）
+- [x] 个人简介 bio（AccountSection + ProviderProfile）
+- [x] 管理后台 /admin（举报处理 + 数据概览）
+- [x] 全局搜索 /search-all（5张表并行 + 分类tab + 关键词高亮）
+- [x] 代码分割（React.lazy + Suspense）
+- [x] 图片优化工具（imgTransform.ts + ServiceCard lazy loading）
 
 ---
 
