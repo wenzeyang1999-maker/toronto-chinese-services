@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { Star, MapPin, ShieldCheck } from 'lucide-react'
+import { Star, MapPin, ShieldCheck, Zap } from 'lucide-react'
 import type { Service } from '../../types'
 import { getCategoryById } from '../../data/categories'
 
@@ -22,8 +22,9 @@ export default function ServiceCard({ service }: Props) {
     <motion.div
       whileTap={{ scale: 0.97 }}
       onClick={() => navigate(`/service/${service.id}`)}
-      className="bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100
-                 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 cursor-pointer group w-full"
+      className={`bg-white rounded-2xl overflow-hidden shadow-sm transition-all duration-300 cursor-pointer group w-full
+                 hover:shadow-lg hover:-translate-y-0.5
+                 ${service.isPromoted ? 'border-2 border-amber-400 shadow-amber-100' : 'border border-gray-100'}`}
     >
       {/* ── Hero image ─────────────────────────────────────────────────────── */}
       <div className="relative aspect-[4/3] overflow-hidden">
@@ -58,11 +59,23 @@ export default function ServiceCard({ service }: Props) {
           <span>{cat?.label}</span>
         </span>
 
-        {/* Price — top right */}
-        <span className="absolute top-2.5 right-2.5 px-2.5 py-0.5 rounded-full
-                         text-[11px] font-bold bg-primary-600 text-white shadow">
-          {priceLabel}
-        </span>
+        {/* Promoted badge — top right */}
+        {service.isPromoted && (
+          <span className="absolute top-2.5 right-2.5 inline-flex items-center gap-0.5
+                           px-2 py-0.5 rounded-full text-[11px] font-bold
+                           bg-amber-400 text-white shadow">
+            <Zap size={10} className="fill-white" />
+            推广
+          </span>
+        )}
+
+        {/* Price — top right (when not promoted) */}
+        {!service.isPromoted && (
+          <span className="absolute top-2.5 right-2.5 px-2.5 py-0.5 rounded-full
+                           text-[11px] font-bold bg-primary-600 text-white shadow">
+            {priceLabel}
+          </span>
+        )}
 
         {/* Rating — bottom left of image (only when reviews exist) */}
         {hasReviews && (

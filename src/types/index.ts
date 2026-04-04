@@ -40,6 +40,7 @@ export interface Service {
   tags: string[]
   images?: string[]
   available: boolean
+  isPromoted: boolean
   createdAt: string
   updatedAt: string
   distance?: number // km, calculated at runtime

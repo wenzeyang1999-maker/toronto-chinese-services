@@ -19,6 +19,7 @@ interface ServiceRow {
   tags: string[] | null
   images: string[] | null
   is_available: boolean | null
+  is_promoted: boolean | null
   is_verified: boolean | null
   created_at: string | null
   updated_at: string | null
@@ -97,7 +98,8 @@ function mapRow(row: ServiceRow): Service {
     },
     tags: row.tags ?? [],
     images: row.images ?? [],
-    available: row.is_available ?? true,
+    available:   row.is_available ?? true,
+    isPromoted:  row.is_promoted ?? false,
     createdAt: row.created_at ?? new Date().toISOString(),
     updatedAt: row.updated_at ?? new Date().toISOString(),
   }
@@ -183,6 +185,9 @@ export const useAppStore = create<AppState>((set, get) => ({
         break
     }
 
+    // Promoted listings always float to the top regardless of sort
+    result.sort((a, b) => (b.isPromoted ? 1 : 0) - (a.isPromoted ? 1 : 0))
+
     return result
   },
 
@@ -201,6 +206,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     } else {
       result.sort((a, b) => b.provider.rating - a.provider.rating)
     }
+    result.sort((a, b) => (b.isPromoted ? 1 : 0) - (a.isPromoted ? 1 : 0))
     return result
   },
 }))

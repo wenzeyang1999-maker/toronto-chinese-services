@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { ShieldCheck, Flag, CheckCircle2, Trash2, ChevronLeft, Users, Briefcase, Home, ShoppingBag, Calendar, Wrench, Star, BadgeCheck, X, ExternalLink } from 'lucide-react'
+import { ShieldCheck, Flag, CheckCircle2, Trash2, ChevronLeft, Users, Briefcase, Home, ShoppingBag, Calendar, Wrench, Star, BadgeCheck, X, ExternalLink, Zap } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { useAuthStore } from '../../store/authStore'
 
@@ -41,6 +41,14 @@ interface VerificationRow {
   created_at: string
 }
 
+interface PromotedRow {
+  id: string
+  title: string
+  table: 'services' | 'jobs' | 'properties' | 'secondhand' | 'events'
+  is_promoted: boolean
+  created_at: string
+}
+
 const REASON_LABEL: Record<string, string> = {
   irrelevant: '内容无关',
   malicious:  '恶意攻击',
@@ -56,8 +64,11 @@ export default function AdminPage() {
   const [allowed,        setAllowed]        = useState<boolean | null>(null)
   const [reports,        setReports]        = useState<ReportRow[]>([])
   const [verifications,  setVerifications]  = useState<VerificationRow[]>([])
+  const [promoted,       setPromoted]       = useState<PromotedRow[]>([])
+  const [promoSearch,    setPromoSearch]    = useState('')
+  const [promoTable,     setPromoTable]     = useState<PromotedRow['table']>('services')
   const [stats,          setStats]          = useState<Stats | null>(null)
-  const [tab,            setTab]            = useState<'reports' | 'verification' | 'overview'>('reports')
+  const [tab,            setTab]            = useState<'reports' | 'verification' | 'promoted' | 'overview'>('reports')
   const [loading,        setLoading]        = useState(true)
   const [acting,         setActing]         = useState<string | null>(null)
 
@@ -75,6 +86,26 @@ export default function AdminPage() {
     setLoading(true)
     await Promise.all([loadReports(), loadVerifications(), loadStats()])
     setLoading(false)
+  }
+
+  async function searchPromoted() {
+    const kw = promoSearch.trim()
+    const query = supabase
+      .from(promoTable)
+      .select('id, title, is_promoted, created_at')
+      .order('is_promoted', { ascending: false })
+      .order('created_at', { ascending: false })
+      .limit(30)
+    if (kw) query.ilike('title', `%${kw}%`)
+    const { data } = await query
+    setPromoted((data ?? []).map((r: any) => ({ ...r, table: promoTable })))
+  }
+
+  async function togglePromoted(row: PromotedRow) {
+    setActing(row.id)
+    await supabase.from(row.table).update({ is_promoted: !row.is_promoted }).eq('id', row.id)
+    setPromoted(prev => prev.map(r => r.id === row.id ? { ...r, is_promoted: !r.is_promoted } : r))
+    setActing(null)
   }
 
   async function loadVerifications() {
@@ -192,6 +223,12 @@ export default function AdminPage() {
             }`}>
             认证审核 {stats ? `(${stats.pending_verifications})` : ''}
           </button>
+          <button onClick={() => { setTab('promoted'); searchPromoted() }}
+            className={`flex-1 py-2 rounded-xl text-sm font-semibold transition-all ${
+              tab === 'promoted' ? 'bg-white text-primary-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+            }`}>
+            置顶推广
+          </button>
           <button onClick={() => setTab('overview')}
             className={`flex-1 py-2 rounded-xl text-sm font-semibold transition-all ${
               tab === 'overview' ? 'bg-white text-primary-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'
@@ -224,6 +261,69 @@ export default function AdminPage() {
                 </div>
               </div>
             ))}
+          </motion.div>
+        ) : tab === 'promoted' ? (
+          <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-3">
+            {/* Table selector + search */}
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 space-y-3">
+              {/* Table tabs */}
+              <div className="flex gap-1 flex-wrap">
+                {(['services','jobs','properties','secondhand','events'] as const).map(t => (
+                  <button key={t} onClick={() => setPromoTable(t)}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${
+                      promoTable === t ? 'bg-primary-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    }`}>
+                    {{ services:'服务', jobs:'招聘', properties:'房源', secondhand:'闲置', events:'活动' }[t]}
+                  </button>
+                ))}
+              </div>
+              {/* Search */}
+              <div className="flex gap-2">
+                <input
+                  value={promoSearch} onChange={e => setPromoSearch(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && searchPromoted()}
+                  placeholder="搜索帖子标题（留空显示全部）"
+                  className="flex-1 text-sm border border-gray-200 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-primary-300"
+                />
+                <button onClick={searchPromoted}
+                  className="px-4 py-2 bg-primary-600 text-white text-sm font-semibold rounded-xl hover:bg-primary-700 transition-colors">
+                  搜索
+                </button>
+              </div>
+            </div>
+
+            {/* Results */}
+            {promoted.length === 0 ? (
+              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-10 text-center text-sm text-gray-400">
+                点击搜索查看帖子
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {promoted.map(row => (
+                  <div key={row.id}
+                    className={`bg-white rounded-2xl border shadow-sm p-4 flex items-center gap-3
+                      ${row.is_promoted ? 'border-amber-400 bg-amber-50/30' : 'border-gray-100'}`}>
+                    {row.is_promoted && (
+                      <Zap size={16} className="text-amber-500 fill-amber-400 flex-shrink-0" />
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-gray-800 truncate">{row.title}</p>
+                      <p className="text-xs text-gray-400 mt-0.5">{row.created_at.slice(0,10)}</p>
+                    </div>
+                    <button
+                      onClick={() => togglePromoted(row)}
+                      disabled={acting === row.id}
+                      className={`flex-shrink-0 text-xs font-semibold px-4 py-2 rounded-xl transition-colors disabled:opacity-50 ${
+                        row.is_promoted
+                          ? 'bg-amber-100 text-amber-700 hover:bg-amber-200'
+                          : 'bg-gray-100 text-gray-600 hover:bg-amber-50 hover:text-amber-700'
+                      }`}>
+                      {acting === row.id ? '…' : row.is_promoted ? '取消推广' : '设为推广'}
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
           </motion.div>
         ) : tab === 'verification' ? (
           verifications.length === 0 ? (
