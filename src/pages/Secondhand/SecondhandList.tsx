@@ -279,11 +279,11 @@ function DetailPanel({ item, onClose }: { item: SecondhandItem; onClose: () => v
   }
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm mb-4">
       {/* Images */}
       {item.images.length > 0 ? (
         <div className="relative">
-          <div className="aspect-video overflow-hidden bg-gray-100">
+          <div className="aspect-video overflow-hidden bg-gray-100 rounded-t-2xl">
             <img src={item.images[imgIdx]} alt={item.title}
               className="w-full h-full object-contain" />
           </div>

@@ -292,11 +292,11 @@ function DetailPanel({ prop, onClose }: { prop: Property; onClose: () => void })
   }
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm mb-4">
       {/* Images */}
       {prop.images.length > 0 ? (
         <div>
-          <div className="aspect-video overflow-hidden bg-gray-100">
+          <div className="aspect-video overflow-hidden bg-gray-100 rounded-t-2xl">
             <img src={prop.images[imgIdx]} alt={prop.title} className="w-full h-full object-cover" />
           </div>
           {prop.images.length > 1 && (

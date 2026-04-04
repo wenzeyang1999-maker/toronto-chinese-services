@@ -327,7 +327,7 @@ function DetailPanel({ ev, onClose }: { ev: Event; onClose: () => void }) {
   }
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm mb-4">
       {/* Close button */}
       <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-100">
         <button onClick={onClose} className="text-gray-400 hover:text-gray-700">
