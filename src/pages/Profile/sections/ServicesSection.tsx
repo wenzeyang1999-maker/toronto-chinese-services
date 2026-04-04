@@ -85,7 +85,7 @@ export default function ServicesSection() {
       })
   }
 
-  useEffect(loadAll, [user])
+  useEffect(() => { loadAll() }, [user?.id])
 
   // ── Counts for tab badges ──────────────────────────────────────────────────
   const counts: Record<Tab, number> = {

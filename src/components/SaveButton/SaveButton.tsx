@@ -25,7 +25,7 @@ export default function SaveButton({ type, id, size = 20, className = '' }: Prop
     if (user && !isReady) {
       fetchSaves(user.id)
     }
-  }, [user?.id, isReady])
+  }, [user?.id, isReady, fetchSaves])
 
   const saved = user ? isSaved(type, id) : false
 

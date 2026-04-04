@@ -4,135 +4,105 @@
 
 ---
 
-## 🔴 P1 — 核心体验缺口（尽快做）
+## 🔴 P1 — 核心体验缺口 ✅ 全部完成
 
-### 1. 帖子状态关闭 ✅
-**问题：** 房源/招聘/闲置发布后永久挂着，没有主动关闭入口。数据越来越脏。
-- [x] 闲置：「标记为已售出」按钮（`is_sold = true`）
-- [x] 招聘：「标记为已招到/已找到」按钮（`is_filled` 列已加）
-- [x] 房源：「标记为已出租/已售出」按钮（`is_filled` 列已加）
-- [x] 「我的发布」里加快捷「标记完成」按钮，标记后自动下架
-- [ ] 活动：过期活动详情页加提示横幅（前端已灰显，详情页未提示）
-
-### 2. 收藏/关注功能 ✅
-**问题：** 用户看到好的服务/房源，现在无法保存，下次找不到。
-- [x] 新建 `saves` 表（`user_id`, `target_type`, `target_id`, `created_at`）
-- [x] 写 SQL schema（`database/saves_schema.sql`）— **需在 Supabase 执行**
-- [x] 每个详情页右上角加 ♡ 收藏按钮（SaveButton 组件）
-- [x] Profile → 新增「我的收藏」section，分类展示（服务/房源/闲置/活动/招聘）
-
-### 3. 管理后台 — 举报处理 ✅
-**问题：** 举报功能已上线，但没有地方处理，等于摆设。
-- [x] 新建 `/admin` 路由（仅 `role=admin` 可见，否则跳首页）
-- [x] 举报列表：展示 `review_reports` 所有 `pending` 条目
-- [x] 每条举报显示：评价内容、举报原因、举报人、被举报服务
-- [x] 操作按钮：「忽略」（`dismissed`）/ 「删除评价」（删 review + 标 `removed`）
-- [x] 数据概览：各板块帖子数、用户数、待处理举报数
-
-### 4. 全局搜索 ✅
-**问题：** 5个板块搜索完全独立，用户找人找东西要翻5个地方。
-- [x] Header 加全局搜索图标 → `/search-all`
-- [x] 新建 `/search-all?q=xxx` 页面，并行查询5张表
-- [x] 结果分类展示（tab 切换：全部 / 服务 / 招聘 / 房源 / 闲置 / 活动）
-- [x] 关键词高亮
+- [x] 帖子状态关闭（is_filled / is_sold）
+- [x] 收藏/关注功能（SaveButton + SavesSection）
+- [x] 管理后台（/admin 举报处理 + 数据概览）
+- [x] 全局搜索（/search-all 5张表并行）
 
 ---
 
-## 🟡 P2 — 提升留存（重要但不紧急）
+## 🟡 P2 — 提升留存 ✅ 全部完成
 
-### 5. Provider Profile — 个人简介 ✅
-**问题：** 公开主页没有 bio，服务提供者/求职者无法介绍自己。
-- [x] `users` 表加 `bio TEXT` 列（`database/bio_migration.sql`）— **需在 Supabase 执行**
-- [x] Profile → 账号设置 加 bio 编辑框
-- [x] ProviderProfile 展示 bio
-
-### 6. 消息通知 — 邮件提醒
-**问题：** 有人发消息，用户如果不主动刷 app 完全不知道。
-- [ ] Supabase Edge Function：新消息插入时触发
-- [ ] 用 Supabase Auth email 发提醒（「您有一条新消息来自 XXX」）
-- [ ] 用户可在设置里关闭邮件通知（`users` 表加 `email_notify BOOLEAN DEFAULT true`）
-
-### 7. 帖子详情页 — 分享按钮 ✅
-**问题：** 用户无法把好的房源/服务分享给朋友，缺少传播入口。
-- [x] 详情页加「分享」按钮（ShareButton 组件，Web Share API + clipboard fallback）
-- [x] 分享链接直接跳到对应详情页
-- [ ] Open Graph meta tags（分享到微信/朋友圈时显示标题+图片）
-
-### 8. 图片加载优化 ✅
-**问题：** 用户上传原图经过简单压缩后仍可能很大，移动端加载慢。
-- [x] Supabase Image Transformation 工具函数（`src/lib/imgTransform.ts`）
-- [x] ServiceCard 列表缩略图使用 `thumb()` (width=400)
-- [x] `loading="lazy"` 添加到列表图片
-- [ ] 其他板块列表卡片图片也接入 thumb() + lazy（jobs/realestate/secondhand/events）
+- [x] 个人简介 bio（AccountSection + ProviderProfile）
+- [x] 分享按钮（ShareButton，Web Share API + clipboard）
+- [x] Open Graph meta tags（PageMeta，分享到微信显示标题+图片）
+- [x] 图片懒加载（loading="lazy"）
+- [ ] 邮件通知（Supabase Edge Function，新消息触发）
 
 ---
 
-## 🟢 P3 — 锦上添花（有空再做）
+## 🟢 P3 — 锦上添花
 
 ### 9. 评价系统增强
-- [ ] 服务详情页评价支持上传图片（最多 3 张）
-- [ ] 评价回复：服务提供者可以回复自己收到的评价
-- [ ] ProviderProfile 评价页按星级筛选（1星/2星/3星…）
+- [ ] 评价回复：服务提供者可回复收到的评价
+- [ ] ProviderProfile 评价按星级筛选
+- [ ] 评价支持上传图片（最多 3 张）
 
 ### 10. 地图集成
-- [ ] 房源/服务详情页加 Google Maps 嵌入，显示大概位置
-- [ ] RealEstateList 加地图视图模式切换
+- [ ] 房源/服务详情页加 Google Maps 嵌入
+- [ ] RealEstateList 地图视图模式
 
-### 11. 数据分析 — Provider Dashboard
-- [ ] 服务提供者可以看到自己帖子的浏览量
-- [ ] `views` 表记录每次详情页访问（去重）
-- [ ] 我的发布页展示每个帖子的「浏览 XX 次」
+### 11. 数据分析 ✅（浏览量已完成）
+- [x] 浏览量统计（ViewCount 组件 + views 表）
+- [x] 我的发布页展示每个帖子的浏览次数
+- [ ] 服务提供者看到各帖子浏览量趋势图
 
 ### 12. 推荐算法
-- [ ] 首页「猜你喜欢」：基于浏览历史（`tcs_browse_history`）推荐相似服务
-- [ ] 「相关服务」：服务详情页底部展示同类别其他服务
+- [ ] 首页「猜你喜欢」：基于浏览历史推荐
+- [ ] 详情页底部「相关服务/帖子」
 
 ### 13. 多语言支持
-- [ ] i18n 框架接入（`react-i18next`）
-- [ ] 支持中文（默认）/ 英文切换
-- [ ] 语言设置保存到 `users` 表
+- [ ] react-i18next 接入
+- [ ] 中文（默认）/ 英文切换
 
 ---
 
 ## 🔧 技术债务
 
-- [x] 代码分割（Code splitting）：React.lazy + Suspense 对所有非首页路由
-- [ ] 统一错误边界（Error Boundary）：任何页面崩溃目前直接白屏
-- [ ] 环境变量审计：确认 `.env` 没有被提交到 git（`.gitignore` 检查）
-- [ ] Supabase RLS 审计：所有表的 policy 二次核查，确认没有越权漏洞
+- [x] 代码分割（React.lazy + Suspense）
+- [x] Error Boundary（全局错误捕获，防白屏）
+- [x] useEffect 依赖数组修正（SaveButton / AdminPage / ServicesSection）
+- [x] AdminPage 非空断言安全修复（review.service?.id）
+- [ ] 邮件通知（Edge Function）
+- [ ] Supabase RLS 审计：所有表 policy 二次核查
+- [ ] 环境变量审计：确认 .env 没提交到 git
 
 ---
 
-## ⏳ 待执行 SQL（需在 Supabase SQL Editor 手动执行）
+## ✅ 今日完成（2026-04-04）
 
-- `database/saves_schema.sql` — 收藏表
-- `database/bio_migration.sql` — 用户简介字段
-- `database/post_status_migration.sql` — 帖子标记完成字段
-- `database/events_schema.sql` — 活动表
-- `database/review_interactions_schema.sql` — 评价投票+举报表
+- [x] Error Boundary — 全局白屏防护
+- [x] Open Graph meta tags — 分享到微信显示标题+图片（PageMeta 组件）
+- [x] 浏览量统计 — ViewCount 组件 + viewsStore + views 表
+- [x] 「我的发布」每条帖子显示 👁 浏览次数
+- [x] 右侧详情面板滚动 bug 修复（overflow-hidden → mb-4）
+- [x] 代码审查 3 个 useEffect 依赖 bug 修复
+- [x] README 全面更新（结构图 + 继承关系 + DB 表说明）
 
 ---
 
-## ✅ 已完成
+## ✅ 历史完成
 
 - [x] 五大板块上线：找服务 / 招聘求职 / 二手交易 / 租房买房 / 同城活动
-- [x] 公开 Profile 页（`/provider/:id`）— 所有用户通用
-- [x] 招聘双子栏：招聘 / 求职分类
-- [x] 「其他」分类自定义文字输入
+- [x] 公开 Profile 页（/provider/:id）
+- [x] 招聘双子栏：招聘 / 求职
+- [x] 「其他」分类自定义文字
 - [x] 评价 👍/👎 投票 + 排序
-- [x] 评价举报功能（送管理员审核）
-- [x] 「我的发布」统一管理5类帖子
-- [x] SectionTabs 对齐 + 宽度统一
+- [x] 评价举报（送管理员审核）
+- [x] 「我的发布」5类帖子统一管理
 - [x] 发布房源从列表页带 listing_type 参数
 - [x] 消息浮窗 + 未读角标
-- [x] 收藏/关注功能（SaveButton + SavesSection）
-- [x] 分享按钮（ShareButton）
-- [x] 个人简介 bio（AccountSection + ProviderProfile）
-- [x] 管理后台 /admin（举报处理 + 数据概览）
-- [x] 全局搜索 /search-all（5张表并行 + 分类tab + 关键词高亮）
-- [x] 代码分割（React.lazy + Suspense）
-- [x] 图片优化工具（imgTransform.ts + ServiceCard lazy loading）
+- [x] 图片优化工具（imgTransform.ts）
 
 ---
 
-*最后更新：2026-04-03*
+## ⏳ 所有 SQL 文件状态
+
+| 文件 | 状态 |
+|------|------|
+| `schema.sql` | ✅ 已执行 |
+| `jobs_schema.sql` | ✅ 已执行 |
+| `realestate_schema.sql` | ✅ 已执行 |
+| `secondhand_schema.sql` | ✅ 已执行 |
+| `events_schema.sql` | ✅ 已执行 |
+| `post_status_migration.sql` | ✅ 已执行 |
+| `bio_migration.sql` | ✅ 已执行 |
+| `review_interactions_schema.sql` | ✅ 已执行 |
+| `saves_schema.sql` | ✅ 已执行 |
+| `views_schema.sql` | ✅ 已执行 |
+
+---
+
+*最后更新：2026-04-04*

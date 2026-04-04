@@ -58,7 +58,7 @@ export default function AdminPage() {
         setAllowed(true)
         loadAll()
       })
-  }, [user])
+  }, [user, navigate])
 
   async function loadAll() {
     setLoading(true)
@@ -200,7 +200,7 @@ export default function AdminPage() {
                       <div className="flex items-center gap-1.5 mb-1">
                         <Star size={12} className="text-yellow-400 fill-yellow-400" />
                         <span className="text-xs font-semibold text-gray-700">{r.review.rating} 星</span>
-                        {r.review.service && (
+                        {r.review.service?.id && (
                           <button onClick={() => navigate(`/service/${r.review!.service!.id}`)}
                             className="text-xs text-primary-600 underline ml-auto">
                             {r.review.service.title}

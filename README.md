@@ -1,6 +1,6 @@
-# Toronto Chinese Services (TCS)
+# Toronto Chinese Services (TCS) — 大多伦多华人服务平台
 
-多伦多华人一站式服务平台 — 用户可以搜索、比较、找到所需的华人服务商。
+多伦多华人一站式生活服务平台，涵盖本地服务、招聘求职、租房买房、二手交易和同城活动。
 
 **线上地址：** https://toronto-chinese-services.vercel.app
 
@@ -8,13 +8,15 @@
 
 ## Tech Stack
 
-- React 18 + TypeScript + Vite
-- Tailwind CSS + Framer Motion
-- React Router v6
-- Zustand（状态管理）
-- Supabase（PostgreSQL + Auth + Storage + Realtime）
-- Resend SMTP（邮件服务，域名 huarenq.com）
-- Vercel（部署，SPA 路由 via `vercel.json`）
+| 层 | 技术 |
+|----|------|
+| 前端框架 | React 18 + TypeScript + Vite |
+| 样式 | Tailwind CSS + Framer Motion |
+| 路由 | React Router v6 |
+| 状态管理 | Zustand |
+| 后端/数据库 | Supabase (PostgreSQL + Auth + Storage + Realtime) |
+| Meta tags | react-helmet-async |
+| 部署 | Vercel (SPA 路由 via `vercel.json`) |
 
 ---
 
@@ -34,220 +36,166 @@ VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
 
 ---
 
+## 功能模块
+
+| 模块 | 路由 | 说明 |
+|------|------|------|
+| 找服务 | `/` `/category/:id` `/service/:id` | 服务列表、分类浏览、详情 |
+| 招聘求职 | `/jobs` `/jobs/:id` `/jobs/post` | 招聘/求职双子栏 |
+| 租房买房 | `/realestate` `/realestate/:id` `/realestate/post` | 出租/出售/合租 |
+| 二手交易 | `/secondhand` `/secondhand/:id` `/secondhand/post` | 闲置转让 |
+| 同城活动 | `/events` `/events/:id` `/events/post` | 8种活动类型 |
+| 全局搜索 | `/search-all` | 5张表并行搜索 + 关键词高亮 |
+| 公开主页 | `/provider/:id` | 用户资料 + 全部发布 + bio |
+| 消息 | `/conversation/:id` | 买卖双方即时聊天 + 未读角标 |
+| 个人中心 | `/profile` | 账号/发布/收藏/消息/浏览/AI记录 |
+| 管理后台 | `/admin` | 举报处理 + 数据概览（需 role=admin） |
+
+---
+
 ## 项目结构
 
 ```
 src/
-├── App.tsx                        # 路由 + 全局浮动按钮（消息、AI客服）
+├── main.tsx                          # 入口：HelmetProvider → ErrorBoundary → App
+├── App.tsx                           # 路由 (React.lazy 分包) + 消息浮窗
+│
+├── components/
+│   ├── ErrorBoundary/                # 全局错误捕获，防白屏
+│   ├── PageMeta/                     # Open Graph / Twitter Card meta tags
+│   ├── SaveButton/                   # ♡ 收藏按钮（所有详情页）
+│   ├── ShareButton/                  # 分享/复制链接按钮
+│   ├── ViewCount/                    # 👁 浏览次数（session 去重）
+│   ├── Header/                       # 顶部导航（全局搜索入口）
+│   ├── SectionTabs/                  # 五大板块切换 tab
+│   ├── ServiceCard/                  # 服务卡片（列表用）
+│   ├── MembershipBadge/              # 会员等级徽章
+│   ├── AiChatWidget/                 # AI 客服浮窗
+│   ├── SearchBar/                    # 服务搜索框
+│   ├── HeroCarousel/                 # 首页轮播
+│   ├── InquiryModal/                 # 咨询弹窗
+│   └── LoadingScreen/                # 启动加载画面
+│
 ├── store/
-│   ├── appStore.ts                # 服务列表、搜索筛选、地理位置、评分
-│   ├── authStore.ts               # 当前登录用户
-│   └── jobStore.ts                # 职位列表、筛选（listing_type / 分类 / 地区）
+│   ├── authStore.ts                  # 当前登录用户
+│   ├── appStore.ts                   # 服务列表 + 搜索筛选
+│   ├── jobStore.ts                   # 职位列表 + 筛选
+│   ├── realestateStore.ts            # 房源列表 + 筛选
+│   ├── secondhandStore.ts            # 闲置列表 + 筛选
+│   ├── eventsStore.ts                # 活动列表 + 筛选
+│   ├── savesStore.ts                 # 收藏 Set（O(1) 查询 + 乐观更新）
+│   └── viewsStore.ts                 # 浏览量计数（session 去重）
+│
 ├── lib/
-│   ├── supabase.ts                # Supabase 客户端
-│   └── compressImage.ts           # 图片压缩工具
-├── data/categories.ts             # 服务分类定义
+│   ├── supabase.ts                   # Supabase 客户端
+│   ├── compressImage.ts              # 图片压缩工具
+│   └── imgTransform.ts              # Supabase 图片转换 URL 工具
+│
 ├── pages/
-│   ├── Home/                      # 首页
-│   ├── Category/                  # 分类列表
-│   ├── Search/                    # 搜索 + 筛选
+│   ├── Home/
+│   ├── Category/
+│   ├── Search/                       # 服务搜索
+│   ├── GlobalSearch/                 # 全局搜索（5张表）
+│   ├── Admin/                        # 管理后台
 │   ├── ServiceDetail/
-│   │   ├── ServiceDetail.tsx      # 服务详情
-│   │   └── ReviewsSection.tsx     # 评价区（查看 + 提交 + 编辑）
-│   ├── ProviderProfile/
-│   │   └── ProviderProfile.tsx    # 用户公开主页（资料 + 服务列表 + 职位列表 + 全部评价）
+│   │   ├── ServiceDetail.tsx
+│   │   └── ReviewsSection.tsx        # 评价区（👍👎 投票 + 举报）
 │   ├── Jobs/
-│   │   ├── types.ts               # 职位类型定义（ListingType, Job, getCategoryLabel…）
-│   │   ├── JobList.tsx            # 职位列表（桌面 Indeed 分栏 / 移动端单列）
-│   │   ├── JobDetail.tsx          # 职位详情页（移动端独立路由）
-│   │   └── PostJob.tsx            # 发布职位（招聘 / 求职 切换）
-│   ├── PostService/               # 发布服务
+│   │   ├── types.ts
+│   │   ├── JobList.tsx
+│   │   ├── JobDetail.tsx
+│   │   └── PostJob.tsx
+│   ├── RealEstate/
+│   │   ├── types.ts
+│   │   ├── RealEstateList.tsx
+│   │   ├── RealEstateDetail.tsx
+│   │   └── PostProperty.tsx
+│   ├── Secondhand/
+│   │   ├── types.ts
+│   │   ├── SecondhandList.tsx
+│   │   ├── SecondhandDetail.tsx
+│   │   └── PostListing.tsx
+│   ├── Events/
+│   │   ├── types.ts
+│   │   ├── EventList.tsx
+│   │   ├── EventDetail.tsx
+│   │   └── PostEvent.tsx
 │   ├── Profile/
 │   │   ├── Profile.tsx
 │   │   ├── types.ts
 │   │   └── sections/
-│   │       ├── AccountSection.tsx
-│   │       ├── ServicesSection.tsx
+│   │       ├── AccountSection.tsx    # 账号设置 + bio 编辑
+│   │       ├── ServicesSection.tsx   # 我的发布（5类）+ 浏览量
+│   │       ├── SavesSection.tsx      # 我的收藏（分类 tab）
 │   │       ├── MessagesSection.tsx
 │   │       ├── BrowseSection.tsx
-│   │       ├── VerificationSection.tsx  # 联系方式 + 手机验证 + 社交媒体
-│   │       └── MembershipSection.tsx    # 会员等级展示 + 升级对比
-│   ├── Conversation/              # 聊天对话页
-│   ├── Auth/
-│   │   ├── Login.tsx
-│   │   ├── Register.tsx
-│   │   ├── ForgotPassword.tsx
-│   │   └── ResetPassword.tsx      # 邮件链接重置密码
-│   └── AiChatWidget/              # AI 客服浮窗
-├── components/
-│   ├── MembershipBadge/           # L1/L2/L3 会员徽章组件
-│   ├── SectionTabs/               # 首页横向板块切换 Tab
-│   ├── ServiceCard/               # 服务卡片（图片优先设计）
-│   └── Header/                    # 顶部导航（含浏览服务下拉菜单）
-└── types/index.ts                 # 全局类型（Service, Provider 等）
+│   │       ├── ChatSection.tsx
+│   │       ├── VerificationSection.tsx
+│   │       └── MembershipSection.tsx
+│   ├── ProviderProfile/
+│   │   └── ProviderProfile.tsx       # 公开主页（bio + 全部发布）
+│   ├── Conversation/
+│   │   └── ConversationPage.tsx
+│   └── Auth/
+│       ├── Login.tsx
+│       ├── Register.tsx
+│       ├── ForgotPassword.tsx
+│       └── ResetPassword.tsx
+│
+└── data/
+    └── categories.ts
 ```
 
 ---
 
-## 路由
+## 继承关系（单箭头）
 
-| 路径 | 页面 |
-|------|------|
-| `/` | 首页 |
-| `/category/:id` | 分类服务列表 |
-| `/search` | 搜索结果 |
-| `/service/:id` | 服务详情 |
-| `/provider/:id` | 商家主页 |
-| `/post` | 发布服务 |
-| `/profile` | 个人中心 |
-| `/conversation/:id` | 消息对话 |
-| `/jobs` | 招聘求职列表 |
-| `/jobs/post` | 发布招聘 / 求职帖 |
-| `/jobs/:id` | 职位详情（移动端） |
-| `/login` | 登录 |
-| `/register` | 注册 |
-| `/forgot-password` | 忘记密码 |
-| `/reset-password` | 重置密码（邮件链接跳转） |
+```
+main.tsx
+  → HelmetProvider       (react-helmet-async，提供 OG meta 上下文)
+    → ErrorBoundary      (全局错误捕获，防白屏)
+      → BrowserRouter
+        → App            (路由 + 消息浮窗)
+          → 各页面       (React.lazy 按需加载)
+            → PageMeta        → <head> OG tags
+            → SaveButton      → savesStore → supabase.saves
+            → ShareButton     → Web Share API / clipboard
+            → ViewCount       → viewsStore → supabase.views
+            → ReviewsSection  → supabase.reviews / review_votes / review_reports
+```
 
 ---
 
-## 功能模块
+## 数据库表（全部启用 RLS）
 
-### 服务浏览
-- 首页展示最新服务卡片，支持分类筛选和搜索
-- 服务详情页：图片轮播（移动端）/ 动态图片宫格（桌面端）
-- 真实评分（来自 reviews 表），无评价时显示"暂无评价"
-
-### 发布服务
-- 6 大分类 + 关键词搜索（~80 个内置服务类型 + 数据库众包扩展）
-- 最多上传 3 张图片（压缩 + Storage 上传）
-- 联系方式自动从 Profile 预填
-
-### 即时通讯
-- 发消息：客户在服务详情页点击「发消息」自动创建/复用对话
-- 乐观更新 + 实时消息推送（Supabase Realtime）
-- 全局消息红点（路由切换时刷新，防 Realtime 丢包）
-
-### 评价系统
-- Google-style 星级评价（1-5 星 + 文字）
-- 每用户每服务只能评价一次，可编辑自己的评价
-- 商家主页汇总展示所有评价及平均分
-
-### 用户 & 商家
-- 注册 / 登录 / 忘记密码 / 重置密码
-- 个人中心：账号、我的服务（可编辑/上下架/删除）、消息、浏览记录
-- 联系方式与资质验证：手机 OTP、社交媒体链接（微信、WhatsApp、小红书等）
-- 商家公开主页（`/provider/:id`）：资料 + 服务列表 + 全部评价
-
-### 会员制度
-- L1（绿色）/ L2 黄金（金色）/ L3 至尊（黑金）三级会员徽章
-- 徽章显示在个人中心侧边栏、商家主页名字旁
-- Profile 内"会员等级"板块展示当前权益 + 悬停查看升级对比
-- 会员等级存储于 `users.membership_level`，管理员可直接更新 SQL
-
-### 招聘求职（Jobs 模块）
-- 双模式发布：**招聘**（雇主找人）/ **求职**（个人发布技能），顶部切换
-- 桌面端 Indeed 风格分栏：左侧帖子列表 + 右侧详情面板，宽度与首页搜索栏对齐
-- 移动端：独立详情页 `/jobs/:id`
-- 多选工作地区（GTA 各区，TEXT[] 存储）
-- 职位类别：9 大类，选择"其他"时可自由填写自定义类别（存入 `category_other`）
-- 薪资类型：时薪 / 日薪 / 月薪 / 面议，支持最低-最高区间
-- 列表页多维度筛选：关键词、职位类别、工作性质、地区
-- 发布者头像 / 名字可点击，直接进入其公开主页
-- Schema：`database/jobs_schema.sql`，独立于主 schema，可单独运行
-
-### 用户公开主页（Universal Profile）
-- 路由 `/provider/:id` 对**所有用户**开放，不限商家角色
-- 展示：个人资料 + 验证状态 + 社交链接 + 服务列表 + **职位列表（招聘/求职 Tab）** + 收到的评价
-- 从职位帖、服务帖点击发布者均可进入
-- 类似小红书「博主主页」体验
-
-### AI 助手
-- 全局悬浮 AI 对话窗口（右下角），支持中文服务咨询
-
-### 首页板块导航
-- 搜索栏下方横向 Tab：找服务（已上线）/ 招聘求职 / 二手交易 / 租房买房 / 同城活动
-- 未上线板块显示"即将上线"标识，点击弹出提示 toast
-
----
-
-## 数据库
-
-Schema 在 `database/schema.sql`，可安全重复运行（所有语句带 `IF NOT EXISTS`）。
-
-**数据表清单：**
-
-| 表名 | 用途 |
-|------|------|
-| `users` | 用户资料（姓名、电话、微信、头像、社交媒体、验证状态） |
-| `categories` | 服务分类 |
-| `services` | 服务帖子 |
-| `service_types` | 众包服务名称库 |
-| `conversations` | 对话（含未读计数） |
+| 表 | 说明 |
+|----|------|
+| `users` | 用户（bio, membership_level, social_links, role） |
+| `services` | 服务发布 |
+| `jobs` | 招聘/求职（is_filled） |
+| `properties` | 房源（is_filled） |
+| `secondhand` | 闲置（is_sold） |
+| `events` | 活动 |
+| `reviews` | 评价（helpful_count / unhelpful_count） |
+| `review_votes` | 评价👍👎（每人每条唯一） |
+| `review_reports` | 举报（pending/dismissed/removed） |
+| `saves` | 收藏（多态：target_type + target_id） |
+| `views` | 浏览量（多态，支持匿名） |
+| `conversations` | 聊天会话 |
 | `messages` | 聊天消息 |
-| `reviews` | 服务评价（星级 + 文字） |
-| `jobs` | 职位帖子（招聘 + 求职，含 RLS） |
-
-**Jobs 模块迁移 SQL（首次运行 `database/jobs_schema.sql` 即可，迁移段已内含）：**
-
-```sql
--- 如果 jobs 表已存在（旧版），手动补跑以下三条：
-ALTER TABLE jobs ALTER COLUMN area TYPE TEXT[]
-  USING CASE WHEN area IS NULL THEN NULL ELSE ARRAY[area::TEXT] END;
-ALTER TABLE jobs ADD COLUMN IF NOT EXISTS listing_type VARCHAR(10) NOT NULL DEFAULT 'hiring';
-ALTER TABLE jobs DROP CONSTRAINT IF EXISTS jobs_listing_type_check;
-ALTER TABLE jobs ADD CONSTRAINT jobs_listing_type_check CHECK (listing_type IN ('hiring', 'seeking'));
-ALTER TABLE jobs ADD COLUMN IF NOT EXISTS category_other VARCHAR(100);
-```
-
-**users 表首次部署需额外运行的迁移 SQL：**
-
-```sql
-ALTER TABLE users ADD COLUMN IF NOT EXISTS phone_verified BOOLEAN DEFAULT false;
-ALTER TABLE users ADD COLUMN IF NOT EXISTS social_links JSONB DEFAULT '{}';
-ALTER TABLE users ADD COLUMN IF NOT EXISTS membership_level TEXT DEFAULT 'L1'
-  CHECK (membership_level IN ('L1', 'L2', 'L3'));
-
-UPDATE public.users u
-SET is_email_verified = true
-FROM auth.users a
-WHERE u.id = a.id
-  AND a.email_confirmed_at IS NOT NULL
-  AND u.is_email_verified = false;
-```
-
-**手动升级会员等级：**
-```sql
-UPDATE public.users SET membership_level = 'L2' WHERE id = '用户id';
-```
-
-**关键设计决策：**
-- Jobs 模块 schema 独立在 `database/jobs_schema.sql`，不影响主 schema
-- `listing_type` 区分招聘（hiring）和求职（seeking），默认 'hiring'，旧数据兼容
-- `category_other` 仅在 category='other' 时写入，其余为 NULL，展示时用 `getCategoryLabel()` 统一处理
-- 公开主页路由 `/provider/:id` 不限用户角色，所有人均可访问
-- Supabase JS 懒执行：所有查询必须 `.then()` 或 `await` 才会发出请求
-- 新字段单独查询，避免未迁移时整体失败（split-fetch 模式）
-- 密码重置在模块级别读取 `window.location.hash`（Supabase JS 在组件挂载前清除 hash）
-- 消息未读数用 `useLocation` 监听路由变化，而非完全依赖 Realtime
 
 ---
 
-## 部署（Vercel）
+## 设置管理员
 
-```bash
-git add .
-git commit -m "描述改了什么"
-git push
+在 Supabase SQL Editor 执行：
+
+```sql
+UPDATE public.users SET role = 'admin' WHERE email = '你的邮箱';
 ```
 
-推送后 Vercel 自动部署，约 20-60 秒上线。`vercel.json` 已配置 SPA catch-all rewrite。
+访问 `/admin` 进入管理后台。
 
 ---
 
-## 邮件服务（Resend）
-
-- SMTP Host: `smtp.resend.com:587`
-- 发件域名: `huarenq.com`（已在 Porkbun 配置 DNS）
-- Sender: `noreply@huarenq.com`
-- DNS 记录: DKIM (TXT) + SPF (TXT) + MX + DMARC
+*最后更新：2026-04-04*
