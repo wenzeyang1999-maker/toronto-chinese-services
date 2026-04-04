@@ -4,6 +4,7 @@
 // Supports optimistic toggle (UI updates instantly before DB confirms).
 import { create } from 'zustand'
 import { supabase } from '../lib/supabase'
+import { notifyNewFollower } from '../lib/notify'
 
 interface FollowsState {
   following:  Set<string>   // provider IDs the current user follows
@@ -52,6 +53,20 @@ export const useFollowsStore = create<FollowsState>((set, get) => ({
     } else {
       await supabase.from('follows')
         .insert({ follower_id: userId, provider_id: providerId })
+
+      // Notify provider — fetch both users' info in parallel
+      const [followerRes, providerRes] = await Promise.all([
+        supabase.from('users').select('name').eq('id', userId).single(),
+        supabase.from('users').select('email, name').eq('id', providerId).single(),
+      ])
+      if (providerRes.data?.email) {
+        notifyNewFollower({
+          recipientEmail: providerRes.data.email,
+          recipientName:  providerRes.data.name ?? '用户',
+          followerName:   followerRes.data?.name ?? '用户',
+          providerId,
+        })
+      }
     }
   },
 

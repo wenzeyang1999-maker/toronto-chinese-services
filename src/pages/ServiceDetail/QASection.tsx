@@ -9,6 +9,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { HelpCircle, Send, ChevronDown, ChevronUp, Pencil, X, Check, CornerDownRight, Trash2 } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { useAuthStore } from '../../store/authStore'
+import { notifyNewQuestion } from '../../lib/notify'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -123,6 +124,24 @@ export default function QASection({ serviceId, providerId }: Props) {
     setAsking(false)
     if (error) { setAskError('提交失败，请稍后再试'); return }
     setAskText(''); load()
+
+    // Notify provider — fire and forget
+    const askerName = user.user_metadata?.name ?? user.email ?? '用户'
+    Promise.all([
+      supabase.from('users').select('email, name').eq('id', providerId).single(),
+      supabase.from('services').select('title').eq('id', serviceId).single(),
+    ]).then(([provRes, svcRes]) => {
+      if (provRes.data?.email) {
+        notifyNewQuestion({
+          recipientEmail: provRes.data.email,
+          recipientName:  provRes.data.name ?? '用户',
+          askerName,
+          serviceTitle:   svcRes.data?.title ?? '您的服务',
+          serviceId,
+          question:       askText.trim(),
+        })
+      }
+    })
   }
 
   // ── Delete question ───────────────────────────────────────────────────────

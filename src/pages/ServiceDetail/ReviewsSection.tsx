@@ -10,6 +10,7 @@ import { Star, Send, Pencil, X, Check, ThumbsUp, ThumbsDown, Flag, MessageCircle
 import { motion, AnimatePresence } from 'framer-motion'
 import { supabase } from '../../lib/supabase'
 import { useAuthStore } from '../../store/authStore'
+import { notifyNewReview } from '../../lib/notify'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -172,6 +173,24 @@ export default function ReviewsSection({ serviceId, providerId }: Props) {
       setSubmitError(error.code === '23505' ? '您已经评价过这个服务了' : '提交失败，请稍后再试')
     } else {
       setMyRating(0); setComment(''); load()
+      // Notify provider — fire and forget
+      const reviewerName = user.user_metadata?.name ?? user.email ?? '用户'
+      Promise.all([
+        supabase.from('users').select('email, name').eq('id', providerId).single(),
+        supabase.from('services').select('title').eq('id', serviceId).single(),
+      ]).then(([provRes, svcRes]) => {
+        if (provRes.data?.email) {
+          notifyNewReview({
+            recipientEmail: provRes.data.email,
+            recipientName:  provRes.data.name ?? '用户',
+            reviewerName,
+            serviceTitle:   svcRes.data?.title ?? '您的服务',
+            serviceId,
+            rating:         String(myRating),
+            comment:        comment.trim(),
+          })
+        }
+      })
     }
   }
 

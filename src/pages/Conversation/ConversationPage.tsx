@@ -7,6 +7,7 @@ import { motion } from 'framer-motion'
 import { ChevronLeft, Send, Phone, MessageCircle, Copy } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { useAuthStore } from '../../store/authStore'
+import { notifyNewMessage } from '../../lib/notify'
 
 interface Message {
   id: string
@@ -154,6 +155,20 @@ export default function ConversationPage() {
         last_message_at: new Date().toISOString(),
         [unreadCol]: currentCount + 1,
       }).eq('id', id)
+
+      // Fire-and-forget email notification to the other party
+      const recipientId = isClient ? conv.provider_id : conv.client_id
+      supabase.from('users').select('email, name').eq('id', recipientId).single()
+        .then(({ data }) => {
+          if (!data?.email) return
+          notifyNewMessage({
+            recipientEmail: data.email,
+            recipientName:  data.name ?? '用户',
+            senderName:     user.user_metadata?.name ?? user.email ?? '用户',
+            preview:        text,
+            conversationId: id!,
+          })
+        })
     } else {
       // Rollback optimistic message on error
       setMessages(prev => prev.filter(m => m.id !== tempId))
