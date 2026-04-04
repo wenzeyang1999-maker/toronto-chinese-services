@@ -40,6 +40,8 @@ import PostProperty from './pages/RealEstate/PostProperty'
 import EventList from './pages/Events/EventList'
 import EventDetail from './pages/Events/EventDetail'
 import PostEvent from './pages/Events/PostEvent'
+import AdminPage from './pages/Admin/AdminPage'
+import GlobalSearch from './pages/GlobalSearch/GlobalSearch'
 import AiChatWidget from './components/AiChatWidget/AiChatWidget'
 import { useAppStore } from './store/appStore'
 import { useAuthStore } from './store/authStore'
@@ -104,6 +106,8 @@ export default function App() {
           <Route path="/events" element={<EventList />} />
           <Route path="/events/post" element={<PostEvent />} />
           <Route path="/events/:id" element={<EventDetail />} />
+          <Route path="/search-all" element={<GlobalSearch />} />
+          <Route path="/admin" element={<AdminPage />} />
         </Routes>
       )}
 

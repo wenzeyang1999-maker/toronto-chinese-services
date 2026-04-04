@@ -4,7 +4,7 @@
 // Mobile:  logo | ☰ (category grid + 成为服务商) | 注册 | 登录
 import { useState, useRef, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { ChevronDown, Menu, X, UserCircle, Grid2x2 } from 'lucide-react'
+import { ChevronDown, Menu, X, UserCircle, Grid2x2, Search } from 'lucide-react'
 import { useAuthStore } from '../../store/authStore'
 import { CATEGORIES } from '../../data/categories'
 
@@ -99,6 +99,15 @@ export default function Header({ sticky = true }: HeaderProps) {
             className="hidden md:block text-sm text-gray-600 px-3 py-2 rounded-lg hover:bg-gray-100 transition-colors"
           >
             成为服务商
+          </button>
+
+          {/* Global search */}
+          <button
+            onClick={() => navigate('/search-all')}
+            className="text-gray-500 p-2 rounded-lg hover:bg-gray-100 transition-colors"
+            aria-label="全局搜索"
+          >
+            <Search size={18} />
           </button>
 
           {/* Mobile hamburger */}
