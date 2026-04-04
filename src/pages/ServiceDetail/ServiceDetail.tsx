@@ -8,6 +8,7 @@ import { supabase } from '../../lib/supabase'
 import { getCategoryById } from '../../data/categories'
 import type { BrowseEntry } from '../Profile/types'
 import ReviewsSection from './ReviewsSection'
+import RelatedServices from '../../components/RelatedServices/RelatedServices'
 import SaveButton from '../../components/SaveButton/SaveButton'
 import ShareButton from '../../components/ShareButton/ShareButton'
 import PageMeta from '../../components/PageMeta/PageMeta'
@@ -339,6 +340,9 @@ export default function ServiceDetail() {
             )}
           </div>
         </motion.div>
+
+        {/* Related services */}
+        <RelatedServices currentId={service.id} categoryId={service.category} />
 
         {/* Reviews */}
         <ReviewsSection serviceId={service.id} providerId={service.provider.id ?? ''} />

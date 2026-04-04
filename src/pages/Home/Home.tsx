@@ -10,6 +10,7 @@ import SectionTabs, { type SectionTab } from '../../components/SectionTabs/Secti
 import { useAppStore } from '../../store/appStore'
 import { useGeolocation } from '../../hooks/useGeolocation'
 import { ChevronRight, MapPin, Sparkles } from 'lucide-react'
+import RecentCategories from '../../components/RecentCategories/RecentCategories'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 
 export default function Home() {
@@ -103,6 +104,9 @@ export default function Home() {
           <h3 className="text-sm font-semibold text-gray-700 mb-3">选择服务类型</h3>
           <CategoryButtons />
         </motion.section>
+
+        {/* Recently browsed categories */}
+        <RecentCategories />
 
         {/* Recent / nearby services */}
         <motion.section
