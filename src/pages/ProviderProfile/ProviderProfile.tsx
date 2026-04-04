@@ -76,6 +76,7 @@ export default function ProviderProfile() {
   const [provider,        setProvider]       = useState<ProviderUser | null>(null)
   const [services,        setServices]       = useState<ServiceRow[]>([])
   const [providerReviews, setProviderReviews] = useState<ProviderReview[]>([])
+  const [reviewStarFilter, setReviewStarFilter] = useState<number>(0) // 0 = all
   const [jobs,            setJobs]           = useState<Job[]>([])
   const [jobTab,          setJobTab]         = useState<'hiring' | 'seeking'>('hiring')
   const [properties,      setProperties]     = useState<Property[]>([])
@@ -698,14 +699,38 @@ export default function ProviderProfile() {
 
         {/* ── All Reviews ──────────────────────────────────────────────────── */}
         <div>
-          <h2 className="text-sm font-semibold text-gray-500 mb-3 px-1">
-            收到的评价（{providerReviews.length}）
-            {providerReviews.length > 0 && (
-              <span className="ml-2 text-yellow-500 font-bold">
-                {'★ ' + (providerReviews.reduce((s, r) => s + r.rating, 0) / providerReviews.length).toFixed(1)}
-              </span>
-            )}
-          </h2>
+          <div className="flex items-center justify-between mb-3 px-1">
+            <h2 className="text-sm font-semibold text-gray-500">
+              收到的评价（{providerReviews.length}）
+              {providerReviews.length > 0 && (
+                <span className="ml-2 text-yellow-500 font-bold">
+                  {'★ ' + (providerReviews.reduce((s, r) => s + r.rating, 0) / providerReviews.length).toFixed(1)}
+                </span>
+              )}
+            </h2>
+          </div>
+
+          {/* Star filter tabs */}
+          {providerReviews.length > 0 && (
+            <div className="flex gap-1.5 mb-3 flex-wrap">
+              {[0, 5, 4, 3, 2, 1].map(star => {
+                const count = star === 0
+                  ? providerReviews.length
+                  : providerReviews.filter(r => r.rating === star).length
+                if (star !== 0 && count === 0) return null
+                return (
+                  <button key={star} onClick={() => setReviewStarFilter(star)}
+                    className={`flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold transition-all ${
+                      reviewStarFilter === star
+                        ? 'bg-yellow-400 text-white shadow-sm'
+                        : 'bg-white border border-gray-200 text-gray-600 hover:border-yellow-300'
+                    }`}>
+                    {star === 0 ? `全部 (${count})` : `${'★'.repeat(star)} (${count})`}
+                  </button>
+                )
+              })}
+            </div>
+          )}
 
           {providerReviews.length === 0 ? (
             <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-8 text-center text-gray-400 text-sm">
@@ -714,7 +739,9 @@ export default function ProviderProfile() {
           ) : (
             <div className="bg-white rounded-3xl border border-gray-100 shadow-sm divide-y divide-gray-50">
               <AnimatePresence>
-                {providerReviews.map((r, i) => (
+                {providerReviews
+                  .filter(r => reviewStarFilter === 0 || r.rating === reviewStarFilter)
+                  .map((r, i) => (
                   <motion.div key={r.id}
                     initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: i * 0.04 }}
