@@ -127,6 +127,25 @@ export default function ConversationPage() {
       }
       const isClient = conv.client_id === user.id
       const unreadCol = isClient ? 'provider_unread' : 'client_unread'
+
+      // If the provider just replied, update their avg_reply_hours.
+      // Find the earliest client message in this conversation and compute elapsed hours.
+      if (!isClient) {
+        const firstClientMsg = messages.find(m => m.sender_id === conv.client_id)
+        if (firstClientMsg) {
+          const elapsedHours =
+            (Date.now() - new Date(firstClientMsg.created_at).getTime()) / 3_600_000
+          // Rolling average: fetch current value and blend (weight 0.3 new, 0.7 old)
+          supabase.from('users').select('avg_reply_hours').eq('id', user.id).single()
+            .then(({ data }) => {
+              const prev = data?.avg_reply_hours
+              const next = prev != null
+                ? Math.round((prev * 0.7 + elapsedHours * 0.3) * 10) / 10
+                : Math.round(elapsedHours * 10) / 10
+              supabase.from('users').update({ avg_reply_hours: next }).eq('id', user.id).then()
+            })
+        }
+      }
       const { data: cur } = await supabase
         .from('conversations').select(unreadCol).eq('id', id).single()
       const currentCount = (cur as Record<string, number> | null)?.[unreadCol] ?? 0

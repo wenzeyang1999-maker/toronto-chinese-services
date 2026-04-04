@@ -9,6 +9,7 @@ import { getCategoryById } from '../../data/categories'
 import type { BrowseEntry } from '../Profile/types'
 import ReviewsSection from './ReviewsSection'
 import RelatedServices from '../../components/RelatedServices/RelatedServices'
+import ReplyTimeBadge from '../../components/ReplyTimeBadge/ReplyTimeBadge'
 import SaveButton from '../../components/SaveButton/SaveButton'
 import ShareButton from '../../components/ShareButton/ShareButton'
 import PageMeta from '../../components/PageMeta/PageMeta'
@@ -43,10 +44,11 @@ export default function ServiceDetail() {
   const service = services.find((s) => s.id === id)
 
   // Provider extra info — fetched separately, not in global store
-  const [socialLinks,   setSocialLinks]   = useState<Record<string, string>>({})
-  const [emailVerified, setEmailVerified] = useState(false)
-  const [phoneVerified, setPhoneVerified] = useState(false)
-  const [providerEmail, setProviderEmail] = useState<string | null>(null)
+  const [socialLinks,    setSocialLinks]    = useState<Record<string, string>>({})
+  const [emailVerified,  setEmailVerified]  = useState(false)
+  const [phoneVerified,  setPhoneVerified]  = useState(false)
+  const [providerEmail,  setProviderEmail]  = useState<string | null>(null)
+  const [avgReplyHours,  setAvgReplyHours]  = useState<number | null>(null)
 
   useEffect(() => {
     if (!service?.provider.id) return
@@ -72,6 +74,15 @@ export default function ServiceDetail() {
         if (error) return // columns may not exist yet — silently skip
         if (data?.social_links)   setSocialLinks(data.social_links as Record<string, string>)
         if (data?.phone_verified) setPhoneVerified(true)
+      })
+
+    supabase
+      .from('users')
+      .select('avg_reply_hours')
+      .eq('id', service.provider.id)
+      .single()
+      .then(({ data }) => {
+        if (data?.avg_reply_hours != null) setAvgReplyHours(data.avg_reply_hours)
       })
   }, [service?.provider.id])
 
@@ -253,6 +264,12 @@ export default function ServiceDetail() {
               <div className="flex items-center gap-1 mt-1 text-xs text-gray-400">
                 <Clock size={11} />
                 <span>加入于 {service.provider.joinedAt ? service.provider.joinedAt.slice(0, 7) : '未知'}</span>
+              </div>
+              <div className="mt-1.5">
+                <ReplyTimeBadge
+                  avgReplyHours={avgReplyHours}
+                  joinedAt={service.provider.joinedAt || service.createdAt}
+                />
               </div>
               <div className="flex items-center gap-2 mt-2 flex-wrap">
                 <span className={`flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-medium

@@ -10,6 +10,7 @@ import { useAuthStore } from '../../store/authStore'
 import { getCategoryById } from '../../data/categories'
 import MembershipBadge, { type MemberLevel } from '../../components/MembershipBadge/MembershipBadge'
 import FollowButton from '../../components/FollowButton/FollowButton'
+import ReplyTimeBadge from '../../components/ReplyTimeBadge/ReplyTimeBadge'
 import { JOB_CATEGORY_CONFIG, JOB_TYPE_CONFIG, SALARY_TYPE_LABEL, getCategoryLabel } from '../Jobs/types'
 import type { Job } from '../Jobs/types'
 import { LISTING_TYPE_CONFIG as RE_LISTING_TYPE_CONFIG, PROPERTY_TYPE_CONFIG, getPriceLabel as getPropertyPriceLabel } from '../RealEstate/types'
@@ -44,6 +45,7 @@ interface ProviderUser {
   created_at: string
   membership_level: MemberLevel
   business_verified: boolean
+  avg_reply_hours: number | null
 }
 
 interface ProviderReview {
@@ -102,6 +104,7 @@ export default function ProviderProfile() {
           social_links: {},
           membership_level: 'L1',
           business_verified: false,
+          avg_reply_hours: null,
         })
         setLoading(false)
       })
@@ -109,7 +112,7 @@ export default function ProviderProfile() {
     // Fetch newer columns separately — silently skip if migration not yet run
     supabase
       .from('users')
-      .select('phone_verified, social_links, membership_level, business_verified')
+      .select('phone_verified, social_links, membership_level, business_verified, avg_reply_hours')
       .eq('id', id)
       .single()
       .then(({ data, error }) => {
@@ -120,6 +123,7 @@ export default function ProviderProfile() {
           social_links:     (data.social_links as Record<string, string>) ?? {},
           membership_level: (data.membership_level as MemberLevel) ?? 'L1',
           business_verified: data.business_verified ?? false,
+          avg_reply_hours:   data.avg_reply_hours ?? null,
         } : prev)
       })
 
@@ -292,6 +296,12 @@ export default function ProviderProfile() {
               <div className="flex items-center gap-1.5 mt-1 text-xs text-gray-400">
                 <Clock size={12} />
                 <span>加入于 {joinedMonth}</span>
+              </div>
+              <div className="mt-1.5">
+                <ReplyTimeBadge
+                  avgReplyHours={provider.avg_reply_hours}
+                  joinedAt={provider.created_at}
+                />
               </div>
 
               {/* Verification badges */}
