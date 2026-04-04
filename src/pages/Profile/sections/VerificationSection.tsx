@@ -186,6 +186,10 @@ export default function VerificationSection({ user }: Props) {
       const { error } = await supabase.storage.from('avatars').upload(path, file, { upsert: true })
       if (error) throw error
       const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(path)
+      await supabase.from('users').update({
+        verification_doc_url: publicUrl,
+        verification_status:  'pending',
+      }).eq('id', user.id)
       setDocUrl(publicUrl)
       setUploadMsg({ ok: true, text: '上传成功，我们将在 1-3 个工作日内完成审核' })
     } catch (err) {

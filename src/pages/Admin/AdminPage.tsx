@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { ShieldCheck, Flag, CheckCircle2, Trash2, ChevronLeft, Users, Briefcase, Home, ShoppingBag, Calendar, Wrench, Star } from 'lucide-react'
+import { ShieldCheck, Flag, CheckCircle2, Trash2, ChevronLeft, Users, Briefcase, Home, ShoppingBag, Calendar, Wrench, Star, BadgeCheck, X, ExternalLink } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { useAuthStore } from '../../store/authStore'
 
@@ -29,6 +29,16 @@ interface Stats {
   secondhand: number
   events: number
   pending_reports: number
+  pending_verifications: number
+}
+
+interface VerificationRow {
+  id: string
+  name: string
+  email: string
+  verification_doc_url: string | null
+  verification_status: string
+  created_at: string
 }
 
 const REASON_LABEL: Record<string, string> = {
@@ -43,12 +53,13 @@ export default function AdminPage() {
   const user     = useAuthStore((s) => s.user)
   const navigate = useNavigate()
 
-  const [allowed,  setAllowed]  = useState<boolean | null>(null)
-  const [reports,  setReports]  = useState<ReportRow[]>([])
-  const [stats,    setStats]    = useState<Stats | null>(null)
-  const [tab,      setTab]      = useState<'reports' | 'overview'>('reports')
-  const [loading,  setLoading]  = useState(true)
-  const [acting,   setActing]   = useState<string | null>(null)
+  const [allowed,        setAllowed]        = useState<boolean | null>(null)
+  const [reports,        setReports]        = useState<ReportRow[]>([])
+  const [verifications,  setVerifications]  = useState<VerificationRow[]>([])
+  const [stats,          setStats]          = useState<Stats | null>(null)
+  const [tab,            setTab]            = useState<'reports' | 'verification' | 'overview'>('reports')
+  const [loading,        setLoading]        = useState(true)
+  const [acting,         setActing]         = useState<string | null>(null)
 
   useEffect(() => {
     if (!user) { navigate('/login'); return }
@@ -62,8 +73,17 @@ export default function AdminPage() {
 
   async function loadAll() {
     setLoading(true)
-    await Promise.all([loadReports(), loadStats()])
+    await Promise.all([loadReports(), loadVerifications(), loadStats()])
     setLoading(false)
+  }
+
+  async function loadVerifications() {
+    const { data } = await supabase
+      .from('users')
+      .select('id, name, email, verification_doc_url, verification_status, created_at')
+      .eq('verification_status', 'pending')
+      .order('created_at', { ascending: false })
+    if (data) setVerifications(data as VerificationRow[])
   }
 
   async function loadReports() {
@@ -86,7 +106,7 @@ export default function AdminPage() {
   }
 
   async function loadStats() {
-    const [users, services, jobs, properties, secondhand, events, reports] = await Promise.all([
+    const [users, services, jobs, properties, secondhand, events, reports, verifs] = await Promise.all([
       supabase.from('users').select('id', { count: 'exact', head: true }),
       supabase.from('services').select('id', { count: 'exact', head: true }),
       supabase.from('jobs').select('id', { count: 'exact', head: true }),
@@ -94,15 +114,17 @@ export default function AdminPage() {
       supabase.from('secondhand').select('id', { count: 'exact', head: true }),
       supabase.from('events').select('id', { count: 'exact', head: true }),
       supabase.from('review_reports').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
+      supabase.from('users').select('id', { count: 'exact', head: true }).eq('verification_status', 'pending'),
     ])
     setStats({
-      users:           users.count ?? 0,
-      services:        services.count ?? 0,
-      jobs:            jobs.count ?? 0,
-      properties:      properties.count ?? 0,
-      secondhand:      secondhand.count ?? 0,
-      events:          events.count ?? 0,
-      pending_reports: reports.count ?? 0,
+      users:                 users.count ?? 0,
+      services:              services.count ?? 0,
+      jobs:                  jobs.count ?? 0,
+      properties:            properties.count ?? 0,
+      secondhand:            secondhand.count ?? 0,
+      events:                events.count ?? 0,
+      pending_reports:       reports.count ?? 0,
+      pending_verifications: verifs.count ?? 0,
     })
   }
 
@@ -110,6 +132,25 @@ export default function AdminPage() {
     setActing(reportId)
     await supabase.from('review_reports').update({ status: 'dismissed' }).eq('id', reportId)
     setReports(prev => prev.filter(r => r.id !== reportId))
+    setActing(null)
+  }
+
+  async function approveVerification(userId: string) {
+    setActing(userId)
+    await supabase.from('users').update({
+      verification_status: 'approved',
+      business_verified: true,
+    }).eq('id', userId)
+    setVerifications(prev => prev.filter(v => v.id !== userId))
+    setActing(null)
+  }
+
+  async function rejectVerification(userId: string) {
+    setActing(userId)
+    await supabase.from('users').update({
+      verification_status: 'rejected',
+    }).eq('id', userId)
+    setVerifications(prev => prev.filter(v => v.id !== userId))
     setActing(null)
   }
 
@@ -139,14 +180,24 @@ export default function AdminPage() {
 
         {/* Tabs */}
         <div className="flex gap-1 bg-gray-100 rounded-2xl p-1">
-          {(['reports', 'overview'] as const).map(t => (
-            <button key={t} onClick={() => setTab(t)}
-              className={`flex-1 py-2 rounded-xl text-sm font-semibold transition-all ${
-                tab === t ? 'bg-white text-primary-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'
-              }`}>
-              {t === 'reports' ? `待处理举报 ${stats ? `(${stats.pending_reports})` : ''}` : '数据概览'}
-            </button>
-          ))}
+          <button onClick={() => setTab('reports')}
+            className={`flex-1 py-2 rounded-xl text-sm font-semibold transition-all ${
+              tab === 'reports' ? 'bg-white text-primary-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+            }`}>
+            举报 {stats ? `(${stats.pending_reports})` : ''}
+          </button>
+          <button onClick={() => setTab('verification')}
+            className={`flex-1 py-2 rounded-xl text-sm font-semibold transition-all ${
+              tab === 'verification' ? 'bg-white text-primary-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+            }`}>
+            认证审核 {stats ? `(${stats.pending_verifications})` : ''}
+          </button>
+          <button onClick={() => setTab('overview')}
+            className={`flex-1 py-2 rounded-xl text-sm font-semibold transition-all ${
+              tab === 'overview' ? 'bg-white text-primary-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+            }`}>
+            数据概览
+          </button>
         </div>
 
         {loading ? (
@@ -174,6 +225,73 @@ export default function AdminPage() {
               </div>
             ))}
           </motion.div>
+        ) : tab === 'verification' ? (
+          verifications.length === 0 ? (
+            <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-12 text-center">
+              <BadgeCheck size={36} className="text-green-300 mx-auto mb-3" />
+              <p className="text-sm text-gray-400">暂无待审核的认证申请</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {verifications.map(v => (
+                <motion.div key={v.id}
+                  initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
+                  className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4"
+                >
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary-400 to-primary-600
+                                    flex items-center justify-center text-white font-bold flex-shrink-0">
+                      {v.name.charAt(0)}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-gray-800">{v.name}</p>
+                      <p className="text-xs text-gray-400 truncate">{v.email}</p>
+                    </div>
+                    <button onClick={() => navigate(`/provider/${v.id}`)}
+                      className="text-xs text-primary-600 flex items-center gap-1 hover:underline">
+                      <ExternalLink size={12} /> 查看主页
+                    </button>
+                  </div>
+
+                  {/* Doc preview */}
+                  {v.verification_doc_url ? (
+                    <a href={v.verification_doc_url} target="_blank" rel="noopener noreferrer"
+                      className="block mb-3">
+                      {v.verification_doc_url.match(/\.(jpg|jpeg|png)$/i) ? (
+                        <img src={v.verification_doc_url} alt="认证文件"
+                          className="w-full max-h-48 object-contain rounded-xl border border-gray-100 bg-gray-50" />
+                      ) : (
+                        <div className="flex items-center gap-2 bg-blue-50 border border-blue-100 rounded-xl px-4 py-3">
+                          <BadgeCheck size={16} className="text-blue-500" />
+                          <span className="text-sm text-blue-600">查看上传文件（PDF）</span>
+                          <ExternalLink size={12} className="text-blue-400 ml-auto" />
+                        </div>
+                      )}
+                    </a>
+                  ) : (
+                    <p className="text-xs text-gray-400 mb-3">未上传文件</p>
+                  )}
+
+                  <p className="text-xs text-gray-400 mb-3">申请时间：{v.created_at.slice(0, 10)}</p>
+
+                  <div className="flex gap-2">
+                    <button onClick={() => rejectVerification(v.id)} disabled={!!acting}
+                      className="flex-1 flex items-center justify-center gap-1 text-sm text-gray-500
+                                 border border-gray-200 rounded-xl py-2.5 hover:bg-gray-50
+                                 disabled:opacity-50 transition-colors">
+                      <X size={14} /> 拒绝
+                    </button>
+                    <button onClick={() => approveVerification(v.id)} disabled={!!acting}
+                      className="flex-1 flex items-center justify-center gap-1 text-sm text-white
+                                 bg-green-500 hover:bg-green-600 rounded-xl py-2.5 font-semibold
+                                 disabled:opacity-50 transition-colors">
+                      <BadgeCheck size={14} /> {acting === v.id ? '处理中…' : '批准认证'}
+                    </button>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          )
         ) : tab === 'reports' ? (
           reports.length === 0 ? (
             <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-12 text-center">

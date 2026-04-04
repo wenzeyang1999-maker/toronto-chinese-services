@@ -3,7 +3,7 @@
 // Shows a provider's public info + all their active listings.
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ArrowLeft, CheckCircle2, Clock, ExternalLink, MessageSquare, Phone, ShieldCheck, Star, Briefcase, DollarSign, MapPin } from 'lucide-react'
+import { ArrowLeft, CheckCircle2, Clock, ExternalLink, MessageSquare, Phone, ShieldCheck, Star, Briefcase, DollarSign, MapPin, BadgeCheck } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { supabase } from '../../lib/supabase'
 import { useAuthStore } from '../../store/authStore'
@@ -43,6 +43,7 @@ interface ProviderUser {
   social_links: Record<string, string>
   created_at: string
   membership_level: MemberLevel
+  business_verified: boolean
 }
 
 interface ProviderReview {
@@ -100,6 +101,7 @@ export default function ProviderProfile() {
           phone_verified: false,
           social_links: {},
           membership_level: 'L1',
+          business_verified: false,
         })
         setLoading(false)
       })
@@ -107,16 +109,17 @@ export default function ProviderProfile() {
     // Fetch newer columns separately — silently skip if migration not yet run
     supabase
       .from('users')
-      .select('phone_verified, social_links, membership_level')
+      .select('phone_verified, social_links, membership_level, business_verified')
       .eq('id', id)
       .single()
       .then(({ data, error }) => {
         if (error || !data) return
         setProvider(prev => prev ? {
           ...prev,
-          phone_verified: data.phone_verified ?? false,
-          social_links: (data.social_links as Record<string, string>) ?? {},
+          phone_verified:   data.phone_verified ?? false,
+          social_links:     (data.social_links as Record<string, string>) ?? {},
           membership_level: (data.membership_level as MemberLevel) ?? 'L1',
+          business_verified: data.business_verified ?? false,
         } : prev)
       })
 
@@ -313,6 +316,12 @@ export default function ProviderProfile() {
                   <span className="flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-medium text-purple-600 bg-purple-50">
                     <Briefcase size={10} />
                     {jobs.length} 个职位
+                  </span>
+                )}
+                {provider.business_verified && (
+                  <span className="flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-medium text-blue-600 bg-blue-50 border border-blue-200">
+                    <BadgeCheck size={10} />
+                    已认证商户
                   </span>
                 )}
               </div>
