@@ -7,6 +7,8 @@ import { ChevronLeft, MapPin, Phone, MessageCircle, Copy, Home, User, ExternalLi
 import { supabase } from '../../lib/supabase'
 import { useAuthStore } from '../../store/authStore'
 import { LISTING_TYPE_CONFIG, PROPERTY_TYPE_CONFIG, getPriceLabel, getBedroomLabel, type Property } from './types'
+import SaveButton from '../../components/SaveButton/SaveButton'
+import ShareButton from '../../components/ShareButton/ShareButton'
 
 export default function RealEstateDetail() {
   const { id }   = useParams<{ id: string }>()
@@ -57,6 +59,8 @@ export default function RealEstateDetail() {
         <span className="font-semibold text-gray-800 flex-1 truncate">
           {loading ? '加载中…' : (prop?.title ?? '房源不存在')}
         </span>
+        {prop && <SaveButton type="property" id={prop.id} size={20} className="w-9 h-9" />}
+        {prop && <ShareButton title={prop.title} size={18} className="w-9 h-9" />}
       </div>
 
       {loading ? (

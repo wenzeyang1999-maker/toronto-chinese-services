@@ -10,6 +10,8 @@ import {
   EVENT_TYPE_CONFIG, getPriceLabel, formatEventDate, formatEventTime, isUpcoming,
   type Event,
 } from './types'
+import SaveButton from '../../components/SaveButton/SaveButton'
+import ShareButton from '../../components/ShareButton/ShareButton'
 
 export default function EventDetail() {
   const { id }   = useParams<{ id: string }>()
@@ -62,6 +64,8 @@ export default function EventDetail() {
         <span className="font-semibold text-gray-800 flex-1 truncate">
           {loading ? '加载中…' : (ev?.title ?? '活动不存在')}
         </span>
+        {ev && <SaveButton type="event" id={ev.id} size={20} className="w-9 h-9" />}
+        {ev && <ShareButton title={ev.title} size={18} className="w-9 h-9" />}
       </div>
 
       {loading ? (

@@ -1,6 +1,6 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
-import { Mail, Phone, Lock, User, Pencil, Check, X, ChevronRight } from 'lucide-react'
+import { Mail, Phone, Lock, User, Pencil, Check, X, ChevronRight, AlignLeft } from 'lucide-react'
 import { supabase } from '../../../lib/supabase'
 import type { User as SupabaseUser } from '@supabase/supabase-js'
 
@@ -18,6 +18,23 @@ export default function AccountSection({ user, name, phone, onNameChange, onPhon
   const [nameInput,    setNameInput]    = useState('')
   const [phoneInput,   setPhoneInput]   = useState('')
   const [saving,       setSaving]       = useState(false)
+
+  const [bio,        setBio]        = useState('')
+  const [editingBio, setEditingBio] = useState(false)
+  const [bioInput,   setBioInput]   = useState('')
+
+  useEffect(() => {
+    supabase.from('users').select('bio').eq('id', user.id).single()
+      .then(({ data }) => { if (data?.bio) setBio(data.bio) })
+  }, [user.id])
+
+  async function saveBio() {
+    setSaving(true)
+    await supabase.from('users').update({ bio: bioInput.trim() }).eq('id', user.id)
+    setBio(bioInput.trim())
+    setEditingBio(false)
+    setSaving(false)
+  }
 
   const [showPwd,    setShowPwd]    = useState(false)
   const [newPwd,     setNewPwd]     = useState('')
@@ -108,6 +125,28 @@ export default function AccountSection({ user, name, phone, onNameChange, onPhon
             <div className="flex items-center gap-2 flex-1">
               <span className="text-sm text-gray-800 flex-1">{phone || '未填写'}</span>
               <button onClick={() => { setPhoneInput(phone); setEditingPhone(true) }} className="text-gray-400 hover:text-primary-600"><Pencil size={13} /></button>
+            </div>
+          )}
+        </div>
+
+        {/* Bio */}
+        <div className="flex items-start gap-3 px-5 py-4">
+          <AlignLeft size={16} className="text-gray-400 flex-shrink-0 mt-0.5" />
+          <span className="text-sm text-gray-500 w-14 flex-shrink-0 mt-0.5">简介</span>
+          {editingBio ? (
+            <div className="flex-1">
+              <textarea autoFocus rows={3} value={bioInput} onChange={e => setBioInput(e.target.value)}
+                placeholder="介绍一下自己…"
+                className="w-full text-sm border border-primary-300 rounded-xl px-3 py-2 outline-none resize-none focus:ring-2 focus:ring-primary-300" />
+              <div className="flex gap-2 mt-1.5">
+                <button onClick={saveBio} disabled={saving} className="text-xs text-white bg-primary-600 px-3 py-1 rounded-lg">保存</button>
+                <button onClick={() => setEditingBio(false)} className="text-xs text-gray-400">取消</button>
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-start gap-2 flex-1">
+              <span className="text-sm text-gray-800 flex-1 whitespace-pre-wrap leading-relaxed">{bio || '未填写'}</span>
+              <button onClick={() => { setBioInput(bio); setEditingBio(true) }} className="text-gray-400 hover:text-primary-600 flex-shrink-0"><Pencil size={13} /></button>
             </div>
           )}
         </div>

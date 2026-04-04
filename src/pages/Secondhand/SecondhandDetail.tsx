@@ -7,6 +7,8 @@ import { ChevronLeft, MapPin, Phone, MessageCircle, Copy, Package, User, Externa
 import { supabase } from '../../lib/supabase'
 import { useAuthStore } from '../../store/authStore'
 import { SECONDHAND_CATEGORY_CONFIG, ITEM_CONDITION_CONFIG, getPriceLabel, type SecondhandItem } from './types'
+import SaveButton from '../../components/SaveButton/SaveButton'
+import ShareButton from '../../components/ShareButton/ShareButton'
 
 export default function SecondhandDetail() {
   const { id }   = useParams<{ id: string }>()
@@ -58,6 +60,8 @@ export default function SecondhandDetail() {
         <span className="font-semibold text-gray-800 flex-1 truncate">
           {loading ? '加载中…' : (item?.title ?? '物品不存在')}
         </span>
+        {item && <SaveButton type="secondhand" id={item.id} size={20} className="w-9 h-9" />}
+        {item && <ShareButton title={item.title} size={18} className="w-9 h-9" />}
       </div>
 
       {loading ? (

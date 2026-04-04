@@ -76,7 +76,7 @@ export default function RealEstateList() {
               <p className="text-xs text-gray-400">大多伦多华人房源</p>
             </div>
             <motion.button whileTap={{ scale: 0.95 }}
-              onClick={() => user ? navigate('/realestate/post') : navigate('/login')}
+              onClick={() => user ? navigate(`/realestate/post?type=${filters.listing_type ?? 'rent'}`) : navigate('/login')}
               className="flex items-center gap-1.5 bg-primary-600 hover:bg-primary-700
                          text-white text-sm font-semibold px-4 py-2 rounded-xl transition-colors"
             >
@@ -203,7 +203,7 @@ export default function RealEstateList() {
               <div className="text-center py-20 text-gray-400">
                 <Home size={40} className="mx-auto mb-3 opacity-30" />
                 <p className="text-sm">暂无房源</p>
-                <button onClick={() => navigate('/realestate/post')}
+                <button onClick={() => user ? navigate(`/realestate/post?type=${filters.listing_type ?? 'rent'}`) : navigate('/login')}
                   className="text-xs text-primary-600 underline mt-1">发布第一个房源</button>
               </div>
             ) : properties.map((p, i) => (
@@ -441,7 +441,7 @@ function DetailPanel({ prop, onClose }: { prop: Property; onClose: () => void })
         {(!user || user.id !== prop.poster_id) && (
           <div className="bg-primary-50 border border-primary-100 rounded-xl p-3 text-center">
             <p className="text-xs text-primary-700 mb-1">有房源要发布？</p>
-            <button onClick={() => user ? navigate('/realestate/post') : navigate('/login')}
+            <button onClick={() => user ? navigate(`/realestate/post?type=${prop.listing_type}`) : navigate('/login')}
               className="text-xs text-primary-600 font-semibold underline">免费发布房源</button>
           </div>
         )}

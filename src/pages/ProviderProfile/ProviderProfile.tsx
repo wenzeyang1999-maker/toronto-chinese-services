@@ -36,6 +36,7 @@ interface ProviderUser {
   email: string
   phone: string | null
   wechat: string | null
+  bio: string | null
   is_email_verified: boolean
   phone_verified: boolean
   social_links: Record<string, string>
@@ -86,13 +87,14 @@ export default function ProviderProfile() {
     // Fetch core user profile (columns that always exist)
     supabase
       .from('users')
-      .select('id, name, avatar_url, email, phone, wechat, is_email_verified, created_at')
+      .select('id, name, avatar_url, email, phone, wechat, bio, is_email_verified, created_at')
       .eq('id', id)
       .single()
       .then(({ data, error }) => {
         if (error || !data) { setNotFound(true); setLoading(false); return }
         setProvider({
           ...data,
+          bio: data.bio ?? null,
           phone_verified: false,
           social_links: {},
           membership_level: 'L1',
@@ -307,6 +309,11 @@ export default function ProviderProfile() {
               </div>
             </div>
           </div>
+
+          {/* Bio */}
+          {provider.bio && (
+            <p className="mt-4 text-sm text-gray-600 leading-relaxed whitespace-pre-wrap">{provider.bio}</p>
+          )}
 
           {/* Contact info */}
           {(provider.email || provider.phone || provider.wechat) && (

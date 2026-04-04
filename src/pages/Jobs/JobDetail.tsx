@@ -12,6 +12,8 @@ import { useAuthStore } from '../../store/authStore'
 import {
   JOB_CATEGORY_CONFIG, JOB_TYPE_CONFIG, SALARY_TYPE_LABEL, getCategoryLabel, type Job,
 } from './types'
+import SaveButton from '../../components/SaveButton/SaveButton'
+import ShareButton from '../../components/ShareButton/ShareButton'
 
 export default function JobDetail() {
   const { id }   = useParams<{ id: string }>()
@@ -70,6 +72,8 @@ export default function JobDetail() {
         <span className="font-semibold text-gray-800 flex-1 truncate">
           {loading ? '加载中…' : (job?.title ?? '职位不存在')}
         </span>
+        {job && <SaveButton type="job" id={job.id} size={20} className="w-9 h-9" />}
+        {job && <ShareButton title={job.title} size={18} className="w-9 h-9" />}
       </div>
 
       {loading ? (

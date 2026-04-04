@@ -8,6 +8,8 @@ import { supabase } from '../../lib/supabase'
 import { getCategoryById } from '../../data/categories'
 import type { BrowseEntry } from '../Profile/types'
 import ReviewsSection from './ReviewsSection'
+import SaveButton from '../../components/SaveButton/SaveButton'
+import ShareButton from '../../components/ShareButton/ShareButton'
 
 // ── Social platform display config ────────────────────────────────────────────
 const SOCIAL_PLATFORMS = [
@@ -146,6 +148,8 @@ export default function ServiceDetail() {
           <h1 className="text-base font-semibold text-gray-900 flex-1 truncate">
             服务详情
           </h1>
+          <SaveButton type="service" id={service.id} size={20} className="w-9 h-9" />
+          <ShareButton title={service.title} size={18} className="w-9 h-9" />
         </div>
       </div>
 

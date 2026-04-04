@@ -1,7 +1,7 @@
 // ─── Post Property Page ───────────────────────────────────────────────────────
 // Route: /realestate/post
 import { useEffect, useRef, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { ChevronLeft, CheckCircle, ImagePlus, X } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
@@ -51,11 +51,13 @@ const INITIAL: FormState = {
 }
 
 export default function PostProperty() {
-  const navigate = useNavigate()
-  const user     = useAuthStore((s) => s.user)
-  const addProperty = useRealEstateStore((s) => s.addProperty)
+  const navigate      = useNavigate()
+  const [searchParams] = useSearchParams()
+  const user          = useAuthStore((s) => s.user)
+  const addProperty   = useRealEstateStore((s) => s.addProperty)
 
-  const [form,         setForm]        = useState<FormState>(INITIAL)
+  const initType = (searchParams.get('type') ?? 'rent') as RealEstateListingType
+  const [form,         setForm]        = useState<FormState>({ ...INITIAL, listing_type: initType })
   const [images,       setImages]      = useState<File[]>([])
   const [previews,     setPreviews]    = useState<string[]>([])
   const [errors,       setErrors]      = useState<Partial<Record<keyof FormState | 'images', string>>>({})
