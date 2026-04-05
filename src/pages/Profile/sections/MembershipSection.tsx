@@ -28,9 +28,15 @@ const UPGRADE_LEVELS: MemberLevel[] = ['L2', 'L3']
 
 interface Props {
   level: MemberLevel
+  expiresAt: string | null
 }
 
-export default function MembershipSection({ level }: Props) {
+export default function MembershipSection({ level, expiresAt }: Props) {
+  const now = new Date()
+  const expiry = expiresAt ? new Date(expiresAt) : null
+  const daysLeft = expiry && expiry > now
+    ? Math.ceil((expiry.getTime() - now.getTime()) / 86400000)
+    : null
   const [hovered, setHovered] = useState<MemberLevel | null>(null)
   const cfg = LEVEL_CONFIG[level]
 
@@ -49,7 +55,7 @@ export default function MembershipSection({ level }: Props) {
         }`}>
           <div className="flex items-center gap-3 mb-4">
             <MembershipBadge level={level} size="lg" />
-            <div>
+            <div className="flex-1">
               <p className={`font-bold text-base ${level === 'L3' ? 'text-amber-400' : 'text-gray-900'}`}>
                 {cfg.name}
               </p>
@@ -57,6 +63,17 @@ export default function MembershipSection({ level }: Props) {
                 当前等级
               </p>
             </div>
+            {daysLeft !== null && level !== 'L1' && (
+              <span className={`text-xs font-semibold px-3 py-1.5 rounded-full flex-shrink-0 ${
+                daysLeft <= 7
+                  ? 'bg-red-100 text-red-600'
+                  : level === 'L3'
+                  ? 'bg-zinc-700 text-amber-300'
+                  : 'bg-amber-100 text-amber-700'
+              }`}>
+                剩余 {daysLeft} 天
+              </span>
+            )}
           </div>
           <ul className="space-y-2">
             {LEVEL_BENEFITS[level].map((b, i) => (

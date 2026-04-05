@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { ShieldCheck, Flag, CheckCircle2, Trash2, ChevronLeft, Users, Briefcase, Home, ShoppingBag, Calendar, Wrench, Star, BadgeCheck, X, ExternalLink, Zap } from 'lucide-react'
+import { ShieldCheck, Flag, CheckCircle2, Trash2, ChevronLeft, Users, Briefcase, Home, ShoppingBag, Calendar, Wrench, Star, BadgeCheck, X, ExternalLink, Zap, Crown, Search } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { useAuthStore } from '../../store/authStore'
 
@@ -49,6 +49,14 @@ interface PromotedRow {
   created_at: string
 }
 
+interface MemberRow {
+  id: string
+  name: string
+  email: string
+  membership_level: 'L1' | 'L2' | 'L3'
+  membership_expires_at: string | null
+}
+
 const REASON_LABEL: Record<string, string> = {
   irrelevant: '内容无关',
   malicious:  '恶意攻击',
@@ -68,10 +76,12 @@ export default function AdminPage() {
   const [promoSearch,    setPromoSearch]    = useState('')
   const [promoTable,     setPromoTable]     = useState<PromotedRow['table']>('services')
   const [stats,          setStats]          = useState<Stats | null>(null)
-  const [tab,            setTab]            = useState<'reports' | 'verification' | 'promoted' | 'overview' | 'community'>('reports')
+  const [tab,            setTab]            = useState<'reports' | 'verification' | 'promoted' | 'overview' | 'community' | 'membership'>('reports')
   const [communityPosts, setCommunityPosts] = useState<{ id: string; title: string; type: string; area: string; created_at: string; author: { name: string } | null }[]>([])
   const [loading,        setLoading]        = useState(true)
   const [acting,         setActing]         = useState<string | null>(null)
+  const [memberSearch,   setMemberSearch]   = useState('')
+  const [memberResults,  setMemberResults]  = useState<MemberRow[]>([])
 
   useEffect(() => {
     if (!user) { navigate('/login'); return }
@@ -202,6 +212,45 @@ export default function AdminPage() {
     setActing(null)
   }
 
+  async function searchMembers() {
+    const kw = memberSearch.trim()
+    if (!kw) return
+    const { data } = await supabase
+      .from('users')
+      .select('id, name, email, membership_level, membership_expires_at')
+      .or(`name.ilike.%${kw}%,email.ilike.%${kw}%`)
+      .limit(20)
+    setMemberResults((data ?? []) as MemberRow[])
+  }
+
+  async function grantMembership(row: MemberRow, level: 'L2' | 'L3') {
+    setActing(row.id)
+    const now = new Date()
+    const current = row.membership_expires_at ? new Date(row.membership_expires_at) : null
+    const base = current && current > now ? current : now
+    const newExpiry = new Date(base.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString()
+    await supabase.from('users').update({
+      membership_level: level,
+      membership_expires_at: newExpiry,
+    }).eq('id', row.id)
+    setMemberResults(prev => prev.map(r =>
+      r.id === row.id ? { ...r, membership_level: level, membership_expires_at: newExpiry } : r
+    ))
+    setActing(null)
+  }
+
+  async function revokeMembership(row: MemberRow) {
+    setActing(row.id)
+    await supabase.from('users').update({
+      membership_level: 'L1',
+      membership_expires_at: null,
+    }).eq('id', row.id)
+    setMemberResults(prev => prev.map(r =>
+      r.id === row.id ? { ...r, membership_level: 'L1', membership_expires_at: null } : r
+    ))
+    setActing(null)
+  }
+
   async function removeReview(report: ReportRow) {
     if (!report.review) return
     setActing(report.id)
@@ -257,6 +306,12 @@ export default function AdminPage() {
               tab === 'overview' ? 'bg-white text-primary-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'
             }`}>
             数据概览
+          </button>
+          <button onClick={() => setTab('membership')}
+            className={`flex-1 py-2 rounded-xl text-sm font-semibold transition-all ${
+              tab === 'membership' ? 'bg-white text-primary-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+            }`}>
+            会员管理
           </button>
         </div>
 
@@ -502,6 +557,77 @@ export default function AdminPage() {
               ))}
             </div>
           )
+        ) : tab === 'membership' ? (
+          <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-3">
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 flex gap-2">
+              <input
+                value={memberSearch}
+                onChange={e => setMemberSearch(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && searchMembers()}
+                placeholder="搜索用户姓名或邮箱"
+                className="flex-1 text-sm border border-gray-200 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-primary-300"
+              />
+              <button onClick={searchMembers}
+                className="px-4 py-2 bg-primary-600 text-white text-sm font-semibold rounded-xl hover:bg-primary-700 transition-colors flex items-center gap-1.5">
+                <Search size={14} /> 搜索
+              </button>
+            </div>
+
+            {memberResults.length === 0 ? (
+              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-10 text-center text-sm text-gray-400">
+                搜索用户后在此显示
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {memberResults.map(row => {
+                  const now = new Date()
+                  const expiry = row.membership_expires_at ? new Date(row.membership_expires_at) : null
+                  const daysLeft = expiry ? Math.max(0, Math.ceil((expiry.getTime() - now.getTime()) / 86400000)) : null
+                  const isActive = !!(expiry && expiry > now)
+                  const effectiveLevel = isActive ? row.membership_level : 'L1'
+                  return (
+                    <div key={row.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
+                      <div className="flex items-start justify-between gap-3 mb-3">
+                        <div>
+                          <p className="text-sm font-semibold text-gray-800">{row.name}</p>
+                          <p className="text-xs text-gray-400 truncate">{row.email}</p>
+                        </div>
+                        <div className="text-right flex-shrink-0">
+                          <span className={`inline-block text-xs font-bold px-2.5 py-1 rounded-full ${
+                            effectiveLevel === 'L3' ? 'bg-zinc-900 text-amber-400' :
+                            effectiveLevel === 'L2' ? 'bg-amber-100 text-amber-700' :
+                            'bg-gray-100 text-gray-500'
+                          }`}>{effectiveLevel}</span>
+                          {daysLeft !== null && isActive && (
+                            <p className="text-xs text-gray-400 mt-1">剩余 {daysLeft} 天</p>
+                          )}
+                          {expiry && !isActive && (
+                            <p className="text-xs text-red-400 mt-1">已到期</p>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex gap-2 flex-wrap">
+                        <button onClick={() => grantMembership(row, 'L2')} disabled={acting === row.id}
+                          className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg bg-amber-100 text-amber-700 hover:bg-amber-200 transition-colors font-semibold disabled:opacity-50">
+                          <Crown size={11} /> 授予L2 +30天
+                        </button>
+                        <button onClick={() => grantMembership(row, 'L3')} disabled={acting === row.id}
+                          className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg bg-zinc-900 text-amber-400 hover:bg-zinc-700 transition-colors font-semibold disabled:opacity-50">
+                          <Crown size={11} /> 授予L3 +30天
+                        </button>
+                        {effectiveLevel !== 'L1' && (
+                          <button onClick={() => revokeMembership(row)} disabled={acting === row.id}
+                            className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 transition-colors disabled:opacity-50">
+                            <X size={11} /> 撤销会员
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </motion.div>
         ) : null}
       </div>
     </div>

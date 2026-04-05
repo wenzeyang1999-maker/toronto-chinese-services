@@ -64,6 +64,7 @@ export default function Profile() {
   const [phone,           setPhone]           = useState('')
   const [avatarUrl,       setAvatarUrl]       = useState<string | null>(null)
   const [memberLevel,     setMemberLevel]     = useState<MemberLevel>('L1')
+  const [memberExpiresAt, setMemberExpiresAt] = useState<string | null>(null)
   const [uploading,       setUploading]       = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
 
@@ -81,10 +82,13 @@ export default function Profile() {
           setAvatarUrl(data.avatar_url ?? null)
         }
       })
-    // Fetch membership_level separately (new column — skip silently if not migrated yet)
-    supabase.from('users').select('membership_level').eq('id', user.id).single()
+    supabase.from('users').select('membership_level, membership_expires_at').eq('id', user.id).single()
       .then(({ data }) => {
-        if (data?.membership_level) setMemberLevel(data.membership_level as MemberLevel)
+        if (!data) return
+        const expiry = data.membership_expires_at ? new Date(data.membership_expires_at) : null
+        const isActive = !!(expiry && expiry > new Date())
+        setMemberLevel(isActive ? (data.membership_level as MemberLevel) ?? 'L1' : 'L1')
+        setMemberExpiresAt(data.membership_expires_at ?? null)
       })
 try { setBrowse(JSON.parse(localStorage.getItem('tcs_browse_history') ?? '[]')) } catch { /* */ }
   }, [user])
@@ -179,7 +183,7 @@ try { setBrowse(JSON.parse(localStorage.getItem('tcs_browse_history') ?? '[]')) 
     switch (key) {
       case 'account':      return <AccountSection user={user!} name={name} phone={phone} onNameChange={setName} onPhoneChange={setPhone} />
       case 'verification': return <VerificationSection user={user!} />
-      case 'membership':   return <MembershipSection level={memberLevel} />
+      case 'membership':   return <MembershipSection level={memberLevel} expiresAt={memberExpiresAt} />
       case 'services':     return <ServicesSection />
       case 'saves':        return <SavesSection />
       case 'follows':      return <FollowsSection />
