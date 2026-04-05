@@ -68,7 +68,8 @@ export default function AdminPage() {
   const [promoSearch,    setPromoSearch]    = useState('')
   const [promoTable,     setPromoTable]     = useState<PromotedRow['table']>('services')
   const [stats,          setStats]          = useState<Stats | null>(null)
-  const [tab,            setTab]            = useState<'reports' | 'verification' | 'promoted' | 'overview'>('reports')
+  const [tab,            setTab]            = useState<'reports' | 'verification' | 'promoted' | 'overview' | 'community'>('reports')
+  const [communityPosts, setCommunityPosts] = useState<{ id: string; title: string; type: string; area: string; created_at: string; author: { name: string } | null }[]>([])
   const [loading,        setLoading]        = useState(true)
   const [acting,         setActing]         = useState<string | null>(null)
 
@@ -185,6 +186,22 @@ export default function AdminPage() {
     setActing(null)
   }
 
+  async function loadCommunityPosts() {
+    const { data } = await supabase
+      .from('community_posts')
+      .select('id, title, type, area, created_at, author:author_id(name)')
+      .order('created_at', { ascending: false })
+      .limit(50)
+    if (data) setCommunityPosts(data.map((p: any) => ({ ...p, author: Array.isArray(p.author) ? p.author[0] : p.author })))
+  }
+
+  async function deleteCommunityPost(postId: string) {
+    setActing(postId)
+    await supabase.from('community_posts').delete().eq('id', postId)
+    setCommunityPosts(prev => prev.filter(p => p.id !== postId))
+    setActing(null)
+  }
+
   async function removeReview(report: ReportRow) {
     if (!report.review) return
     setActing(report.id)
@@ -228,6 +245,12 @@ export default function AdminPage() {
               tab === 'promoted' ? 'bg-white text-primary-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'
             }`}>
             置顶推广
+          </button>
+          <button onClick={() => { setTab('community'); loadCommunityPosts() }}
+            className={`flex-1 py-2 rounded-xl text-sm font-semibold transition-all ${
+              tab === 'community' ? 'bg-white text-primary-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+            }`}>
+            社区帖子
           </button>
           <button onClick={() => setTab('overview')}
             className={`flex-1 py-2 rounded-xl text-sm font-semibold transition-all ${
@@ -324,6 +347,29 @@ export default function AdminPage() {
                 ))}
               </div>
             )}
+          </motion.div>
+        ) : tab === 'community' ? (
+          <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-3">
+            {communityPosts.length === 0 ? (
+              <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-12 text-center">
+                <p className="text-sm text-gray-400">暂无社区帖子</p>
+              </div>
+            ) : communityPosts.map(p => (
+              <div key={p.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm px-4 py-3 flex items-center gap-3">
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-gray-800 truncate">{p.title}</p>
+                  <p className="text-xs text-gray-400 mt-0.5">
+                    {p.author?.name ?? '匿名'} · {p.type} · {p.area} · {p.created_at.slice(0, 10)}
+                  </p>
+                </div>
+                <button onClick={() => deleteCommunityPost(p.id)} disabled={acting === p.id}
+                  className="flex items-center gap-1 text-xs text-red-500 hover:text-red-700
+                             border border-red-200 hover:border-red-400 px-3 py-1.5 rounded-lg
+                             transition-colors disabled:opacity-50 flex-shrink-0">
+                  <Trash2 size={13} /> 删除
+                </button>
+              </div>
+            ))}
           </motion.div>
         ) : tab === 'verification' ? (
           verifications.length === 0 ? (
