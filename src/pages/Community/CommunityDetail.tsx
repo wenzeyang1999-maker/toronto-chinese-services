@@ -132,10 +132,8 @@ export default function CommunityDetail() {
 
     if (next) {
       await supabase.from('community_likes').insert({ user_id: user.id, post_id: id })
-      await supabase.from('community_posts').update({ like_count: likeCount + 1 }).eq('id', id)
     } else {
       await supabase.from('community_likes').delete().eq('user_id', user.id).eq('post_id', id)
-      await supabase.from('community_posts').update({ like_count: Math.max(0, likeCount - 1) }).eq('id', id)
     }
   }
 

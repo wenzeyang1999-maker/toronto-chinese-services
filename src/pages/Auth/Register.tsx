@@ -3,10 +3,10 @@
 // Database integration to be added later — for now, form validates locally only.
 //
 // Route: /register
-import { useState } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import { useNavigate, useSearchParams, Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { Eye, EyeOff, User, Phone, Lock, Mail, ChevronLeft } from 'lucide-react'
+import { Eye, EyeOff, User, Phone, Lock, Mail, ChevronLeft, Gift } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -57,7 +57,15 @@ function validate(form: RegisterForm): FormErrors {
 // ── Component ─────────────────────────────────────────────────────────────────
 export default function Register() {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const [form, setForm]             = useState<RegisterForm>(INITIAL)
+  const [referralCode, setReferralCode] = useState('')
+
+  // Auto-fill referral code from URL param ?ref=XXXX
+  useEffect(() => {
+    const ref = searchParams.get('ref')
+    if (ref) setReferralCode(ref.toUpperCase())
+  }, [])
   const [errors, setErrors]         = useState<FormErrors>({})
   const [showPassword, setShowPassword]         = useState(false)
   const [showConfirm, setShowConfirm]           = useState(false)
@@ -93,7 +101,11 @@ export default function Register() {
       email: form.email,
       password: form.password,
       options: {
-        data: { name: form.name, phone: form.phone.trim() || null },
+        data: {
+          name: form.name,
+          phone: form.phone.trim() || null,
+          referred_by_code: referralCode.trim().toUpperCase() || null,
+        },
       },
     })
 
@@ -248,6 +260,20 @@ export default function Register() {
                 >
                   {showConfirm ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
+              </InputRow>
+            </Field>
+
+            {/* Referral code (optional) */}
+            <Field label="邀请码（选填）">
+              <InputRow icon={<Gift size={16} />}>
+                <input
+                  type="text"
+                  value={referralCode}
+                  onChange={(e) => setReferralCode(e.target.value.toUpperCase())}
+                  placeholder="朋友的分享码"
+                  maxLength={7}
+                  className="flex-1 bg-transparent outline-none text-sm text-gray-900 placeholder-gray-400 uppercase tracking-widest"
+                />
               </InputRow>
             </Field>
 

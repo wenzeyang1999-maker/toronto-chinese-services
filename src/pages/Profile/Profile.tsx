@@ -6,24 +6,24 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import {
   ChevronLeft, ChevronRight, Camera, LogOut,
-  ShieldCheck, Briefcase, Clock, MessageSquare, Bot, BadgeCheck, Crown, Heart, UserCheck, TrendingUp,
+  ShieldCheck, Briefcase, Clock, MessageSquare, BadgeCheck, Crown, Heart, UserCheck, TrendingUp, Gift,
 } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { useAuthStore } from '../../store/authStore'
-import type { BrowseEntry, ChatSession, Section } from './types'
+import type { BrowseEntry, Section } from './types'
 import type { MemberLevel } from '../../components/MembershipBadge/MembershipBadge'
 import MembershipBadge from '../../components/MembershipBadge/MembershipBadge'
 import AccountSection      from './sections/AccountSection'
 import ServicesSection     from './sections/ServicesSection'
 import SavesSection        from './sections/SavesSection'
 import BrowseSection       from './sections/BrowseSection'
-import ChatSection         from './sections/ChatSection'
 import MessagesSection     from './sections/MessagesSection'
 import VerificationSection from './sections/VerificationSection'
 import MembershipSection   from './sections/MembershipSection'
 import FollowsSection      from './sections/FollowsSection'
 import StatsSection        from './sections/StatsSection'
 import CommunitySection    from './sections/CommunitySection'
+import ReferralSection     from './sections/ReferralSection'
 
 const MENU: { key: Section; icon: React.ReactNode; label: string; sub: string }[] = [
   { key: 'account',      icon: <ShieldCheck   size={18} />, label: '帐号和安全',        sub: '个人信息、密码修改' },
@@ -36,7 +36,7 @@ const MENU: { key: Section; icon: React.ReactNode; label: string; sub: string }[
   { key: 'community',    icon: <MessageSquare size={18} />, label: '我的帖子',           sub: '社区圈子发布的内容' },
   { key: 'messages',     icon: <MessageSquare size={18} />, label: '我的消息',           sub: '与商家的对话记录' },
   { key: 'browse',       icon: <Clock         size={18} />, label: '浏览记录',           sub: '最近查看的服务' },
-  { key: 'chat',         icon: <Bot           size={18} />, label: 'AI 对话记录',        sub: '历史聊天记录' },
+  { key: 'referral',    icon: <Gift          size={18} />, label: '邀请好友',            sub: '我的分享码 · 已邀请人数' },
 ]
 
 export default function Profile() {
@@ -44,7 +44,7 @@ export default function Profile() {
   const [searchParams] = useSearchParams()
   const user     = useAuthStore((s) => s.user)
 
-  const VALID_SECTIONS = ['account','verification','membership','services','saves','follows','stats','community','messages','browse','chat']
+  const VALID_SECTIONS = ['account','verification','membership','services','saves','follows','stats','community','messages','browse','chat','referral']
 
   const [section, setSection] = useState<Section | null>(() => {
     const param = searchParams.get('section') as Section | null
@@ -68,7 +68,6 @@ export default function Profile() {
   const fileRef = useRef<HTMLInputElement>(null)
 
   const [browse, setBrowse] = useState<BrowseEntry[]>([])
-  const [chats,  setChats]  = useState<ChatSession[]>([])
 
   useEffect(() => { if (!user) navigate('/login') }, [user, navigate])
 
@@ -88,7 +87,6 @@ export default function Profile() {
         if (data?.membership_level) setMemberLevel(data.membership_level as MemberLevel)
       })
 try { setBrowse(JSON.parse(localStorage.getItem('tcs_browse_history') ?? '[]')) } catch { /* */ }
-    try { setChats(JSON.parse(localStorage.getItem('tcs_chat_history')   ?? '[]')) } catch { /* */ }
   }, [user])
 
   if (!user) return null
@@ -187,9 +185,9 @@ try { setBrowse(JSON.parse(localStorage.getItem('tcs_browse_history') ?? '[]')) 
       case 'follows':      return <FollowsSection />
       case 'stats':        return <StatsSection />
       case 'community':    return <CommunitySection />
+      case 'referral':     return <ReferralSection user={user!} />
       case 'messages':     return <MessagesSection />
       case 'browse':       return <BrowseSection items={browse} onClear={() => { localStorage.removeItem('tcs_browse_history'); setBrowse([]) }} />
-      case 'chat':         return <ChatSection sessions={chats} onClear={() => { localStorage.removeItem('tcs_chat_history'); setChats([]) }} />
       default:             return null
     }
   }

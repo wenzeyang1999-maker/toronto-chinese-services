@@ -19,3 +19,10 @@ ALTER TABLE users ADD COLUMN IF NOT EXISTS verification_status TEXT NOT NULL DEF
 -- Index for admin queue (pending reviews)
 CREATE INDEX IF NOT EXISTS idx_users_verification_status ON users (verification_status)
   WHERE verification_status = 'pending';
+
+-- Enum constraint: only valid status values allowed
+DO $$ BEGIN
+  ALTER TABLE users ADD CONSTRAINT users_verification_status_check
+    CHECK (verification_status IN ('none', 'pending', 'approved', 'rejected'));
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;

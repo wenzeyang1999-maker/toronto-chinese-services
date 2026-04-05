@@ -85,6 +85,11 @@
 - [ ] **服务商新帖通知**（关注了的用户收到邮件）
 - [ ] **社区帖子点赞去重**（目前 like_count 没有防重复点赞机制）
 
+### 代码质量（不紧急，不影响线上功能）
+- [ ] **距离显示修复**：`src/store/appStore.ts` — 服务无坐标时用多伦多中心坐标填充，导致显示"0 km"；应改为不显示距离
+- [ ] **防止自问自答**：`database/qa_schema.sql` — 用户可在自己的服务上提问并回答刷 Q&A；RLS INSERT 策略加 `asker_id ≠ service.provider_id` 检查
+- [ ] **reviews 索引**：`database/schema.sql` — `reviews` 表缺 `reviewer_id` 索引，查询某用户所有评价时全表扫描；加 `CREATE INDEX idx_reviews_reviewer_id ON reviews (reviewer_id)`
+
 ---
 
 ## ⏳ SQL 文件状态
@@ -104,3 +109,6 @@
 | `qa_schema.sql` | ✅ |
 | `rls_security_patch.sql` | ✅ |
 | `community_schema.sql` | ✅ |
+| `community_likes_schema.sql` | ✅ |
+| `review_replies_rls_patch.sql` | ✅ |
+| `saves_cleanup_triggers.sql` | ✅ |
