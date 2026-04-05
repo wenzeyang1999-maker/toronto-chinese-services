@@ -6,7 +6,7 @@ import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Plus, Pencil, Trash2, X, Check, ToggleLeft, ToggleRight,
-  ImagePlus, Wrench, Briefcase, Home, ShoppingBag, Calendar, ChevronDown, CheckCircle2,
+  ImagePlus, Wrench, Briefcase, Home, ShoppingBag, Calendar, ChevronDown, CheckCircle2, Zap,
 } from 'lucide-react'
 import { supabase } from '../../../lib/supabase'
 import { useAuthStore } from '../../../store/authStore'
@@ -53,6 +53,7 @@ export default function ServicesSection() {
   const [loading,     setLoading]     = useState(true)
   const [confirmDel,  setConfirmDel]  = useState<string | null>(null)
   const [showPostMenu, setShowPostMenu] = useState(false)
+  const [promoToast,  setPromoToast]  = useState(false)
 
   // Service edit state
   const [editingId,   setEditingId]   = useState<string | null>(null)
@@ -241,6 +242,11 @@ export default function ServicesSection() {
             </button>
           )}
 
+          <button onClick={() => { setPromoToast(true); setTimeout(() => setPromoToast(false), 4000) }}
+            className="w-9 h-9 flex items-center justify-center rounded-xl text-gray-400 hover:bg-amber-50 hover:text-amber-500 transition-colors flex-shrink-0"
+            title="申请置顶推广">
+            <Zap size={16} />
+          </button>
           <button onClick={() => setConfirmDel(id)}
             className="w-9 h-9 flex items-center justify-center rounded-xl text-gray-400 hover:bg-red-50 hover:text-red-500 transition-colors flex-shrink-0">
             <Trash2 size={16} />
@@ -271,6 +277,18 @@ export default function ServicesSection() {
 
   return (
     <div className="relative flex-1 px-4 py-5 max-w-md lg:max-w-none mx-auto w-full">
+
+      {/* Promo toast */}
+      <AnimatePresence>
+        {promoToast && (
+          <motion.div initial={{ opacity: 0, y: -12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}
+            className="fixed top-20 left-1/2 -translate-x-1/2 z-50 bg-amber-500 text-white text-sm font-semibold
+                       px-5 py-3 rounded-2xl shadow-lg flex items-center gap-2 whitespace-nowrap">
+            <Zap size={15} />
+            请发邮件至 admin@huarenq.com 申请置顶推广
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* ── Tabs ─────────────────────────────────────────────────────────── */}
       <div className="flex gap-1 bg-gray-100 rounded-2xl p-1 mb-4 overflow-x-auto scrollbar-hide">
