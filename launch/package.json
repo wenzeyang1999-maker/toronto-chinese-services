@@ -1,0 +1,14 @@
+{
+  "name": "tcs-launch",
+  "version": "1.0.0",
+  "description": "TCS 启动工具包",
+  "scripts": {
+    "seed": "node seed/seed.js",
+    "sitemap": "node seo/generate-sitemap.js",
+    "all": "node seed/seed.js && node seo/generate-sitemap.js"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.39.0",
+    "dotenv": "^16.4.1"
+  }
+}

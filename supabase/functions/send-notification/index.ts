@@ -122,6 +122,26 @@ function buildEmail(type: string, recipientName: string, data: Record<string, st
         ),
       }
 
+    case 'welcome':
+      return {
+        subject: `🎉 欢迎加入大多伦多华人服务平台！`,
+        html: template(
+          `欢迎加入华人圈！`,
+          `<p>您好 <strong>${recipientName}</strong>，</p>
+           <p>感谢您注册<strong>大多伦多华人服务平台</strong>！</p>
+           <p>您现在可以：</p>
+           <ul style="color:#374151;font-size:14px;line-height:2;">
+             <li>🔧 浏览和联系本地华人服务商</li>
+             <li>💼 查找招聘信息或发布求职帖</li>
+             <li>🏘️ 在社区圈子分享生活经验</li>
+             <li>🛒 发布或购买二手好物</li>
+           </ul>
+           <p>如有任何问题，欢迎随时联系我们。</p>`,
+          '开始探索',
+          SITE
+        ),
+      }
+
     default:
       return null
   }

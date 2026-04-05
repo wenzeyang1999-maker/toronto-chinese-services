@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+
+# 不允许爬取用户私人页面
+Disallow: /profile
+Disallow: /conversation/
+Disallow: /admin
+
+Sitemap: https://toronto-chinese-services.vercel.app/sitemap.xml
