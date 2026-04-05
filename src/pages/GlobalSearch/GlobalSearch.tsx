@@ -4,10 +4,10 @@
 import { useEffect, useRef, useState } from 'react'
 import { useSearchParams, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Search, ChevronLeft, Wrench, Briefcase, Home, ShoppingBag, Calendar } from 'lucide-react'
+import { Search, ChevronLeft, Wrench, Briefcase, Home, ShoppingBag, Calendar, Users } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 
-type ResultType = 'service' | 'job' | 'property' | 'secondhand' | 'event'
+type ResultType = 'service' | 'job' | 'property' | 'secondhand' | 'event' | 'community'
 type TabKey = 'all' | ResultType
 
 interface Result {
@@ -25,6 +25,7 @@ const TYPE_META: Record<ResultType, { label: string; icon: React.ReactNode; emoj
   property:   { label: '房源',  icon: <Home        size={14} />, emoji: '🏠', color: 'text-green-600 bg-green-50'    },
   secondhand: { label: '闲置',  icon: <ShoppingBag size={14} />, emoji: '🛒', color: 'text-orange-600 bg-orange-50'  },
   event:      { label: '活动',  icon: <Calendar    size={14} />, emoji: '🎉', color: 'text-pink-600 bg-pink-50'      },
+  community:  { label: '社区',  icon: <Users       size={14} />, emoji: '🏘️', color: 'text-teal-600 bg-teal-50'     },
 }
 
 const TABS: { key: TabKey; label: string }[] = [
@@ -34,6 +35,7 @@ const TABS: { key: TabKey; label: string }[] = [
   { key: 'property',   label: '房源' },
   { key: 'secondhand', label: '闲置' },
   { key: 'event',      label: '活动' },
+  { key: 'community',  label: '社区' },
 ]
 
 const PATH_PREFIX: Record<ResultType, string> = {
@@ -42,6 +44,7 @@ const PATH_PREFIX: Record<ResultType, string> = {
   property:   '/realestate',
   secondhand: '/secondhand',
   event:      '/events',
+  community:  '/community',
 }
 
 // Highlight matching keyword in text
@@ -88,7 +91,7 @@ export default function GlobalSearch() {
     setLoading(true)
     setSearched(true)
 
-    const [services, jobs, properties, secondhand, events] = await Promise.all([
+    const [services, jobs, properties, secondhand, events, community] = await Promise.all([
       supabase.from('services')
         .select('id, title, category_id, area')
         .ilike('title', `%${q}%`)
@@ -114,6 +117,10 @@ export default function GlobalSearch() {
         .select('id, title, event_type, event_date')
         .ilike('title', `%${q}%`)
         .eq('is_active', true)
+        .limit(20),
+      supabase.from('community_posts')
+        .select('id, title, content, type, area')
+        .or(`title.ilike.%${q}%,content.ilike.%${q}%`)
         .limit(20),
     ])
 
@@ -153,6 +160,13 @@ export default function GlobalSearch() {
         emoji: TYPE_META.event.emoji,
         path: `${PATH_PREFIX.event}/${r.id}`,
       })),
+      ...(community.data ?? []).map((r: any) => ({
+        id: r.id, type: 'community' as ResultType,
+        title: r.title,
+        subtitle: r.type + ' · ' + r.area,
+        emoji: TYPE_META.community.emoji,
+        path: `${PATH_PREFIX.community}/${r.id}`,
+      })),
     ]
 
     setResults(mapped)
@@ -167,6 +181,7 @@ export default function GlobalSearch() {
     property:   results.filter(r => r.type === 'property').length,
     secondhand: results.filter(r => r.type === 'secondhand').length,
     event:      results.filter(r => r.type === 'event').length,
+    community:  results.filter(r => r.type === 'community').length,
   }
 
   return (

@@ -73,6 +73,17 @@ export default function CommunityDetail() {
       })
   }, [id])
 
+  // Check if current user already liked this post
+  useEffect(() => {
+    if (!id || !user) return
+    supabase.from('community_likes')
+      .select('post_id')
+      .eq('post_id', id)
+      .eq('user_id', user.id)
+      .maybeSingle()
+      .then(({ data }) => { if (data) setLiked(true) })
+  }, [id, user])
+
   // Realtime comments
   useEffect(() => {
     if (!id) return
@@ -114,13 +125,18 @@ export default function CommunityDetail() {
   }
 
   async function toggleLike() {
-    if (!id) return
+    if (!id || !user) return
     const next = !liked
     setLiked(next)
     setLikeCount(c => c + (next ? 1 : -1))
-    await supabase.from('community_posts')
-      .update({ like_count: likeCount + (next ? 1 : -1) })
-      .eq('id', id)
+
+    if (next) {
+      await supabase.from('community_likes').insert({ user_id: user.id, post_id: id })
+      await supabase.from('community_posts').update({ like_count: likeCount + 1 }).eq('id', id)
+    } else {
+      await supabase.from('community_likes').delete().eq('user_id', user.id).eq('post_id', id)
+      await supabase.from('community_posts').update({ like_count: Math.max(0, likeCount - 1) }).eq('id', id)
+    }
   }
 
   if (loading) return (
@@ -195,7 +211,7 @@ export default function CommunityDetail() {
 
             {/* Actions */}
             <div className="flex items-center gap-4 pt-3 border-t border-gray-50">
-              <button onClick={toggleLike}
+              <button onClick={() => user ? toggleLike() : navigate('/login')}
                 className={`flex items-center gap-1.5 text-sm font-medium transition-colors
                             ${liked ? 'text-red-500' : 'text-gray-400 hover:text-red-400'}`}>
                 <Heart size={16} className={liked ? 'fill-red-500' : ''} />
