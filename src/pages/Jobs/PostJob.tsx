@@ -8,6 +8,7 @@ import { ChevronLeft, CheckCircle } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { useAuthStore } from '../../store/authStore'
 import { useJobStore } from '../../store/jobStore'
+import LocationInput, { type LocationResult } from '../../components/LocationInput/LocationInput'
 import {
   JOB_CATEGORY_CONFIG, JOB_TYPE_CONFIG, SALARY_TYPE_LABEL,
   type JobCategory, type JobType, type SalaryType, type Job, type ListingType,
@@ -57,6 +58,7 @@ export default function PostJob() {
   const [errors,     setErrors]     = useState<Partial<Record<keyof FormState, string>>>({})
   const [submitting, setSubmitting] = useState(false)
   const [done,       setDone]       = useState(false)
+  const [location,   setLocation]   = useState<LocationResult | null>(null)
 
   useEffect(() => { if (!user) navigate('/login') }, [user, navigate])
 
@@ -121,6 +123,9 @@ export default function PostJob() {
       salary_type:    form.salary_type,
       area:           form.area.length > 0 ? form.area : null,
       city:           'Toronto',
+      address:        location?.address ?? null,
+      lat:            location?.lat ?? null,
+      lng:            location?.lng ?? null,
       contact_name:   form.contact_name.trim(),
       contact_phone:  form.contact_phone.trim(),
       contact_wechat: form.contact_wechat.trim() || null,
@@ -387,6 +392,9 @@ export default function PostJob() {
             <input value={form.contact_wechat} onChange={(e) => set('contact_wechat', e.target.value)}
               placeholder="微信号"
               className={input(false)} />
+          </Field>
+          <Field label="所在位置（选填）">
+            <LocationInput onChange={setLocation} />
           </Field>
         </Card>
 

@@ -51,14 +51,22 @@ export const useSavesStore = create<SavesState>((set, get) => ({
     })
 
     if (already) {
-      await supabase.from('saves')
+      const { error } = await supabase.from('saves')
         .delete()
         .eq('user_id', userId)
         .eq('target_type', type)
         .eq('target_id', id)
+      if (error) {
+        // Rollback
+        set((state) => { const next = new Set(state.saved); next.add(k); return { saved: next } })
+      }
     } else {
-      await supabase.from('saves')
+      const { error } = await supabase.from('saves')
         .insert({ user_id: userId, target_type: type, target_id: id })
+      if (error) {
+        // Rollback
+        set((state) => { const next = new Set(state.saved); next.delete(k); return { saved: next } })
+      }
     }
   },
 

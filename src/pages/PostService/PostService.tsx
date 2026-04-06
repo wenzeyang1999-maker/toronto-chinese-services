@@ -9,6 +9,7 @@ import { CATEGORIES } from '../../data/categories'
 import type { PostServiceForm } from '../../types'
 import Header from '../../components/Header/Header'
 import { compressImage, validateImageFile } from '../../lib/compressImage'
+import LocationInput, { type LocationResult } from '../../components/LocationInput/LocationInput'
 
 // ── 内置服务库（搜索用）──────────────────────────────────────────────────────
 type ServiceCat = 'moving' | 'cleaning' | 'ride' | 'renovation' | 'cashwork' | 'food' | 'other'
@@ -200,6 +201,7 @@ export default function PostService() {
   const userLocation = useAppStore((s) => s.userLocation)
   const user = useAuthStore((s) => s.user)
   const [form, setForm] = useState<PostServiceForm>(INITIAL_FORM)
+  const [location, setLocation] = useState<LocationResult | null>(null)
   const [submitted, setSubmitted] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState('')
@@ -387,8 +389,9 @@ export default function PostService() {
         description: form.description.trim(),
         price: form.priceType === 'negotiable' ? 0 : parseFloat(form.price) || 0,
         price_type: form.priceType,
-        lat: userLocation?.lat ?? 43.6532,
-        lng: userLocation?.lng ?? -79.3832,
+        address: location?.address ?? null,
+        lat: location?.lat ?? userLocation?.lat ?? 43.6532,
+        lng: location?.lng ?? userLocation?.lng ?? -79.3832,
         area: areaDisplay,
         service_areas: selectedAreas.length > 0 ? selectedAreas : ['Toronto'],
         city: 'Toronto',
@@ -760,6 +763,10 @@ export default function PostService() {
                 onBlur={() => scrollTo(areaRef)}
                 placeholder="您的微信号"
               />
+            </Field>
+
+            <Field label="所在位置（选填）">
+              <LocationInput onChange={setLocation} />
             </Field>
           </div>
 

@@ -65,7 +65,7 @@ export default function Register() {
   useEffect(() => {
     const ref = searchParams.get('ref')
     if (ref) setReferralCode(ref.toUpperCase())
-  }, [])
+  }, [searchParams])
   const [errors, setErrors]         = useState<FormErrors>({})
   const [showPassword, setShowPassword]         = useState(false)
   const [showConfirm, setShowConfirm]           = useState(false)

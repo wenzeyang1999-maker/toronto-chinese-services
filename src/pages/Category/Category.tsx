@@ -1,18 +1,21 @@
 import { useParams, useNavigate } from 'react-router-dom'
-import { ArrowLeft, SlidersHorizontal } from 'lucide-react'
+import { ArrowLeft, SlidersHorizontal, List, Map } from 'lucide-react'
 import { motion } from 'framer-motion'
-import { useState } from 'react'
+import { useState, lazy, Suspense } from 'react'
 import ServiceCard from '../../components/ServiceCard/ServiceCard'
 import { useAppStore } from '../../store/appStore'
 import { getCategoryById } from '../../data/categories'
 import type { ServiceCategory } from '../../types'
 import Header from '../../components/Header/Header'
 
+const ServiceMap = lazy(() => import('../../components/ServiceMap/ServiceMap'))
+
 export default function Category() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const getServicesByCategory = useAppStore((s) => s.getServicesByCategory)
   const [sortBy, setSortBy] = useState<'distance' | 'rating' | 'price'>('distance')
+  const [viewMode, setViewMode] = useState<'list' | 'map'>('list')
 
   const category = getCategoryById(id as ServiceCategory)
   const services = getServicesByCategory(id as ServiceCategory)
@@ -53,7 +56,7 @@ export default function Category() {
       </div>
 
       <div className="max-w-2xl mx-auto px-4 -mt-3">
-        {/* Sort bar */}
+        {/* Sort bar + view toggle */}
         <div className="card p-3 mb-4 flex items-center gap-2">
           <SlidersHorizontal size={14} className="text-gray-400" />
           <span className="text-xs text-gray-500 mr-1">排序：</span>
@@ -74,13 +77,46 @@ export default function Category() {
               {opt.label}
             </button>
           ))}
+          {/* View mode toggle */}
+          <div className="ml-auto flex items-center bg-gray-100 rounded-full p-0.5">
+            <button
+              onClick={() => setViewMode('list')}
+              className={`flex items-center gap-1 text-xs px-2.5 py-1 rounded-full transition-colors ${
+                viewMode === 'list' ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-500'
+              }`}
+            >
+              <List size={13} /> 列表
+            </button>
+            <button
+              onClick={() => setViewMode('map')}
+              className={`flex items-center gap-1 text-xs px-2.5 py-1 rounded-full transition-colors ${
+                viewMode === 'map' ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-500'
+              }`}
+            >
+              <Map size={13} /> 地图
+            </button>
+          </div>
         </div>
 
         {/* Count */}
         <p className="text-xs text-gray-400 mb-3">共找到 {sorted.length} 个服务</p>
 
-        {/* Service list */}
-        {sorted.length === 0 ? (
+        {/* Map view */}
+        {viewMode === 'map' && (
+          <div className="mb-6">
+            <Suspense fallback={
+              <div className="w-full rounded-2xl border border-gray-200 bg-gray-50 flex items-center justify-center"
+                   style={{ height: '60vh', minHeight: 320 }}>
+                <p className="text-sm text-gray-400">地图加载中…</p>
+              </div>
+            }>
+              <ServiceMap services={sorted} />
+            </Suspense>
+          </div>
+        )}
+
+        {/* List view */}
+        {viewMode === 'list' && (sorted.length === 0 ? (
           <div className="text-center py-16 text-gray-400">
             <img src={category.image} alt={category.label} className="w-12 h-12 mx-auto mb-3 object-contain opacity-40" />
             <p>暂无此类服务</p>
@@ -111,7 +147,7 @@ export default function Category() {
               </motion.div>
             ))}
           </motion.div>
-        )}
+        ))}
       </div>
     </div>
   )

@@ -13,6 +13,7 @@ interface ServiceRow {
   price_type: 'hourly' | 'fixed' | 'negotiable' | null
   lat: number | null
   lng: number | null
+  address: string | null
   area: string | null
   service_areas: string[] | null
   city: string | null
@@ -78,7 +79,7 @@ function mapRow(row: ServiceRow): Service {
     location: {
       lat: row.lat ?? 43.6532,
       lng: row.lng ?? -79.3832,
-      address: row.area ?? 'Toronto',
+      address: row.address ?? row.area ?? 'Toronto',
       city: row.city ?? 'Toronto',
       area: row.area ?? undefined,
     },

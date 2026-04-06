@@ -7,6 +7,7 @@ import { ChevronLeft, CheckCircle, ImagePlus, X } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { useAuthStore } from '../../store/authStore'
 import { useSecondhandStore } from '../../store/secondhandStore'
+import LocationInput, { type LocationResult } from '../../components/LocationInput/LocationInput'
 import { compressImage, validateImageFile } from '../../lib/compressImage'
 import {
   SECONDHAND_CATEGORY_CONFIG, ITEM_CONDITION_CONFIG,
@@ -45,6 +46,7 @@ export default function PostListing() {
   const addItem  = useSecondhandStore((s) => s.addItem)
 
   const [form,        setForm]        = useState<FormState>(INITIAL)
+  const [location,    setLocation]    = useState<LocationResult | null>(null)
   const [images,      setImages]      = useState<File[]>([])
   const [previews,    setPreviews]    = useState<string[]>([])
   const [errors,      setErrors]      = useState<Partial<Record<keyof FormState | 'images', string>>>({})
@@ -159,6 +161,9 @@ export default function PostListing() {
       contact_wechat: form.contact_wechat.trim() || null,
       is_active:      true,
       is_sold:        false,
+      address:        location?.address ?? null,
+      lat:            location?.lat     ?? null,
+      lng:            location?.lng     ?? null,
     }
 
     const { data, error } = await supabase
@@ -378,6 +383,9 @@ export default function PostListing() {
           <Field label="微信号（选填）">
             <input value={form.contact_wechat} onChange={(e) => set('contact_wechat', e.target.value)}
               placeholder="微信号" className={input(false)} />
+          </Field>
+          <Field label="所在位置（选填）">
+            <LocationInput onChange={setLocation} />
           </Field>
         </Card>
 
