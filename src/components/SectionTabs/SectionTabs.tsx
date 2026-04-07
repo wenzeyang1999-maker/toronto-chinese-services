@@ -1,7 +1,7 @@
 // ─── Section Tabs ──────────────────────────────────────────────────────────────
 // Horizontal tab bar that sits between the search bar and category grid.
 // "找服务" is live; other sections show a "即将上线" placeholder.
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
 
@@ -36,6 +36,15 @@ export default function SectionTabs({ active, onChange, containerClassName }: Pr
   const scrollRef = useRef<HTMLDivElement>(null)
   const navigate  = useNavigate()
 
+  // Scroll active tab into view on mount (keeps position when navigating between pages)
+  useEffect(() => {
+    if (!scrollRef.current) return
+    const activeBtn = scrollRef.current.querySelector('[data-active="true"]') as HTMLElement | null
+    if (activeBtn) {
+      activeBtn.scrollIntoView({ behavior: 'instant', block: 'nearest', inline: 'center' })
+    }
+  }, [active])
+
   function handleClick(tab: Tab) {
     if (!tab.live) {
       setToastTab(tab.id)
@@ -62,6 +71,7 @@ export default function SectionTabs({ active, onChange, containerClassName }: Pr
           return (
             <button
               key={tab.id}
+              data-active={isActive}
               onClick={() => handleClick(tab)}
               className={`relative flex-shrink-0 flex items-center gap-1.5 md:gap-2.5
                           px-3 py-2 md:px-4 md:py-2.5
