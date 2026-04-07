@@ -37,8 +37,8 @@ export default function Category() {
       <Header />
 
       {/* Category hero — compact */}
-      <div className={`${category.bgColor} px-4 pt-3 pb-4`}>
-        <div className="max-w-2xl mx-auto">
+      <div className={`${category.bgColor} pt-3 pb-4`}>
+        <div className="w-full px-3 md:w-[85%] md:px-0 lg:w-[70%] mx-auto">
           <button
             onClick={() => navigate(-1)}
             className="flex items-center gap-1 text-gray-600 mb-2 hover:text-gray-900"
@@ -71,7 +71,7 @@ export default function Category() {
 
       <InquiryModal open={inquiryOpen} onClose={() => setInquiryOpen(false)} />
 
-      <div className="max-w-2xl mx-auto px-4 -mt-3">
+      <div className="w-full px-3 md:w-[85%] md:px-0 lg:w-[70%] mx-auto px-4 -mt-3">
         {/* Sort bar + view toggle */}
         <div className="card p-3 mb-4 flex items-center gap-2">
           <SlidersHorizontal size={14} className="text-gray-400" />
