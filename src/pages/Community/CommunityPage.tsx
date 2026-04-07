@@ -71,11 +71,17 @@ export default function CommunityPage() {
     const countMap: Record<string, number> = {}
     counts?.forEach((c: any) => { countMap[c.post_id] = (countMap[c.post_id] ?? 0) + 1 })
 
-    setPosts(data.map((p: any) => ({
+    const mapped = data.map((p: any) => ({
       ...p,
       author:        Array.isArray(p.author) ? p.author[0] : p.author,
       comment_count: countMap[p.id] ?? 0,
-    })))
+    }))
+    // Shuffle so feed looks different on each visit
+    for (let i = mapped.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [mapped[i], mapped[j]] = [mapped[j], mapped[i]]
+    }
+    setPosts(mapped)
     setLoading(false)
   }
 
@@ -131,7 +137,7 @@ export default function CommunityPage() {
       <div className="w-full px-3 md:w-[85%] md:px-0 lg:w-[70%] mx-auto pt-4">
         {loading ? (
           // Skeleton
-          <div style={{ columns: '2', columnGap: '10px' }}>
+          <div style={{ columns: '220px', columnGap: '10px' }}>
             {Array.from({ length: 6 }).map((_, i) => (
               <div key={i} className="break-inside-avoid mb-2.5 bg-white rounded-2xl overflow-hidden animate-pulse"
                 style={{ height: i % 3 === 0 ? 240 : i % 3 === 1 ? 180 : 300 }}>
@@ -156,7 +162,7 @@ export default function CommunityPage() {
           </div>
         ) : (
           // CSS columns = masonry without JS
-          <div style={{ columns: '2', columnGap: '10px' }}>
+          <div style={{ columns: '220px', columnGap: '10px' }}>
             {posts.map((post, i) => {
               const tc      = POST_TYPE_CONFIG[post.type]
               const hasImg  = (post.images?.length ?? 0) > 0
