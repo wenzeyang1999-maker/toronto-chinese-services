@@ -1,12 +1,13 @@
 // ─── Community Page ───────────────────────────────────────────────────────────
 // Route: /community
-// Browse and create community posts, filterable by area + type.
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { PenSquare, MessageCircle, Heart, ChevronRight } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { useAuthStore } from '../../store/authStore'
+import Header from '../../components/Header/Header'
+import SectionTabs from '../../components/SectionTabs/SectionTabs'
 
 // ── Config ────────────────────────────────────────────────────────────────────
 
@@ -48,9 +49,7 @@ export default function CommunityPage() {
   const [typeFilter,  setTypeFilter]  = useState<string>('all')
   const [areaFilter,  setAreaFilter]  = useState<string>('all')
 
-  useEffect(() => {
-    load()
-  }, [typeFilter, areaFilter])
+  useEffect(() => { load() }, [typeFilter, areaFilter])
 
   async function load() {
     setLoading(true)
@@ -66,7 +65,6 @@ export default function CommunityPage() {
     const { data } = await q
     if (!data) { setLoading(false); return }
 
-    // Fetch comment counts in parallel
     const ids = data.map((p: any) => p.id)
     const { data: counts } = await supabase
       .from('community_comments')
@@ -86,38 +84,42 @@ export default function CommunityPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 pb-24">
+      <Header />
 
-      {/* Header */}
-      <div className="sticky top-0 z-20 bg-white border-b border-gray-100">
-        <div className="max-w-2xl mx-auto px-4 h-14 flex items-center justify-between">
-          <h1 className="text-base font-bold text-gray-800">社区圈子</h1>
-          {user && (
-            <button onClick={() => navigate('/community/post')}
-              className="flex items-center gap-1.5 bg-primary-600 hover:bg-primary-700
-                         text-white text-sm font-semibold px-3 py-1.5 rounded-full transition-colors">
-              <PenSquare size={14} />
-              发帖
-            </button>
-          )}
+      {/* Section tabs — same as Jobs/Secondhand/Events */}
+      <div className="bg-white border-b border-gray-100 sticky top-0 z-20">
+        <div className="w-full px-3 md:w-[85%] md:px-0 lg:w-[70%] mx-auto">
+          <SectionTabs active="community" onChange={() => {}} containerClassName="px-0" />
         </div>
+      </div>
 
-        {/* Type filter */}
-        <div className="max-w-2xl mx-auto px-4 pb-3">
-          <div className="flex gap-2 overflow-x-auto scrollbar-hide">
-            {[['all', '全部', '📋'], ...Object.entries(POST_TYPE_CONFIG).map(([k, v]) => [k, v.label, v.emoji])].map(([key, label, emoji]) => (
-              <button key={key} onClick={() => setTypeFilter(key)}
-                className={`flex-shrink-0 flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-semibold
-                            border transition-all ${typeFilter === key
-                              ? 'bg-primary-600 text-white border-primary-600'
-                              : 'bg-white text-gray-600 border-gray-200 hover:border-primary-300'}`}>
-                <span>{emoji}</span>{label}
+      {/* Filters + post button */}
+      <div className="bg-white border-b border-gray-100">
+        <div className="w-full px-3 md:w-[85%] md:px-0 lg:w-[70%] mx-auto py-3 space-y-2.5">
+          {/* Top row: type filters + 发帖 button */}
+          <div className="flex items-center gap-2">
+            <div className="flex gap-2 overflow-x-auto scrollbar-hide flex-1">
+              {[['all', '全部', '📋'], ...Object.entries(POST_TYPE_CONFIG).map(([k, v]) => [k, v.label, v.emoji])].map(([key, label, emoji]) => (
+                <button key={key} onClick={() => setTypeFilter(key)}
+                  className={`flex-shrink-0 flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-semibold
+                              border transition-all ${typeFilter === key
+                                ? 'bg-primary-600 text-white border-primary-600'
+                                : 'bg-white text-gray-600 border-gray-200 hover:border-primary-300'}`}>
+                  <span>{emoji}</span>{label}
+                </button>
+              ))}
+            </div>
+            {user && (
+              <button onClick={() => navigate('/community/post')}
+                className="flex-shrink-0 flex items-center gap-1.5 bg-primary-600 hover:bg-primary-700
+                           text-white text-sm font-semibold px-3 py-1.5 rounded-xl transition-colors">
+                <PenSquare size={14} />
+                发帖
               </button>
-            ))}
+            )}
           </div>
-        </div>
 
-        {/* Area filter */}
-        <div className="max-w-2xl mx-auto px-4 pb-3">
+          {/* Area filter */}
           <div className="flex gap-2 overflow-x-auto scrollbar-hide">
             {[['all', '全部地区'], ...Object.entries(AREA_CONFIG)].map(([key, label]) => (
               <button key={key} onClick={() => setAreaFilter(key)}
@@ -133,7 +135,7 @@ export default function CommunityPage() {
       </div>
 
       {/* Posts */}
-      <div className="max-w-2xl mx-auto px-4 pt-4 space-y-3">
+      <div className="w-full px-3 md:w-[85%] md:px-0 lg:w-[70%] mx-auto pt-4 space-y-3">
         {loading ? (
           Array.from({ length: 4 }).map((_, i) => (
             <div key={i} className="bg-white rounded-2xl p-4 animate-pulse">
@@ -164,7 +166,6 @@ export default function CommunityPage() {
                   className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 cursor-pointer
                              hover:border-primary-200 hover:shadow-md transition-all active:scale-[0.99]"
                 >
-                  {/* Top row */}
                   <div className="flex items-center gap-2 mb-2">
                     {post.author?.avatar_url ? (
                       <img src={post.author.avatar_url} alt={post.author.name}
@@ -181,13 +182,9 @@ export default function CommunityPage() {
                     </span>
                   </div>
 
-                  {/* Title */}
                   <h3 className="text-sm font-semibold text-gray-800 mb-1 line-clamp-2">{post.title}</h3>
-
-                  {/* Content preview */}
                   <p className="text-xs text-gray-500 line-clamp-2 leading-relaxed mb-3">{post.content}</p>
 
-                  {/* Bottom row */}
                   <div className="flex items-center gap-3 text-xs text-gray-400">
                     <span className="bg-gray-50 px-2 py-0.5 rounded-full border border-gray-100">
                       📍 {AREA_CONFIG[post.area] ?? post.area}
