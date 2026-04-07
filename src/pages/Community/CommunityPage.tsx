@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { Heart, MessageCircle, PenSquare } from 'lucide-react'
+import { Heart, MessageCircle, Plus } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { useAuthStore } from '../../store/authStore'
 import Header from '../../components/Header/Header'
@@ -99,25 +99,16 @@ export default function CommunityPage() {
       {/* Filters */}
       <div className="bg-white border-b border-gray-100">
         <div className="w-full px-3 md:w-[85%] md:px-0 lg:w-[70%] mx-auto py-2.5 space-y-2">
-          <div className="flex items-center gap-2">
-            <div className="flex gap-2 overflow-x-auto scrollbar-hide flex-1">
-              {[['all', '全部', '📋'], ...Object.entries(POST_TYPE_CONFIG).map(([k, v]) => [k, v.label, v.emoji])].map(([key, label, emoji]) => (
-                <button key={key} onClick={() => setTypeFilter(key)}
-                  className={`flex-shrink-0 flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-semibold
-                              border transition-all ${typeFilter === key
-                                ? 'bg-primary-600 text-white border-primary-600'
-                                : 'bg-white text-gray-600 border-gray-200 hover:border-primary-300'}`}>
-                  <span>{emoji}</span>{label}
-                </button>
-              ))}
-            </div>
-            {user && (
-              <button onClick={() => navigate('/community/post')}
-                className="flex-shrink-0 flex items-center gap-1.5 bg-primary-600 hover:bg-primary-700
-                           text-white text-sm font-semibold px-3 py-1.5 rounded-xl transition-colors">
-                <PenSquare size={14} /> 发帖
+          <div className="flex gap-2 overflow-x-auto scrollbar-hide">
+            {[['all', '全部', '📋'], ...Object.entries(POST_TYPE_CONFIG).map(([k, v]) => [k, v.label, v.emoji])].map(([key, label, emoji]) => (
+              <button key={key} onClick={() => setTypeFilter(key)}
+                className={`flex-shrink-0 flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-semibold
+                            border transition-all ${typeFilter === key
+                              ? 'bg-primary-600 text-white border-primary-600'
+                              : 'bg-white text-gray-600 border-gray-200 hover:border-primary-300'}`}>
+                <span>{emoji}</span>{label}
               </button>
-            )}
+            ))}
           </div>
           <div className="flex gap-2 overflow-x-auto scrollbar-hide">
             {[['all', '全部地区'], ...Object.entries(AREA_CONFIG)].map(([key, label]) => (
@@ -132,6 +123,20 @@ export default function CommunityPage() {
           </div>
         </div>
       </div>
+
+      {/* FAB — 发帖 */}
+      {user && (
+        <button
+          onClick={() => navigate('/community/post')}
+          className="fixed bottom-24 right-5 z-30 flex items-center gap-2
+                     bg-primary-600 hover:bg-primary-700 active:scale-95
+                     text-white font-semibold rounded-full shadow-lg
+                     px-4 py-3 transition-all"
+        >
+          <Plus size={18} />
+          <span className="text-sm">发帖</span>
+        </button>
+      )}
 
       {/* Waterfall grid */}
       <div className="w-full px-3 md:w-[85%] md:px-0 lg:w-[70%] mx-auto pt-4">
