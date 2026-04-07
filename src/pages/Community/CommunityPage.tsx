@@ -128,7 +128,7 @@ export default function CommunityPage() {
       {user && (
         <button
           onClick={() => navigate('/community/post')}
-          className="fixed bottom-24 right-5 z-30 flex items-center gap-2
+          className="fixed bottom-8 left-5 z-30 flex items-center gap-2
                      bg-primary-600 hover:bg-primary-700 active:scale-95
                      text-white font-semibold rounded-full shadow-lg
                      px-4 py-3 transition-all"
