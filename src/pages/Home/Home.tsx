@@ -11,6 +11,7 @@ import { useAppStore } from '../../store/appStore'
 import { useGeolocation } from '../../hooks/useGeolocation'
 import { ChevronRight, MapPin, Sparkles } from 'lucide-react'
 import RecentCategories from '../../components/RecentCategories/RecentCategories'
+import RecommendedServices from '../../components/RecommendedServices/RecommendedServices'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 
 export default function Home() {
@@ -133,6 +134,9 @@ export default function Home() {
             ))}
           </div>
         </motion.section>
+
+        {/* Recommended for you */}
+        <RecommendedServices />
 
         {/* Post CTA */}
         <motion.div
