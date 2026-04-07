@@ -31,7 +31,7 @@ export default function Home() {
     if (searchParams.get('from') !== 'tabs') return
     const scroll = () => {
       if (!searchRef.current) return
-      const top = searchRef.current.getBoundingClientRect().top + window.scrollY - 60
+      const top = searchRef.current.getBoundingClientRect().top + window.scrollY - 110
       window.scrollTo({ top, behavior: 'smooth' })
     }
     // Small delay ensures the page has painted before scrolling
