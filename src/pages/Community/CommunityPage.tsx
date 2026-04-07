@@ -128,16 +128,15 @@ export default function CommunityPage() {
       {user && (
         <button
           onClick={() => navigate('/community/post')}
-          className="fixed bottom-8 left-5 z-30 flex items-center gap-2
-                     text-white text-sm font-semibold rounded-2xl
-                     px-5 py-3 active:scale-95 transition-all duration-200"
+          className="fixed bottom-8 left-5 z-30 w-14 h-14 rounded-full
+                     flex items-center justify-center
+                     text-white active:scale-90 transition-all duration-200"
           style={{
-            background: 'linear-gradient(135deg, #e63946 0%, #c1121f 100%)',
-            boxShadow: '0 8px 24px rgba(230,57,70,0.45), 0 2px 8px rgba(0,0,0,0.12)',
+            background: 'linear-gradient(145deg, #e63946 0%, #c1121f 100%)',
+            boxShadow: '0 12px 32px rgba(230,57,70,0.5), 0 4px 12px rgba(0,0,0,0.15)',
           }}
         >
-          <Plus size={16} strokeWidth={2.5} />
-          <span>发布帖子</span>
+          <Plus size={28} strokeWidth={2} />
         </button>
       )}
 
