@@ -26,13 +26,18 @@ export default function Home() {
   const [searchQuery, setSearchQuery] = useState('')
   const searchRef = useRef<HTMLDivElement>(null)
 
-  // If navigated here from another tab, skip carousel and scroll to search bar
+  // When clicking "找服务" tab, skip carousel and jump to search bar
   useEffect(() => {
-    if (searchParams.get('from') === 'tabs' && searchRef.current) {
-      const top = searchRef.current.getBoundingClientRect().top + window.scrollY + 60
-      window.scrollTo({ top, behavior: 'instant' })
+    if (searchParams.get('from') !== 'tabs') return
+    const scroll = () => {
+      if (!searchRef.current) return
+      const top = searchRef.current.getBoundingClientRect().top + window.scrollY - 60
+      window.scrollTo({ top, behavior: 'smooth' })
     }
-  }, [])
+    // Small delay ensures the page has painted before scrolling
+    const t = setTimeout(scroll, 50)
+    return () => clearTimeout(t)
+  }, [searchParams])
 
   const handleSearch = (kw: string) => {
     if (!kw.trim()) return
