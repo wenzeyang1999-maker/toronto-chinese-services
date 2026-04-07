@@ -73,7 +73,7 @@ export default function ServiceCard({ service }: Props) {
         </p>
 
         {/* Bottom row: provider + category + rating + area */}
-        <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex items-center gap-2 min-w-0 overflow-hidden">
           {/* Category pill */}
           <span className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full
                             text-[10px] font-semibold bg-gray-100 ${cat?.color ?? 'text-gray-500'}`}>
@@ -105,11 +105,13 @@ export default function ServiceCard({ service }: Props) {
             </div>
           )}
 
-          {/* Area */}
+          {/* Area — show only first region to avoid overflow */}
           {service.location?.area && (
             <div className="flex items-center gap-0.5 text-gray-400 ml-auto flex-shrink-0">
               <MapPin size={9} />
-              <span className="text-[11px]">{service.location.area}</span>
+              <span className="text-[11px] truncate max-w-[90px]">
+                {service.location.area.split(/[、,]/)[0].trim()}
+              </span>
             </div>
           )}
         </div>
