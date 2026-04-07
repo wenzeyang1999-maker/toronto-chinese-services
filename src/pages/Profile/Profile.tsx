@@ -44,7 +44,7 @@ export default function Profile() {
   const [searchParams] = useSearchParams()
   const user     = useAuthStore((s) => s.user)
 
-  const VALID_SECTIONS = ['account','verification','membership','services','saves','follows','stats','community','messages','browse','chat','referral']
+  const VALID_SECTIONS = MENU.map((m) => m.key)
 
   const [section, setSection] = useState<Section | null>(() => {
     const param = searchParams.get('section') as Section | null
@@ -74,23 +74,20 @@ export default function Profile() {
 
   useEffect(() => {
     if (!user) return
-    supabase.from('users').select('name, phone, avatar_url').eq('id', user.id).single()
-      .then(({ data }) => {
-        if (data) {
-          setName(data.name ?? user.user_metadata?.name ?? '用户')
-          setPhone(data.phone ?? user.user_metadata?.phone ?? '')
-          setAvatarUrl(data.avatar_url ?? null)
-        }
-      })
-    supabase.from('users').select('membership_level, membership_expires_at').eq('id', user.id).single()
+    supabase.from('users')
+      .select('name, phone, avatar_url, membership_level, membership_expires_at')
+      .eq('id', user.id).single()
       .then(({ data }) => {
         if (!data) return
+        setName(data.name ?? user.user_metadata?.name ?? '用户')
+        setPhone(data.phone ?? user.user_metadata?.phone ?? '')
+        setAvatarUrl(data.avatar_url ?? null)
         const expiry = data.membership_expires_at ? new Date(data.membership_expires_at) : null
         const isActive = !!(expiry && expiry > new Date())
         setMemberLevel(isActive ? (data.membership_level as MemberLevel) ?? 'L1' : 'L1')
         setMemberExpiresAt(data.membership_expires_at ?? null)
       })
-try { setBrowse(JSON.parse(localStorage.getItem('tcs_browse_history') ?? '[]')) } catch { /* */ }
+    try { setBrowse(JSON.parse(localStorage.getItem('tcs_browse_history') ?? '[]')) } catch { /* */ }
   }, [user])
 
   if (!user) return null

@@ -409,7 +409,7 @@ export default function PostService() {
       if (serviceTypeName) {
         await supabase.from('service_types').upsert(
           { name: serviceTypeName, category_id: form.category, usage_count: 1 },
-          { onConflict: 'name', ignoreDuplicates: false }
+          { onConflict: 'name', ignoreDuplicates: true }
         )
       }
 

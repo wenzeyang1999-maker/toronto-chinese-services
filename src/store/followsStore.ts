@@ -46,13 +46,20 @@ export const useFollowsStore = create<FollowsState>((set, get) => ({
     })
 
     if (already) {
-      await supabase.from('follows')
+      const { error } = await supabase.from('follows')
         .delete()
         .eq('follower_id', userId)
         .eq('provider_id', providerId)
+      if (error) {
+        set(s => { const next = new Set(s.following); next.add(providerId); return { following: next } })
+      }
     } else {
-      await supabase.from('follows')
+      const { error } = await supabase.from('follows')
         .insert({ follower_id: userId, provider_id: providerId })
+      if (error) {
+        set(s => { const next = new Set(s.following); next.delete(providerId); return { following: next } })
+        return
+      }
 
       // Notify provider — fetch both users' info in parallel
       const [followerRes, providerRes] = await Promise.all([

@@ -40,7 +40,6 @@ interface AppState {
   userLocation: { lat: number; lng: number } | null
   searchFilters: SearchFilters
   isLoadingDone: boolean
-  isServicesReady: boolean
 
   setLoadingDone: () => void
   setUserLocation: (loc: { lat: number; lng: number } | null) => void
@@ -111,7 +110,6 @@ export const useAppStore = create<AppState>((set, get) => ({
   userLocation: null,
   searchFilters: { sortBy: 'distance' },
   isLoadingDone: false,
-  isServicesReady: false,
 
   setLoadingDone: () => set({ isLoadingDone: true }),
 
@@ -132,10 +130,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       .eq('is_available', true)
       .order('created_at', { ascending: false })
     if (!error && data) {
-      set({ services: (data as ServiceRow[]).map(mapRow), isServicesReady: true })
-    } else {
-      // Mark ready even on error so loading screen doesn't hang
-      set({ isServicesReady: true })
+      set({ services: (data as ServiceRow[]).map(mapRow) })
     }
   },
 
