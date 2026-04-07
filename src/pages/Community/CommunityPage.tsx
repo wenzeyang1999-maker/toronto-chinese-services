@@ -129,12 +129,15 @@ export default function CommunityPage() {
         <button
           onClick={() => navigate('/community/post')}
           className="fixed bottom-8 left-5 z-30 flex items-center gap-2
-                     bg-primary-600 hover:bg-primary-700 active:scale-95
-                     text-white font-semibold rounded-full shadow-lg
-                     px-4 py-3 transition-all"
+                     text-white text-sm font-semibold rounded-2xl
+                     px-5 py-3 active:scale-95 transition-all duration-200"
+          style={{
+            background: 'linear-gradient(135deg, #e63946 0%, #c1121f 100%)',
+            boxShadow: '0 8px 24px rgba(230,57,70,0.45), 0 2px 8px rgba(0,0,0,0.12)',
+          }}
         >
-          <Plus size={18} />
-          <span className="text-sm">发帖</span>
+          <Plus size={16} strokeWidth={2.5} />
+          <span>发布帖子</span>
         </button>
       )}
 
