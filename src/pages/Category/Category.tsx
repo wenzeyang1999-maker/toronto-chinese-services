@@ -48,11 +48,11 @@ export default function Category() {
           </button>
 
           <div className="flex items-center justify-between gap-3">
-            <div className="flex items-center gap-2.5">
-              <img src={category.image} alt={category.label} className="w-10 h-10 object-contain" />
-              <div>
-                <h1 className={`text-lg font-bold leading-tight ${category.color}`}>{category.label}</h1>
-                <p className="text-gray-500 text-xs">{category.description}</p>
+            <div className="flex items-center gap-3">
+              <img src={category.image} alt={category.label} className="w-10 h-10 object-contain flex-shrink-0" />
+              <div className="flex items-baseline gap-2">
+                <h1 className={`text-xl font-bold leading-none ${category.color}`}>{category.label}</h1>
+                <p className="text-gray-400 text-xs">{category.description}</p>
               </div>
             </div>
             {/* AI 帮你找 */}
@@ -71,7 +71,7 @@ export default function Category() {
 
       <InquiryModal open={inquiryOpen} onClose={() => setInquiryOpen(false)} />
 
-      <div className="w-full px-3 md:w-[85%] md:px-0 lg:w-[70%] mx-auto px-4 -mt-3">
+      <div className="w-full px-3 md:w-[85%] md:px-0 lg:w-[70%] mx-auto mt-4">
         {/* Sort bar + view toggle */}
         <div className="card p-3 mb-4 flex items-center gap-2">
           <SlidersHorizontal size={14} className="text-gray-400" />
