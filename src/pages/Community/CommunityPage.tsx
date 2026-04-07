@@ -1,15 +1,13 @@
-// ─── Community Page ───────────────────────────────────────────────────────────
+// ─── Community Page (瀑布流 / 小红书风格) ────────────────────────────────────
 // Route: /community
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { motion, AnimatePresence } from 'framer-motion'
-import { PenSquare, MessageCircle, Heart, ChevronRight } from 'lucide-react'
+import { motion } from 'framer-motion'
+import { Heart, MessageCircle, PenSquare } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { useAuthStore } from '../../store/authStore'
 import Header from '../../components/Header/Header'
 import SectionTabs from '../../components/SectionTabs/SectionTabs'
-
-// ── Config ────────────────────────────────────────────────────────────────────
 
 export const POST_TYPE_CONFIG: Record<string, { label: string; emoji: string; color: string }> = {
   recommend:   { label: '求推荐', emoji: '🙏', color: 'bg-blue-50 text-blue-600 border-blue-200' },
@@ -36,18 +34,19 @@ interface Post {
   area: string
   like_count: number
   created_at: string
+  images: string[] | null
   author: { id: string; name: string; avatar_url: string | null } | null
   comment_count: number
 }
 
 export default function CommunityPage() {
-  const navigate  = useNavigate()
-  const user      = useAuthStore((s) => s.user)
+  const navigate = useNavigate()
+  const user     = useAuthStore((s) => s.user)
 
-  const [posts,       setPosts]       = useState<Post[]>([])
-  const [loading,     setLoading]     = useState(true)
-  const [typeFilter,  setTypeFilter]  = useState<string>('all')
-  const [areaFilter,  setAreaFilter]  = useState<string>('all')
+  const [posts,      setPosts]      = useState<Post[]>([])
+  const [loading,    setLoading]    = useState(true)
+  const [typeFilter, setTypeFilter] = useState<string>('all')
+  const [areaFilter, setAreaFilter] = useState<string>('all')
 
   useEffect(() => { load() }, [typeFilter, areaFilter])
 
@@ -55,7 +54,7 @@ export default function CommunityPage() {
     setLoading(true)
     let q = supabase
       .from('community_posts')
-      .select('id, title, content, type, area, like_count, created_at, author:author_id(id, name, avatar_url)')
+      .select('id, title, content, type, area, like_count, created_at, images, author:author_id(id, name, avatar_url)')
       .order('created_at', { ascending: false })
       .limit(50)
 
@@ -67,9 +66,7 @@ export default function CommunityPage() {
 
     const ids = data.map((p: any) => p.id)
     const { data: counts } = await supabase
-      .from('community_comments')
-      .select('post_id')
-      .in('post_id', ids)
+      .from('community_comments').select('post_id').in('post_id', ids)
 
     const countMap: Record<string, number> = {}
     counts?.forEach((c: any) => { countMap[c.post_id] = (countMap[c.post_id] ?? 0) + 1 })
@@ -86,17 +83,16 @@ export default function CommunityPage() {
     <div className="min-h-screen bg-gray-50 pb-24">
       <Header />
 
-      {/* Section tabs — same as Jobs/Secondhand/Events */}
+      {/* Section tabs */}
       <div className="bg-white border-b border-gray-100 sticky top-0 z-20">
         <div className="w-full px-3 md:w-[85%] md:px-0 lg:w-[70%] mx-auto">
           <SectionTabs active="community" onChange={() => {}} containerClassName="px-0" />
         </div>
       </div>
 
-      {/* Filters + post button */}
+      {/* Filters */}
       <div className="bg-white border-b border-gray-100">
-        <div className="w-full px-3 md:w-[85%] md:px-0 lg:w-[70%] mx-auto py-3 space-y-2.5">
-          {/* Top row: type filters + 发帖 button */}
+        <div className="w-full px-3 md:w-[85%] md:px-0 lg:w-[70%] mx-auto py-2.5 space-y-2">
           <div className="flex items-center gap-2">
             <div className="flex gap-2 overflow-x-auto scrollbar-hide flex-1">
               {[['all', '全部', '📋'], ...Object.entries(POST_TYPE_CONFIG).map(([k, v]) => [k, v.label, v.emoji])].map(([key, label, emoji]) => (
@@ -113,18 +109,15 @@ export default function CommunityPage() {
               <button onClick={() => navigate('/community/post')}
                 className="flex-shrink-0 flex items-center gap-1.5 bg-primary-600 hover:bg-primary-700
                            text-white text-sm font-semibold px-3 py-1.5 rounded-xl transition-colors">
-                <PenSquare size={14} />
-                发帖
+                <PenSquare size={14} /> 发帖
               </button>
             )}
           </div>
-
-          {/* Area filter */}
           <div className="flex gap-2 overflow-x-auto scrollbar-hide">
             {[['all', '全部地区'], ...Object.entries(AREA_CONFIG)].map(([key, label]) => (
               <button key={key} onClick={() => setAreaFilter(key)}
-                className={`flex-shrink-0 px-3 py-1 rounded-full text-xs font-medium
-                            border transition-all ${areaFilter === key
+                className={`flex-shrink-0 px-3 py-1 rounded-full text-xs font-medium border transition-all
+                            ${areaFilter === key
                               ? 'bg-gray-800 text-white border-gray-800'
                               : 'bg-white text-gray-500 border-gray-200 hover:border-gray-400'}`}>
                 {label}
@@ -134,17 +127,24 @@ export default function CommunityPage() {
         </div>
       </div>
 
-      {/* Posts */}
-      <div className="w-full px-3 md:w-[85%] md:px-0 lg:w-[70%] mx-auto pt-4 space-y-3">
+      {/* Waterfall grid */}
+      <div className="w-full px-3 md:w-[85%] md:px-0 lg:w-[70%] mx-auto pt-4">
         {loading ? (
-          Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="bg-white rounded-2xl p-4 animate-pulse">
-              <div className="h-4 bg-gray-100 rounded w-3/4 mb-2" />
-              <div className="h-3 bg-gray-100 rounded w-1/2" />
-            </div>
-          ))
+          // Skeleton
+          <div style={{ columns: '2', columnGap: '10px' }}>
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="break-inside-avoid mb-2.5 bg-white rounded-2xl overflow-hidden animate-pulse"
+                style={{ height: i % 3 === 0 ? 240 : i % 3 === 1 ? 180 : 300 }}>
+                <div className="w-full h-3/4 bg-gray-100" />
+                <div className="p-2.5 space-y-1.5">
+                  <div className="h-3 bg-gray-100 rounded w-4/5" />
+                  <div className="h-2.5 bg-gray-100 rounded w-2/3" />
+                </div>
+              </div>
+            ))}
+          </div>
         ) : posts.length === 0 ? (
-          <div className="text-center py-16 text-gray-400">
+          <div className="text-center py-20 text-gray-400">
             <p className="text-4xl mb-3">🌱</p>
             <p className="text-sm">还没有帖子，来发第一条吧</p>
             {user && (
@@ -155,53 +155,80 @@ export default function CommunityPage() {
             )}
           </div>
         ) : (
-          <AnimatePresence>
+          // CSS columns = masonry without JS
+          <div style={{ columns: '2', columnGap: '10px' }}>
             {posts.map((post, i) => {
-              const tc = POST_TYPE_CONFIG[post.type]
+              const tc      = POST_TYPE_CONFIG[post.type]
+              const hasImg  = (post.images?.length ?? 0) > 0
+              const coverImg = post.images?.[0]
+
               return (
-                <motion.div key={post.id}
-                  initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
+                <motion.div
+                  key={post.id}
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: i * 0.03 }}
                   onClick={() => navigate(`/community/${post.id}`)}
-                  className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 cursor-pointer
-                             hover:border-primary-200 hover:shadow-md transition-all active:scale-[0.99]"
+                  className="break-inside-avoid mb-2.5 bg-white rounded-2xl overflow-hidden
+                             cursor-pointer hover:shadow-md transition-shadow active:scale-[0.98]"
                 >
-                  <div className="flex items-center gap-2 mb-2">
-                    {post.author?.avatar_url ? (
-                      <img src={post.author.avatar_url} alt={post.author.name}
-                        className="w-7 h-7 rounded-full object-cover flex-shrink-0" />
-                    ) : (
-                      <div className="w-7 h-7 rounded-full bg-gradient-to-br from-primary-400 to-primary-600
-                                      flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
-                        {post.author?.name?.charAt(0) ?? '?'}
-                      </div>
+                  {/* Cover image */}
+                  {hasImg && (
+                    <img
+                      src={coverImg}
+                      alt={post.title}
+                      loading="lazy"
+                      className="w-full object-cover"
+                      style={{ display: 'block' }}
+                    />
+                  )}
+
+                  {/* No image — show type emoji as placeholder */}
+                  {!hasImg && (
+                    <div className="w-full py-6 flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100">
+                      <span className="text-4xl opacity-60">{tc?.emoji ?? '💬'}</span>
+                    </div>
+                  )}
+
+                  {/* Content */}
+                  <div className="px-3 pt-2 pb-3">
+                    <p className="text-sm font-semibold text-gray-900 line-clamp-2 leading-snug mb-2">
+                      {post.title}
+                    </p>
+                    {!hasImg && (
+                      <p className="text-xs text-gray-400 line-clamp-2 leading-relaxed mb-2">
+                        {post.content}
+                      </p>
                     )}
-                    <span className="text-xs text-gray-500 font-medium">{post.author?.name ?? '匿名'}</span>
-                    <span className={`ml-auto flex items-center gap-0.5 text-xs font-semibold px-2 py-0.5 rounded-full border ${tc?.color}`}>
-                      {tc?.emoji} {tc?.label}
-                    </span>
-                  </div>
 
-                  <h3 className="text-sm font-semibold text-gray-800 mb-1 line-clamp-2">{post.title}</h3>
-                  <p className="text-xs text-gray-500 line-clamp-2 leading-relaxed mb-3">{post.content}</p>
-
-                  <div className="flex items-center gap-3 text-xs text-gray-400">
-                    <span className="bg-gray-50 px-2 py-0.5 rounded-full border border-gray-100">
-                      📍 {AREA_CONFIG[post.area] ?? post.area}
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <MessageCircle size={11} /> {post.comment_count}
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <Heart size={11} /> {post.like_count}
-                    </span>
-                    <span className="ml-auto">{post.created_at.slice(0, 10)}</span>
-                    <ChevronRight size={13} className="text-gray-300" />
+                    {/* Author + likes */}
+                    <div className="flex items-center gap-1.5">
+                      {post.author?.avatar_url ? (
+                        <img src={post.author.avatar_url} alt=""
+                          className="w-5 h-5 rounded-full object-cover flex-shrink-0" />
+                      ) : (
+                        <div className="w-5 h-5 rounded-full bg-gradient-to-br from-primary-400 to-primary-600
+                                        flex items-center justify-center text-white text-[9px] font-bold flex-shrink-0">
+                          {post.author?.name?.charAt(0) ?? '?'}
+                        </div>
+                      )}
+                      <span className="text-[11px] text-gray-400 truncate flex-1">
+                        {post.author?.name ?? '匿名'}
+                      </span>
+                      <span className="flex items-center gap-0.5 text-[11px] text-gray-400 flex-shrink-0">
+                        <Heart size={11} className="text-gray-300" />
+                        {post.like_count}
+                      </span>
+                      <span className="flex items-center gap-0.5 text-[11px] text-gray-400 flex-shrink-0">
+                        <MessageCircle size={11} className="text-gray-300" />
+                        {post.comment_count}
+                      </span>
+                    </div>
                   </div>
                 </motion.div>
               )
             })}
-          </AnimatePresence>
+          </div>
         )}
       </div>
     </div>
