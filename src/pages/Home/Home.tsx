@@ -127,7 +127,7 @@ export default function Home() {
             </button>
           </div>
 
-          <div className="grid gap-3" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(400px, 1fr))' }}>
+          <div className="flex flex-col gap-2">
             {recent.map((svc) => (
               <ServiceCard key={svc.id} service={svc} />
             ))}

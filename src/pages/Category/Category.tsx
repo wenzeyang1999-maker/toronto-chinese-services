@@ -131,15 +131,14 @@ export default function Category() {
           <motion.div
             initial="hidden"
             animate="show"
-            variants={{ show: { transition: { staggerChildren: 0.06 } } }}
-            className="grid gap-3 mb-6"
-            style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(400px, 1fr))' }}
+            variants={{ show: { transition: { staggerChildren: 0.04 } } }}
+            className="flex flex-col gap-2 mb-6"
           >
             {sorted.map((svc) => (
               <motion.div
                 key={svc.id}
                 variants={{
-                  hidden: { opacity: 0, y: 16 },
+                  hidden: { opacity: 0, y: 10 },
                   show: { opacity: 1, y: 0 },
                 }}
               >
