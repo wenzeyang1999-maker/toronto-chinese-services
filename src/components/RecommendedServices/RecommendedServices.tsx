@@ -33,27 +33,18 @@ export default function RecommendedServices() {
       }
     } catch { /* ignore */ }
 
-    const available = services.filter((s) => s.available)
+    // Sort once by rating; partition into browsed-category vs. rest
+    const byRating = [...services]
+      .filter((s) => s.available)
+      .sort((a, b) => b.provider.rating - a.provider.rating)
 
     if (recentCats.length > 0) {
-      // 2a. Collect services from browsed categories, sorted by rating
-      const inCats = available
-        .filter((s) => recentCats.includes(s.category))
-        .sort((a, b) => b.provider.rating - a.provider.rating)
-
-      // 2b. Pad with other services if not enough
-      if (inCats.length >= MAX) return inCats.slice(0, MAX)
-
-      const rest = available
-        .filter((s) => !recentCats.includes(s.category))
-        .sort((a, b) => b.provider.rating - a.provider.rating)
+      const inCats = byRating.filter((s) =>  recentCats.includes(s.category))
+      const rest   = byRating.filter((s) => !recentCats.includes(s.category))
       return [...inCats, ...rest].slice(0, MAX)
     }
 
-    // 3. Fallback: top-rated across all categories
-    return [...available]
-      .sort((a, b) => b.provider.rating - a.provider.rating)
-      .slice(0, MAX)
+    return byRating.slice(0, MAX)
   }, [services])
 
   if (recommended.length === 0) return null

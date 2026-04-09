@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react'
 import { useSearchParams, useNavigate } from 'react-router-dom'
-import { ArrowLeft, Search as SearchIcon, SlidersHorizontal } from 'lucide-react'
+import { ArrowLeft, Search as SearchIcon, SlidersHorizontal, Sparkles } from 'lucide-react'
 import { motion } from 'framer-motion'
 import ServiceCard from '../../components/ServiceCard/ServiceCard'
 import { useAppStore } from '../../store/appStore'
 import Header from '../../components/Header/Header'
+import InquiryModal from '../../components/InquiryModal/InquiryModal'
 import { CATEGORIES } from '../../data/categories'
 import type { ServiceCategory } from '../../types'
 
@@ -17,6 +18,7 @@ export default function Search() {
 
   const [localQuery, setLocalQuery] = useState(searchParams.get('q') ?? '')
   const [showFilters, setShowFilters] = useState(false)
+  const [inquiryOpen, setInquiryOpen] = useState(false)
 
   useEffect(() => {
     const q = searchParams.get('q') ?? ''
@@ -34,6 +36,7 @@ export default function Search() {
   return (
     <div className="min-h-screen bg-gray-50">
       <Header />
+      <InquiryModal open={inquiryOpen} onClose={() => setInquiryOpen(false)} />
 
       {/* Search header */}
       <div className="bg-white border-b border-gray-100 px-4 py-3">
@@ -59,6 +62,15 @@ export default function Search() {
             >
               搜索
             </button>
+            <motion.button
+              whileTap={{ scale: 0.95 }}
+              onClick={() => setInquiryOpen(true)}
+              className="flex items-center gap-1 bg-primary-600 hover:bg-primary-700
+                         text-white text-xs font-bold px-3 py-1.5 rounded-xl transition-colors flex-shrink-0"
+            >
+              <Sparkles size={12} />
+              AI帮你找
+            </motion.button>
             <button
               onClick={() => setShowFilters(!showFilters)}
               className={`${showFilters ? 'text-primary-600' : 'text-gray-500'}`}

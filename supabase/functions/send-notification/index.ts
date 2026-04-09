@@ -122,6 +122,49 @@ function buildEmail(type: string, recipientName: string, data: Record<string, st
         ),
       }
 
+    case 'provider_inquiry':
+      return {
+        subject: `🔔 有客户正在寻找「${data.categoryLabel}」服务`,
+        html: template(
+          `您有一条新的客户询价`,
+          `<p>您好 <strong>${recipientName}</strong>，</p>
+           <p>有客户通过平台发布了一条服务需求，与您提供的「<strong>${data.categoryLabel}</strong>」服务匹配，请及时联系客户：</p>
+           <table style="width:100%;border-collapse:collapse;font-size:14px;margin:16px 0;">
+             <tr style="background:#f9fafb;">
+               <td style="padding:10px 14px;color:#6b7280;width:90px;font-weight:600;">客户姓名</td>
+               <td style="padding:10px 14px;color:#111827;">${data.customerName}</td>
+             </tr>
+             <tr>
+               <td style="padding:10px 14px;color:#6b7280;font-weight:600;">联系电话</td>
+               <td style="padding:10px 14px;color:#111827;font-weight:700;">${data.phone}</td>
+             </tr>
+             <tr style="background:#f9fafb;">
+               <td style="padding:10px 14px;color:#6b7280;font-weight:600;">微信号</td>
+               <td style="padding:10px 14px;color:#111827;">${data.wechat}</td>
+             </tr>
+             <tr>
+               <td style="padding:10px 14px;color:#6b7280;font-weight:600;">服务类型</td>
+               <td style="padding:10px 14px;color:#111827;">${data.categoryLabel}</td>
+             </tr>
+             <tr style="background:#f9fafb;">
+               <td style="padding:10px 14px;color:#6b7280;font-weight:600;">需求描述</td>
+               <td style="padding:10px 14px;color:#374151;">${data.description}</td>
+             </tr>
+             <tr>
+               <td style="padding:10px 14px;color:#6b7280;font-weight:600;">预算</td>
+               <td style="padding:10px 14px;color:#111827;">$${data.budget}</td>
+             </tr>
+             <tr style="background:#f9fafb;">
+               <td style="padding:10px 14px;color:#6b7280;font-weight:600;">希望时间</td>
+               <td style="padding:10px 14px;color:#111827;">${data.timing}</td>
+             </tr>
+           </table>
+           <p style="color:#6b7280;font-size:13px;">⚡ 建议尽快联系客户，先到先得！同类服务商也可能收到此通知。</p>`,
+          '登录平台查看更多询价',
+          SITE
+        ),
+      }
+
     case 'welcome':
       return {
         subject: `🎉 欢迎加入大多伦多华人服务平台！`,

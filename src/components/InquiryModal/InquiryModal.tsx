@@ -7,6 +7,7 @@ import { X, CheckCircle, ChevronDown, Sparkles, UserCheck, Clock3, ShieldCheck }
 import { supabase } from '../../lib/supabase'
 import { useAuthStore } from '../../store/authStore'
 import { CATEGORIES } from '../../data/categories'
+import { matchAndEmailProviders } from '../../lib/matchAndEmail'
 
 interface Props {
   open: boolean
@@ -85,6 +86,20 @@ export default function InquiryModal({ open, onClose }: Props) {
         status:      'open',
       })
       if (error) throw error
+
+      // Fire-and-forget: email matching providers (up to 5)
+      const cat = CATEGORIES.find((c) => c.id === form.categoryId)
+      matchAndEmailProviders({
+        categoryId:    form.categoryId,
+        categoryLabel: cat ? `${cat.emoji} ${cat.label}` : form.categoryId,
+        description:   form.description.trim(),
+        budget:        form.budget.trim(),
+        timing:        form.timing,
+        name:          form.name.trim(),
+        phone:         form.phone.trim(),
+        wechat:        form.wechat.trim(),
+      })
+
       setDone(true)
     } catch {
       setServerError('提交失败，请稍后再试')

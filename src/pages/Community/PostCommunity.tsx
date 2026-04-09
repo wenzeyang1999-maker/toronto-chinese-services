@@ -59,7 +59,8 @@ export default function PostCommunity() {
 
     const imageUrls: string[] = []
     for (const file of images) {
-      const path = `community/${user!.id}/${Date.now()}-${file.name}`
+      const ext  = file.name.split('.').pop()?.toLowerCase() ?? 'jpg'
+      const path = `community/${user!.id}/${Date.now()}.${ext}`
       const { error: uploadErr } = await supabase.storage
         .from('service-images').upload(path, file, { upsert: true })
       if (uploadErr) { setError(`图片上传失败：${uploadErr.message}`); setSubmitting(false); return }

@@ -3,11 +3,12 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { Heart, MessageCircle, Plus } from 'lucide-react'
+import { Heart, MessageCircle } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { useAuthStore } from '../../store/authStore'
 import Header from '../../components/Header/Header'
 import SectionTabs from '../../components/SectionTabs/SectionTabs'
+import PostFAB from '../../components/PostFAB/PostFAB'
 
 export const POST_TYPE_CONFIG: Record<string, { label: string; emoji: string; color: string }> = {
   recommend:   { label: '求推荐', emoji: '🙏', color: 'bg-blue-50 text-blue-600 border-blue-200' },
@@ -125,23 +126,7 @@ export default function CommunityPage() {
       </div>
 
       {/* FAB — 发帖 */}
-      {user && (
-        <button
-          onClick={() => navigate('/community/post')}
-          className="fixed bottom-8 left-5 z-30 w-14 h-14 rounded-full
-                     flex items-center justify-center text-blue-500
-                     active:scale-90 transition-all duration-200"
-          style={{
-            background: 'rgba(96,165,250,0.25)',
-            backdropFilter: 'blur(12px)',
-            WebkitBackdropFilter: 'blur(12px)',
-            border: '1px solid rgba(147,197,253,0.4)',
-            boxShadow: '0 8px 24px rgba(59,130,246,0.2), 0 2px 8px rgba(0,0,0,0.06)',
-          }}
-        >
-          <Plus size={28} strokeWidth={2} />
-        </button>
-      )}
+      {user && <PostFAB onClick={() => navigate('/community/post')} />}
 
       {/* Waterfall grid */}
       <div className="w-full px-3 md:w-[85%] md:px-0 lg:w-[70%] mx-auto pt-4">

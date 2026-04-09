@@ -64,6 +64,28 @@ export async function notifyNewReview(opts: {
   })
 }
 
+export async function notifyProviderInquiry(opts: {
+  recipientEmail: string
+  recipientName:  string
+  customerName:   string
+  phone:          string
+  wechat:         string
+  categoryLabel:  string
+  description:    string
+  budget:         string
+  timing:         string
+}) {
+  await notify('provider_inquiry', opts.recipientEmail, opts.recipientName, {
+    customerName:  opts.customerName,
+    phone:         opts.phone,
+    wechat:        opts.wechat,
+    categoryLabel: opts.categoryLabel,
+    description:   opts.description,
+    budget:        opts.budget,
+    timing:        opts.timing,
+  })
+}
+
 export async function notifyNewQuestion(opts: {
   recipientEmail: string
   recipientName:  string

@@ -4,11 +4,12 @@ import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
-  Search, SlidersHorizontal, MapPin, Plus, X,
+  Search, SlidersHorizontal, MapPin, X,
   Phone, MessageCircle, Copy, Home, User, ExternalLink,
   BedDouble, Bath, Car, PawPrint, Zap,
 } from 'lucide-react'
 import Header from '../../components/Header/Header'
+import PostFAB from '../../components/PostFAB/PostFAB'
 import SectionTabs from '../../components/SectionTabs/SectionTabs'
 import { useRealEstateStore } from '../../store/realestateStore'
 import { useAuthStore } from '../../store/authStore'
@@ -69,20 +70,10 @@ export default function RealEstateList() {
       <div className="bg-white border-b border-gray-100 py-3 flex-shrink-0 z-20">
         <div className="w-full px-3 md:w-[85%] md:px-0 lg:w-[70%] mx-auto space-y-3">
 
-          {/* Title + post button */}
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-lg font-bold text-gray-900">租房买房</h1>
-              <p className="text-xs text-gray-400">大多伦多华人房源</p>
-            </div>
-            <motion.button whileTap={{ scale: 0.95 }}
-              onClick={() => user ? navigate(`/realestate/post?type=${filters.listing_type ?? 'rent'}`) : navigate('/login')}
-              className="flex items-center gap-1.5 bg-primary-600 hover:bg-primary-700
-                         text-white text-sm font-semibold px-4 py-2 rounded-xl transition-colors"
-            >
-              <Plus size={15} />
-              发布房源
-            </motion.button>
+          {/* Title */}
+          <div>
+            <h1 className="text-lg font-bold text-gray-900">租房买房</h1>
+            <p className="text-xs text-gray-400">大多伦多华人房源</p>
           </div>
 
           {/* 出租 / 出售 / 合租 sub-tabs */}
@@ -267,6 +258,9 @@ export default function RealEstateList() {
           )}
         </AnimatePresence>
       </div>
+
+      {/* FAB — 发布 */}
+      {user && <PostFAB onClick={() => navigate(`/realestate/post?type=${filters.listing_type ?? 'rent'}`)} />}
     </div>
   )
 }
