@@ -7,7 +7,20 @@
 //   supabase secrets set ANTHROPIC_API_KEY=sk-ant-...
 // ─────────────────────────────────────────────────────────────────────────────
 import { useState, useRef, useEffect, useCallback } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { Bot, X, Send, ChevronDown } from 'lucide-react'
 import type { ChatSession } from '../../pages/Profile/types'
+
+const SUPABASE_URL      = import.meta.env.VITE_SUPABASE_URL as string
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string
+const EDGE_FN_URL       = `${SUPABASE_URL}/functions/v1/ai-chat`
+
+// ── Types ─────────────────────────────────────────────────────────────────────
+interface Message {
+  role: 'user' | 'assistant'
+  content: string
+  streaming?: boolean   // true while tokens are still arriving
+}
 
 function saveChatSession(messages: Message[]) {
   if (messages.length < 2) return
@@ -23,19 +36,6 @@ function saveChatSession(messages: Message[]) {
     }
     localStorage.setItem(key, JSON.stringify([session, ...prev].slice(0, 20)))
   } catch { /* ignore */ }
-}
-import { motion, AnimatePresence } from 'framer-motion'
-import { Bot, X, Send, ChevronDown } from 'lucide-react'
-
-const SUPABASE_URL      = import.meta.env.VITE_SUPABASE_URL as string
-const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string
-const EDGE_FN_URL       = `${SUPABASE_URL}/functions/v1/ai-chat`
-
-// ── Types ─────────────────────────────────────────────────────────────────────
-interface Message {
-  role: 'user' | 'assistant'
-  content: string
-  streaming?: boolean   // true while tokens are still arriving
 }
 
 // ── Quick-reply chips shown before the first user message ─────────────────────
@@ -69,7 +69,7 @@ export default function AiChatWidget() {
   // Save chat session when widget closes
   useEffect(() => {
     if (!open && messages.length >= 2) saveChatSession(messages)
-  }, [open])
+  }, [open, messages])
 
   // ── Send a user message and stream the response ──────────────────────────
   async function send(text: string) {

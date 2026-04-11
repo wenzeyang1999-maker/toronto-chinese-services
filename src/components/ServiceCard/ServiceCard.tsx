@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { Star, MapPin, ShieldCheck, Zap } from 'lucide-react'
+import { Star, MapPin, ShieldCheck, Zap, Clock3 } from 'lucide-react'
 import type { Service } from '../../types'
 import { getCategoryById } from '../../data/categories'
 
@@ -13,6 +13,9 @@ export default function ServiceCard({ service }: Props) {
   const cat         = getCategoryById(service.category)
   const hasImage    = (service.images?.length ?? 0) > 0
   const hasReviews  = service.provider.reviewCount > 0
+  const isRecentlyActive = service.provider.lastSeenAt
+    ? Date.now() - new Date(service.provider.lastSeenAt).getTime() < 24 * 60 * 60 * 1000
+    : false
 
   const priceLabel =
     service.priceType === 'hourly' ? `$${service.price}/时` :
@@ -72,6 +75,27 @@ export default function ServiceCard({ service }: Props) {
           {service.description}
         </p>
 
+        <div className="mb-2 flex flex-wrap gap-1.5">
+          {service.provider.verified && (
+            <span className="inline-flex items-center gap-1 rounded-full border border-blue-200 bg-blue-50 px-2 py-0.5 text-[10px] font-semibold text-blue-700">
+              <ShieldCheck size={9} />
+              已认证
+            </span>
+          )}
+          {isRecentlyActive && (
+            <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">
+              <Clock3 size={9} />
+              近期活跃
+            </span>
+          )}
+          {service.distance !== undefined && (
+            <span className="inline-flex items-center gap-1 rounded-full border border-gray-200 bg-gray-50 px-2 py-0.5 text-[10px] font-semibold text-gray-700">
+              <MapPin size={9} />
+              {service.distance < 1 ? `${(service.distance * 1000).toFixed(0)}m` : `${service.distance.toFixed(1)}km`}
+            </span>
+          )}
+        </div>
+
         {/* Bottom row: provider + category + rating + area */}
         <div className="flex items-center gap-2 min-w-0 overflow-hidden">
           {/* Category pill */}
@@ -90,9 +114,6 @@ export default function ServiceCard({ service }: Props) {
             <span className="text-[11px] text-gray-500 truncate max-w-[80px]">
               {service.provider.name}
             </span>
-            {service.provider.verified && (
-              <ShieldCheck size={10} className="text-blue-500 flex-shrink-0" />
-            )}
           </div>
 
           {/* Rating */}

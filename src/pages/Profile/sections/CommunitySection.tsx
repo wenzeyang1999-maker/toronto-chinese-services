@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { PenSquare, Trash2, MessageCircle, Heart } from 'lucide-react'
 import { supabase } from '../../../lib/supabase'
 import { useAuthStore } from '../../../store/authStore'
-import { POST_TYPE_CONFIG, AREA_CONFIG } from '../../Community/CommunityPage'
+import { POST_TYPE_CONFIG, AREA_CONFIG } from '../../Community/config'
 
 interface Post {
   id: string

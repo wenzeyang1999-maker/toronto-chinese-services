@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { ShieldCheck, Flag, CheckCircle2, Trash2, ChevronLeft, Users, Briefcase, Home, ShoppingBag, Calendar, Wrench, Star, BadgeCheck, X, ExternalLink, Zap, Crown, Search } from 'lucide-react'
+import { ShieldCheck, Flag, CheckCircle2, Trash2, ChevronLeft, Users, Briefcase, Home, ShoppingBag, Calendar, Wrench, Star, BadgeCheck, X, ExternalLink, Zap, Crown, Search, Inbox, Mail, CheckCheck } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { useAuthStore } from '../../store/authStore'
 
@@ -49,6 +49,27 @@ interface PromotedRow {
   created_at: string
 }
 
+interface InquiryMatch {
+  id: string
+  provider_name: string
+  provider_email: string
+  email_sent: boolean
+}
+
+interface InquiryRow {
+  id: string
+  category_id: string
+  description: string
+  budget: string | null
+  timing: string
+  name: string
+  phone: string
+  wechat: string | null
+  status: string
+  created_at: string
+  matches: InquiryMatch[]
+}
+
 interface MemberRow {
   id: string
   name: string
@@ -76,7 +97,8 @@ export default function AdminPage() {
   const [promoSearch,    setPromoSearch]    = useState('')
   const [promoTable,     setPromoTable]     = useState<PromotedRow['table']>('services')
   const [stats,          setStats]          = useState<Stats | null>(null)
-  const [tab,            setTab]            = useState<'reports' | 'verification' | 'promoted' | 'overview' | 'community' | 'membership'>('reports')
+  const [tab,            setTab]            = useState<'reports' | 'verification' | 'promoted' | 'overview' | 'community' | 'membership' | 'inquiries'>('reports')
+  const [inquiries,      setInquiries]      = useState<InquiryRow[]>([])
   const [communityPosts, setCommunityPosts] = useState<{ id: string; title: string; type: string; area: string; created_at: string; author: { name: string } | null }[]>([])
   const [loading,        setLoading]        = useState(true)
   const [acting,         setActing]         = useState<string | null>(null)
@@ -212,6 +234,28 @@ export default function AdminPage() {
     setActing(null)
   }
 
+  async function loadInquiries() {
+    const { data } = await supabase
+      .from('inquiries')
+      .select('id, category_id, description, budget, timing, name, phone, wechat, status, created_at')
+      .order('created_at', { ascending: false })
+      .limit(50)
+    if (!data) return
+
+    const ids = data.map((r: any) => r.id)
+    const { data: matches } = await supabase
+      .from('inquiry_matches')
+      .select('id, inquiry_id, provider_name, provider_email, email_sent')
+      .in('inquiry_id', ids)
+
+    const matchMap: Record<string, InquiryMatch[]> = {}
+    for (const m of matches ?? []) {
+      if (!matchMap[m.inquiry_id]) matchMap[m.inquiry_id] = []
+      matchMap[m.inquiry_id].push(m)
+    }
+    setInquiries(data.map((r: any) => ({ ...r, matches: matchMap[r.id] ?? [] })))
+  }
+
   async function searchMembers() {
     const kw = memberSearch.trim()
     if (!kw) return
@@ -300,6 +344,12 @@ export default function AdminPage() {
               tab === 'community' ? 'bg-white text-primary-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'
             }`}>
             社区帖子
+          </button>
+          <button onClick={() => { setTab('inquiries'); loadInquiries() }}
+            className={`flex-1 py-2 rounded-xl text-sm font-semibold transition-all ${
+              tab === 'inquiries' ? 'bg-white text-primary-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+            }`}>
+            询价
           </button>
           <button onClick={() => setTab('overview')}
             className={`flex-1 py-2 rounded-xl text-sm font-semibold transition-all ${
@@ -627,6 +677,63 @@ export default function AdminPage() {
                 })}
               </div>
             )}
+          </motion.div>
+        ) : tab === 'inquiries' ? (
+          <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-3">
+            {inquiries.length === 0 ? (
+              <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-12 text-center">
+                <Inbox size={36} className="text-gray-200 mx-auto mb-3" />
+                <p className="text-sm text-gray-400">暂无询价记录</p>
+              </div>
+            ) : inquiries.map(inq => (
+              <div key={inq.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 space-y-3">
+                {/* Header */}
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <span className="text-xs font-semibold bg-primary-50 text-primary-700 px-2 py-0.5 rounded-full">
+                      {inq.category_id}
+                    </span>
+                    <span className={`ml-2 text-xs px-2 py-0.5 rounded-full font-semibold ${
+                      inq.status === 'open' ? 'bg-green-50 text-green-600' :
+                      inq.status === 'matched' ? 'bg-blue-50 text-blue-600' :
+                      'bg-gray-100 text-gray-500'
+                    }`}>{inq.status}</span>
+                  </div>
+                  <span className="text-xs text-gray-400 flex-shrink-0">{inq.created_at.slice(0, 10)}</span>
+                </div>
+
+                {/* Customer info */}
+                <div className="text-sm text-gray-800">
+                  <p className="font-medium">{inq.name} · {inq.phone}{inq.wechat ? ` · 微信: ${inq.wechat}` : ''}</p>
+                  <p className="text-gray-500 text-xs mt-1 leading-relaxed">{inq.description}</p>
+                  {(inq.budget || inq.timing) && (
+                    <p className="text-xs text-gray-400 mt-1">
+                      {inq.budget ? `预算: $${inq.budget}` : ''}{inq.budget && inq.timing ? ' · ' : ''}{inq.timing}
+                    </p>
+                  )}
+                </div>
+
+                {/* Matched providers */}
+                <div className="border-t border-gray-50 pt-3">
+                  <p className="text-xs font-semibold text-gray-500 mb-2 flex items-center gap-1">
+                    <Mail size={12} /> 已通知服务商（{inq.matches.length}）
+                  </p>
+                  {inq.matches.length === 0 ? (
+                    <p className="text-xs text-gray-400">无匹配服务商</p>
+                  ) : (
+                    <div className="space-y-1.5">
+                      {inq.matches.map(m => (
+                        <div key={m.id} className="flex items-center gap-2 text-xs text-gray-600">
+                          <CheckCheck size={12} className="text-green-500 flex-shrink-0" />
+                          <span className="font-medium">{m.provider_name}</span>
+                          <span className="text-gray-400">{m.provider_email}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
           </motion.div>
         ) : null}
       </div>

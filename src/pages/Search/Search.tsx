@@ -8,12 +8,18 @@ import Header from '../../components/Header/Header'
 import InquiryModal from '../../components/InquiryModal/InquiryModal'
 import { CATEGORIES } from '../../data/categories'
 import type { ServiceCategory } from '../../types'
+import { useGeolocation } from '../../hooks/useGeolocation'
+import SearchDecisionHeader from './components/SearchDecisionHeader'
+import SearchFilterSummary from './components/SearchFilterSummary'
+import SearchEmptyState from './components/SearchEmptyState'
 
 export default function Search() {
   const [searchParams, setSearchParams] = useSearchParams()
   const navigate = useNavigate()
+  const requestLocation = useGeolocation()
   const setSearchFilters = useAppStore((s) => s.setSearchFilters)
   const searchFilters = useAppStore((s) => s.searchFilters)
+  const userLocation = useAppStore((s) => s.userLocation)
   const getFilteredServices = useAppStore((s) => s.getFilteredServices)
 
   const [localQuery, setLocalQuery] = useState(searchParams.get('q') ?? '')
@@ -27,8 +33,14 @@ export default function Search() {
   }, [searchParams, setSearchFilters])
 
   const handleSearch = () => {
+    if (localQuery.trim()) requestLocation()
     setSearchParams(localQuery ? { q: localQuery } : {})
     setSearchFilters({ keyword: localQuery || undefined })
+  }
+
+  const handleSortChange = (sortBy: 'distance' | 'rating' | 'newest' | 'price') => {
+    setSearchFilters({ sortBy })
+    if (sortBy === 'distance' && !userLocation) requestLocation()
   }
 
   const results = getFilteredServices()
@@ -135,9 +147,7 @@ export default function Search() {
                   ].map((opt) => (
                     <button
                       key={opt.value}
-                      onClick={() =>
-                        setSearchFilters({ sortBy: opt.value as 'distance' | 'rating' | 'newest' | 'price' })
-                      }
+                      onClick={() => handleSortChange(opt.value as 'distance' | 'rating' | 'newest' | 'price')}
                       className={`text-xs px-3 py-1.5 rounded-full ${
                         searchFilters.sortBy === opt.value
                           ? 'bg-primary-600 text-white'
@@ -155,23 +165,29 @@ export default function Search() {
       </div>
 
       <div className="max-w-2xl mx-auto px-4 py-4">
-        <p className="text-xs text-gray-400 mb-3">
-          {localQuery ? `"${localQuery}" 的搜索结果：` : '全部服务：'}{results.length} 条
-        </p>
+        {!userLocation && searchFilters.sortBy === 'distance' && (
+          <p className="text-xs text-amber-600 mb-3">
+            搜索或切换到距离排序时会请求位置权限，用于展示附近结果。
+          </p>
+        )}
+        <SearchDecisionHeader
+          query={localQuery.trim()}
+          count={results.length}
+          hasLocation={!!userLocation}
+          sortBy={searchFilters.sortBy}
+        />
+        <SearchFilterSummary
+          filters={searchFilters}
+          onClearCategory={() => setSearchFilters({ category: undefined })}
+          onResetToRating={() => setSearchFilters({ sortBy: 'rating' })}
+        />
 
         {results.length === 0 ? (
-          <div className="text-center py-20 text-gray-400">
-            <SearchIcon size={40} className="mx-auto mb-3 opacity-30" />
-            <p className="text-sm">没有找到相关服务</p>
-            <p className="text-xs mt-1">试试其他关键词，或{' '}
-              <button
-                onClick={() => navigate('/post')}
-                className="text-primary-600 underline"
-              >
-                发布需求
-              </button>
-            </p>
-          </div>
+          <SearchEmptyState
+            query={localQuery.trim()}
+            onOpenInquiry={() => setInquiryOpen(true)}
+            onPost={() => navigate('/post')}
+          />
         ) : (
           <div className="flex flex-col gap-2">
             {results.map((svc) => (

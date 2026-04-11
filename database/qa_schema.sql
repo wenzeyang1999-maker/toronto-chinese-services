@@ -48,6 +48,26 @@ DO $$ BEGIN
   END IF;
 END $$;
 
+-- Prevent providers from asking questions on their own services.
+DO $$ BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE tablename = 'questions'
+      AND policyname = 'providers cannot ask own service questions'
+  ) THEN
+    CREATE POLICY "providers cannot ask own service questions"
+      ON questions AS RESTRICTIVE FOR INSERT
+      WITH CHECK (
+        NOT EXISTS (
+          SELECT 1
+          FROM public.services s
+          WHERE s.id = service_id
+            AND s.provider_id = auth.uid()
+        )
+      );
+  END IF;
+END $$;
+
 -- Users can delete their own question
 DO $$ BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename='questions' AND policyname='users can delete own question') THEN

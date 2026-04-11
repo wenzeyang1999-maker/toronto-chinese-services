@@ -96,8 +96,9 @@ CREATE TABLE IF NOT EXISTS services (
 ALTER TABLE services ADD COLUMN IF NOT EXISTS images        TEXT[] DEFAULT '{}';
 ALTER TABLE services ADD COLUMN IF NOT EXISTS service_areas TEXT[] DEFAULT '{}';
 ALTER TABLE services ALTER COLUMN area TYPE TEXT;
-ALTER TABLE users    ADD COLUMN IF NOT EXISTS social_links    JSONB    DEFAULT '{}';
-ALTER TABLE users    ADD COLUMN IF NOT EXISTS phone_verified  BOOLEAN  DEFAULT false;
+ALTER TABLE users    ADD COLUMN IF NOT EXISTS social_links    JSONB        DEFAULT '{}';
+ALTER TABLE users    ADD COLUMN IF NOT EXISTS phone_verified  BOOLEAN      DEFAULT false;
+ALTER TABLE users    ADD COLUMN IF NOT EXISTS last_seen_at    TIMESTAMPTZ;
 
 -- Backfill email verification for users who already confirmed their email.
 -- Safe to re-run: only updates rows where auth has confirmed but public hasn't caught up.
@@ -174,6 +175,7 @@ CREATE TABLE IF NOT EXISTS reviews (
 );
 
 CREATE INDEX IF NOT EXISTS idx_reviews_service ON reviews (service_id);
+CREATE INDEX IF NOT EXISTS idx_reviews_reviewer_id ON reviews (reviewer_id);
 
 
 -- ─────────────────────────────────────────────────────────────────────────────

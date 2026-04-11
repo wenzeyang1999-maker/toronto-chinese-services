@@ -32,7 +32,7 @@ function FitBounds({ services }: { services: Service[] }) {
   const map = useMap()
   useEffect(() => {
     const points = services
-      .filter((s) => s.location?.lat && s.location?.lng)
+      .filter(hasCoordinates)
       .map((s) => [s.location.lat, s.location.lng] as [number, number])
     if (points.length === 0) return
     if (points.length === 1) {
@@ -48,10 +48,14 @@ interface Props {
   services: Service[]
 }
 
+function hasCoordinates(service: Service): service is Service & { location: { lat: number; lng: number; address: string; city: string; area?: string } } {
+  return service.location.lat != null && service.location.lng != null
+}
+
 export default function ServiceMap({ services }: Props) {
   const navigate = useNavigate()
 
-  const mapped = services.filter((s) => s.location?.lat && s.location?.lng)
+  const mapped = services.filter(hasCoordinates)
 
   return (
     <div className="relative w-full rounded-2xl overflow-hidden border border-gray-200 shadow-sm" style={{ height: '60vh', minHeight: 320 }}>
@@ -105,7 +109,7 @@ export default function ServiceMap({ services }: Props) {
                 </p>
                 {/* Location text */}
                 {svc.location.address && (
-                  <p className="text-xs text-gray-400 mb-2 truncate">📍 {svc.location.address}</p>
+                  <p className="text-xs text-gray-400 mb-2 truncate">📍 大致位置：{svc.location.address}</p>
                 )}
                 <button
                   onClick={() => navigate(`/service/${svc.id}`)}

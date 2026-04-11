@@ -61,20 +61,39 @@ export default function App() {
   // Loading screen is dismissed only after BOTH the minimum display time (2.8s)
   // AND the initial data fetch have completed.
   useEffect(() => {
+    let isActive = true
     let timerDone = false
     let fetchDone = false
-    const tryFinish = () => { if (timerDone && fetchDone) setLoadingDone() }
+    const tryFinish = () => {
+      if (isActive && timerDone && fetchDone) setLoadingDone()
+    }
 
-    fetchServices().then(() => { fetchDone = true; tryFinish() }).catch(() => { fetchDone = true; tryFinish() })
-    setTimeout(() => { timerDone = true; tryFinish() }, 2800)
+    fetchServices()
+      .then(() => { fetchDone = true; tryFinish() })
+      .catch(() => { fetchDone = true; tryFinish() })
+
+    const timerId = window.setTimeout(() => {
+      timerDone = true
+      tryFinish()
+    }, 2800)
 
     supabase.auth.getSession().then(({ data }) => {
-      setUser(data.session?.user ?? null)
+      if (!isActive) return
+      const u = data.session?.user ?? null
+      setUser(u)
+      if (u) supabase.from('users').update({ last_seen_at: new Date().toISOString() }).eq('id', u.id)
     })
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null)
+      if (!isActive) return
+      const u = session?.user ?? null
+      setUser(u)
+      if (u) supabase.from('users').update({ last_seen_at: new Date().toISOString() }).eq('id', u.id)
     })
-    return () => subscription.unsubscribe()
+    return () => {
+      isActive = false
+      window.clearTimeout(timerId)
+      subscription.unsubscribe()
+    }
   }, [setUser, fetchServices, setLoadingDone])
 
   return (

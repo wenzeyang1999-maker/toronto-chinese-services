@@ -8,14 +8,17 @@ import { useAppStore } from '../../store/appStore'
 import { getCategoryById } from '../../data/categories'
 import type { ServiceCategory } from '../../types'
 import Header from '../../components/Header/Header'
+import { useGeolocation } from '../../hooks/useGeolocation'
 
 const ServiceMap = lazy(() => import('../../components/ServiceMap/ServiceMap'))
 
 export default function Category() {
+  const requestLocation = useGeolocation()
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const getServicesByCategory = useAppStore((s) => s.getServicesByCategory)
-  const [sortBy, setSortBy] = useState<'distance' | 'rating' | 'price'>('distance')
+  const userLocation = useAppStore((s) => s.userLocation)
+  const [sortBy, setSortBy] = useState<'distance' | 'rating' | 'price'>('rating')
   const [viewMode, setViewMode] = useState<'list' | 'map'>('list')
   const [inquiryOpen, setInquiryOpen] = useState(false)
 
@@ -27,6 +30,16 @@ export default function Category() {
     if (sortBy === 'price') return parseFloat(a.price) - parseFloat(b.price)
     return (a.distance ?? 99) - (b.distance ?? 99)
   })
+
+  const handleSortChange = (next: typeof sortBy) => {
+    setSortBy(next)
+    if (next === 'distance' && !userLocation) requestLocation()
+  }
+
+  const handleViewModeChange = (next: typeof viewMode) => {
+    setViewMode(next)
+    if (next === 'map' && !userLocation) requestLocation()
+  }
 
   if (!category) {
     return <div className="p-8 text-center text-gray-500">分类不存在</div>
@@ -83,7 +96,7 @@ export default function Category() {
           ].map((opt) => (
             <button
               key={opt.value}
-              onClick={() => setSortBy(opt.value as typeof sortBy)}
+              onClick={() => handleSortChange(opt.value as typeof sortBy)}
               className={`text-xs px-3 py-1.5 rounded-full transition-colors ${
                 sortBy === opt.value
                   ? 'bg-primary-600 text-white'
@@ -96,7 +109,7 @@ export default function Category() {
           {/* View mode toggle */}
           <div className="ml-auto flex items-center bg-gray-100 rounded-xl p-0.5">
             <button
-              onClick={() => setViewMode('list')}
+              onClick={() => handleViewModeChange('list')}
               className={`flex items-center gap-1.5 text-sm px-3 py-1.5 rounded-lg font-medium transition-colors ${
                 viewMode === 'list' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
               }`}
@@ -104,7 +117,7 @@ export default function Category() {
               <List size={15} /> 列表
             </button>
             <button
-              onClick={() => setViewMode('map')}
+              onClick={() => handleViewModeChange('map')}
               className={`flex items-center gap-1.5 text-sm px-3 py-1.5 rounded-lg font-medium transition-colors ${
                 viewMode === 'map' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
               }`}
@@ -116,6 +129,11 @@ export default function Category() {
 
         {/* Count */}
         <p className="text-xs text-gray-400 mb-3">共找到 {sorted.length} 个服务</p>
+        {!userLocation && (sortBy === 'distance' || viewMode === 'map') && (
+          <p className="text-xs text-amber-600 mb-3">
+            允许位置权限后，可按距离排序并显示您附近的商家位置。
+          </p>
+        )}
 
         {/* Map view */}
         {viewMode === 'map' && (

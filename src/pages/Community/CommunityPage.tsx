@@ -1,6 +1,6 @@
 // ─── Community Page (瀑布流 / 小红书风格) ────────────────────────────────────
 // Route: /community
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { Heart, MessageCircle } from 'lucide-react'
@@ -9,23 +9,7 @@ import { useAuthStore } from '../../store/authStore'
 import Header from '../../components/Header/Header'
 import SectionTabs from '../../components/SectionTabs/SectionTabs'
 import PostFAB from '../../components/PostFAB/PostFAB'
-
-export const POST_TYPE_CONFIG: Record<string, { label: string; emoji: string; color: string }> = {
-  recommend:   { label: '求推荐', emoji: '🙏', color: 'bg-blue-50 text-blue-600 border-blue-200' },
-  experience:  { label: '经验分享', emoji: '💡', color: 'bg-amber-50 text-amber-600 border-amber-200' },
-  question:    { label: '问个问题', emoji: '❓', color: 'bg-purple-50 text-purple-600 border-purple-200' },
-  secondhand:  { label: '随手转让', emoji: '🛍️', color: 'bg-green-50 text-green-600 border-green-200' },
-}
-
-export const AREA_CONFIG: Record<string, string> = {
-  north_york:   'North York',
-  markham:      'Markham',
-  mississauga:  'Mississauga',
-  scarborough:  'Scarborough',
-  downtown:     'Downtown',
-  brampton:     'Brampton',
-  other:        '其他地区',
-}
+import { POST_TYPE_CONFIG, AREA_CONFIG } from './config'
 
 interface Post {
   id: string
@@ -49,9 +33,7 @@ export default function CommunityPage() {
   const [typeFilter, setTypeFilter] = useState<string>('all')
   const [areaFilter, setAreaFilter] = useState<string>('all')
 
-  useEffect(() => { load() }, [typeFilter, areaFilter])
-
-  async function load() {
+  const load = useCallback(async () => {
     setLoading(true)
     let q = supabase
       .from('community_posts')
@@ -66,6 +48,7 @@ export default function CommunityPage() {
     if (!data) { setLoading(false); return }
 
     const ids = data.map((p: any) => p.id)
+    if (!ids.length) { setPosts([]); setLoading(false); return }
     const { data: counts } = await supabase
       .from('community_comments').select('post_id').in('post_id', ids)
 
@@ -84,7 +67,9 @@ export default function CommunityPage() {
     }
     setPosts(mapped)
     setLoading(false)
-  }
+  }, [typeFilter, areaFilter])
+
+  useEffect(() => { load() }, [load])
 
   return (
     <div className="min-h-screen bg-gray-50 pb-24">

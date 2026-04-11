@@ -6,7 +6,7 @@ import { ArrowLeft, ImagePlus, X, MapPin, Tag } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { useAuthStore } from '../../store/authStore'
 import { compressImage, validateImageFile } from '../../lib/compressImage'
-import { POST_TYPE_CONFIG, AREA_CONFIG } from './CommunityPage'
+import { POST_TYPE_CONFIG, AREA_CONFIG } from './config'
 
 const MAX_IMAGES = 4
 

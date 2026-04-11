@@ -10,15 +10,15 @@ import { Sparkles } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { useAppStore } from '../../store/appStore'
 import ServiceCard from '../ServiceCard/ServiceCard'
-import type { BrowseEntry } from '../../pages/Profile/types'
+import type { BrowseEntry } from '../../types/browse'
 
 const MAX = 5
 
 export default function RecommendedServices() {
   const services = useAppStore((s) => s.services)
 
-  const recommended = useMemo(() => {
-    if (services.length === 0) return []
+  const { recommended, reason } = useMemo(() => {
+    if (services.length === 0) return { recommended: [], reason: '' }
 
     // 1. Get recently-browsed category IDs (most recent first, deduplicated)
     let recentCats: string[] = []
@@ -41,10 +41,16 @@ export default function RecommendedServices() {
     if (recentCats.length > 0) {
       const inCats = byRating.filter((s) =>  recentCats.includes(s.category))
       const rest   = byRating.filter((s) => !recentCats.includes(s.category))
-      return [...inCats, ...rest].slice(0, MAX)
+      return {
+        recommended: [...inCats, ...rest].slice(0, MAX),
+        reason: '根据你最近浏览过的服务类型推荐',
+      }
     }
 
-    return byRating.slice(0, MAX)
+    return {
+      recommended: byRating.slice(0, MAX),
+      reason: '先看看本地口碑较好的服务',
+    }
   }, [services])
 
   if (recommended.length === 0) return null
@@ -58,7 +64,10 @@ export default function RecommendedServices() {
     >
       <div className="flex items-center gap-1.5 mb-3">
         <Sparkles size={14} className="text-primary-500" />
-        <h3 className="text-sm font-semibold text-gray-700">猜您喜欢</h3>
+        <div>
+          <h3 className="text-sm font-semibold text-gray-700">猜你喜欢</h3>
+          <p className="mt-0.5 text-xs text-gray-400">{reason}</p>
+        </div>
       </div>
       <div className="flex flex-col gap-2">
         {recommended.map((svc) => (

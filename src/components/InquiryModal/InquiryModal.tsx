@@ -74,7 +74,7 @@ export default function InquiryModal({ open, onClose }: Props) {
     setSubmitting(true)
     setServerError('')
     try {
-      const { error } = await supabase.from('inquiries').insert({
+      const { data: inserted, error } = await supabase.from('inquiries').insert({
         category_id: form.categoryId,
         description: form.description.trim(),
         budget:      form.budget.trim() || null,
@@ -84,12 +84,13 @@ export default function InquiryModal({ open, onClose }: Props) {
         wechat:      form.wechat.trim() || null,
         user_id:     user?.id ?? null,
         status:      'open',
-      })
+      }).select('id').single()
       if (error) throw error
 
       // Fire-and-forget: email matching providers (up to 5)
       const cat = CATEGORIES.find((c) => c.id === form.categoryId)
       matchAndEmailProviders({
+        inquiryId:     inserted.id,
         categoryId:    form.categoryId,
         categoryLabel: cat ? `${cat.emoji} ${cat.label}` : form.categoryId,
         description:   form.description.trim(),
@@ -125,7 +126,7 @@ export default function InquiryModal({ open, onClose }: Props) {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={handleClose}
-            className="fixed inset-0 bg-black/40 z-50"
+            className="fixed inset-0 bg-black/40 z-[60]"
           />
 
           {/* Sheet */}
@@ -135,7 +136,7 @@ export default function InquiryModal({ open, onClose }: Props) {
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
             transition={{ type: 'spring', stiffness: 320, damping: 32 }}
-            className="fixed bottom-0 left-0 right-0 z-50 bg-white rounded-t-3xl shadow-2xl
+            className="fixed bottom-0 left-0 right-0 z-[60] bg-white rounded-t-3xl shadow-2xl
                        md:inset-0 md:m-auto md:rounded-3xl md:max-w-lg md:max-h-[90vh] md:overflow-hidden"
             style={{ maxHeight: '92vh' }}
           >

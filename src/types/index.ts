@@ -8,8 +8,8 @@ export type ServiceCategory =
   | 'other'
 
 export interface Location {
-  lat: number
-  lng: number
+  lat?: number
+  lng?: number
   address: string
   city: string
   area?: string
@@ -25,6 +25,7 @@ export interface ServiceProvider {
   reviewCount: number
   verified: boolean
   joinedAt: string
+  lastSeenAt?: string | null
   languages: string[]
 }
 

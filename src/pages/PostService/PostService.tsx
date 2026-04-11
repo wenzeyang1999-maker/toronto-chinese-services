@@ -198,7 +198,6 @@ const INITIAL_FORM: PostServiceForm = {
 export default function PostService() {
   const navigate = useNavigate()
   const fetchServices = useAppStore((s) => s.fetchServices)
-  const userLocation = useAppStore((s) => s.userLocation)
   const user = useAuthStore((s) => s.user)
   const [form, setForm] = useState<PostServiceForm>(INITIAL_FORM)
   const [location, setLocation] = useState<LocationResult | null>(null)
@@ -390,8 +389,8 @@ export default function PostService() {
         price: form.priceType === 'negotiable' ? 0 : parseFloat(form.price) || 0,
         price_type: form.priceType,
         address: location?.address ?? null,
-        lat: location?.lat ?? userLocation?.lat ?? 43.6532,
-        lng: location?.lng ?? userLocation?.lng ?? -79.3832,
+        lat: location?.lat ?? null,
+        lng: location?.lng ?? null,
         area: areaDisplay,
         service_areas: selectedAreas.length > 0 ? selectedAreas : ['Toronto'],
         city: 'Toronto',
@@ -767,6 +766,9 @@ export default function PostService() {
 
             <Field label="所在位置（选填）">
               <LocationInput onChange={setLocation} />
+              <p className="text-xs text-amber-600 mt-2">
+                未定位时会显示服务区域，但不会出现在精确地图点位中。
+              </p>
             </Field>
           </div>
 
@@ -874,4 +876,3 @@ function Field({
     </div>
   )
 }
-

@@ -1,12 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ArrowLeft, Star, MapPin, Phone, ShieldCheck, Clock, Tag, MessageSquare, CheckCircle2, ExternalLink } from 'lucide-react'
+import { ArrowLeft, Star, MapPin, Phone, ShieldCheck, Clock, Tag, MessageSquare, CheckCircle2, ExternalLink, ChevronDown, ChevronUp } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { useAppStore } from '../../store/appStore'
 import { useAuthStore } from '../../store/authStore'
 import { supabase } from '../../lib/supabase'
 import { getCategoryById } from '../../data/categories'
-import type { BrowseEntry } from '../Profile/types'
+import type { BrowseEntry } from '../../types/browse'
 import ReviewsSection from './ReviewsSection'
 import RelatedServices from '../../components/RelatedServices/RelatedServices'
 import ReplyTimeBadge from '../../components/ReplyTimeBadge/ReplyTimeBadge'
@@ -15,17 +15,19 @@ import SaveButton from '../../components/SaveButton/SaveButton'
 import ShareButton from '../../components/ShareButton/ShareButton'
 import PageMeta from '../../components/PageMeta/PageMeta'
 import ViewCount from '../../components/ViewCount/ViewCount'
+import { SOCIAL_PLATFORMS } from '../../lib/socialPlatforms'
+import ContactActions from './components/ContactActions'
+import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet'
+import L from 'leaflet'
+import 'leaflet/dist/leaflet.css'
 
-// ── Social platform display config ────────────────────────────────────────────
-const SOCIAL_PLATFORMS = [
-  { key: 'whatsapp',    label: 'WhatsApp',  icon: '📲', color: 'bg-emerald-50 text-emerald-700 border-emerald-200', getUrl: (v: string) => `https://wa.me/${v.replace(/\D/g, '')}` },
-  { key: 'xiaohongshu', label: '小红书',    icon: '📕', color: 'bg-rose-50 text-rose-700 border-rose-200',         getUrl: (v: string) => v.startsWith('http') ? v : null },
-  { key: 'instagram',   label: 'Instagram', icon: '📷', color: 'bg-pink-50 text-pink-700 border-pink-200',         getUrl: (v: string) => `https://instagram.com/${v.replace('@','')}` },
-  { key: 'facebook',    label: 'Facebook',  icon: '👥', color: 'bg-blue-50 text-blue-700 border-blue-200',         getUrl: (v: string) => v.startsWith('http') ? v : `https://facebook.com/${v}` },
-  { key: 'line',        label: 'Line',      icon: '🟢', color: 'bg-green-50 text-green-700 border-green-200',      getUrl: (v: string) => `https://line.me/ti/p/~${v}` },
-  { key: 'telegram',    label: 'Telegram',  icon: '✈️', color: 'bg-sky-50 text-sky-700 border-sky-200',            getUrl: (v: string) => `https://t.me/${v.replace('@','')}` },
-  { key: 'website',     label: '网站',      icon: '🌐', color: 'bg-violet-50 text-violet-700 border-violet-200',   getUrl: (v: string) => v.startsWith('http') ? v : `https://${v}` },
-] as const
+// Fix Leaflet default icons broken by Vite
+delete (L.Icon.Default.prototype as any)._getIconUrl
+L.Icon.Default.mergeOptions({
+  iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+  iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+  shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+})
 
 function recordBrowse(entry: BrowseEntry) {
   try {
@@ -50,6 +52,8 @@ export default function ServiceDetail() {
   const [phoneVerified,  setPhoneVerified]  = useState(false)
   const [providerEmail,  setProviderEmail]  = useState<string | null>(null)
   const [avgReplyHours,  setAvgReplyHours]  = useState<number | null>(null)
+  const [showMap,        setShowMap]        = useState(false)
+  const [showContactActions, setShowContactActions] = useState(false)
 
   useEffect(() => {
     if (!service?.provider.id) return
@@ -216,6 +220,43 @@ export default function ServiceDetail() {
 
           <ViewCount type="service" id={service.id} className="mt-2" />
 
+          <div className="mt-4 flex flex-wrap gap-2">
+            {service.provider.verified && (
+              <span className="inline-flex items-center gap-1 rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-medium text-blue-700">
+                <ShieldCheck size={11} />
+                已认证
+              </span>
+            )}
+            {service.distance !== undefined && (
+              <span className="inline-flex items-center gap-1 rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-xs font-medium text-gray-700">
+                <MapPin size={11} />
+                {service.distance < 1 ? `${(service.distance * 1000).toFixed(0)}m` : `${service.distance.toFixed(1)}km`}
+              </span>
+            )}
+            <ReplyTimeBadge
+              avgReplyHours={avgReplyHours}
+              joinedAt={service.provider.joinedAt || service.createdAt}
+              lastSeenAt={service.provider.lastSeenAt}
+            />
+          </div>
+
+          <div className="mt-4 rounded-2xl border border-gray-100 bg-gray-50 p-4">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-gray-900">看清楚后，再一键联系</p>
+                <p className="mt-1 text-xs leading-5 text-gray-500">
+                  平台已把认证、活跃度、服务区域和联系方式放在前面，方便你快速判断。
+                </p>
+              </div>
+              <button
+                onClick={() => setShowContactActions(true)}
+                className="rounded-2xl bg-primary-600 px-4 py-2 text-sm font-semibold text-white hover:bg-primary-700"
+              >
+                立即联系
+              </button>
+            </div>
+          </div>
+
           {/* Tags */}
           <div className="flex flex-wrap gap-2 mt-4">
             {(service.tags ?? []).map((tag) => (
@@ -265,12 +306,6 @@ export default function ServiceDetail() {
               <div className="flex items-center gap-1 mt-1 text-xs text-gray-400">
                 <Clock size={11} />
                 <span>加入于 {service.provider.joinedAt ? service.provider.joinedAt.slice(0, 7) : '未知'}</span>
-              </div>
-              <div className="mt-1.5">
-                <ReplyTimeBadge
-                  avgReplyHours={avgReplyHours}
-                  joinedAt={service.provider.joinedAt || service.createdAt}
-                />
               </div>
               <div className="flex items-center gap-2 mt-2 flex-wrap">
                 <span className={`flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-medium
@@ -347,16 +382,82 @@ export default function ServiceDetail() {
         >
           <h3 className="text-sm font-semibold text-gray-700 mb-2">服务区域</h3>
           <div className="flex items-center gap-2 text-gray-600">
-            <MapPin size={16} className="text-primary-500" />
-            <span className="text-sm">{service.location.area ?? service.location.address}，{service.location.city}</span>
+            <MapPin size={16} className="text-primary-500 flex-shrink-0" />
+            <span className="text-sm flex-1">{service.location.area ?? service.location.address}，{service.location.city}</span>
             {service.distance !== undefined && (
-              <span className="ml-auto text-xs text-gray-400">
+              <span className="text-xs text-gray-400 flex-shrink-0">
                 距您约 {service.distance < 1
                   ? `${(service.distance * 1000).toFixed(0)}m`
                   : `${service.distance.toFixed(1)}km`}
               </span>
             )}
+            {service.location.lat != null && service.location.lng != null && (
+              <button
+                onClick={() => setShowMap((v) => !v)}
+                className="flex-shrink-0 flex items-center gap-1 text-xs text-primary-600 font-medium
+                           bg-primary-50 hover:bg-primary-100 border border-primary-200
+                           px-2.5 py-1 rounded-full transition-colors"
+              >
+                {showMap ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+                {showMap ? '收起' : '查看地图'}
+              </button>
+            )}
           </div>
+
+          {/* Inline map — only when service has coordinates */}
+          {showMap && service.location.lat != null && service.location.lng != null && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.25 }}
+              className="mt-3 space-y-2"
+            >
+              <div className="rounded-xl overflow-hidden border border-gray-200" style={{ height: 220 }}>
+                <MapContainer
+                  center={[service.location.lat, service.location.lng]}
+                  zoom={15}
+                  className="w-full h-full"
+                  zoomControl={true}
+                  scrollWheelZoom={false}
+                >
+                  <TileLayer
+                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                  />
+                  <Marker position={[service.location.lat, service.location.lng]}>
+                    <Popup>
+                      <div className="text-sm space-y-1.5 py-0.5">
+                        <p className="font-semibold text-gray-900 leading-snug">{service.title}</p>
+                        <p className="text-gray-500 text-xs">{service.location.area ?? service.location.address}，{service.location.city}</p>
+                        <a
+                          href={`https://www.google.com/maps?q=${service.location.lat},${service.location.lng}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="block text-center bg-primary-600 hover:bg-primary-700 text-white
+                                     text-xs font-semibold py-1.5 px-3 rounded-lg transition-colors"
+                        >
+                          在 Google Maps 打开
+                        </a>
+                      </div>
+                    </Popup>
+                  </Marker>
+                </MapContainer>
+              </div>
+
+              {/* Google Maps navigation button */}
+              <a
+                href={`https://www.google.com/maps/dir/?api=1&destination=${service.location.lat},${service.location.lng}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl border border-gray-200
+                           bg-white hover:bg-gray-50 text-sm text-gray-700 font-medium transition-colors"
+              >
+                <span>🗺️</span>
+                用 Google Maps 导航
+              </a>
+            </motion.div>
+          )}
         </motion.div>
 
         {/* Q&A */}
@@ -371,23 +472,37 @@ export default function ServiceDetail() {
       </div>
 
       {/* Bottom action bar */}
+      <ContactActions
+        isOpen={showContactActions}
+        providerName={service.provider.name}
+        phone={service.provider.phone}
+        wechat={service.provider.wechat}
+        onClose={() => setShowContactActions(false)}
+        onMessage={() => { setShowContactActions(false); handleMessage() }}
+        onCall={() => { setShowContactActions(false); handleCall() }}
+        onCopyWechat={() => { setShowContactActions(false); handleWechat() }}
+        onOpenProfile={() => {
+          setShowContactActions(false)
+          if (service.provider.id) navigate(`/provider/${service.provider.id}`)
+        }}
+      />
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 px-4 py-3 pb-safe">
         <div className="max-w-2xl lg:max-w-4xl mx-auto flex gap-2">
           <motion.button
             whileTap={{ scale: 0.95 }}
-            onClick={handleMessage}
-            className="flex-1 flex items-center justify-center gap-2 bg-white border border-primary-300 text-primary-600 py-3 rounded-2xl font-medium hover:bg-primary-50 transition-colors"
-          >
-            <MessageSquare size={18} />
-            <span>发消息</span>
-          </motion.button>
-          <motion.button
-            whileTap={{ scale: 0.95 }}
-            onClick={handleCall}
+            onClick={() => setShowContactActions(true)}
             className="flex-1 flex items-center justify-center gap-2 bg-primary-600 text-white py-3 rounded-2xl font-medium hover:bg-primary-700 transition-colors"
           >
             <Phone size={18} />
-            <span>电话</span>
+            <span>立即联系</span>
+          </motion.button>
+          <motion.button
+            whileTap={{ scale: 0.95 }}
+            onClick={() => service.provider.id && navigate(`/provider/${service.provider.id}`)}
+            className="flex-1 flex items-center justify-center gap-2 bg-white border border-primary-300 text-primary-600 py-3 rounded-2xl font-medium hover:bg-primary-50 transition-colors"
+          >
+            <MessageSquare size={18} />
+            <span>查看主页</span>
           </motion.button>
         </div>
       </div>

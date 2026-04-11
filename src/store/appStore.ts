@@ -31,6 +31,7 @@ interface ServiceRow {
     phone: string | null
     wechat: string | null
     avatar_url: string | null
+    last_seen_at: string | null
   } | null
   reviews: { rating: number }[] | null
 }
@@ -76,8 +77,8 @@ function mapRow(row: ServiceRow): Service {
     price: row.price?.toString() ?? '0',
     priceType: row.price_type ?? 'hourly',
     location: {
-      lat: row.lat ?? 43.6532,
-      lng: row.lng ?? -79.3832,
+      lat: row.lat ?? undefined,
+      lng: row.lng ?? undefined,
       address: row.address ?? row.area ?? 'Toronto',
       city: row.city ?? 'Toronto',
       area: row.area ?? undefined,
@@ -94,6 +95,7 @@ function mapRow(row: ServiceRow): Service {
       reviewCount: row.reviews?.length ?? 0,
       verified: row.is_verified ?? false,
       joinedAt: row.created_at?.slice(0, 10) ?? '',
+      lastSeenAt: row.provider?.last_seen_at ?? null,
       languages: ['中文'],
     },
     tags: row.tags ?? [],
@@ -108,7 +110,7 @@ function mapRow(row: ServiceRow): Service {
 export const useAppStore = create<AppState>((set, get) => ({
   services: [],
   userLocation: null,
-  searchFilters: { sortBy: 'distance' },
+  searchFilters: { sortBy: 'rating' },
   isLoadingDone: false,
 
   setLoadingDone: () => set({ isLoadingDone: true }),
@@ -126,7 +128,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   fetchServices: async () => {
     const { data, error } = await supabase
       .from('services')
-      .select('*, provider:users(id, name, phone, wechat, avatar_url), reviews(rating)')
+      .select('*, provider:users(id, name, phone, wechat, avatar_url, last_seen_at), reviews(rating)')
       .eq('is_available', true)
       .order('created_at', { ascending: false })
     if (!error && data) {
@@ -159,10 +161,15 @@ export const useAppStore = create<AppState>((set, get) => ({
     if (userLocation) {
       result = result.map((s) => ({
         ...s,
-        distance: calcDistance(
-          userLocation.lat, userLocation.lng,
-          s.location.lat, s.location.lng
-        ),
+        distance:
+          s.location.lat != null && s.location.lng != null
+            ? calcDistance(
+                userLocation.lat,
+                userLocation.lng,
+                s.location.lat,
+                s.location.lng
+              )
+            : undefined,
       }))
     }
 
@@ -193,9 +200,9 @@ export const useAppStore = create<AppState>((set, get) => ({
     let result = services
       .filter((s) => s.available && s.category === category)
       .map((s) =>
-        userLocation
+        userLocation && s.location.lat != null && s.location.lng != null
           ? { ...s, distance: calcDistance(userLocation.lat, userLocation.lng, s.location.lat, s.location.lng) }
-          : s
+          : { ...s, distance: undefined }
       )
     if (userLocation) {
       result.sort((a, b) => (a.distance ?? Infinity) - (b.distance ?? Infinity))

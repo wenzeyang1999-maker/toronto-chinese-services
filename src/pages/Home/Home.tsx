@@ -1,21 +1,35 @@
-import { useEffect, useRef, useState } from 'react'
-import { motion } from 'framer-motion'
+import { lazy, Suspense, useEffect, useRef, useState } from 'react'
 import HeroBanner from '../../components/HeroBanner/HeroBanner'
-import HeroCarousel from '../../components/HeroCarousel/HeroCarousel'
 import CategoryButtons from '../../components/CategoryButtons/CategoryButtons'
-import ServiceCard from '../../components/ServiceCard/ServiceCard'
-import SearchBar from '../../components/SearchBar/SearchBar'
 import InquiryModal from '../../components/InquiryModal/InquiryModal'
 import SectionTabs, { type SectionTab } from '../../components/SectionTabs/SectionTabs'
 import { useAppStore } from '../../store/appStore'
 import { useGeolocation } from '../../hooks/useGeolocation'
-import { ChevronRight, MapPin, Sparkles } from 'lucide-react'
 import RecentCategories from '../../components/RecentCategories/RecentCategories'
 import RecommendedServices from '../../components/RecommendedServices/RecommendedServices'
 import { useNavigate, useSearchParams } from 'react-router-dom'
+import HomeActionHero from './components/HomeActionHero'
+import HomeServiceShelf from './components/HomeServiceShelf'
+
+const ServiceMap = lazy(() => import('../../components/ServiceMap/ServiceMap'))
+
+function calcDistance(
+  lat1: number, lng1: number,
+  lat2: number, lng2: number
+): number {
+  const R = 6371
+  const dLat = ((lat2 - lat1) * Math.PI) / 180
+  const dLng = ((lng2 - lng1) * Math.PI) / 180
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos((lat1 * Math.PI) / 180) *
+      Math.cos((lat2 * Math.PI) / 180) *
+      Math.sin(dLng / 2) ** 2
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+}
 
 export default function Home() {
-  useGeolocation()
+  const requestLocation = useGeolocation()
   const services     = useAppStore((s) => s.services)
   const setSearchFilters = useAppStore((s) => s.setSearchFilters)
   const userLocation = useAppStore((s) => s.userLocation)
@@ -24,6 +38,7 @@ export default function Home() {
   const [inquiryOpen, setInquiryOpen] = useState(false)
   const [activeTab, setActiveTab] = useState<SectionTab>('services')
   const [searchQuery, setSearchQuery] = useState('')
+  const [viewMode, setViewMode] = useState<'list' | 'map'>('list')
   const searchRef = useRef<HTMLDivElement>(null)
 
   // When clicking "找服务" tab, skip carousel and jump to search bar
@@ -45,7 +60,24 @@ export default function Home() {
     navigate(`/search?q=${encodeURIComponent(kw.trim())}`)
   }
 
-  const recent = services.filter((s) => s.available).slice(0, 4)
+  const handleViewMode = (next: 'list' | 'map') => {
+    setViewMode(next)
+    if (next === 'map' && !userLocation) requestLocation()
+  }
+
+  const recent = userLocation
+    ? services
+        .filter((s) => s.available && s.location.lat != null && s.location.lng != null)
+        .map((s) => ({
+          ...s,
+          distance: calcDistance(userLocation.lat, userLocation.lng, s.location.lat!, s.location.lng!),
+        }))
+        .sort((a, b) => {
+          if (a.isPromoted !== b.isPromoted) return a.isPromoted ? -1 : 1
+          return (a.distance ?? Infinity) - (b.distance ?? Infinity)
+        })
+        .slice(0, 4)
+    : services.filter((s) => s.available).slice(0, 4)
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -59,97 +91,49 @@ export default function Home() {
         </div>
       </div>
 
-      {/* Carousel — scrolls normally */}
-      <HeroCarousel />
-
-      {/* Search bar — scrolls normally */}
-      <div ref={searchRef} className="w-full bg-primary-700 px-6 py-4">
-        <div className="w-full px-3 md:w-[85%] md:px-0 lg:w-[70%] mx-auto">
-          <div className="flex items-center gap-1.5 mb-2">
-            <MapPin size={12} className="text-blue-200" />
-            <span className="text-blue-200 text-xs">
-              {userLocation ? '已获取您的位置' : '大多伦多地区'}
-            </span>
-          </div>
-
-          {/* Search row: SearchBar + search button + AI button */}
-          <div className="flex items-center gap-2 md:gap-3.5">
-            <div className="flex-1 min-w-0">
-              <SearchBar
-                value={searchQuery}
-                onChange={setSearchQuery}
-                onSearch={handleSearch}
-              />
-            </div>
-            <motion.button
-              whileTap={{ scale: 0.95 }}
-              onClick={() => setInquiryOpen(true)}
-              className="self-stretch flex-shrink-0 flex items-center justify-center gap-1.5
-                         bg-white hover:bg-blue-50 active:bg-blue-100
-                         text-primary-700 font-semibold rounded-2xl shadow-md
-                         transition-colors px-3 md:px-3.5 whitespace-nowrap"
-            >
-              <Sparkles size={14} className="text-primary-500 flex-shrink-0" />
-              <span className="text-sm font-bold">AI 帮你找</span>
-            </motion.button>
-          </div>
-        </div>
+      <div ref={searchRef}>
+        <HomeActionHero
+          userHasLocation={!!userLocation}
+          searchQuery={searchQuery}
+          onSearchQueryChange={setSearchQuery}
+          onSearch={handleSearch}
+          onOpenInquiry={() => setInquiryOpen(true)}
+        />
       </div>
 
       <InquiryModal open={inquiryOpen} onClose={() => setInquiryOpen(false)} />
 
-<div className="relative z-10 w-full bg-gray-50 pt-6">
+      <div className="relative z-10 w-full bg-gray-50 pt-6">
       <div className="w-full px-3 md:w-[85%] md:px-0 lg:w-[70%] mx-auto">
         {/* Category buttons */}
-        <motion.section
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.15 }}
-          className="card p-4 mb-4"
-        >
+        <section className="card p-4 mb-4">
           <h3 className="text-sm font-semibold text-gray-700 mb-3">选择服务类型</h3>
+          <p className="text-xs text-gray-400 mb-3">先挑分类，再快速比较价格、评价和联系渠道。</p>
           <CategoryButtons />
-        </motion.section>
+        </section>
 
         {/* Recently browsed categories */}
         <RecentCategories />
 
         {/* Recent / nearby services */}
-        <motion.section
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className="mb-6"
-        >
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="text-sm font-semibold text-gray-700">
-              {userLocation ? '附近服务' : '最新服务'}
-            </h3>
-            <button
-              onClick={() => navigate('/search')}
-              className="text-xs text-primary-600 flex items-center gap-0.5"
-            >
-              查看全部 <ChevronRight size={14} />
-            </button>
-          </div>
-
-          <div className="flex flex-col gap-2">
-            {recent.map((svc) => (
-              <ServiceCard key={svc.id} service={svc} />
-            ))}
-          </div>
-        </motion.section>
+        <HomeServiceShelf
+          title={userLocation ? '附近服务' : '本地热门'}
+          subtitle={
+            userLocation
+              ? '优先展示离你更近、且填写了精确位置的服务。切到地图可直接看分布。'
+              : '先按本地可用服务浏览。需要距离和地图时，再开启位置权限。'
+          }
+          viewMode={viewMode}
+          onViewModeChange={handleViewMode}
+          services={recent}
+          mapContent={<ServiceMap services={services.filter((s) => s.available)} />}
+        />
 
         {/* Recommended for you */}
         <RecommendedServices />
 
         {/* Post CTA */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.3 }}
-          className="bg-gradient-to-r from-primary-600 to-primary-800 rounded-2xl p-5 mb-8 text-white"
-        >
+        <div className="bg-gradient-to-r from-primary-600 to-primary-800 rounded-2xl p-5 mb-8 text-white">
           <h3 className="font-bold text-lg mb-1">有技能想接单？</h3>
           <p className="text-red-100 text-sm mb-3">免费发布您的服务，让附近有需要的客户找到您</p>
           <button
@@ -158,7 +142,7 @@ export default function Home() {
           >
             立即发布服务 →
           </button>
-        </motion.div>
+        </div>
       </div>
       </div>
     </div>

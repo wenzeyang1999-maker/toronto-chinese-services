@@ -11,6 +11,7 @@ import { supabase } from './supabase'
 import { notifyProviderInquiry } from './notify'
 
 export interface InquiryInput {
+  inquiryId:     string
   categoryId:    string
   categoryLabel: string
   description:   string
@@ -38,9 +39,9 @@ export async function matchAndEmailProviders(inquiry: InquiryInput): Promise<Mat
   // ── 1. Fetch providers who have an available service in this category ────────
   const { data: rows, error } = await supabase
     .from('services')
-    .select('provider_id, provider:provider_id(id, name, email, rating)')
-    .eq('category', inquiry.categoryId)
-    .eq('available', true)
+    .select('provider_id, provider:provider_id(id, name, email, last_seen_at), reviews(rating)')
+    .eq('category_id', inquiry.categoryId)
+    .eq('is_available', true)
 
   if (error) {
     console.warn('[matchAndEmail] query failed:', error.message)
@@ -50,7 +51,9 @@ export async function matchAndEmailProviders(inquiry: InquiryInput): Promise<Mat
 
   // ── 2. Deduplicate by provider_id ────────────────────────────────────────────
   const seen = new Set<string>()
-  const providers: { id: string; name: string; email: string; rating: number }[] = []
+  const providers: { id: string; name: string; email: string; rating: number; activeRecently: boolean }[] = []
+
+  const cutoff = Date.now() - 24 * 60 * 60 * 1000  // 24h ago
 
   for (const row of rows) {
     const p = Array.isArray((row as any).provider)
@@ -58,14 +61,22 @@ export async function matchAndEmailProviders(inquiry: InquiryInput): Promise<Mat
       : (row as any).provider
     if (!p?.email || seen.has(p.id)) continue
     seen.add(p.id)
-    providers.push({ id: p.id, name: p.name, email: p.email, rating: p.rating ?? 0 })
+    const reviews: { rating: number }[] = (row as any).reviews ?? []
+    const rating = reviews.length
+      ? reviews.reduce((s: number, r: { rating: number }) => s + r.rating, 0) / reviews.length
+      : 0
+    const activeRecently = p.last_seen_at ? new Date(p.last_seen_at).getTime() > cutoff : false
+    providers.push({ id: p.id, name: p.name, email: p.email, rating, activeRecently })
   }
 
   const total = providers.length
   if (total === 0) return { sent: 0, total: 0 }
 
-  // ── 3. Sort by rating DESC, cap at MAX_RECIPIENTS if ≥ MAX ──────────────────
-  providers.sort((a, b) => b.rating - a.rating)
+  // ── 3. Sort: 24h active first, then by rating DESC ───────────────────────────
+  providers.sort((a, b) => {
+    if (a.activeRecently !== b.activeRecently) return a.activeRecently ? -1 : 1
+    return b.rating - a.rating
+  })
   const targets = total >= MAX_RECIPIENTS ? providers.slice(0, MAX_RECIPIENTS) : providers
 
   // ── 4. Fire emails in parallel (fire-and-forget, no throws) ─────────────────
@@ -83,6 +94,17 @@ export async function matchAndEmailProviders(inquiry: InquiryInput): Promise<Mat
         timing:         TIMING_LABEL[inquiry.timing] ?? inquiry.timing,
       })
     )
+  )
+
+  // ── 5. Record match results ───────────────────────────────────────────────────
+  await supabase.from('inquiry_matches').insert(
+    targets.map((p) => ({
+      inquiry_id:     inquiry.inquiryId,
+      provider_id:    p.id,
+      provider_name:  p.name,
+      provider_email: p.email,
+      email_sent:     true,
+    }))
   )
 
   return { sent: targets.length, total }

@@ -6,7 +6,7 @@ import { useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Clock } from 'lucide-react'
 import { getCategoryById } from '../../data/categories'
-import type { BrowseEntry } from '../../pages/Profile/types'
+import type { BrowseEntry } from '../../types/browse'
 
 export default function RecentCategories() {
   const navigate = useNavigate()
