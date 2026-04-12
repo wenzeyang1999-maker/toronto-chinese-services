@@ -20,17 +20,23 @@ export default function HomeActionHero({
   onSearch,
   onOpenInquiry,
 }: Props) {
-  const navigate  = useNavigate()
-  const services  = useAppStore((s) => s.services)
+  const navigate = useNavigate()
+  const services = useAppStore((s) => s.services)
 
-  // Pick top 4: promoted first, then by rating, max 4
-  const preview = services
+  // Promoted first, then newest — take up to 10 for the ticker
+  const ticker = services
     .filter((s) => s.available)
     .sort((a, b) => {
       if (a.isPromoted !== b.isPromoted) return a.isPromoted ? -1 : 1
-      return b.provider.rating - a.provider.rating
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
     })
-    .slice(0, 4)
+    .slice(0, 10)
+
+  // Duplicate list so the CSS scroll loop is seamless
+  const tickerLoop = ticker.length > 0 ? [...ticker, ...ticker] : []
+
+  // Height of each card row in px (keep in sync with the card min-h below)
+  const CARD_H = 60
 
   return (
     <div className="relative w-full overflow-hidden bg-gradient-to-br from-primary-700 via-primary-800 to-slate-950 px-4 py-10 md:px-5 md:py-14">
@@ -106,6 +112,7 @@ export default function HomeActionHero({
             </div>
           </motion.div>
 
+          {/* ── Live ticker panel ── */}
           <motion.div
             initial={{ opacity: 0, scale: 0.96, y: 18 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -117,8 +124,8 @@ export default function HomeActionHero({
               {/* Header */}
               <div className="mb-3 flex items-center justify-between rounded-2xl border border-white/10 bg-slate-950/25 px-4 py-3">
                 <div>
-                  <p className="text-xs uppercase tracking-[0.24em] text-blue-100/60">Live · 实时服务</p>
-                  <p className="mt-1 text-sm font-semibold text-white">平台真实在线商家</p>
+                  <p className="text-xs uppercase tracking-[0.24em] text-blue-100/60">Live · 实时上线</p>
+                  <p className="mt-1 text-sm font-semibold text-white">最新入驻 &amp; 推广商家</p>
                 </div>
                 <div className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/20 px-3 py-1 text-xs text-emerald-300 border border-emerald-500/30">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
@@ -126,72 +133,95 @@ export default function HomeActionHero({
                 </div>
               </div>
 
-              {/* Service cards */}
-              <div className="space-y-2">
-                {preview.length === 0 ? (
-                  // Skeleton while loading
-                  Array.from({ length: 3 }).map((_, i) => (
-                    <div key={i} className="h-16 rounded-2xl bg-white/5 animate-pulse" />
-                  ))
-                ) : (
-                  preview.map((svc, i) => {
-                    const cat = getCategoryById(svc.category)
-                    const priceLabel = svc.priceType === 'hourly'
-                      ? `$${svc.price}/时`
-                      : svc.priceType === 'fixed'
-                      ? `$${svc.price}起`
-                      : '面议'
+              {/* Ticker */}
+              {ticker.length === 0 ? (
+                // Skeleton while loading
+                <div className="space-y-2">
+                  {Array.from({ length: 4 }).map((_, i) => (
+                    <div key={i} className="h-14 rounded-2xl bg-white/5 animate-pulse" />
+                  ))}
+                </div>
+              ) : (
+                <div
+                  className="relative overflow-hidden rounded-2xl"
+                  style={{ height: CARD_H * 4 + 8 * 3 }} // show ~4 cards
+                >
+                  {/* Top + bottom fade masks */}
+                  <div className="pointer-events-none absolute inset-x-0 top-0 z-10 h-6 bg-gradient-to-b from-white/5 to-transparent" />
+                  <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-10 bg-gradient-to-t from-slate-950/40 to-transparent" />
 
-                    return (
-                      <motion.button
-                        key={svc.id}
-                        initial={{ opacity: 0, x: 16 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: 0.15 + i * 0.07 }}
-                        onClick={() => navigate(`/service/${svc.id}`)}
-                        className="w-full flex items-center gap-3 rounded-2xl border border-white/8
-                                   bg-white/6 hover:bg-white/12 active:scale-[0.98]
-                                   px-4 py-3 text-left transition-all"
-                      >
-                        {/* Category icon */}
-                        <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center flex-shrink-0 text-lg">
-                          {svc.provider.avatar ? (
-                            <img src={svc.provider.avatar} alt="" className="w-10 h-10 rounded-xl object-cover" />
-                          ) : (
-                            cat?.emoji ?? '🔧'
-                          )}
-                        </div>
+                  {/* Scrolling list — CSS animation, pause on hover */}
+                  <style>{`
+                    @keyframes ticker-up {
+                      0%   { transform: translateY(0); }
+                      100% { transform: translateY(-50%); }
+                    }
+                    .ticker-track {
+                      animation: ticker-up ${ticker.length * 3}s linear infinite;
+                    }
+                    .ticker-track:hover {
+                      animation-play-state: paused;
+                    }
+                  `}</style>
 
-                        {/* Info */}
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-semibold text-white truncate leading-snug">
-                            {svc.title}
-                          </p>
-                          <div className="flex items-center gap-2 mt-0.5">
-                            <span className="text-xs text-blue-100/60 truncate">{svc.provider.name}</span>
-                            {svc.provider.rating > 0 && (
-                              <span className="flex items-center gap-0.5 text-xs text-amber-400 flex-shrink-0">
-                                <Star size={10} className="fill-amber-400" />
-                                {svc.provider.rating.toFixed(1)}
-                              </span>
+                  <div className="ticker-track flex flex-col gap-2">
+                    {tickerLoop.map((svc, i) => {
+                      const cat = getCategoryById(svc.category)
+                      const priceLabel =
+                        svc.priceType === 'hourly' ? `$${svc.price}/时` :
+                        svc.priceType === 'fixed'  ? `$${svc.price}起`  : '面议'
+
+                      return (
+                        <button
+                          key={`${svc.id}-${i}`}
+                          onClick={() => navigate(`/service/${svc.id}`)}
+                          style={{ minHeight: CARD_H }}
+                          className="w-full flex items-center gap-3 rounded-2xl border border-white/8
+                                     bg-white/6 hover:bg-white/12 active:scale-[0.98]
+                                     px-4 py-3 text-left transition-all flex-shrink-0"
+                        >
+                          {/* Avatar / category icon */}
+                          <div className="w-9 h-9 rounded-xl bg-white/10 flex items-center justify-center flex-shrink-0 text-lg overflow-hidden">
+                            {svc.provider.avatar ? (
+                              <img src={svc.provider.avatar} alt="" className="w-9 h-9 object-cover" />
+                            ) : (
+                              cat?.emoji ?? '🔧'
                             )}
                           </div>
-                        </div>
 
-                        {/* Price + promoted */}
-                        <div className="flex flex-col items-end gap-1 flex-shrink-0">
-                          <span className="text-xs font-semibold text-cyan-300">{priceLabel}</span>
-                          {svc.isPromoted && (
-                            <span className="flex items-center gap-0.5 text-[10px] text-amber-300/80">
-                              <Zap size={9} className="fill-amber-300/80" /> 推广
-                            </span>
-                          )}
-                        </div>
-                      </motion.button>
-                    )
-                  })
-                )}
-              </div>
+                          {/* Info */}
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-semibold text-white truncate leading-snug">
+                              {svc.title}
+                            </p>
+                            <div className="flex items-center gap-2 mt-0.5">
+                              <span className="text-xs text-blue-100/60 truncate">{svc.provider.name}</span>
+                              {svc.provider.rating > 0 && (
+                                <span className="flex items-center gap-0.5 text-xs text-amber-400 flex-shrink-0">
+                                  <Star size={10} className="fill-amber-400" />
+                                  {svc.provider.rating.toFixed(1)}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Price + badge */}
+                          <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                            <span className="text-xs font-semibold text-cyan-300">{priceLabel}</span>
+                            {svc.isPromoted ? (
+                              <span className="flex items-center gap-0.5 text-[10px] text-amber-300/90">
+                                <Zap size={9} className="fill-amber-300/90" /> 推广
+                              </span>
+                            ) : (
+                              <span className="text-[10px] text-emerald-400/80">新上线</span>
+                            )}
+                          </div>
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
 
               {/* Footer CTA */}
               <button
