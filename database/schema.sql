@@ -29,7 +29,7 @@ CREATE TABLE IF NOT EXISTS users (
   phone_verified    BOOLEAN     DEFAULT false,
 
   role            VARCHAR(20)   DEFAULT 'user'
-                  CHECK (role IN ('user', 'provider', 'admin')),
+                  CHECK (role IN ('user', 'provider', 'admin', 'banned')),
 
   created_at      TIMESTAMPTZ   DEFAULT NOW(),
   updated_at      TIMESTAMPTZ   DEFAULT NOW()
@@ -99,6 +99,11 @@ ALTER TABLE services ALTER COLUMN area TYPE TEXT;
 ALTER TABLE users    ADD COLUMN IF NOT EXISTS social_links    JSONB        DEFAULT '{}';
 ALTER TABLE users    ADD COLUMN IF NOT EXISTS phone_verified  BOOLEAN      DEFAULT false;
 ALTER TABLE users    ADD COLUMN IF NOT EXISTS last_seen_at    TIMESTAMPTZ;
+-- Referral columns — required by handle_new_user trigger below
+ALTER TABLE users    ADD COLUMN IF NOT EXISTS referral_code    TEXT UNIQUE;
+ALTER TABLE users    ADD COLUMN IF NOT EXISTS referred_by_code TEXT;
+CREATE INDEX IF NOT EXISTS idx_users_referred_by_code ON users (referred_by_code)
+  WHERE referred_by_code IS NOT NULL;
 
 -- Backfill email verification for users who already confirmed their email.
 -- Safe to re-run: only updates rows where auth has confirmed but public hasn't caught up.
@@ -185,13 +190,15 @@ CREATE INDEX IF NOT EXISTS idx_reviews_reviewer_id ON reviews (reviewer_id);
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
 BEGIN
-  INSERT INTO public.users (id, name, email, phone, role)
+  INSERT INTO public.users (id, name, email, phone, role, referral_code, referred_by_code)
   VALUES (
     NEW.id,
     COALESCE(NEW.raw_user_meta_data->>'name', '用户'),
     NEW.email,
     NEW.raw_user_meta_data->>'phone',
-    'user'
+    'user',
+    upper(substr(md5(NEW.id::text), 1, 7)),
+    NULLIF(trim(COALESCE(NEW.raw_user_meta_data->>'referred_by_code', '')), '')
   )
   ON CONFLICT (id) DO NOTHING;
   RETURN NEW;

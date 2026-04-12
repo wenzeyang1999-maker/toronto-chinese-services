@@ -7,6 +7,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { ChevronDown, Menu, X, UserCircle, Grid2x2, Search } from 'lucide-react'
 import { useAuthStore } from '../../store/authStore'
 import { CATEGORIES } from '../../data/categories'
+import NccLogo from '../Logo/NccLogo'
 
 interface HeaderProps {
   /** When false, renders as a static bar (used on Home page over carousel) */
@@ -46,10 +47,8 @@ export default function Header({ sticky = true }: HeaderProps) {
       <div className="px-4 md:px-6 h-14 flex items-center justify-between">
 
         {/* Logo */}
-        <Link to="/" onClick={close} className="flex items-center gap-2 flex-shrink-0">
-          <div className="w-8 h-8 rounded-full bg-primary-600 flex items-center justify-center text-white font-bold text-sm">
-            T
-          </div>
+        <Link to="/" onClick={close} className="flex items-center flex-shrink-0">
+          <NccLogo variant="full" theme="light" size={32} />
         </Link>
 
         {/* Right side */}

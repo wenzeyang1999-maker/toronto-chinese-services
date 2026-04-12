@@ -59,9 +59,14 @@ CREATE INDEX IF NOT EXISTS idx_inquiry_matches_inquiry ON inquiry_matches (inqui
 
 ALTER TABLE inquiry_matches ENABLE ROW LEVEL SECURITY;
 
+-- inquiry_matches are written by the matchAndEmail function (runs with anon key).
+-- Only allow insert when the referenced inquiry actually exists — prevents spoofing.
 DO $$ BEGIN
-  CREATE POLICY "anyone can insert inquiry_matches"
-    ON inquiry_matches FOR INSERT TO public WITH CHECK (true);
+  CREATE POLICY "service can insert inquiry_matches"
+    ON inquiry_matches FOR INSERT TO anon, authenticated
+    WITH CHECK (
+      EXISTS (SELECT 1 FROM inquiries WHERE id = inquiry_id)
+    );
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 DO $$ BEGIN

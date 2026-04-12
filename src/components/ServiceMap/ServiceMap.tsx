@@ -1,14 +1,15 @@
 // ─── ServiceMap ────────────────────────────────────────────────────────────────
 // Renders a Leaflet map with markers for services that have lat/lng.
-// Clicking a marker shows a popup with basic info + link to detail page.
+// Shows user's current location as a Google Maps-style blue dot with heading arrow.
 import { useEffect } from 'react'
-import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet'
+import { MapContainer, TileLayer, Marker, Popup, useMap, Circle } from 'react-leaflet'
 import L from 'leaflet'
 import { useNavigate } from 'react-router-dom'
 import type { Service } from '../../types'
+import { useAppStore } from '../../store/appStore'
 import 'leaflet/dist/leaflet.css'
 
-// Fix default marker icons broken by Webpack/Vite asset handling
+// Fix default marker icons broken by Vite asset handling
 delete (L.Icon.Default.prototype as any)._getIconUrl
 L.Icon.Default.mergeOptions({
   iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
@@ -27,10 +28,68 @@ const promotedIcon = new L.Icon({
   shadowSize: [41, 41],
 })
 
-// Auto-fit map bounds to visible markers
-function FitBounds({ services }: { services: Service[] }) {
+// Google Maps-style "my location" icon — blue dot with white border + direction arrow on top
+const myLocationIcon = L.divIcon({
+  className: '',
+  iconSize: [24, 24],
+  iconAnchor: [12, 12],
+  html: `
+    <div style="position:relative;width:24px;height:24px;">
+      <!-- outer pulse ring -->
+      <div style="
+        position:absolute;inset:-8px;
+        border-radius:50%;
+        background:rgba(66,133,244,0.18);
+        animation:pulse-ring 2s ease-out infinite;
+      "></div>
+      <!-- white border -->
+      <div style="
+        position:absolute;inset:0;
+        border-radius:50%;
+        background:#fff;
+        box-shadow:0 2px 6px rgba(0,0,0,0.35);
+      "></div>
+      <!-- blue fill -->
+      <div style="
+        position:absolute;inset:3px;
+        border-radius:50%;
+        background:#4285F4;
+      "></div>
+      <!-- direction arrow (triangle pointing up) -->
+      <div style="
+        position:absolute;
+        top:-10px;left:50%;
+        transform:translateX(-50%);
+        width:0;height:0;
+        border-left:5px solid transparent;
+        border-right:5px solid transparent;
+        border-bottom:10px solid #4285F4;
+        filter:drop-shadow(0 1px 2px rgba(0,0,0,0.3));
+      "></div>
+    </div>
+    <style>
+      @keyframes pulse-ring {
+        0%   { transform:scale(1);   opacity:0.7; }
+        100% { transform:scale(2.2); opacity:0;   }
+      }
+    </style>
+  `,
+})
+
+// Centers map on user location when it becomes available, otherwise fits service bounds
+function MapController({ services, userLocation }: {
+  services: Service[]
+  userLocation: { lat: number; lng: number } | null
+}) {
   const map = useMap()
+
   useEffect(() => {
+    if (userLocation) {
+      // Center on user with enough zoom to see nearby services
+      map.setView([userLocation.lat, userLocation.lng], 13, { animate: true })
+      return
+    }
+    // Fallback: fit to service markers
     const points = services
       .filter(hasCoordinates)
       .map((s) => [s.location.lat, s.location.lng] as [number, number])
@@ -40,7 +99,8 @@ function FitBounds({ services }: { services: Service[] }) {
     } else {
       map.fitBounds(L.latLngBounds(points), { padding: [40, 40] })
     }
-  }, [services, map])
+  }, [userLocation, services, map])
+
   return null
 }
 
@@ -53,9 +113,15 @@ function hasCoordinates(service: Service): service is Service & { location: { la
 }
 
 export default function ServiceMap({ services }: Props) {
-  const navigate = useNavigate()
+  const navigate     = useNavigate()
+  const userLocation = useAppStore((s) => s.userLocation)
 
   const mapped = services.filter(hasCoordinates)
+
+  // Default center: user location if available, else downtown Toronto
+  const center: [number, number] = userLocation
+    ? [userLocation.lat, userLocation.lng]
+    : [43.7, -79.42]
 
   return (
     <div className="relative w-full rounded-2xl overflow-hidden border border-gray-200 shadow-sm" style={{ height: '60vh', minHeight: 320 }}>
@@ -67,8 +133,8 @@ export default function ServiceMap({ services }: Props) {
         </div>
       )}
       <MapContainer
-        center={[43.7, -79.42]}
-        zoom={11}
+        center={center}
+        zoom={userLocation ? 13 : 11}
         className="w-full h-full"
         zoomControl={true}
       >
@@ -76,7 +142,30 @@ export default function ServiceMap({ services }: Props) {
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
-        <FitBounds services={mapped} />
+
+        <MapController services={mapped} userLocation={userLocation} />
+
+        {/* User location: accuracy circle + blue dot with arrow */}
+        {userLocation && (
+          <>
+            <Circle
+              center={[userLocation.lat, userLocation.lng]}
+              radius={300}
+              pathOptions={{ color: '#4285F4', fillColor: '#4285F4', fillOpacity: 0.08, weight: 1 }}
+            />
+            <Marker
+              position={[userLocation.lat, userLocation.lng]}
+              icon={myLocationIcon}
+              zIndexOffset={1000}
+            >
+              <Popup>
+                <p className="text-xs font-semibold text-gray-700">📍 您的当前位置</p>
+              </Popup>
+            </Marker>
+          </>
+        )}
+
+        {/* Service markers */}
         {mapped.map((svc) => (
           <Marker
             key={svc.id}
@@ -85,36 +174,26 @@ export default function ServiceMap({ services }: Props) {
           >
             <Popup maxWidth={220} className="service-map-popup">
               <div className="p-1">
-                {/* Image */}
                 {svc.images?.[0] && (
-                  <img
-                    src={svc.images[0]}
-                    alt={svc.title}
-                    className="w-full h-24 object-cover rounded-lg mb-2"
-                  />
+                  <img src={svc.images[0]} alt={svc.title} className="w-full h-24 object-cover rounded-lg mb-2" />
                 )}
-                {/* Title */}
                 <p className="font-semibold text-gray-900 text-sm leading-tight mb-0.5">{svc.title}</p>
-                {/* Provider */}
                 <p className="text-xs text-gray-500 mb-1">
                   {svc.provider.name}
                   {svc.provider.rating > 0 && (
                     <span className="ml-1.5 text-amber-500">★ {svc.provider.rating.toFixed(1)}</span>
                   )}
                 </p>
-                {/* Price */}
                 <p className="text-xs font-medium text-primary-600 mb-2">
                   {svc.priceType === 'hourly' ? `$${svc.price}/时` :
                    svc.priceType === 'fixed'  ? `$${svc.price}起`  : '面议'}
                 </p>
-                {/* Location text */}
                 {svc.location.address && (
-                  <p className="text-xs text-gray-400 mb-2 truncate">📍 大致位置：{svc.location.address}</p>
+                  <p className="text-xs text-gray-400 mb-2 truncate">📍 {svc.location.address}</p>
                 )}
                 <button
                   onClick={() => navigate(`/service/${svc.id}`)}
-                  className="w-full bg-primary-600 hover:bg-primary-700 text-white text-xs font-semibold
-                             py-1.5 rounded-lg transition-colors"
+                  className="w-full bg-primary-600 hover:bg-primary-700 text-white text-xs font-semibold py-1.5 rounded-lg transition-colors"
                 >
                   查看详情
                 </button>
@@ -123,19 +202,26 @@ export default function ServiceMap({ services }: Props) {
           </Marker>
         ))}
       </MapContainer>
+
       {/* Legend */}
-      {mapped.length > 0 && (
-        <div className="absolute bottom-3 left-3 z-[400] bg-white/90 backdrop-blur-sm rounded-xl px-3 py-1.5
-                        border border-gray-200 shadow-sm flex items-center gap-3 text-xs text-gray-600">
-          <span>共 <strong>{mapped.length}</strong> 家有位置</span>
-          {mapped.some((s) => s.isPromoted) && (
-            <span className="flex items-center gap-1">
-              <span className="w-2 h-2 rounded-full bg-red-500 inline-block" />
-              推广商家
-            </span>
-          )}
-        </div>
-      )}
+      <div className="absolute bottom-3 left-3 z-[400] bg-white/90 backdrop-blur-sm rounded-xl px-3 py-1.5
+                      border border-gray-200 shadow-sm flex items-center gap-3 text-xs text-gray-600">
+        {userLocation && (
+          <span className="flex items-center gap-1">
+            <span className="w-3 h-3 rounded-full bg-blue-500 border-2 border-white shadow-sm inline-block" />
+            我的位置
+          </span>
+        )}
+        {mapped.length > 0 && (
+          <span>共 <strong>{mapped.length}</strong> 家</span>
+        )}
+        {mapped.some((s) => s.isPromoted) && (
+          <span className="flex items-center gap-1">
+            <span className="w-2 h-2 rounded-full bg-red-500 inline-block" />
+            推广
+          </span>
+        )}
+      </div>
     </div>
   )
 }

@@ -15,29 +15,78 @@ export default function ReferralSection({ user }: Props) {
   const [referralCount, setReferralCount] = useState<number>(0)
   const [copied,        setCopied]        = useState(false)
   const [loading,       setLoading]       = useState(true)
+  const [error,         setError]         = useState<string | null>(null)
+
+  async function loadReferralData(code: string) {
+    setReferralCode(code)
+
+    const { count, error: countError } = await supabase
+      .from('users')
+      .select('id', { count: 'exact', head: true })
+      .eq('referred_by_code', code)
+
+    if (countError) throw countError
+    setReferralCount(count ?? 0)
+  }
 
   useEffect(() => {
-    supabase
-      .from('users')
-      .select('referral_code')
-      .eq('id', user.id)
-      .single()
-      .then(({ data }) => {
-        if (!data?.referral_code) { setLoading(false); return }
-        setReferralCode(data.referral_code)
+    let active = true
 
-        supabase
-          .from('users')
-          .select('id', { count: 'exact', head: true })
-          .eq('referred_by_code', data.referral_code)
-          .then(({ count }) => {
-            setReferralCount(count ?? 0)
-            setLoading(false)
-          })
-      })
+    const bootstrapReferral = async () => {
+      setLoading(true)
+      setError(null)
+
+      const { data, error: fetchError } = await supabase
+        .from('users')
+        .select('referral_code')
+        .eq('id', user.id)
+        .single()
+
+      if (!active) return
+      if (fetchError) {
+        setError('分享码加载失败，请稍后再试')
+        setLoading(false)
+        return
+      }
+
+      let code = data?.referral_code ?? null
+
+      if (!code) {
+        const { data: repairedCode, error: repairError } = await supabase.rpc('ensure_my_referral_code')
+        if (!active) return
+        if (repairError) {
+          setError('你的分享码暂时还没生成，请联系管理员执行邀请码修复 SQL')
+          setLoading(false)
+          return
+        }
+        code = repairedCode
+      }
+
+      if (!code) {
+        setError('你的分享码暂时还没生成，请联系管理员执行邀请码修复 SQL')
+        setLoading(false)
+        return
+      }
+
+      try {
+        await loadReferralData(code)
+      } catch {
+        if (!active) return
+        setError('分享码统计加载失败，请稍后再试')
+      } finally {
+        if (active) setLoading(false)
+      }
+    }
+
+    void bootstrapReferral()
+
+    return () => {
+      active = false
+    }
   }, [user.id])
 
-  const shareUrl  = referralCode ? `${BASE_URL}/register?ref=${referralCode}` : ''
+  const shareBaseUrl = typeof window !== 'undefined' ? window.location.origin : BASE_URL
+  const shareUrl  = referralCode ? `${shareBaseUrl}/register?ref=${referralCode}` : ''
   const shareText = `我在多伦多华人服务平台找到了很多靠谱的本地服务商！用我的邀请码 ${referralCode} 注册：`
 
   async function copyLink() {
@@ -93,9 +142,16 @@ export default function ReferralSection({ user }: Props) {
           <p className="text-center font-mono text-3xl font-bold tracking-[0.3em] text-primary-700 select-all mb-4">
             {referralCode ?? '------'}
           </p>
+          {error && (
+            <p className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">
+              {error}
+            </p>
+          )}
           <button
             onClick={copyLink}
+            disabled={!shareUrl}
             className="w-full flex items-center justify-center gap-2 bg-primary-600 hover:bg-primary-700
+                       disabled:bg-gray-300 disabled:cursor-not-allowed
                        text-white text-sm font-semibold py-3 rounded-xl transition-colors active:scale-95"
           >
             {copied ? <Check size={15} /> : <Copy size={15} />}

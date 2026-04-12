@@ -1,7 +1,9 @@
-import { MapPin, Sparkles, ArrowRight, ShieldCheck, Play } from 'lucide-react'
-import { motion, AnimatePresence } from 'framer-motion'
-import { useEffect, useState } from 'react'
+import { MapPin, Sparkles, ArrowRight, ShieldCheck, Star, Zap } from 'lucide-react'
+import { motion } from 'framer-motion'
+import { useNavigate } from 'react-router-dom'
 import SearchBar from '../../../components/SearchBar/SearchBar'
+import { useAppStore } from '../../../store/appStore'
+import { getCategoryById } from '../../../data/categories'
 
 interface Props {
   userHasLocation: boolean
@@ -11,24 +13,6 @@ interface Props {
   onOpenInquiry: () => void
 }
 
-const HERO_VISUALS = [
-  {
-    src: '/images/slides/slide1.svg',
-    title: '搬家 / 保洁 / 接送',
-    subtitle: '快速找到真实可联系的本地服务',
-  },
-  {
-    src: '/images/slides/slide2.svg',
-    title: '地图 / 评价 / 联系方式',
-    subtitle: '先判断，再联系，减少来回比较成本',
-  },
-  {
-    src: '/images/slides/slide3.svg',
-    title: 'AI 帮你找',
-    subtitle: '不想自己筛，也可以直接提交需求',
-  },
-]
-
 export default function HomeActionHero({
   userHasLocation,
   searchQuery,
@@ -36,16 +20,17 @@ export default function HomeActionHero({
   onSearch,
   onOpenInquiry,
 }: Props) {
-  const [active, setActive] = useState(0)
+  const navigate  = useNavigate()
+  const services  = useAppStore((s) => s.services)
 
-  useEffect(() => {
-    const timer = window.setInterval(() => {
-      setActive((prev) => (prev + 1) % HERO_VISUALS.length)
-    }, 3200)
-    return () => window.clearInterval(timer)
-  }, [])
-
-  const current = HERO_VISUALS[active]
+  // Pick top 4: promoted first, then by rating, max 4
+  const preview = services
+    .filter((s) => s.available)
+    .sort((a, b) => {
+      if (a.isPromoted !== b.isPromoted) return a.isPromoted ? -1 : 1
+      return b.provider.rating - a.provider.rating
+    })
+    .slice(0, 4)
 
   return (
     <div className="relative w-full overflow-hidden bg-gradient-to-br from-primary-700 via-primary-800 to-slate-950 px-4 py-10 md:px-5 md:py-14">
@@ -128,50 +113,95 @@ export default function HomeActionHero({
             className="relative z-10 hidden lg:block"
           >
             <div className="relative ml-auto max-w-[32rem] rounded-[2rem] border border-white/12 bg-white/8 p-4 shadow-2xl backdrop-blur-xl">
+
+              {/* Header */}
               <div className="mb-3 flex items-center justify-between rounded-2xl border border-white/10 bg-slate-950/25 px-4 py-3">
                 <div>
-                  <p className="text-xs uppercase tracking-[0.24em] text-blue-100/60">Live Preview</p>
-                  <p className="mt-1 text-sm font-semibold text-white">{current.title}</p>
+                  <p className="text-xs uppercase tracking-[0.24em] text-blue-100/60">Live · 实时服务</p>
+                  <p className="mt-1 text-sm font-semibold text-white">平台真实在线商家</p>
                 </div>
-                <div className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs text-blue-100/80">
-                  <Play size={12} className="fill-current" />
-                  动态预览
+                <div className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/20 px-3 py-1 text-xs text-emerald-300 border border-emerald-500/30">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                  实时
                 </div>
               </div>
 
-              <div className="relative overflow-hidden rounded-[1.5rem] border border-white/10 bg-slate-950/30">
-                <AnimatePresence mode="wait">
-                  <motion.div
-                    key={current.src}
-                    initial={{ opacity: 0, scale: 1.03 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.98 }}
-                    transition={{ duration: 0.45, ease: 'easeOut' }}
-                    className="relative"
-                  >
-                    <img src={current.src} alt={current.title} className="h-[22rem] w-full object-cover" />
-                    <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/10 to-transparent" />
-                    <div className="absolute inset-x-0 bottom-0 p-5">
-                      <p className="text-xs uppercase tracking-[0.24em] text-blue-100/60">Customer-first flow</p>
-                      <h3 className="mt-2 text-2xl font-semibold text-white">{current.title}</h3>
-                      <p className="mt-2 max-w-sm text-sm leading-6 text-blue-50/75">{current.subtitle}</p>
-                    </div>
-                  </motion.div>
-                </AnimatePresence>
+              {/* Service cards */}
+              <div className="space-y-2">
+                {preview.length === 0 ? (
+                  // Skeleton while loading
+                  Array.from({ length: 3 }).map((_, i) => (
+                    <div key={i} className="h-16 rounded-2xl bg-white/5 animate-pulse" />
+                  ))
+                ) : (
+                  preview.map((svc, i) => {
+                    const cat = getCategoryById(svc.category)
+                    const priceLabel = svc.priceType === 'hourly'
+                      ? `$${svc.price}/时`
+                      : svc.priceType === 'fixed'
+                      ? `$${svc.price}起`
+                      : '面议'
+
+                    return (
+                      <motion.button
+                        key={svc.id}
+                        initial={{ opacity: 0, x: 16 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: 0.15 + i * 0.07 }}
+                        onClick={() => navigate(`/service/${svc.id}`)}
+                        className="w-full flex items-center gap-3 rounded-2xl border border-white/8
+                                   bg-white/6 hover:bg-white/12 active:scale-[0.98]
+                                   px-4 py-3 text-left transition-all"
+                      >
+                        {/* Category icon */}
+                        <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center flex-shrink-0 text-lg">
+                          {svc.provider.avatar ? (
+                            <img src={svc.provider.avatar} alt="" className="w-10 h-10 rounded-xl object-cover" />
+                          ) : (
+                            cat?.emoji ?? '🔧'
+                          )}
+                        </div>
+
+                        {/* Info */}
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold text-white truncate leading-snug">
+                            {svc.title}
+                          </p>
+                          <div className="flex items-center gap-2 mt-0.5">
+                            <span className="text-xs text-blue-100/60 truncate">{svc.provider.name}</span>
+                            {svc.provider.rating > 0 && (
+                              <span className="flex items-center gap-0.5 text-xs text-amber-400 flex-shrink-0">
+                                <Star size={10} className="fill-amber-400" />
+                                {svc.provider.rating.toFixed(1)}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Price + promoted */}
+                        <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                          <span className="text-xs font-semibold text-cyan-300">{priceLabel}</span>
+                          {svc.isPromoted && (
+                            <span className="flex items-center gap-0.5 text-[10px] text-amber-300/80">
+                              <Zap size={9} className="fill-amber-300/80" /> 推广
+                            </span>
+                          )}
+                        </div>
+                      </motion.button>
+                    )
+                  })
+                )}
               </div>
 
-              <div className="mt-3 flex gap-2">
-                {HERO_VISUALS.map((item, index) => (
-                  <button
-                    key={item.src}
-                    onClick={() => setActive(index)}
-                    className={`h-1.5 rounded-full transition-all ${
-                      index === active ? 'w-10 bg-white' : 'w-4 bg-white/25 hover:bg-white/40'
-                    }`}
-                    aria-label={item.title}
-                  />
-                ))}
-              </div>
+              {/* Footer CTA */}
+              <button
+                onClick={() => navigate('/search')}
+                className="mt-3 w-full flex items-center justify-center gap-1.5
+                           rounded-2xl border border-white/10 bg-white/5 hover:bg-white/10
+                           py-2.5 text-xs font-medium text-blue-100/70 transition-colors"
+              >
+                查看全部服务 <ArrowRight size={13} />
+              </button>
             </div>
           </motion.div>
         </div>

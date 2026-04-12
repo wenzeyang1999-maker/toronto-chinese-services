@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { ShieldCheck, Flag, CheckCircle2, Trash2, ChevronLeft, Users, Briefcase, Home, ShoppingBag, Calendar, Wrench, Star, BadgeCheck, X, ExternalLink, Zap, Crown, Search, Inbox, Mail, CheckCheck } from 'lucide-react'
+import { ShieldCheck, Flag, CheckCircle2, Trash2, ChevronLeft, Users, Briefcase, Home, ShoppingBag, Calendar, Wrench, Star, BadgeCheck, X, ExternalLink, Zap, Crown, Search, Inbox, Mail, CheckCheck, Ban, UserCheck, UserCog } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { useAuthStore } from '../../store/authStore'
 
@@ -78,6 +78,27 @@ interface MemberRow {
   membership_expires_at: string | null
 }
 
+interface NewServiceRow {
+  id: string
+  title: string
+  description: string
+  category_id: string
+  is_available: boolean
+  is_promoted: boolean
+  created_at: string
+  provider: { id: string; name: string; email: string } | null
+}
+
+interface UserRow {
+  id: string
+  name: string
+  email: string
+  role: 'user' | 'provider' | 'admin' | 'banned'
+  created_at: string
+  is_email_verified: boolean
+  referral_code: string | null
+}
+
 const REASON_LABEL: Record<string, string> = {
   irrelevant: '内容无关',
   malicious:  '恶意攻击',
@@ -97,13 +118,17 @@ export default function AdminPage() {
   const [promoSearch,    setPromoSearch]    = useState('')
   const [promoTable,     setPromoTable]     = useState<PromotedRow['table']>('services')
   const [stats,          setStats]          = useState<Stats | null>(null)
-  const [tab,            setTab]            = useState<'reports' | 'verification' | 'promoted' | 'overview' | 'community' | 'membership' | 'inquiries'>('reports')
+  const [tab,            setTab]            = useState<'reports' | 'verification' | 'promoted' | 'overview' | 'community' | 'membership' | 'inquiries' | 'users' | 'services'>('reports')
   const [inquiries,      setInquiries]      = useState<InquiryRow[]>([])
   const [communityPosts, setCommunityPosts] = useState<{ id: string; title: string; type: string; area: string; created_at: string; author: { name: string } | null }[]>([])
   const [loading,        setLoading]        = useState(true)
   const [acting,         setActing]         = useState<string | null>(null)
   const [memberSearch,   setMemberSearch]   = useState('')
   const [memberResults,  setMemberResults]  = useState<MemberRow[]>([])
+  const [userSearch,     setUserSearch]     = useState('')
+  const [userResults,    setUserResults]    = useState<UserRow[]>([])
+  const [newServices,    setNewServices]    = useState<NewServiceRow[]>([])
+  const [selectedSvcs,   setSelectedSvcs]  = useState<Set<string>>(new Set())
 
   useEffect(() => {
     if (!user) { navigate('/login'); return }
@@ -295,6 +320,78 @@ export default function AdminPage() {
     setActing(null)
   }
 
+  async function loadNewServices() {
+    const { data } = await supabase
+      .from('services')
+      .select('id, title, description, category_id, is_available, is_promoted, created_at, provider:provider_id(id, name, email)')
+      .order('created_at', { ascending: false })
+      .limit(60)
+    if (data) setNewServices(data.map((r: any) => ({
+      ...r,
+      provider: Array.isArray(r.provider) ? r.provider[0] : r.provider,
+    })))
+  }
+
+  async function takedownService(id: string) {
+    setActing(id)
+    await supabase.from('services').update({ is_available: false }).eq('id', id)
+    setNewServices(prev => prev.map(s => s.id === id ? { ...s, is_available: false } : s))
+    setSelectedSvcs(prev => { const n = new Set(prev); n.delete(id); return n })
+    setActing(null)
+  }
+
+  async function restoreService(id: string) {
+    setActing(id)
+    await supabase.from('services').update({ is_available: true }).eq('id', id)
+    setNewServices(prev => prev.map(s => s.id === id ? { ...s, is_available: true } : s))
+    setActing(null)
+  }
+
+  async function bulkTakedown() {
+    if (selectedSvcs.size === 0) return
+    if (!confirm(`确定下架选中的 ${selectedSvcs.size} 条服务？`)) return
+    const ids = Array.from(selectedSvcs)
+    await supabase.from('services').update({ is_available: false }).in('id', ids)
+    setNewServices(prev => prev.map(s => ids.includes(s.id) ? { ...s, is_available: false } : s))
+    setSelectedSvcs(new Set())
+  }
+
+  function toggleSelect(id: string) {
+    setSelectedSvcs(prev => {
+      const n = new Set(prev)
+      n.has(id) ? n.delete(id) : n.add(id)
+      return n
+    })
+  }
+
+  function toggleSelectAll() {
+    const available = newServices.filter(s => s.is_available).map(s => s.id)
+    if (selectedSvcs.size === available.length) {
+      setSelectedSvcs(new Set())
+    } else {
+      setSelectedSvcs(new Set(available))
+    }
+  }
+
+  async function searchUsers() {
+    const kw = userSearch.trim()
+    const query = supabase
+      .from('users')
+      .select('id, name, email, role, created_at, is_email_verified, referral_code')
+      .order('created_at', { ascending: false })
+      .limit(30)
+    if (kw) query.or(`name.ilike.%${kw}%,email.ilike.%${kw}%`)
+    const { data } = await query
+    setUserResults((data ?? []) as UserRow[])
+  }
+
+  async function setUserRole(userId: string, role: UserRow['role']) {
+    setActing(userId)
+    await supabase.from('users').update({ role }).eq('id', userId)
+    setUserResults(prev => prev.map(u => u.id === userId ? { ...u, role } : u))
+    setActing(null)
+  }
+
   async function removeReview(report: ReportRow) {
     if (!report.review) return
     setActing(report.id)
@@ -362,6 +459,18 @@ export default function AdminPage() {
               tab === 'membership' ? 'bg-white text-primary-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'
             }`}>
             会员管理
+          </button>
+          <button onClick={() => { setTab('users'); searchUsers() }}
+            className={`flex-1 py-2 rounded-xl text-sm font-semibold transition-all ${
+              tab === 'users' ? 'bg-white text-primary-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+            }`}>
+            用户管理
+          </button>
+          <button onClick={() => { setTab('services'); loadNewServices() }}
+            className={`flex-1 py-2 rounded-xl text-sm font-semibold transition-all ${
+              tab === 'services' ? 'bg-white text-primary-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+            }`}>
+            服务审核
           </button>
         </div>
 
@@ -734,6 +843,245 @@ export default function AdminPage() {
                 </div>
               </div>
             ))}
+          </motion.div>
+        ) : tab === 'users' ? (
+          <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-3">
+
+            {/* Search bar */}
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 flex gap-2">
+              <input
+                value={userSearch}
+                onChange={e => setUserSearch(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && searchUsers()}
+                placeholder="搜索姓名或邮箱，留空查看最新30条"
+                className="flex-1 text-sm border border-gray-200 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-primary-300"
+              />
+              <button onClick={searchUsers}
+                className="px-4 py-2 bg-primary-600 text-white text-sm font-semibold rounded-xl hover:bg-primary-700 transition-colors flex items-center gap-1.5">
+                <Search size={14} /> 搜索
+              </button>
+            </div>
+
+            {userResults.length === 0 ? (
+              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-10 text-center text-sm text-gray-400">
+                搜索用户后在此显示
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {userResults.map(u => {
+                  const isBanned   = u.role === 'banned'
+                  const isAdmin    = u.role === 'admin'
+                  const isProvider = u.role === 'provider'
+                  return (
+                    <div key={u.id} className={`bg-white rounded-2xl border shadow-sm p-4 ${isBanned ? 'border-red-200 bg-red-50/30' : 'border-gray-100'}`}>
+                      <div className="flex items-start gap-3">
+
+                        {/* Avatar placeholder */}
+                        <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-white flex-shrink-0 text-sm ${
+                          isBanned ? 'bg-red-400' : isAdmin ? 'bg-purple-500' : 'bg-primary-500'
+                        }`}>
+                          {u.name.charAt(0).toUpperCase()}
+                        </div>
+
+                        {/* Info */}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-sm font-semibold text-gray-900">{u.name}</span>
+                            {/* Role badge */}
+                            <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${
+                              isBanned   ? 'bg-red-100 text-red-600' :
+                              isAdmin    ? 'bg-purple-100 text-purple-700' :
+                              isProvider ? 'bg-blue-100 text-blue-700' :
+                                           'bg-gray-100 text-gray-500'
+                            }`}>
+                              {isBanned ? '已封号' : isAdmin ? '管理员' : isProvider ? '服务商' : '用户'}
+                            </span>
+                            {u.is_email_verified && (
+                              <span className="text-xs text-green-600 flex items-center gap-0.5">
+                                <CheckCircle2 size={11} /> 已验证
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-xs text-gray-400 mt-0.5 truncate">{u.email}</p>
+                          <p className="text-xs text-gray-400 mt-0.5">
+                            注册于 {u.created_at.slice(0, 10)}
+                            {u.referral_code && <span className="ml-2 text-gray-300">码: {u.referral_code}</span>}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Actions */}
+                      {!isAdmin && (
+                        <div className="flex gap-2 flex-wrap mt-3 pt-3 border-t border-gray-100">
+                          {isBanned ? (
+                            <button
+                              onClick={() => setUserRole(u.id, 'user')}
+                              disabled={acting === u.id}
+                              className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg bg-green-50 text-green-700 hover:bg-green-100 font-semibold transition-colors disabled:opacity-50"
+                            >
+                              <UserCheck size={12} /> 解封账号
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => {
+                                if (!confirm(`确定封号 ${u.name}？封号后该用户无法登录。`)) return
+                                setUserRole(u.id, 'banned')
+                              }}
+                              disabled={acting === u.id}
+                              className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 font-semibold transition-colors disabled:opacity-50"
+                            >
+                              <Ban size={12} /> 封号
+                            </button>
+                          )}
+                          {!isProvider && !isBanned && (
+                            <button
+                              onClick={() => setUserRole(u.id, 'provider')}
+                              disabled={acting === u.id}
+                              className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 font-semibold transition-colors disabled:opacity-50"
+                            >
+                              <UserCog size={12} /> 设为服务商
+                            </button>
+                          )}
+                          {isProvider && (
+                            <button
+                              onClick={() => setUserRole(u.id, 'user')}
+                              disabled={acting === u.id}
+                              className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 transition-colors disabled:opacity-50"
+                            >
+                              <X size={12} /> 撤销服务商
+                            </button>
+                          )}
+                          <a
+                            href={`/provider/${u.id}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 transition-colors"
+                          >
+                            <ExternalLink size={12} /> 查看主页
+                          </a>
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </motion.div>
+        ) : tab === 'services' ? (
+          <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-3">
+
+            {/* Toolbar */}
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-3 flex items-center gap-3 flex-wrap">
+              <span className="text-sm text-gray-500 flex-1">
+                共 <strong>{newServices.length}</strong> 条 · 在线 <strong className="text-green-600">{newServices.filter(s => s.is_available).length}</strong> · 已下架 <strong className="text-gray-400">{newServices.filter(s => !s.is_available).length}</strong>
+              </span>
+              {selectedSvcs.size > 0 && (
+                <button
+                  onClick={bulkTakedown}
+                  className="flex items-center gap-1.5 px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-semibold rounded-xl transition-colors"
+                >
+                  <Trash2 size={14} /> 批量下架 ({selectedSvcs.size})
+                </button>
+              )}
+              <button
+                onClick={toggleSelectAll}
+                className="px-3 py-2 border border-gray-200 text-sm text-gray-600 rounded-xl hover:bg-gray-50 transition-colors"
+              >
+                {selectedSvcs.size === newServices.filter(s => s.is_available).length && newServices.filter(s => s.is_available).length > 0
+                  ? '取消全选' : '全选在线'}
+              </button>
+              <button onClick={loadNewServices}
+                className="px-3 py-2 border border-gray-200 text-sm text-gray-600 rounded-xl hover:bg-gray-50 transition-colors">
+                刷新
+              </button>
+            </div>
+
+            {/* Service list */}
+            {newServices.length === 0 ? (
+              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-10 text-center text-sm text-gray-400">
+                暂无服务记录
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {newServices.map(svc => (
+                  <div
+                    key={svc.id}
+                    className={`bg-white rounded-2xl border shadow-sm p-4 transition-all ${
+                      !svc.is_available
+                        ? 'border-gray-100 opacity-50'
+                        : selectedSvcs.has(svc.id)
+                        ? 'border-red-300 bg-red-50/40'
+                        : 'border-gray-100'
+                    }`}
+                  >
+                    <div className="flex items-start gap-3">
+                      {/* Checkbox — only for online services */}
+                      {svc.is_available && (
+                        <input
+                          type="checkbox"
+                          checked={selectedSvcs.has(svc.id)}
+                          onChange={() => toggleSelect(svc.id)}
+                          className="mt-1 accent-red-500 w-4 h-4 flex-shrink-0 cursor-pointer"
+                        />
+                      )}
+
+                      {/* Content */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-sm font-semibold text-gray-900 truncate">{svc.title}</span>
+                          <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-500">{svc.category_id}</span>
+                          {svc.is_promoted && (
+                            <span className="text-xs px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 flex items-center gap-0.5">
+                              <Zap size={10} /> 推广
+                            </span>
+                          )}
+                          <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${
+                            svc.is_available ? 'bg-green-50 text-green-600' : 'bg-gray-100 text-gray-400'
+                          }`}>
+                            {svc.is_available ? '在线' : '已下架'}
+                          </span>
+                        </div>
+                        <p className="text-xs text-gray-400 mt-0.5 line-clamp-1">{svc.description}</p>
+                        <p className="text-xs text-gray-400 mt-0.5">
+                          {svc.provider?.name ?? '未知'} · {svc.provider?.email ?? ''}
+                          <span className="ml-2 text-gray-300">{svc.created_at.slice(0, 10)}</span>
+                        </p>
+                      </div>
+
+                      {/* Actions */}
+                      <div className="flex gap-1.5 flex-shrink-0">
+                        <a
+                          href={`/service/${svc.id}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="p-1.5 rounded-lg border border-gray-200 text-gray-400 hover:bg-gray-50 transition-colors"
+                          title="查看详情"
+                        >
+                          <ExternalLink size={14} />
+                        </a>
+                        {svc.is_available ? (
+                          <button
+                            onClick={() => takedownService(svc.id)}
+                            disabled={acting === svc.id}
+                            className="flex items-center gap-1 px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-600 text-xs font-semibold rounded-lg transition-colors disabled:opacity-50"
+                          >
+                            <Trash2 size={12} /> 下架
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => restoreService(svc.id)}
+                            disabled={acting === svc.id}
+                            className="flex items-center gap-1 px-3 py-1.5 bg-green-50 hover:bg-green-100 text-green-700 text-xs font-semibold rounded-lg transition-colors disabled:opacity-50"
+                          >
+                            <CheckCircle2 size={12} /> 恢复
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </motion.div>
         ) : null}
       </div>

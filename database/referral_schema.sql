@@ -39,11 +39,34 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- RLS: users can read their own referral_code (already covered by existing policies)
--- Allow anyone to look up whether a referral_code exists (for validation on signup)
-DO $$ BEGIN
-  CREATE POLICY "anyone can verify referral code"
-    ON users FOR SELECT
-    USING (true);
-EXCEPTION WHEN duplicate_object THEN NULL;
-END $$;
+-- ─── ensure_my_referral_code() ───────────────────────────────────────────────
+-- Lets an authenticated user self-heal their own referral code if it is NULL
+-- (e.g. users created before the referral system was introduced).
+-- Called by ReferralSection.tsx when referral_code comes back null.
+CREATE OR REPLACE FUNCTION public.ensure_my_referral_code()
+RETURNS TEXT
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+  repaired_code TEXT;
+BEGIN
+  IF auth.uid() IS NULL THEN
+    RAISE EXCEPTION 'Authentication required';
+  END IF;
+
+  UPDATE public.users
+  SET referral_code = upper(substr(md5(id::text), 1, 7))
+  WHERE id = auth.uid() AND referral_code IS NULL;
+
+  SELECT referral_code
+  INTO repaired_code
+  FROM public.users
+  WHERE id = auth.uid();
+
+  RETURN repaired_code;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.ensure_my_referral_code() FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.ensure_my_referral_code() TO authenticated;
