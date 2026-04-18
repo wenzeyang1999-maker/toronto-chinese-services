@@ -219,55 +219,61 @@ export default function CategoryButtons() {
         ))}
       </motion.div>
 
-      {/* Bottom sheet */}
+      {/* Floating popup */}
       <AnimatePresence>
         {activeSheet && (
           <>
-            {/* Backdrop */}
+            {/* Backdrop — light blur, very faint */}
             <motion.div
               key="backdrop"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setActiveSheet(null)}
-              className="fixed inset-0 bg-black/40 z-50"
+              className="fixed inset-0 bg-black/20 backdrop-blur-[2px] z-50"
             />
 
-            {/* Sheet */}
+            {/* Floating card — centered, NOT full-width bottom sheet */}
             <motion.div
               key="sheet"
-              initial={{ y: '100%' }}
-              animate={{ y: 0 }}
-              exit={{ y: '100%' }}
-              transition={{ type: 'spring', stiffness: 320, damping: 32 }}
-              className="fixed bottom-0 left-0 right-0 z-50 bg-white rounded-t-3xl shadow-2xl
-                         max-w-2xl mx-auto"
+              initial={{ opacity: 0, scale: 0.92, y: 16 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.92, y: 16 }}
+              transition={{ type: 'spring', stiffness: 380, damping: 30 }}
+              className="fixed inset-x-4 top-1/2 -translate-y-1/2 z-50
+                         bg-white/80 backdrop-blur-xl rounded-3xl shadow-2xl
+                         border border-white/60 max-w-sm mx-auto"
             >
-              {/* Header */}
-              <div className={`bg-gradient-to-r ${activeSheet.headerColor} rounded-t-3xl px-5 pt-5 pb-4`}>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className="text-2xl">{activeSheet.emoji}</span>
-                    <span className="text-white font-bold text-lg">{activeSheet.label}</span>
+              {/* Header — no gradient, just a subtle accent strip */}
+              <div className="flex items-center justify-between px-5 pt-4 pb-3
+                              border-b border-gray-100/80">
+                <div className="flex items-center gap-2">
+                  <span className={`w-8 h-8 rounded-xl ${activeSheet.bgColor} flex items-center justify-center text-lg`}>
+                    {activeSheet.emoji}
+                  </span>
+                  <div>
+                    <p className={`text-sm font-bold ${activeSheet.color}`}>{activeSheet.label}</p>
+                    <p className="text-[11px] text-gray-400 leading-none mt-0.5">选择服务类型</p>
                   </div>
-                  <button
-                    onClick={() => setActiveSheet(null)}
-                    className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center text-white hover:bg-white/30"
-                  >
-                    <X size={16} />
-                  </button>
                 </div>
-                <p className="text-white/70 text-xs mt-1">选择你需要的服务类型</p>
+                <button
+                  onClick={() => setActiveSheet(null)}
+                  className="w-7 h-7 rounded-full bg-gray-100 flex items-center justify-center
+                             text-gray-400 hover:bg-gray-200 transition-colors"
+                >
+                  <X size={14} />
+                </button>
               </div>
 
               {/* Subcategories */}
-              <div className="p-4 grid grid-cols-3 gap-3">
+              <div className="p-4 grid grid-cols-3 gap-2.5">
                 {activeSheet.subs?.map((sub) => (
                   <button
                     key={sub.label}
                     onClick={() => handleSubClick(activeSheet, sub)}
-                    className={`${activeSheet.bgColor} rounded-2xl p-3 flex flex-col items-center gap-1.5
-                                border border-white/60 hover:shadow-md active:scale-95 transition-all`}
+                    className="bg-white/70 hover:bg-white rounded-2xl p-3 flex flex-col items-center gap-1.5
+                               border border-gray-100 hover:border-gray-200 hover:shadow-sm
+                               active:scale-95 transition-all"
                   >
                     <span className="text-2xl leading-none">{sub.emoji}</span>
                     <span className={`text-xs font-semibold ${activeSheet.color} text-center leading-tight`}>
@@ -281,15 +287,12 @@ export default function CategoryButtons() {
               {activeSheet.to && (
                 <button
                   onClick={() => { setActiveSheet(null); navigate(activeSheet.to!) }}
-                  className="w-full flex items-center justify-center gap-1 py-3 text-sm text-gray-500
-                             hover:text-gray-700 border-t border-gray-100 transition-colors"
+                  className="w-full flex items-center justify-center gap-1 py-3 text-xs text-gray-400
+                             hover:text-gray-600 border-t border-gray-100/80 transition-colors rounded-b-3xl"
                 >
-                  查看{activeSheet.label}全部 <ChevronRight size={14} />
+                  查看{activeSheet.label}全部 <ChevronRight size={12} />
                 </button>
               )}
-
-              {/* Safe area */}
-              <div className="h-6" />
             </motion.div>
           </>
         )}
