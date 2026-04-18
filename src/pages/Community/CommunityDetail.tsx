@@ -4,7 +4,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ArrowLeft, Heart, MessageCircle, Send, Trash2, Flag } from 'lucide-react'
+import { ArrowLeft, Heart, MessageCircle, Send, Trash2, Flag, Share2, Check } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { notifyAdminCommunityReport } from '../../lib/notify'
 import { useAuthStore } from '../../store/authStore'
@@ -64,6 +64,7 @@ export default function CommunityDetail() {
   const [commentReportSubmitting, setCommentReportSubmitting] = useState(false)
   const [commentReportError, setCommentReportError] = useState<string | null>(null)
   const [reportedCommentIds, setReportedCommentIds] = useState<Set<string>>(new Set())
+  const [copied, setCopied] = useState(false)
 
   useEffect(() => {
     if (!id) return
@@ -252,6 +253,33 @@ export default function CommunityDetail() {
     })
   }
 
+  async function sharePost() {
+    if (!post) return
+    const url = `${window.location.origin}/community/${post.id}`
+    const snippet = post.content.slice(0, 120) + (post.content.length > 120 ? '…' : '')
+    const firstImage = post.images?.[0] ?? null
+    const shareText = [
+      `📢 ${post.title}`,
+      snippet,
+      firstImage ? `🖼 ${firstImage}` : null,
+      `👉 大多伦多华人服务 · 多村论坛`,
+    ].filter(Boolean).join('\n\n')
+
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: post.title, text: shareText, url })
+      } catch { /* user cancelled */ }
+    } else {
+      try {
+        await navigator.clipboard.writeText(`${shareText}\n${url}`)
+      } catch {
+        prompt('复制以下链接分享：', `${shareText}\n${url}`)
+      }
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    }
+  }
+
   async function notifyAdminsAboutReport(opts: {
     reportType: 'post' | 'comment'
     reason: string
@@ -355,6 +383,13 @@ export default function CommunityDetail() {
                 <MessageCircle size={16} />
                 {comments.length} 条回复
               </span>
+              <button
+                onClick={sharePost}
+                className="flex items-center gap-1.5 text-sm font-medium text-gray-400 hover:text-primary-500 transition-colors"
+              >
+                {copied ? <Check size={16} className="text-green-500" /> : <Share2 size={16} />}
+                <span>{copied ? '已复制' : '分享'}</span>
+              </button>
               {user?.id !== post.author_id && (
                 reportSubmitted ? (
                   <span className="ml-auto flex items-center gap-1 text-xs text-orange-500">
