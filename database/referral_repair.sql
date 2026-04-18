@@ -4,7 +4,7 @@
 
 -- Backfill any missing codes in bulk.
 UPDATE public.users
-SET referral_code = upper(substr(md5(id::text), 1, 7))
+SET referral_code = public.generate_referral_code()
 WHERE referral_code IS NULL;
 
 -- Let an authenticated user self-heal their own code from the app.
@@ -21,7 +21,7 @@ BEGIN
   END IF;
 
   UPDATE public.users
-  SET referral_code = upper(substr(md5(id::text), 1, 7))
+  SET referral_code = public.generate_referral_code()
   WHERE id = auth.uid() AND referral_code IS NULL;
 
   SELECT referral_code

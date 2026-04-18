@@ -8,9 +8,32 @@
 ALTER TABLE users ADD COLUMN IF NOT EXISTS referral_code    TEXT UNIQUE;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS referred_by_code TEXT;
 
+-- Collision-resistant generator for future / repaired referral codes.
+CREATE OR REPLACE FUNCTION public.generate_referral_code()
+RETURNS TEXT
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+  candidate TEXT;
+BEGIN
+  LOOP
+    candidate := upper(substr(encode(gen_random_bytes(8), 'hex'), 1, 12));
+    EXIT WHEN NOT EXISTS (
+      SELECT 1 FROM public.users WHERE referral_code = candidate
+    );
+  END LOOP;
+
+  RETURN candidate;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.generate_referral_code() FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.generate_referral_code() TO authenticated;
+
 -- Backfill existing users who don't have a code yet
 UPDATE users
-SET referral_code = upper(substr(md5(id::text), 1, 7))
+SET referral_code = public.generate_referral_code()
 WHERE referral_code IS NULL;
 
 -- Index for looking up who referred whom
@@ -19,7 +42,7 @@ CREATE INDEX IF NOT EXISTS idx_users_referred_by_code ON users (referred_by_code
 
 -- ─── Update handles_new_user to include referral fields ───────────────────────
 -- Reads referred_by_code from signup metadata (set by frontend if user entered one).
--- Generates referral_code deterministically from user id (no collision possible).
+-- Generates referral_code with collision checks.
 
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
@@ -31,7 +54,7 @@ BEGIN
     NEW.email,
     NEW.raw_user_meta_data->>'phone',
     'user',
-    upper(substr(md5(NEW.id::text), 1, 7)),
+    public.generate_referral_code(),
     NULLIF(trim(COALESCE(NEW.raw_user_meta_data->>'referred_by_code', '')), '')
   )
   ON CONFLICT (id) DO NOTHING;
@@ -56,7 +79,7 @@ BEGIN
   END IF;
 
   UPDATE public.users
-  SET referral_code = upper(substr(md5(id::text), 1, 7))
+  SET referral_code = public.generate_referral_code()
   WHERE id = auth.uid() AND referral_code IS NULL;
 
   SELECT referral_code

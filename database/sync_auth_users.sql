@@ -75,7 +75,7 @@ BEGIN
       COALESCE(a.raw_user_meta_data->>'name', '用户'),
       a.email,
       'user',
-      upper(substr(md5(rec.auth_id::text), 1, 7))
+      public.generate_referral_code()
     FROM auth.users a
     WHERE a.id = rec.auth_id
     ON CONFLICT (id) DO NOTHING;
@@ -99,7 +99,7 @@ BEGIN
     COALESCE(a.raw_user_meta_data->>'name', '用户'),
     a.email,
     'user',
-    upper(substr(md5(a.id::text), 1, 7))
+    public.generate_referral_code()
   FROM auth.users a
   LEFT JOIN public.users u ON u.id = a.id
   WHERE u.id IS NULL
@@ -112,7 +112,7 @@ END $$;
 
 -- ── 5. 修复 referral_code 为 null 的行（所有人）────────────────────────────
 UPDATE public.users
-SET referral_code = upper(substr(md5(id::text), 1, 7))
+SET referral_code = public.generate_referral_code()
 WHERE referral_code IS NULL;
 
 
