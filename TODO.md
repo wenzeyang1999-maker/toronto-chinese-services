@@ -6,6 +6,18 @@
 
 ## ✅ 全部完成的功能
 
+### 安全加固（2026-04）
+- [x] users 表 PII 泄露修复（RLS + public_profiles view）
+- [x] Storage 文件枚举限制
+- [x] 安全 HTTP headers（vercel.json）
+- [x] 管理员高风险动作全部 RPC 化（13 个 SECURITY DEFINER 函数）
+- [x] 审计日志移入 RPC，前端无法伪造
+- [x] 邮件模板 HTML 注入修复
+- [x] 通知接口 type 白名单防滥用
+- [x] 社区举报功能上线（帖子 + 评论，DB + UI 完整）
+- [x] 未读计数原子自增（RPC 替换 read-modify-write）
+- [x] 评价举报/删除回复错误处理补全
+
 ### 核心板块
 - [x] 找服务（5大类）
 - [x] 招聘求职（招聘/求职双子栏）
@@ -71,8 +83,8 @@
 - [ ] **关注后有新帖推送**（用户关注服务商后，服务商发新内容发邮件通知）
 
 ### 内容质量
-- [ ] **社区帖子举报功能**（目前只有评价可以举报）
-- [ ] **搜索覆盖社区帖子**（全局搜索目前不包含社区内容）
+- [x] **社区帖子举报功能**（帖子 + 评论均可举报，管理后台处理）
+- [x] **搜索覆盖社区帖子**（全局搜索同时搜服务 + 社区帖子，分区块展示）
 
 ### 商业化
 - [ ] **置顶申请入口**（「我的发布」加「申请置顶」按钮，目前只有管理员能手动开启）
@@ -112,3 +124,9 @@
 | `community_likes_schema.sql` | ✅ |
 | `review_replies_rls_patch.sql` | ✅ |
 | `saves_cleanup_triggers.sql` | ✅ |
+| `users_rls_fix.sql` | ✅ |
+| `admin_backend_patch.sql` | ✅ |
+| `community_reports_and_admin_logs.sql` | ✅ |
+| `inquiry_matches_rls_patch.sql` | ✅ |
+| `admin_rpc.sql` | ✅ |
+| `conversation_rpc.sql` | ✅ |

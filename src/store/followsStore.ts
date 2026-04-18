@@ -62,18 +62,14 @@ export const useFollowsStore = create<FollowsState>((set, get) => ({
       }
 
       // Notify provider — fetch both users' info in parallel
-      const [followerRes, providerRes] = await Promise.all([
+      const [followerRes] = await Promise.all([
         supabase.from('users').select('name').eq('id', userId).single(),
-        supabase.from('users').select('email, name').eq('id', providerId).single(),
       ])
-      if (providerRes.data?.email) {
-        notifyNewFollower({
-          recipientEmail: providerRes.data.email,
-          recipientName:  providerRes.data.name ?? '用户',
-          followerName:   followerRes.data?.name ?? '用户',
-          providerId,
-        })
-      }
+      notifyNewFollower({
+        recipientUserId: providerId,
+        followerName:    followerRes.data?.name ?? '用户',
+        providerId,
+      })
     }
   },
 

@@ -63,7 +63,8 @@ export default function ConversationPage() {
         })
         // Reset unread count for current user
         const col = isClient ? 'client_unread' : 'provider_unread'
-        supabase.from('conversations').update({ [col]: 0 }).eq('id', id).then()
+        supabase.from('conversations').update({ [col]: 0 }).eq('id', id)
+          .then(({ error }) => { if (error) console.warn('[conv] unread reset failed:', error.message) })
       })
 
     supabase
@@ -147,28 +148,23 @@ export default function ConversationPage() {
             })
         }
       }
-      const { data: cur } = await supabase
-        .from('conversations').select(unreadCol).eq('id', id).single()
-      const currentCount = (cur as Record<string, number> | null)?.[unreadCol] ?? 0
       await supabase.from('conversations').update({
         last_message:    text,
         last_message_at: new Date().toISOString(),
-        [unreadCol]: currentCount + 1,
       }).eq('id', id)
+      await supabase.rpc('increment_conversation_unread', {
+        conv_id:  id,
+        col_name: unreadCol,
+      })
 
       // Fire-and-forget email notification to the other party
       const recipientId = isClient ? conv.provider_id : conv.client_id
-      supabase.from('users').select('email, name').eq('id', recipientId).single()
-        .then(({ data }) => {
-          if (!data?.email) return
-          notifyNewMessage({
-            recipientEmail: data.email,
-            recipientName:  data.name ?? '用户',
-            senderName:     user.user_metadata?.name ?? user.email ?? '用户',
-            preview:        text,
-            conversationId: id!,
-          })
-        })
+      notifyNewMessage({
+        recipientUserId: recipientId,
+        senderName:      user.user_metadata?.name ?? user.email ?? '用户',
+        preview:         text,
+        conversationId:  id!,
+      })
     } else {
       // Rollback optimistic message on error
       setMessages(prev => prev.filter(m => m.id !== tempId))

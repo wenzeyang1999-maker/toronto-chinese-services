@@ -15,6 +15,7 @@ import { lazy, Suspense, useCallback, useEffect, useState } from 'react'
 import { Routes, Route, useNavigate, useLocation } from 'react-router-dom'
 import { AnimatePresence } from 'framer-motion'
 import { MessageSquare } from 'lucide-react'
+import type { User } from '@supabase/supabase-js'
 import LoadingScreen from './components/LoadingScreen/LoadingScreen'
 import Home from './pages/Home/Home'
 import AiChatWidget from './components/AiChatWidget/AiChatWidget'
@@ -67,6 +68,30 @@ export default function App() {
     const tryFinish = () => {
       if (isActive && timerDone && fetchDone) setLoadingDone()
     }
+    const syncSessionUser = async (authUser: User | null) => {
+      if (!isActive) return
+      if (!authUser) {
+        setUser(null)
+        return
+      }
+
+      const { data: profile } = await supabase
+        .from('users')
+        .select('role')
+        .eq('id', authUser.id)
+        .single()
+
+      if (!isActive) return
+
+      if (profile?.role === 'banned') {
+        await supabase.auth.signOut()
+        setUser(null)
+        return
+      }
+
+      setUser(authUser)
+      supabase.from('users').update({ last_seen_at: new Date().toISOString() }).eq('id', authUser.id)
+    }
 
     fetchServices()
       .then(() => { fetchDone = true; tryFinish() })
@@ -78,16 +103,12 @@ export default function App() {
     }, 2800)
 
     supabase.auth.getSession().then(({ data }) => {
-      if (!isActive) return
       const u = data.session?.user ?? null
-      setUser(u)
-      if (u) supabase.from('users').update({ last_seen_at: new Date().toISOString() }).eq('id', u.id)
+      void syncSessionUser(u)
     })
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (!isActive) return
       const u = session?.user ?? null
-      setUser(u)
-      if (u) supabase.from('users').update({ last_seen_at: new Date().toISOString() }).eq('id', u.id)
+      void syncSessionUser(u)
     })
     return () => {
       isActive = false

@@ -128,19 +128,15 @@ export default function QASection({ serviceId, providerId }: Props) {
     // Notify provider — fire and forget
     const askerName = user.user_metadata?.name ?? user.email ?? '用户'
     Promise.all([
-      supabase.from('users').select('email, name').eq('id', providerId).single(),
       supabase.from('services').select('title').eq('id', serviceId).single(),
-    ]).then(([provRes, svcRes]) => {
-      if (provRes.data?.email) {
-        notifyNewQuestion({
-          recipientEmail: provRes.data.email,
-          recipientName:  provRes.data.name ?? '用户',
-          askerName,
-          serviceTitle:   svcRes.data?.title ?? '您的服务',
-          serviceId,
-          question:       askText.trim(),
-        })
-      }
+    ]).then(([svcRes]) => {
+      notifyNewQuestion({
+        recipientUserId: providerId,
+        askerName,
+        serviceTitle:   svcRes.data?.title ?? '您的服务',
+        serviceId,
+        question:       askText.trim(),
+      })
     })
   }
 

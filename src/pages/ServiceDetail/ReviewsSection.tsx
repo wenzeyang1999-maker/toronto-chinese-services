@@ -85,6 +85,8 @@ export default function ReviewsSection({ serviceId, providerId }: Props) {
   const [editingReplyId,   setEditingReplyId]  = useState<string | null>(null)
   const [editReplyText,    setEditReplyText]   = useState('')
   const [editReplySubmitting, setEditReplySubmitting] = useState(false)
+  const [editReplyError,   setEditReplyError]  = useState<string | null>(null)
+  const [reportError,      setReportError]     = useState<string | null>(null)
 
   const isOwnService    = user?.id === providerId
   const myReview        = reviews.find(r => r.reviewer?.id === user?.id)
@@ -176,20 +178,16 @@ export default function ReviewsSection({ serviceId, providerId }: Props) {
       // Notify provider — fire and forget
       const reviewerName = user.user_metadata?.name ?? user.email ?? '用户'
       Promise.all([
-        supabase.from('users').select('email, name').eq('id', providerId).single(),
         supabase.from('services').select('title').eq('id', serviceId).single(),
-      ]).then(([provRes, svcRes]) => {
-        if (provRes.data?.email) {
-          notifyNewReview({
-            recipientEmail: provRes.data.email,
-            recipientName:  provRes.data.name ?? '用户',
-            reviewerName,
-            serviceTitle:   svcRes.data?.title ?? '您的服务',
-            serviceId,
-            rating:         String(myRating),
-            comment:        comment.trim(),
-          })
-        }
+      ]).then(([svcRes]) => {
+        notifyNewReview({
+          recipientUserId: providerId,
+          reviewerName,
+          serviceTitle:   svcRes.data?.title ?? '您的服务',
+          serviceId,
+          rating:         String(myRating),
+          comment:        comment.trim(),
+        })
       })
     }
   }
@@ -253,17 +251,21 @@ export default function ReviewsSection({ serviceId, providerId }: Props) {
   async function submitReport() {
     if (!user || !reportingId || !reportReason) return
     setReportSubmitting(true)
+    setReportError(null)
     const { error } = await supabase.from('review_reports').insert({
       review_id:   reportingId,
       reporter_id: user.id,
       reason:      reportReason,
     })
     setReportSubmitting(false)
-    if (!error) {
-      setReportedIds(prev => new Set([...prev, reportingId]))
+    if (error) {
+      setReportError(error.code === '23505' ? '您已经举报过这条评价了' : '举报失败，请稍后再试')
+      return
     }
+    setReportedIds(prev => new Set([...prev, reportingId]))
     setReportingId(null)
     setReportReason('')
+    setReportError(null)
   }
 
   // ── Provider reply ─────────────────────────────────────────────────────────
@@ -293,20 +295,23 @@ export default function ReviewsSection({ serviceId, providerId }: Props) {
   async function saveReply(reviewId: string) {
     if (!user || !editReplyText.trim()) return
     setEditReplySubmitting(true)
+    setEditReplyError(null)
     const reply = replies[reviewId]
     if (!reply) return
     const { error } = await supabase.from('review_replies')
       .update({ content: editReplyText.trim() })
       .eq('id', reply.id).eq('replier_id', user.id)
     setEditReplySubmitting(false)
-    if (!error) { setEditingReplyId(null); setEditReplyText(''); load() }
+    if (error) { setEditReplyError('保存失败，请稍后再试'); return }
+    setEditingReplyId(null); setEditReplyText(''); load()
   }
 
   async function deleteReply(reviewId: string) {
     if (!user) return
     const reply = replies[reviewId]
     if (!reply) return
-    await supabase.from('review_replies').delete().eq('id', reply.id).eq('replier_id', user.id)
+    const { error } = await supabase.from('review_replies').delete().eq('id', reply.id).eq('replier_id', user.id)
+    if (error) { alert('删除回复失败，请稍后再试'); return }
     load()
   }
 
@@ -505,8 +510,11 @@ export default function ReviewsSection({ serviceId, providerId }: Props) {
                                     </label>
                                   ))}
                                 </div>
+                                {reportError && (
+                                  <p className="text-xs text-red-500">{reportError}</p>
+                                )}
                                 <div className="flex gap-2 pt-1">
-                                  <button onClick={() => { setReportingId(null); setReportReason('') }}
+                                  <button onClick={() => { setReportingId(null); setReportReason(''); setReportError(null) }}
                                     className="flex-1 text-xs py-1.5 rounded-lg border border-gray-200 text-gray-500 hover:bg-white transition-colors">
                                     取消
                                   </button>
@@ -560,8 +568,11 @@ export default function ReviewsSection({ serviceId, providerId }: Props) {
                                   rows={2} placeholder="编辑回复…"
                                   className="w-full border border-primary-200 rounded-xl px-3 py-2 text-xs resize-none
                                              focus:outline-none focus:ring-2 focus:ring-primary-300 bg-white" />
+                                {editReplyError && (
+                                  <p className="text-xs text-red-500 mt-1">{editReplyError}</p>
+                                )}
                                 <div className="flex gap-2 mt-1.5">
-                                  <button onClick={() => setEditingReplyId(null)}
+                                  <button onClick={() => { setEditingReplyId(null); setEditReplyError(null) }}
                                     className="flex items-center gap-0.5 text-xs px-3 py-1.5 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-100 transition-colors">
                                     <X size={11} /> 取消
                                   </button>

@@ -5,13 +5,12 @@ import { supabase } from './supabase'
 
 async function notify(
   type: string,
-  recipientEmail: string,
-  recipientName: string,
+  recipientUserId: string,
   data: Record<string, string>
 ): Promise<void> {
   try {
     await supabase.functions.invoke('send-notification', {
-      body: { type, recipientEmail, recipientName, data },
+      body: { type, recipientUserId, data },
     })
   } catch (err) {
     console.warn('[notify] failed silently:', err)
@@ -21,13 +20,12 @@ async function notify(
 // ── Typed helpers ─────────────────────────────────────────────────────────────
 
 export async function notifyNewMessage(opts: {
-  recipientEmail: string
-  recipientName:  string
+  recipientUserId: string
   senderName:     string
   preview:        string
   conversationId: string
 }) {
-  await notify('new_message', opts.recipientEmail, opts.recipientName, {
+  await notify('new_message', opts.recipientUserId, {
     senderName:     opts.senderName,
     preview:        opts.preview.slice(0, 80),
     conversationId: opts.conversationId,
@@ -35,27 +33,25 @@ export async function notifyNewMessage(opts: {
 }
 
 export async function notifyNewFollower(opts: {
-  recipientEmail: string
-  recipientName:  string
+  recipientUserId: string
   followerName:   string
   providerId:     string
 }) {
-  await notify('new_follower', opts.recipientEmail, opts.recipientName, {
+  await notify('new_follower', opts.recipientUserId, {
     followerName: opts.followerName,
     providerId:   opts.providerId,
   })
 }
 
 export async function notifyNewReview(opts: {
-  recipientEmail: string
-  recipientName:  string
+  recipientUserId: string
   reviewerName:   string
   serviceTitle:   string
   serviceId:      string
   rating:         string
   comment:        string
 }) {
-  await notify('new_review', opts.recipientEmail, opts.recipientName, {
+  await notify('new_review', opts.recipientUserId, {
     reviewerName:  opts.reviewerName,
     serviceTitle:  opts.serviceTitle,
     serviceId:     opts.serviceId,
@@ -65,8 +61,7 @@ export async function notifyNewReview(opts: {
 }
 
 export async function notifyProviderInquiry(opts: {
-  recipientEmail: string
-  recipientName:  string
+  recipientUserId: string
   customerName:   string
   phone:          string
   wechat:         string
@@ -75,7 +70,7 @@ export async function notifyProviderInquiry(opts: {
   budget:         string
   timing:         string
 }) {
-  await notify('provider_inquiry', opts.recipientEmail, opts.recipientName, {
+  await notify('provider_inquiry', opts.recipientUserId, {
     customerName:  opts.customerName,
     phone:         opts.phone,
     wechat:        opts.wechat,
@@ -87,17 +82,44 @@ export async function notifyProviderInquiry(opts: {
 }
 
 export async function notifyNewQuestion(opts: {
-  recipientEmail: string
-  recipientName:  string
+  recipientUserId: string
   askerName:      string
   serviceTitle:   string
   serviceId:      string
   question:       string
 }) {
-  await notify('new_question', opts.recipientEmail, opts.recipientName, {
+  await notify('new_question', opts.recipientUserId, {
     askerName:    opts.askerName,
     serviceTitle: opts.serviceTitle,
     serviceId:    opts.serviceId,
     question:     opts.question,
   })
+}
+
+export async function notifyAdminCommunityReport(opts: {
+  reportType: 'post' | 'comment'
+  reasonLabel: string
+  postId: string
+  postTitle: string
+  commentPreview?: string
+  reporterName: string
+}) {
+  try {
+    await supabase.functions.invoke('send-notification', {
+      body: {
+        type: 'admin_community_report',
+        recipientRole: 'admin',
+        data: {
+          reportType: opts.reportType,
+          reasonLabel: opts.reasonLabel,
+          postId: opts.postId,
+          postTitle: opts.postTitle,
+          commentPreview: opts.commentPreview ?? '',
+          reporterName: opts.reporterName,
+        },
+      },
+    })
+  } catch (err) {
+    console.warn('[notify] failed silently:', err)
+  }
 }

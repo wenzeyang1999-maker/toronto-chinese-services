@@ -1,7 +1,7 @@
 // ─── Login Page ───────────────────────────────────────────────────────────────
 // Route: /login
 import { useState } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
+import { useNavigate, useLocation, Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { Eye, EyeOff, Mail, Lock, ChevronLeft } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
@@ -29,6 +29,7 @@ function validate(form: LoginForm): FormErrors {
 
 export default function Login() {
   const navigate = useNavigate()
+  const location = useLocation()
   const [form, setForm]           = useState<LoginForm>({ email: '', password: '' })
   const [errors, setErrors]       = useState<FormErrors>({})
   const [showPassword, setShowPassword] = useState(false)
@@ -50,14 +51,13 @@ export default function Login() {
     setLoading(true)
     setServerError(null)
 
-    const { error } = await supabase.auth.signInWithPassword({
+    const { data, error } = await supabase.auth.signInWithPassword({
       email: form.email,
       password: form.password,
     })
 
-    setLoading(false)
-
     if (error) {
+      setLoading(false)
       const msg = error.message.toLowerCase()
       if (msg.includes('email not confirmed')) {
         setServerError('邮箱尚未验证，请查收注册邮件并点击验证链接后再登录')
@@ -67,7 +67,31 @@ export default function Login() {
       return
     }
 
-    navigate('/')
+    const userId = data.user?.id
+    if (userId) {
+      const { data: profile, error: roleError } = await supabase
+        .from('users')
+        .select('role')
+        .eq('id', userId)
+        .single()
+
+      if (roleError) {
+        await supabase.auth.signOut()
+        setLoading(false)
+        setServerError('登录后校验账号状态失败，请稍后重试')
+        return
+      }
+
+      if (profile?.role === 'banned') {
+        await supabase.auth.signOut()
+        setLoading(false)
+        setServerError('该账号已被封禁，如有疑问请联系管理员')
+        return
+      }
+    }
+
+    setLoading(false)
+    navigate((location.state as { from?: string })?.from || '/')
   }
 
   return (

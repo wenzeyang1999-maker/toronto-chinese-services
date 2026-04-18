@@ -70,8 +70,34 @@ export default function EventList() {
 
           {/* Title */}
           <div>
-            <h1 className="text-lg font-bold text-gray-900">同城活动</h1>
-            <p className="text-xs text-gray-400">大多伦多华人聚会·展览·课程</p>
+            <h1 className="text-lg font-bold text-gray-900">大多广场</h1>
+            <p className="text-xs text-gray-400">同城活动·集市摊位·公益慈善</p>
+          </div>
+
+          {/* L2 section tabs */}
+          <div className="flex bg-gray-100 rounded-xl p-1 gap-1">
+            {([
+              { id: 'events',  label: '同城活动', available: true },
+              { id: 'market',  label: '集市摊位', available: false },
+              { id: 'charity', label: '公益慈善', available: false },
+            ] as const).map((sec) => (
+              <button
+                key={sec.id}
+                disabled={!sec.available}
+                className={`flex-1 py-2 rounded-lg text-sm font-semibold transition-all relative ${
+                  sec.available && sec.id === 'events'
+                    ? 'bg-white text-primary-600 shadow-sm'
+                    : 'text-gray-400 cursor-not-allowed'
+                }`}
+              >
+                {sec.label}
+                {!sec.available && (
+                  <span className="absolute -top-1.5 -right-1 text-[8px] font-bold bg-gray-300 text-gray-500 rounded-full px-1 leading-tight">
+                    即将
+                  </span>
+                )}
+              </button>
+            ))}
           </div>
 
           {/* Upcoming toggle */}

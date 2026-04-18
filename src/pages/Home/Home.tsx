@@ -8,6 +8,7 @@ import { useGeolocation } from '../../hooks/useGeolocation'
 import RecentCategories from '../../components/RecentCategories/RecentCategories'
 import RecommendedServices from '../../components/RecommendedServices/RecommendedServices'
 import { useNavigate, useSearchParams } from 'react-router-dom'
+import { useAuthStore } from '../../store/authStore'
 import HomeActionHero from './components/HomeActionHero'
 import HomeServiceShelf from './components/HomeServiceShelf'
 
@@ -34,6 +35,7 @@ export default function Home() {
   const setSearchFilters = useAppStore((s) => s.setSearchFilters)
   const userLocation = useAppStore((s) => s.userLocation)
   const navigate = useNavigate()
+  const user = useAuthStore((s) => s.user)
   const [searchParams] = useSearchParams()
   const [inquiryOpen, setInquiryOpen] = useState(false)
   const [activeTab, setActiveTab] = useState<SectionTab>('services')
@@ -107,8 +109,8 @@ export default function Home() {
       <div className="w-full px-3 md:w-[85%] md:px-0 lg:w-[70%] mx-auto">
         {/* Category buttons */}
         <section className="card p-4 mb-4">
-          <h3 className="text-sm font-semibold text-gray-700 mb-3">选择服务类型</h3>
-          <p className="text-xs text-gray-400 mb-3">先挑分类，再快速比较价格、评价和联系渠道。</p>
+          <h3 className="text-base font-semibold text-gray-800 mb-1">探索服务</h3>
+          <p className="text-xs text-gray-400 mb-3">选择你需要的板块，找服务·看房·论坛·二手一站搞定。</p>
           <CategoryButtons />
         </section>
 
@@ -137,7 +139,7 @@ export default function Home() {
           <h3 className="font-bold text-lg mb-1">有技能想接单？</h3>
           <p className="text-red-100 text-sm mb-3">免费发布您的服务，让附近有需要的客户找到您</p>
           <button
-            onClick={() => navigate('/post')}
+            onClick={() => user ? navigate('/post') : navigate('/login', { state: { from: '/post' } })}
             className="bg-white text-primary-600 px-5 py-2 rounded-xl text-sm font-semibold hover:bg-red-50 transition-colors active:scale-95"
           >
             立即发布服务 →

@@ -8,6 +8,7 @@ import { ChevronDown, Menu, X, UserCircle, Grid2x2, Search } from 'lucide-react'
 import { useAuthStore } from '../../store/authStore'
 import { CATEGORIES } from '../../data/categories'
 import NccLogo from '../Logo/NccLogo'
+import AdminNotificationsBell from '../AdminNotifications/AdminNotificationsBell'
 
 interface HeaderProps {
   /** When false, renders as a static bar (used on Home page over carousel) */
@@ -108,6 +109,8 @@ export default function Header({ sticky = true }: HeaderProps) {
           >
             <Search size={18} />
           </button>
+
+          {user && <AdminNotificationsBell compact />}
 
           {/* Mobile hamburger */}
           <button

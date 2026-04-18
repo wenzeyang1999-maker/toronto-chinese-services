@@ -7,7 +7,6 @@ import { X, CheckCircle, ChevronDown, Sparkles, UserCheck, Clock3, ShieldCheck }
 import { supabase } from '../../lib/supabase'
 import { useAuthStore } from '../../store/authStore'
 import { CATEGORIES } from '../../data/categories'
-import { matchAndEmailProviders } from '../../lib/matchAndEmail'
 
 interface Props {
   open: boolean
@@ -87,18 +86,20 @@ export default function InquiryModal({ open, onClose }: Props) {
       }).select('id').single()
       if (error) throw error
 
-      // Fire-and-forget: email matching providers (up to 5)
+      // Fire-and-forget: match and notify providers on the server side
       const cat = CATEGORIES.find((c) => c.id === form.categoryId)
-      matchAndEmailProviders({
-        inquiryId:     inserted.id,
-        categoryId:    form.categoryId,
-        categoryLabel: cat ? `${cat.emoji} ${cat.label}` : form.categoryId,
-        description:   form.description.trim(),
-        budget:        form.budget.trim(),
-        timing:        form.timing,
-        name:          form.name.trim(),
-        phone:         form.phone.trim(),
-        wechat:        form.wechat.trim(),
+      void supabase.functions.invoke('match-inquiry-providers', {
+        body: {
+          inquiryId:     inserted.id,
+          categoryId:    form.categoryId,
+          categoryLabel: cat ? `${cat.emoji} ${cat.label}` : form.categoryId,
+          description:   form.description.trim(),
+          budget:        form.budget.trim(),
+          timing:        form.timing,
+          name:          form.name.trim(),
+          phone:         form.phone.trim(),
+          wechat:        form.wechat.trim(),
+        },
       })
 
       setDone(true)

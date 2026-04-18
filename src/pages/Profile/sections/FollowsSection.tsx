@@ -47,7 +47,7 @@ export default function FollowsSection() {
     data.forEach((r: any) => { followedAt[r.provider_id] = r.created_at })
 
     const { data: users } = await supabase
-      .from('users')
+      .from('public_profiles')
       .select('id, name, avatar_url, bio')
       .in('id', ids)
 

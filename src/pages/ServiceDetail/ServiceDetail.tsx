@@ -57,37 +57,19 @@ export default function ServiceDetail() {
 
   useEffect(() => {
     if (!service?.provider.id) return
-    // Select columns one at a time so a missing column doesn't blank the whole card.
-    // email + is_email_verified have always existed; social_links + phone_verified
-    // require the latest schema migration to be applied.
+    // Single query via public_profiles view (RLS-safe, no auth required).
     supabase
-      .from('users')
-      .select('email, is_email_verified')
-      .eq('id', service.provider.id)
-      .single()
-      .then(({ data }) => {
-        if (data?.email)             setProviderEmail(data.email)
-        if (data?.is_email_verified) setEmailVerified(true)
-      })
-
-    supabase
-      .from('users')
-      .select('social_links, phone_verified')
+      .from('public_profiles')
+      .select('email, is_email_verified, phone_verified, social_links, avg_reply_hours')
       .eq('id', service.provider.id)
       .single()
       .then(({ data, error }) => {
-        if (error) return // columns may not exist yet — silently skip
-        if (data?.social_links)   setSocialLinks(data.social_links as Record<string, string>)
-        if (data?.phone_verified) setPhoneVerified(true)
-      })
-
-    supabase
-      .from('users')
-      .select('avg_reply_hours')
-      .eq('id', service.provider.id)
-      .single()
-      .then(({ data }) => {
-        if (data?.avg_reply_hours != null) setAvgReplyHours(data.avg_reply_hours)
+        if (error) return // provider may not exist yet — silently skip
+        if (data?.email)             setProviderEmail(data.email as string)
+        if (data?.is_email_verified) setEmailVerified(true)
+        if (data?.phone_verified)    setPhoneVerified(true)
+        if (data?.social_links)      setSocialLinks(data.social_links as Record<string, string>)
+        if (data?.avg_reply_hours != null) setAvgReplyHours(data.avg_reply_hours as number)
       })
   }, [service?.provider.id])
 

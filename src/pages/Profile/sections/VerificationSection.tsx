@@ -84,10 +84,11 @@ export default function VerificationSection({ user }: Props) {
 
   // ── load data on mount ────────────────────────────────────────────────────
   useEffect(() => {
-    supabase.from('users').select('phone, wechat, social_links').eq('id', user.id).single()
+    supabase.from('users').select('phone, phone_verified, wechat, social_links').eq('id', user.id).single()
       .then(({ data }) => {
         if (!data) return
         setDbPhone(data.phone ?? null)
+        setPhoneVerified(data.phone_verified ?? false)
         const raw = (data.social_links ?? {}) as Partial<SocialValues>
         const loaded: SocialValues = {
           ...EMPTY_SOCIALS,
@@ -104,17 +105,12 @@ export default function VerificationSection({ user }: Props) {
         setEditSocials(loaded)
       })
 
-    if (user.phone) {
-      setPhoneVerified(true)
-      setDbPhone(prev => prev ?? user.phone ?? null)
-    }
-
     const { data: { publicUrl } } = supabase.storage
       .from('avatars').getPublicUrl(`${user.id}/verify-doc`)
     fetch(publicUrl, { method: 'HEAD' })
       .then(r => { if (r.ok) setDocUrl(publicUrl) })
       .catch(() => {})
-  }, [user.id, user.phone])
+  }, [user.id])
 
   // ── countdown timer ───────────────────────────────────────────────────────
   const startCountdown = useCallback(() => {

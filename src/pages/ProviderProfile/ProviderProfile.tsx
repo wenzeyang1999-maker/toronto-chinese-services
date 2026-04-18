@@ -84,8 +84,8 @@ export default function ProviderProfile() {
 
     // Fetch core user profile (columns that always exist)
     supabase
-      .from('users')
-      .select('id, name, avatar_url, email, phone, wechat, bio, is_email_verified, created_at, last_seen_at')
+      .from('public_profiles')
+      .select('id, name, avatar_url, email, bio, created_at, is_email_verified, last_seen_at, phone_verified, social_links, membership_level, business_verified, avg_reply_hours')
       .eq('id', id)
       .single()
       .then(({ data, error }) => {
@@ -93,31 +93,16 @@ export default function ProviderProfile() {
         setProvider({
           ...data,
           bio: data.bio ?? null,
-          phone_verified: false,
-          social_links: {},
-          membership_level: 'L1',
-          business_verified: false,
-          avg_reply_hours: null,
-        })
-        setLoading(false)
-      })
-
-    // Fetch newer columns separately — silently skip if migration not yet run
-    supabase
-      .from('users')
-      .select('phone_verified, social_links, membership_level, business_verified, avg_reply_hours')
-      .eq('id', id)
-      .single()
-      .then(({ data, error }) => {
-        if (error || !data) return
-        setProvider(prev => prev ? {
-          ...prev,
-          phone_verified:   data.phone_verified ?? false,
-          social_links:     (data.social_links as Record<string, string>) ?? {},
+          phone: null,
+          wechat: null,
+          created_at: data.created_at,
+          phone_verified: data.phone_verified ?? false,
+          social_links: (data.social_links as Record<string, string>) ?? {},
           membership_level: (data.membership_level as MemberLevel) ?? 'L1',
           business_verified: data.business_verified ?? false,
-          avg_reply_hours:   data.avg_reply_hours ?? null,
-        } : prev)
+          avg_reply_hours: data.avg_reply_hours ?? null,
+        })
+        setLoading(false)
       })
 
     // Fetch their active property listings

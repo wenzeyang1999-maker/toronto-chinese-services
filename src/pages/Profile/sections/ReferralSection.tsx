@@ -181,7 +181,8 @@ export default function ReferralSection({ user }: Props) {
           {/* Facebook */}
           <button
             onClick={shareToFacebook}
-            className="w-full flex items-center gap-4 px-5 py-4 hover:bg-gray-50 transition-colors text-left"
+            disabled={!shareUrl}
+            className="w-full flex items-center gap-4 px-5 py-4 hover:bg-gray-50 transition-colors text-left disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center text-white text-lg flex-shrink-0">
               👥
@@ -195,7 +196,8 @@ export default function ReferralSection({ user }: Props) {
           {/* WhatsApp */}
           <button
             onClick={shareToWhatsApp}
-            className="w-full flex items-center gap-4 px-5 py-4 hover:bg-gray-50 transition-colors text-left"
+            disabled={!shareUrl}
+            className="w-full flex items-center gap-4 px-5 py-4 hover:bg-gray-50 transition-colors text-left disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <div className="w-10 h-10 bg-emerald-500 rounded-xl flex items-center justify-center text-white text-lg flex-shrink-0">
               📲
@@ -209,7 +211,8 @@ export default function ReferralSection({ user }: Props) {
           {/* WeChat */}
           <button
             onClick={copyForWeChat}
-            className="w-full flex items-center gap-4 px-5 py-4 hover:bg-gray-50 transition-colors text-left"
+            disabled={!shareUrl}
+            className="w-full flex items-center gap-4 px-5 py-4 hover:bg-gray-50 transition-colors text-left disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <div className="w-10 h-10 bg-green-500 rounded-xl flex items-center justify-center text-white text-lg flex-shrink-0">
               💬

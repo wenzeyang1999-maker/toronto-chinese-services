@@ -77,6 +77,30 @@ export default function SecondhandList() {
             <p className="text-xs text-gray-400">大多伦多华人闲置转让</p>
           </div>
 
+          {/* L2 category tab bar */}
+          <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide -mx-1 px-1">
+            <button
+              onClick={() => setFilters({ category: undefined })}
+              className={`flex-shrink-0 text-xs font-semibold px-3 py-1.5 rounded-full transition-colors ${
+                !filters.category ? 'bg-primary-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              全部
+            </button>
+            {(Object.keys(SECONDHAND_CATEGORY_CONFIG) as SecondhandCategory[]).map((k) => (
+              <button
+                key={k}
+                onClick={() => setFilters({ category: filters.category === k ? undefined : k })}
+                className={`flex-shrink-0 flex items-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-full transition-colors ${
+                  filters.category === k ? 'bg-primary-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                <span>{SECONDHAND_CATEGORY_CONFIG[k].emoji}</span>
+                <span>{SECONDHAND_CATEGORY_CONFIG[k].label}</span>
+              </button>
+            ))}
+          </div>
+
           {/* Search row */}
           <div className="flex items-center gap-2">
             <div className="flex-1 flex items-center gap-2 bg-gray-100 rounded-xl px-3 py-2.5">

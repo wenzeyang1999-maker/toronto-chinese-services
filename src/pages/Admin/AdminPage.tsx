@@ -6,6 +6,7 @@ import { motion } from 'framer-motion'
 import { ShieldCheck, Flag, CheckCircle2, Trash2, ChevronLeft, Users, Briefcase, Home, ShoppingBag, Calendar, Wrench, Star, BadgeCheck, X, ExternalLink, Zap, Crown, Search, Inbox, Mail, CheckCheck, Ban, UserCheck, UserCog } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { useAuthStore } from '../../store/authStore'
+import AdminNotificationsBell from '../../components/AdminNotifications/AdminNotificationsBell'
 
 interface ReportRow {
   id: string
@@ -29,6 +30,8 @@ interface Stats {
   secondhand: number
   events: number
   pending_reports: number
+  pending_community_reports: number
+  pending_community_comment_reports: number
   pending_verifications: number
 }
 
@@ -70,6 +73,46 @@ interface InquiryRow {
   matches: InquiryMatch[]
 }
 
+interface CommunityReportRow {
+  id: string
+  reason: string
+  status: string
+  created_at: string
+  post: {
+    id: string
+    title: string
+    content: string
+    author_id: string
+    author: { id: string; name: string } | null
+  } | null
+  reporter: { id: string; name: string } | null
+}
+
+interface CommunityCommentReportRow {
+  id: string
+  reason: string
+  status: string
+  created_at: string
+  comment: {
+    id: string
+    content: string
+    author_id: string
+    post_id: string
+    author: { id: string; name: string } | null
+  } | null
+  reporter: { id: string; name: string } | null
+}
+
+interface AuditLogRow {
+  id: string
+  action_type: string
+  target_type: string
+  target_id: string | null
+  details: Record<string, unknown>
+  created_at: string
+  actor: { id: string; name: string; email: string } | null
+}
+
 interface MemberRow {
   id: string
   name: string
@@ -99,12 +142,44 @@ interface UserRow {
   referral_code: string | null
 }
 
+interface AdminNotice {
+  type: 'success' | 'error'
+  text: string
+}
+
 const REASON_LABEL: Record<string, string> = {
   irrelevant: '内容无关',
   malicious:  '恶意攻击',
   fake:       '虚假评价',
   spam:       '垃圾广告',
   other:      '其他',
+}
+
+const INQUIRY_STATUS_LABEL: Record<InquiryRow['status'], string> = {
+  open: '待处理',
+  matched: '已匹配',
+  closed: '已关闭',
+}
+
+const ADMIN_ACTION_LABEL: Record<string, string> = {
+  promote_on: '设为推广',
+  promote_off: '取消推广',
+  review_report_dismissed: '忽略评价举报',
+  review_removed: '删除评价',
+  verification_approved: '通过认证',
+  verification_rejected: '拒绝认证',
+  community_post_deleted: '删除社区帖子',
+  inquiry_status_updated: '更新询价状态',
+  membership_granted: '授予会员',
+  membership_revoked: '撤销会员',
+  service_takedown: '下架服务',
+  service_restored: '恢复服务',
+  service_bulk_takedown: '批量下架服务',
+  user_role_updated: '修改用户角色',
+  community_report_dismissed: '忽略社区举报',
+  community_report_removed: '删除被举报帖子',
+  community_comment_report_dismissed: '忽略评论举报',
+  community_comment_report_removed: '删除被举报评论',
 }
 
 export default function AdminPage() {
@@ -118,8 +193,11 @@ export default function AdminPage() {
   const [promoSearch,    setPromoSearch]    = useState('')
   const [promoTable,     setPromoTable]     = useState<PromotedRow['table']>('services')
   const [stats,          setStats]          = useState<Stats | null>(null)
-  const [tab,            setTab]            = useState<'reports' | 'verification' | 'promoted' | 'overview' | 'community' | 'membership' | 'inquiries' | 'users' | 'services'>('reports')
+  const [tab,            setTab]            = useState<'reports' | 'communityReports' | 'verification' | 'promoted' | 'overview' | 'community' | 'membership' | 'inquiries' | 'users' | 'services' | 'logs'>('reports')
   const [inquiries,      setInquiries]      = useState<InquiryRow[]>([])
+  const [communityReports, setCommunityReports] = useState<CommunityReportRow[]>([])
+  const [communityCommentReports, setCommunityCommentReports] = useState<CommunityCommentReportRow[]>([])
+  const [auditLogs,      setAuditLogs]      = useState<AuditLogRow[]>([])
   const [communityPosts, setCommunityPosts] = useState<{ id: string; title: string; type: string; area: string; created_at: string; author: { name: string } | null }[]>([])
   const [loading,        setLoading]        = useState(true)
   const [acting,         setActing]         = useState<string | null>(null)
@@ -128,7 +206,12 @@ export default function AdminPage() {
   const [userSearch,     setUserSearch]     = useState('')
   const [userResults,    setUserResults]    = useState<UserRow[]>([])
   const [newServices,    setNewServices]    = useState<NewServiceRow[]>([])
-  const [selectedSvcs,   setSelectedSvcs]  = useState<Set<string>>(new Set())
+  const [selectedSvcs,   setSelectedSvcs]   = useState<Set<string>>(new Set())
+  const [notice,         setNotice]         = useState<AdminNotice | null>(null)
+  const [logSearch,      setLogSearch]      = useState('')
+  const [logActionFilter, setLogActionFilter] = useState<'all' | string>('all')
+  const [logDateFrom,    setLogDateFrom]    = useState('')
+  const [logDateTo,      setLogDateTo]      = useState('')
 
   useEffect(() => {
     if (!user) { navigate('/login'); return }
@@ -142,8 +225,28 @@ export default function AdminPage() {
 
   async function loadAll() {
     setLoading(true)
-    await Promise.all([loadReports(), loadVerifications(), loadStats()])
+    await Promise.all([loadReports(), loadCommunityReports(), loadCommunityCommentReports(), loadVerifications(), loadStats()])
     setLoading(false)
+  }
+
+  function showNotice(type: AdminNotice['type'], text: string) {
+    setNotice({ type, text })
+    window.clearTimeout((showNotice as typeof showNotice & { timer?: number }).timer)
+    ;(showNotice as typeof showNotice & { timer?: number }).timer = window.setTimeout(() => {
+      setNotice(null)
+    }, 3000)
+  }
+
+  async function runAdminAction<T>(action: () => Promise<T>, successText: string): Promise<T | null> {
+    setNotice(null)
+    try {
+      const result = await action()
+      showNotice('success', successText)
+      return result
+    } catch (err) {
+      showNotice('error', err instanceof Error ? err.message : '操作失败，请稍后再试')
+      return null
+    }
   }
 
   async function searchPromoted() {
@@ -155,28 +258,45 @@ export default function AdminPage() {
       .order('created_at', { ascending: false })
       .limit(30)
     if (kw) query.ilike('title', `%${kw}%`)
-    const { data } = await query
+    const { data, error } = await query
+    if (error) {
+      showNotice('error', `加载推广列表失败：${error.message}`)
+      return
+    }
     setPromoted((data ?? []).map((r: any) => ({ ...r, table: promoTable })))
   }
 
   async function togglePromoted(row: PromotedRow) {
     setActing(row.id)
-    await supabase.from(row.table).update({ is_promoted: !row.is_promoted }).eq('id', row.id)
-    setPromoted(prev => prev.map(r => r.id === row.id ? { ...r, is_promoted: !r.is_promoted } : r))
+    const ok = await runAdminAction(async () => {
+      const { error } = await supabase.rpc('admin_toggle_promoted', {
+        item_id: row.id,
+        table_name: row.table,
+        promoted: !row.is_promoted,
+      })
+      if (error) throw error
+    }, row.is_promoted ? '已取消推广' : '已设为推广')
+    if (ok !== null) {
+      setPromoted(prev => prev.map(r => r.id === row.id ? { ...r, is_promoted: !r.is_promoted } : r))
+    }
     setActing(null)
   }
 
   async function loadVerifications() {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('users')
       .select('id, name, email, verification_doc_url, verification_status, created_at')
       .eq('verification_status', 'pending')
       .order('created_at', { ascending: false })
+    if (error) {
+      showNotice('error', `加载认证列表失败：${error.message}`)
+      return
+    }
     if (data) setVerifications(data as VerificationRow[])
   }
 
   async function loadReports() {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('review_reports')
       .select(`
         id, reason, status, created_at,
@@ -185,6 +305,10 @@ export default function AdminPage() {
       `)
       .eq('status', 'pending')
       .order('created_at', { ascending: false })
+    if (error) {
+      showNotice('error', `加载举报列表失败：${error.message}`)
+      return
+    }
     if (data) {
       setReports(data.map((r: any) => ({
         ...r,
@@ -194,8 +318,64 @@ export default function AdminPage() {
     }
   }
 
+  async function loadCommunityReports() {
+    const { data, error } = await supabase
+      .from('community_post_reports')
+      .select(`
+        id, reason, status, created_at,
+        post:post_id(id, title, content, author_id, author:author_id(id, name)),
+        reporter:reporter_id(id, name)
+      `)
+      .eq('status', 'pending')
+      .order('created_at', { ascending: false })
+    if (error) {
+      showNotice('error', `加载社区举报失败：${error.message}`)
+      return
+    }
+    if (data) {
+      setCommunityReports(data.map((r: any) => ({
+        ...r,
+        post: Array.isArray(r.post) ? {
+          ...r.post[0],
+          author: Array.isArray(r.post[0]?.author) ? r.post[0].author[0] : r.post[0]?.author,
+        } : r.post
+          ? { ...r.post, author: Array.isArray(r.post.author) ? r.post.author[0] : r.post.author }
+          : null,
+        reporter: Array.isArray(r.reporter) ? r.reporter[0] : r.reporter,
+      })))
+    }
+  }
+
+  async function loadCommunityCommentReports() {
+    const { data, error } = await supabase
+      .from('community_comment_reports')
+      .select(`
+        id, reason, status, created_at,
+        comment:comment_id(id, content, author_id, post_id, author:author_id(id, name)),
+        reporter:reporter_id(id, name)
+      `)
+      .eq('status', 'pending')
+      .order('created_at', { ascending: false })
+    if (error) {
+      showNotice('error', `加载社区评论举报失败：${error.message}`)
+      return
+    }
+    if (data) {
+      setCommunityCommentReports(data.map((r: any) => ({
+        ...r,
+        comment: Array.isArray(r.comment) ? {
+          ...r.comment[0],
+          author: Array.isArray(r.comment[0]?.author) ? r.comment[0].author[0] : r.comment[0]?.author,
+        } : r.comment
+          ? { ...r.comment, author: Array.isArray(r.comment.author) ? r.comment.author[0] : r.comment.author }
+          : null,
+        reporter: Array.isArray(r.reporter) ? r.reporter[0] : r.reporter,
+      })))
+    }
+  }
+
   async function loadStats() {
-    const [users, services, jobs, properties, secondhand, events, reports, verifs] = await Promise.all([
+    const [users, services, jobs, properties, secondhand, events, reports, communityReportsCount, communityCommentReportsCount, verifs] = await Promise.all([
       supabase.from('users').select('id', { count: 'exact', head: true }),
       supabase.from('services').select('id', { count: 'exact', head: true }),
       supabase.from('jobs').select('id', { count: 'exact', head: true }),
@@ -203,6 +383,8 @@ export default function AdminPage() {
       supabase.from('secondhand').select('id', { count: 'exact', head: true }),
       supabase.from('events').select('id', { count: 'exact', head: true }),
       supabase.from('review_reports').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
+      supabase.from('community_post_reports').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
+      supabase.from('community_comment_reports').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
       supabase.from('users').select('id', { count: 'exact', head: true }).eq('verification_status', 'pending'),
     ])
     setStats({
@@ -213,65 +395,100 @@ export default function AdminPage() {
       secondhand:            secondhand.count ?? 0,
       events:                events.count ?? 0,
       pending_reports:       reports.count ?? 0,
+      pending_community_reports: communityReportsCount.count ?? 0,
+      pending_community_comment_reports: communityCommentReportsCount.count ?? 0,
       pending_verifications: verifs.count ?? 0,
     })
   }
 
   async function dismiss(reportId: string) {
     setActing(reportId)
-    await supabase.from('review_reports').update({ status: 'dismissed' }).eq('id', reportId)
-    setReports(prev => prev.filter(r => r.id !== reportId))
+    const ok = await runAdminAction(async () => {
+      const { error } = await supabase.rpc('admin_dismiss_review_report', { report_id: reportId })
+      if (error) throw error
+    }, '已忽略举报')
+    if (ok !== null) {
+      setReports(prev => prev.filter(r => r.id !== reportId))
+    }
     setActing(null)
   }
 
   async function approveVerification(userId: string) {
     setActing(userId)
-    await supabase.from('users').update({
-      verification_status: 'approved',
-      business_verified: true,
-    }).eq('id', userId)
-    setVerifications(prev => prev.filter(v => v.id !== userId))
+    const ok = await runAdminAction(async () => {
+      const { error } = await supabase.rpc('admin_review_verification', {
+        target_user_id: userId,
+        approved: true,
+      })
+      if (error) throw error
+    }, '已通过认证')
+    if (ok !== null) {
+      setVerifications(prev => prev.filter(v => v.id !== userId))
+    }
     setActing(null)
   }
 
   async function rejectVerification(userId: string) {
     setActing(userId)
-    await supabase.from('users').update({
-      verification_status: 'rejected',
-    }).eq('id', userId)
-    setVerifications(prev => prev.filter(v => v.id !== userId))
+    const ok = await runAdminAction(async () => {
+      const { error } = await supabase.rpc('admin_review_verification', {
+        target_user_id: userId,
+        approved: false,
+      })
+      if (error) throw error
+    }, '已拒绝认证')
+    if (ok !== null) {
+      setVerifications(prev => prev.filter(v => v.id !== userId))
+    }
     setActing(null)
   }
 
   async function loadCommunityPosts() {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('community_posts')
       .select('id, title, type, area, created_at, author:author_id(name)')
       .order('created_at', { ascending: false })
       .limit(50)
+    if (error) {
+      showNotice('error', `加载社区帖子失败：${error.message}`)
+      return
+    }
     if (data) setCommunityPosts(data.map((p: any) => ({ ...p, author: Array.isArray(p.author) ? p.author[0] : p.author })))
   }
 
   async function deleteCommunityPost(postId: string) {
     setActing(postId)
-    await supabase.from('community_posts').delete().eq('id', postId)
-    setCommunityPosts(prev => prev.filter(p => p.id !== postId))
+    const ok = await runAdminAction(async () => {
+      const { error } = await supabase.rpc('admin_delete_community_post', { post_id: postId })
+      if (error) throw error
+    }, '社区帖子已删除')
+    if (ok !== null) {
+      setCommunityPosts(prev => prev.filter(p => p.id !== postId))
+    }
     setActing(null)
   }
 
   async function loadInquiries() {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('inquiries')
       .select('id, category_id, description, budget, timing, name, phone, wechat, status, created_at')
       .order('created_at', { ascending: false })
       .limit(50)
+    if (error) {
+      showNotice('error', `加载询价失败：${error.message}`)
+      return
+    }
     if (!data) return
 
     const ids = data.map((r: any) => r.id)
-    const { data: matches } = await supabase
+    const { data: matches, error: matchesError } = await supabase
       .from('inquiry_matches')
       .select('id, inquiry_id, provider_name, provider_email, email_sent')
       .in('inquiry_id', ids)
+    if (matchesError) {
+      showNotice('error', `加载询价匹配失败：${matchesError.message}`)
+      return
+    }
 
     const matchMap: Record<string, InquiryMatch[]> = {}
     for (const m of matches ?? []) {
@@ -281,14 +498,89 @@ export default function AdminPage() {
     setInquiries(data.map((r: any) => ({ ...r, matches: matchMap[r.id] ?? [] })))
   }
 
+  async function updateInquiryStatus(inquiryId: string, status: InquiryRow['status']) {
+    setActing(inquiryId)
+    const ok = await runAdminAction(async () => {
+      const { error } = await supabase.rpc('admin_set_inquiry_status', {
+        inquiry_id: inquiryId,
+        new_status: status,
+      })
+      if (error) throw error
+    }, `询价状态已更新为${INQUIRY_STATUS_LABEL[status]}`)
+    if (ok !== null) {
+      setInquiries(prev => prev.map(inq => (
+        inq.id === inquiryId ? { ...inq, status } : inq
+      )))
+    }
+    setActing(null)
+  }
+
+  async function dismissCommunityReport(reportId: string) {
+    setActing(reportId)
+    const ok = await runAdminAction(async () => {
+      const { error } = await supabase.rpc('admin_dismiss_community_post_report', { report_id: reportId })
+      if (error) throw error
+    }, '已忽略社区举报')
+    if (ok !== null) {
+      setCommunityReports(prev => prev.filter(r => r.id !== reportId))
+    }
+    setActing(null)
+  }
+
+  async function removeCommunityPostFromReport(report: CommunityReportRow) {
+    if (!report.post) return
+    setActing(report.id)
+    const ok = await runAdminAction(async () => {
+      const { error } = await supabase.rpc('admin_delete_community_post', { post_id: report.post!.id })
+      if (error) throw error
+    }, '已删除被举报帖子')
+    if (ok !== null) {
+      setCommunityReports(prev => prev.filter(r => r.post?.id !== report.post?.id))
+      setCommunityPosts(prev => prev.filter(p => p.id !== report.post?.id))
+    }
+    setActing(null)
+  }
+
+  async function dismissCommunityCommentReport(reportId: string) {
+    setActing(reportId)
+    const ok = await runAdminAction(async () => {
+      const { error } = await supabase.rpc('admin_dismiss_community_comment_report', { report_id: reportId })
+      if (error) throw error
+    }, '已忽略社区评论举报')
+    if (ok !== null) {
+      setCommunityCommentReports(prev => prev.filter(r => r.id !== reportId))
+    }
+    setActing(null)
+  }
+
+  async function removeCommunityCommentFromReport(report: CommunityCommentReportRow) {
+    if (!report.comment) return
+    setActing(report.id)
+    const ok = await runAdminAction(async () => {
+      const { error } = await supabase.rpc('admin_delete_community_comment', {
+        comment_id: report.comment!.id,
+        post_id: report.comment!.post_id,
+      })
+      if (error) throw error
+    }, '已删除被举报评论')
+    if (ok !== null) {
+      setCommunityCommentReports(prev => prev.filter(r => r.comment?.id !== report.comment?.id))
+    }
+    setActing(null)
+  }
+
   async function searchMembers() {
     const kw = memberSearch.trim()
     if (!kw) return
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('users')
       .select('id, name, email, membership_level, membership_expires_at')
       .or(`name.ilike.%${kw}%,email.ilike.%${kw}%`)
       .limit(20)
+    if (error) {
+      showNotice('error', `搜索会员失败：${error.message}`)
+      return
+    }
     setMemberResults((data ?? []) as MemberRow[])
   }
 
@@ -298,34 +590,50 @@ export default function AdminPage() {
     const current = row.membership_expires_at ? new Date(row.membership_expires_at) : null
     const base = current && current > now ? current : now
     const newExpiry = new Date(base.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString()
-    await supabase.from('users').update({
-      membership_level: level,
-      membership_expires_at: newExpiry,
-    }).eq('id', row.id)
-    setMemberResults(prev => prev.map(r =>
-      r.id === row.id ? { ...r, membership_level: level, membership_expires_at: newExpiry } : r
-    ))
+    const ok = await runAdminAction(async () => {
+      const { error } = await supabase.rpc('admin_set_membership', {
+        target_user_id: row.id,
+        new_level: level,
+        new_expires_at: newExpiry,
+      })
+      if (error) throw error
+    }, `已授予 ${level} 会员 30 天`)
+    if (ok !== null) {
+      setMemberResults(prev => prev.map(r =>
+        r.id === row.id ? { ...r, membership_level: level, membership_expires_at: newExpiry } : r
+      ))
+    }
     setActing(null)
   }
 
   async function revokeMembership(row: MemberRow) {
     setActing(row.id)
-    await supabase.from('users').update({
-      membership_level: 'L1',
-      membership_expires_at: null,
-    }).eq('id', row.id)
-    setMemberResults(prev => prev.map(r =>
-      r.id === row.id ? { ...r, membership_level: 'L1', membership_expires_at: null } : r
-    ))
+    const ok = await runAdminAction(async () => {
+      const { error } = await supabase.rpc('admin_set_membership', {
+        target_user_id: row.id,
+        new_level: 'L1',
+        new_expires_at: null,
+      })
+      if (error) throw error
+    }, '已撤销会员')
+    if (ok !== null) {
+      setMemberResults(prev => prev.map(r =>
+        r.id === row.id ? { ...r, membership_level: 'L1', membership_expires_at: null } : r
+      ))
+    }
     setActing(null)
   }
 
   async function loadNewServices() {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('services')
       .select('id, title, description, category_id, is_available, is_promoted, created_at, provider:provider_id(id, name, email)')
       .order('created_at', { ascending: false })
       .limit(60)
+    if (error) {
+      showNotice('error', `加载服务审核列表失败：${error.message}`)
+      return
+    }
     if (data) setNewServices(data.map((r: any) => ({
       ...r,
       provider: Array.isArray(r.provider) ? r.provider[0] : r.provider,
@@ -334,16 +642,32 @@ export default function AdminPage() {
 
   async function takedownService(id: string) {
     setActing(id)
-    await supabase.from('services').update({ is_available: false }).eq('id', id)
-    setNewServices(prev => prev.map(s => s.id === id ? { ...s, is_available: false } : s))
-    setSelectedSvcs(prev => { const n = new Set(prev); n.delete(id); return n })
+    const ok = await runAdminAction(async () => {
+      const { error } = await supabase.rpc('admin_set_service_availability', {
+        service_id: id,
+        available: false,
+      })
+      if (error) throw error
+    }, '服务已下架')
+    if (ok !== null) {
+      setNewServices(prev => prev.map(s => s.id === id ? { ...s, is_available: false } : s))
+      setSelectedSvcs(prev => { const n = new Set(prev); n.delete(id); return n })
+    }
     setActing(null)
   }
 
   async function restoreService(id: string) {
     setActing(id)
-    await supabase.from('services').update({ is_available: true }).eq('id', id)
-    setNewServices(prev => prev.map(s => s.id === id ? { ...s, is_available: true } : s))
+    const ok = await runAdminAction(async () => {
+      const { error } = await supabase.rpc('admin_set_service_availability', {
+        service_id: id,
+        available: true,
+      })
+      if (error) throw error
+    }, '服务已恢复上线')
+    if (ok !== null) {
+      setNewServices(prev => prev.map(s => s.id === id ? { ...s, is_available: true } : s))
+    }
     setActing(null)
   }
 
@@ -351,9 +675,17 @@ export default function AdminPage() {
     if (selectedSvcs.size === 0) return
     if (!confirm(`确定下架选中的 ${selectedSvcs.size} 条服务？`)) return
     const ids = Array.from(selectedSvcs)
-    await supabase.from('services').update({ is_available: false }).in('id', ids)
-    setNewServices(prev => prev.map(s => ids.includes(s.id) ? { ...s, is_available: false } : s))
-    setSelectedSvcs(new Set())
+    const ok = await runAdminAction(async () => {
+      const { error } = await supabase.rpc('admin_bulk_set_service_availability', {
+        service_ids: ids,
+        available: false,
+      })
+      if (error) throw error
+    }, `已批量下架 ${ids.length} 条服务`)
+    if (ok !== null) {
+      setNewServices(prev => prev.map(s => ids.includes(s.id) ? { ...s, is_available: false } : s))
+      setSelectedSvcs(new Set())
+    }
   }
 
   function toggleSelect(id: string) {
@@ -381,24 +713,139 @@ export default function AdminPage() {
       .order('created_at', { ascending: false })
       .limit(30)
     if (kw) query.or(`name.ilike.%${kw}%,email.ilike.%${kw}%`)
-    const { data } = await query
+    const { data, error } = await query
+    if (error) {
+      showNotice('error', `搜索用户失败：${error.message}`)
+      return
+    }
     setUserResults((data ?? []) as UserRow[])
   }
 
   async function setUserRole(userId: string, role: UserRow['role']) {
     setActing(userId)
-    await supabase.from('users').update({ role }).eq('id', userId)
-    setUserResults(prev => prev.map(u => u.id === userId ? { ...u, role } : u))
+    const ok = await runAdminAction(async () => {
+      const { error } = await supabase.rpc('admin_set_user_role', {
+        target_user_id: userId,
+        new_role: role,
+      })
+      if (error) throw error
+    }, role === 'banned' ? '账号已封禁' : role === 'provider' ? '已设为服务商' : '角色已更新')
+    if (ok !== null) {
+      setUserResults(prev => prev.map(u => u.id === userId ? { ...u, role } : u))
+    }
     setActing(null)
   }
 
   async function removeReview(report: ReportRow) {
     if (!report.review) return
     setActing(report.id)
-    await supabase.from('reviews').delete().eq('id', report.review.id)
-    await supabase.from('review_reports').update({ status: 'removed' }).eq('review_id', report.review.id)
-    setReports(prev => prev.filter(r => r.review?.id !== report.review?.id))
+    const ok = await runAdminAction(async () => {
+      const { error } = await supabase.rpc('admin_remove_review', {
+        review_id: report.review!.id,
+        report_id: report.id,
+      })
+      if (error) throw error
+    }, '评价已删除')
+    if (ok !== null) {
+      setReports(prev => prev.filter(r => r.review?.id !== report.review?.id))
+    }
     setActing(null)
+  }
+
+  async function loadAuditLogs() {
+    const { data, error } = await supabase
+      .from('admin_audit_logs')
+      .select('id, action_type, target_type, target_id, details, created_at, actor:actor_id(id, name, email)')
+      .order('created_at', { ascending: false })
+      .limit(80)
+    if (error) {
+      showNotice('error', `加载操作日志失败：${error.message}`)
+      return
+    }
+    setAuditLogs((data ?? []).map((row: any) => ({
+      ...row,
+      details: row.details ?? {},
+      actor: Array.isArray(row.actor) ? row.actor[0] : row.actor,
+    })))
+  }
+
+  const filteredAuditLogs = auditLogs.filter((log) => {
+    const actionMatch = logActionFilter === 'all' || log.action_type === logActionFilter
+    if (!actionMatch) return false
+
+    const logDate = log.created_at.slice(0, 10)
+    if (logDateFrom && logDate < logDateFrom) return false
+    if (logDateTo && logDate > logDateTo) return false
+
+    const keyword = logSearch.trim().toLowerCase()
+    if (!keyword) return true
+
+    const haystack = [
+      ADMIN_ACTION_LABEL[log.action_type] ?? log.action_type,
+      log.action_type,
+      log.target_type,
+      log.target_id ?? '',
+      log.actor?.name ?? '',
+      log.actor?.email ?? '',
+      JSON.stringify(log.details ?? {}),
+    ].join(' ').toLowerCase()
+
+    return haystack.includes(keyword)
+  })
+
+  const logActionOptions = Array.from(new Set(auditLogs.map(log => log.action_type)))
+
+  function formatLogKey(key: string) {
+    const labels: Record<string, string> = {
+      role: '角色',
+      status: '状态',
+      level: '会员等级',
+      membership_expires_at: '到期时间',
+      ids: '批量对象',
+      report_id: '举报 ID',
+      post_id: '帖子 ID',
+      comment_id: '评论 ID',
+      table: '来源表',
+    }
+    return labels[key] ?? key.replace(/_/g, ' ')
+  }
+
+  function formatLogValue(value: unknown) {
+    if (value === null || value === undefined || value === '') return '无'
+    if (Array.isArray(value)) return value.join('、')
+    if (typeof value === 'boolean') return value ? '是' : '否'
+    if (typeof value === 'object') return JSON.stringify(value)
+    if (typeof value === 'string') {
+      if (value === 'open') return '待处理'
+      if (value === 'matched') return '已匹配'
+      if (value === 'closed') return '已关闭'
+      if (value === 'user') return '普通用户'
+      if (value === 'provider') return '服务商'
+      if (value === 'admin') return '管理员'
+      if (value === 'banned') return '已封禁'
+      return value
+    }
+    return String(value)
+  }
+
+  function renderAuditDetails(details: Record<string, unknown>) {
+    const entries = Object.entries(details ?? {}).filter(([, value]) => {
+      if (Array.isArray(value)) return value.length > 0
+      return value !== null && value !== undefined && value !== ''
+    })
+
+    if (entries.length === 0) return null
+
+    return (
+      <div className="rounded-xl bg-gray-50 border border-gray-100 p-3 space-y-2">
+        {entries.map(([key, value]) => (
+          <div key={key} className="flex items-start gap-3 text-xs">
+            <span className="w-24 shrink-0 text-gray-400">{formatLogKey(key)}</span>
+            <span className="text-gray-700 break-all">{formatLogValue(value)}</span>
+          </div>
+        ))}
+      </div>
+    )
   }
 
   if (allowed === null) return null
@@ -412,9 +859,19 @@ export default function AdminPage() {
         </button>
         <ShieldCheck size={20} className="text-primary-600" />
         <span className="font-semibold text-gray-800 flex-1">管理后台</span>
+        <AdminNotificationsBell compact />
       </div>
 
       <div className="max-w-3xl mx-auto px-4 py-5 space-y-4">
+        {notice && (
+          <div className={`rounded-2xl border px-4 py-3 text-sm shadow-sm ${
+            notice.type === 'success'
+              ? 'border-green-200 bg-green-50 text-green-700'
+              : 'border-red-200 bg-red-50 text-red-700'
+          }`}>
+            {notice.text}
+          </div>
+        )}
 
         {/* Tabs */}
         <div className="flex gap-1 bg-gray-100 rounded-2xl p-1">
@@ -423,6 +880,12 @@ export default function AdminPage() {
               tab === 'reports' ? 'bg-white text-primary-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'
             }`}>
             举报 {stats ? `(${stats.pending_reports})` : ''}
+          </button>
+          <button onClick={() => { setTab('communityReports'); loadCommunityReports() }}
+            className={`flex-1 py-2 rounded-xl text-sm font-semibold transition-all ${
+              tab === 'communityReports' ? 'bg-white text-primary-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+            }`}>
+            社区举报 {stats ? `(${(stats.pending_community_reports + stats.pending_community_comment_reports)})` : ''}
           </button>
           <button onClick={() => setTab('verification')}
             className={`flex-1 py-2 rounded-xl text-sm font-semibold transition-all ${
@@ -472,6 +935,12 @@ export default function AdminPage() {
             }`}>
             服务审核
           </button>
+          <button onClick={() => { setTab('logs'); loadAuditLogs() }}
+            className={`flex-1 py-2 rounded-xl text-sm font-semibold transition-all ${
+              tab === 'logs' ? 'bg-white text-primary-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+            }`}>
+            操作日志
+          </button>
         </div>
 
         {loading ? (
@@ -487,6 +956,7 @@ export default function AdminPage() {
               { icon: <ShoppingBag size={20} />,  label: '闲置',       value: stats.secondhand,      color: 'text-orange-600 bg-orange-50' },
               { icon: <Calendar size={20} />,     label: '活动',       value: stats.events,          color: 'text-pink-600 bg-pink-50' },
               { icon: <Flag size={20} />,         label: '待处理举报', value: stats.pending_reports, color: 'text-red-600 bg-red-50' },
+              { icon: <Flag size={20} />,         label: '社区举报',   value: stats.pending_community_reports + stats.pending_community_comment_reports, color: 'text-orange-600 bg-orange-50' },
             ].map(({ icon, label, value, color }) => (
               <div key={label} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 flex items-center gap-3">
                 <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${color}`}>
@@ -557,6 +1027,122 @@ export default function AdminPage() {
                       }`}>
                       {acting === row.id ? '…' : row.is_promoted ? '取消推广' : '设为推广'}
                     </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </motion.div>
+        ) : tab === 'communityReports' ? (
+          <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-3">
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-3 flex items-center gap-3 flex-wrap">
+              <span className="text-sm text-gray-500 flex-1">
+                帖子举报 <strong className="text-orange-600">{communityReports.length}</strong> · 评论举报 <strong className="text-orange-600">{communityCommentReports.length}</strong>
+              </span>
+              <button onClick={() => { loadCommunityReports(); loadCommunityCommentReports() }}
+                className="px-3 py-2 border border-gray-200 text-sm text-gray-600 rounded-xl hover:bg-gray-50 transition-colors">
+                刷新
+              </button>
+            </div>
+            {communityReports.length === 0 && communityCommentReports.length === 0 ? (
+              <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-12 text-center">
+                <p className="text-sm text-gray-400">暂无待处理社区举报</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {communityReports.length > 0 && (
+                  <div className="text-xs font-semibold text-gray-400 px-1">帖子举报</div>
+                )}
+                {communityReports.map(r => (
+                  <div key={r.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
+                    <div className="flex items-center gap-2 mb-3">
+                      <Flag size={14} className="text-orange-400 flex-shrink-0" />
+                      <span className="text-xs font-semibold text-orange-500">{REASON_LABEL[r.reason] ?? r.reason}</span>
+                      <span className="text-xs text-gray-400 ml-auto">{r.created_at.slice(0, 10)}</span>
+                    </div>
+                    {r.post ? (
+                      <div className="bg-gray-50 rounded-xl p-3 mb-3 space-y-1">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-semibold text-gray-800 flex-1">{r.post.title}</span>
+                          <button onClick={() => navigate(`/community/${r.post!.id}`)}
+                            className="text-xs text-primary-600 underline">
+                            查看帖子
+                          </button>
+                        </div>
+                        <p className="text-xs text-gray-500">作者：{r.post.author?.name ?? '匿名'}</p>
+                        <p className="text-sm text-gray-700 leading-relaxed">{r.post.content || '（无内容）'}</p>
+                      </div>
+                    ) : (
+                      <p className="text-xs text-gray-400 mb-3">帖子已被删除</p>
+                    )}
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-gray-400 flex-1">
+                        举报人：{r.reporter?.name ?? '匿名'}
+                      </span>
+                      <button
+                        onClick={() => dismissCommunityReport(r.id)}
+                        disabled={!!acting}
+                        className="text-xs px-3 py-1.5 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 transition-colors disabled:opacity-50"
+                      >
+                        {acting === r.id ? '处理中…' : '忽略'}
+                      </button>
+                      {r.post && (
+                        <button
+                          onClick={() => removeCommunityPostFromReport(r)}
+                          disabled={!!acting}
+                          className="text-xs px-3 py-1.5 rounded-lg bg-red-500 hover:bg-red-600 text-white font-semibold transition-colors disabled:opacity-50 flex items-center gap-1"
+                        >
+                          <Trash2 size={12} /> 删除帖子
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+                {communityCommentReports.length > 0 && (
+                  <div className="text-xs font-semibold text-gray-400 px-1 pt-2">评论举报</div>
+                )}
+                {communityCommentReports.map(r => (
+                  <div key={r.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
+                    <div className="flex items-center gap-2 mb-3">
+                      <Flag size={14} className="text-orange-400 flex-shrink-0" />
+                      <span className="text-xs font-semibold text-orange-500">{REASON_LABEL[r.reason] ?? r.reason}</span>
+                      <span className="text-xs text-gray-400 ml-auto">{r.created_at.slice(0, 10)}</span>
+                    </div>
+                    {r.comment ? (
+                      <div className="bg-gray-50 rounded-xl p-3 mb-3 space-y-1">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-semibold text-gray-800 flex-1">评论内容</span>
+                          <button onClick={() => navigate(`/community/${r.comment!.post_id}`)}
+                            className="text-xs text-primary-600 underline">
+                            查看帖子
+                          </button>
+                        </div>
+                        <p className="text-xs text-gray-500">评论作者：{r.comment.author?.name ?? '匿名'}</p>
+                        <p className="text-sm text-gray-700 leading-relaxed">{r.comment.content || '（无内容）'}</p>
+                      </div>
+                    ) : (
+                      <p className="text-xs text-gray-400 mb-3">评论已被删除</p>
+                    )}
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-gray-400 flex-1">
+                        举报人：{r.reporter?.name ?? '匿名'}
+                      </span>
+                      <button
+                        onClick={() => dismissCommunityCommentReport(r.id)}
+                        disabled={!!acting}
+                        className="text-xs px-3 py-1.5 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 transition-colors disabled:opacity-50"
+                      >
+                        {acting === r.id ? '处理中…' : '忽略'}
+                      </button>
+                      {r.comment && (
+                        <button
+                          onClick={() => removeCommunityCommentFromReport(r)}
+                          disabled={!!acting}
+                          className="text-xs px-3 py-1.5 rounded-lg bg-red-500 hover:bg-red-600 text-white font-semibold transition-colors disabled:opacity-50 flex items-center gap-1"
+                        >
+                          <Trash2 size={12} /> 删除评论
+                        </button>
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>
@@ -789,6 +1375,15 @@ export default function AdminPage() {
           </motion.div>
         ) : tab === 'inquiries' ? (
           <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-3">
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-3 flex items-center gap-3 flex-wrap">
+              <span className="text-sm text-gray-500 flex-1">
+                共 <strong>{inquiries.length}</strong> 条 · 待处理 <strong className="text-green-600">{inquiries.filter(i => i.status === 'open').length}</strong> · 已匹配 <strong className="text-blue-600">{inquiries.filter(i => i.status === 'matched').length}</strong> · 已关闭 <strong className="text-gray-500">{inquiries.filter(i => i.status === 'closed').length}</strong>
+              </span>
+              <button onClick={loadInquiries}
+                className="px-3 py-2 border border-gray-200 text-sm text-gray-600 rounded-xl hover:bg-gray-50 transition-colors">
+                刷新
+              </button>
+            </div>
             {inquiries.length === 0 ? (
               <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-12 text-center">
                 <Inbox size={36} className="text-gray-200 mx-auto mb-3" />
@@ -806,7 +1401,7 @@ export default function AdminPage() {
                       inq.status === 'open' ? 'bg-green-50 text-green-600' :
                       inq.status === 'matched' ? 'bg-blue-50 text-blue-600' :
                       'bg-gray-100 text-gray-500'
-                    }`}>{inq.status}</span>
+                    }`}>{INQUIRY_STATUS_LABEL[inq.status] ?? inq.status}</span>
                   </div>
                   <span className="text-xs text-gray-400 flex-shrink-0">{inq.created_at.slice(0, 10)}</span>
                 </div>
@@ -819,6 +1414,36 @@ export default function AdminPage() {
                     <p className="text-xs text-gray-400 mt-1">
                       {inq.budget ? `预算: $${inq.budget}` : ''}{inq.budget && inq.timing ? ' · ' : ''}{inq.timing}
                     </p>
+                  )}
+                </div>
+
+                <div className="flex gap-2 flex-wrap">
+                  {inq.status !== 'open' && (
+                    <button
+                      onClick={() => updateInquiryStatus(inq.id, 'open')}
+                      disabled={acting === inq.id}
+                      className="text-xs px-3 py-1.5 rounded-lg bg-green-50 text-green-700 hover:bg-green-100 font-semibold transition-colors disabled:opacity-50"
+                    >
+                      设为待处理
+                    </button>
+                  )}
+                  {inq.status !== 'matched' && (
+                    <button
+                      onClick={() => updateInquiryStatus(inq.id, 'matched')}
+                      disabled={acting === inq.id}
+                      className="text-xs px-3 py-1.5 rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 font-semibold transition-colors disabled:opacity-50"
+                    >
+                      标记已匹配
+                    </button>
+                  )}
+                  {inq.status !== 'closed' && (
+                    <button
+                      onClick={() => updateInquiryStatus(inq.id, 'closed')}
+                      disabled={acting === inq.id}
+                      className="text-xs px-3 py-1.5 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 font-semibold transition-colors disabled:opacity-50"
+                    >
+                      关闭询价
+                    </button>
                   )}
                 </div>
 
@@ -1082,6 +1707,67 @@ export default function AdminPage() {
                 ))}
               </div>
             )}
+          </motion.div>
+        ) : tab === 'logs' ? (
+          <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-3">
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-3 flex items-center gap-3 flex-wrap">
+              <input
+                value={logSearch}
+                onChange={e => setLogSearch(e.target.value)}
+                placeholder="搜索动作、对象、操作者、详情"
+                className="flex-1 min-w-[220px] text-sm border border-gray-200 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-primary-300"
+              />
+              <select
+                value={logActionFilter}
+                onChange={e => setLogActionFilter(e.target.value)}
+                className="text-sm border border-gray-200 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-primary-300 bg-white"
+              >
+                <option value="all">全部动作</option>
+                {logActionOptions.map(action => (
+                  <option key={action} value={action}>
+                    {ADMIN_ACTION_LABEL[action] ?? action}
+                  </option>
+                ))}
+              </select>
+              <input
+                type="date"
+                value={logDateFrom}
+                onChange={e => setLogDateFrom(e.target.value)}
+                className="text-sm border border-gray-200 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-primary-300 bg-white"
+              />
+              <input
+                type="date"
+                value={logDateTo}
+                onChange={e => setLogDateTo(e.target.value)}
+                className="text-sm border border-gray-200 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-primary-300 bg-white"
+              />
+              <button onClick={loadAuditLogs}
+                className="px-3 py-2 border border-gray-200 text-sm text-gray-600 rounded-xl hover:bg-gray-50 transition-colors">
+                刷新
+              </button>
+            </div>
+            <div className="text-xs text-gray-400 px-1">匹配到 {filteredAuditLogs.length} 条日志</div>
+            {filteredAuditLogs.length === 0 ? (
+              <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-12 text-center">
+                <p className="text-sm text-gray-400">暂无操作日志</p>
+              </div>
+            ) : filteredAuditLogs.map(log => (
+              <div key={log.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 space-y-1.5">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-semibold text-gray-800">
+                    {ADMIN_ACTION_LABEL[log.action_type] ?? log.action_type}
+                  </span>
+                  <span className="text-xs text-gray-400 ml-auto">{log.created_at.slice(0, 16).replace('T', ' ')}</span>
+                </div>
+                <p className="text-xs text-gray-500">
+                  操作者：{log.actor?.name ?? '管理员'}{log.actor?.email ? ` · ${log.actor.email}` : ''}
+                </p>
+                <p className="text-xs text-gray-500">
+                  对象：{log.target_type}{log.target_id ? ` · ${log.target_id}` : ''}
+                </p>
+                {renderAuditDetails(log.details)}
+              </div>
+            ))}
           </motion.div>
         ) : null}
       </div>
