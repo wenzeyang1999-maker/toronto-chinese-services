@@ -1,10 +1,34 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X, ChevronRight } from 'lucide-react'
+import {
+  X, ChevronRight, type LucideIcon,
+  // L1
+  Home, Building2, Car, Factory, Scale, GraduationCap, Recycle, MapPin, MessageSquare,
+  // Subs — 生活
+  Truck, Sparkles, Leaf, Hammer, Wrench,
+  // Subs — 房产
+  Handshake, Key, BedDouble,
+  // Subs — 汽车
+  Gauge, LifeBuoy,
+  // Subs — 商业
+  Package, Settings2, HardHat,
+  // Subs — 专业
+  Receipt, Shield, FileText,
+  // Subs — 留学
+  BookOpen,
+  // Subs — 二手
+  Sofa, Plane, ShoppingBag,
+  // Subs — 广场
+  Calendar, ShoppingCart, Heart,
+} from 'lucide-react'
+
+// ── Toggle: true = Lucide icons, false = emoji ──────────────────────────────
+const USE_ICONS = true
 
 interface SubCat {
   emoji: string
+  icon: LucideIcon
   label: string
   q: string       // search keyword
 }
@@ -13,6 +37,7 @@ interface L1Category {
   id: string
   label: string
   emoji: string
+  icon: LucideIcon
   color: string
   bgColor: string
   headerColor: string  // for sheet header
@@ -25,133 +50,133 @@ const TOP_CATEGORIES: L1Category[] = [
   {
     id: 'life',
     label: '生活服务',
-    emoji: '🏠',
+    emoji: '🏠', icon: Home,
     color: 'text-blue-600',
     bgColor: 'bg-blue-50',
     headerColor: 'from-blue-500 to-blue-700',
     desc: '搬家·保洁·接送·装修',
     to: '/search',
     subs: [
-      { emoji: '🚚', label: '搬运', q: '搬运' },
-      { emoji: '✨', label: '保洁', q: '保洁' },
-      { emoji: '🚗', label: '接送', q: '接送' },
-      { emoji: '🌿', label: '园艺', q: '园艺' },
-      { emoji: '🔨', label: '装修', q: '装修' },
-      { emoji: '🔧', label: '水电维修', q: '水电维修' },
+      { emoji: '🚚', icon: Truck,     label: '搬运',   q: '搬运' },
+      { emoji: '✨', icon: Sparkles,  label: '保洁',   q: '保洁' },
+      { emoji: '🚗', icon: Car,       label: '接送',   q: '接送' },
+      { emoji: '🌿', icon: Leaf,      label: '园艺',   q: '园艺' },
+      { emoji: '🔨', icon: Hammer,    label: '装修',   q: '装修' },
+      { emoji: '🔧', icon: Wrench,    label: '水电维修', q: '水电维修' },
     ],
   },
   {
     id: 'realestate',
     label: '房产服务',
-    emoji: '🏢',
+    emoji: '🏢', icon: Building2,
     color: 'text-green-600',
     bgColor: 'bg-green-50',
     headerColor: 'from-green-500 to-green-700',
     desc: '地产经纪·房产出售·出租',
     to: '/realestate',
     subs: [
-      { emoji: '🤝', label: '地产经纪', q: '地产经纪' },
-      { emoji: '🏠', label: '房产出售', q: '房产出售' },
-      { emoji: '🔑', label: '整租', q: '整租' },
-      { emoji: '🛏️', label: '合租', q: '合租' },
+      { emoji: '🤝', icon: Handshake, label: '地产经纪', q: '地产经纪' },
+      { emoji: '🏠', icon: Home,      label: '房产出售', q: '房产出售' },
+      { emoji: '🔑', icon: Key,       label: '整租',    q: '整租' },
+      { emoji: '🛏️', icon: BedDouble, label: '合租',    q: '合租' },
     ],
   },
   {
     id: 'auto',
     label: '汽车服务',
-    emoji: '🚘',
+    emoji: '🚘', icon: Car,
     color: 'text-orange-600',
     bgColor: 'bg-orange-50',
     headerColor: 'from-orange-500 to-orange-700',
     desc: '维修·轮胎·道路救援',
     to: null,
     subs: [
-      { emoji: '🔩', label: '维修保养', q: '汽车维修' },
-      { emoji: '🛞', label: '轮胎更换', q: '轮胎更换' },
-      { emoji: '🆘', label: '紧急救援', q: '道路救援' },
+      { emoji: '🔩', icon: Wrench,   label: '维修保养', q: '汽车维修' },
+      { emoji: '🛞', icon: Gauge,    label: '轮胎更换', q: '轮胎更换' },
+      { emoji: '🆘', icon: LifeBuoy, label: '紧急救援', q: '道路救援' },
     ],
   },
   {
     id: 'business',
     label: '商业服务',
-    emoji: '🏭',
+    emoji: '🏭', icon: Factory,
     color: 'text-amber-600',
     bgColor: 'bg-amber-50',
     headerColor: 'from-amber-500 to-amber-700',
     desc: '仓储·物流·建筑工程',
     to: null,
     subs: [
-      { emoji: '📦', label: '仓库仓储', q: '仓储' },
-      { emoji: '🚛', label: '物流运输', q: '物流运输' },
-      { emoji: '⚙️', label: '设备安装', q: '设备安装' },
-      { emoji: '🏗️', label: '建筑工程', q: '建筑工程' },
+      { emoji: '📦', icon: Package,  label: '仓库仓储', q: '仓储' },
+      { emoji: '🚛', icon: Truck,    label: '物流运输', q: '物流运输' },
+      { emoji: '⚙️', icon: Settings2, label: '设备安装', q: '设备安装' },
+      { emoji: '🏗️', icon: HardHat,  label: '建筑工程', q: '建筑工程' },
     ],
   },
   {
     id: 'pro',
     label: '专业服务',
-    emoji: '⚖️',
+    emoji: '⚖️', icon: Scale,
     color: 'text-purple-600',
     bgColor: 'bg-purple-50',
     headerColor: 'from-purple-500 to-purple-700',
     desc: '法律·税务·保险',
     to: null,
     subs: [
-      { emoji: '⚖️', label: '法律服务', q: '法律' },
-      { emoji: '🧾', label: '税务服务', q: '税务' },
-      { emoji: '🛡️', label: '保险服务', q: '保险' },
+      { emoji: '⚖️', icon: Scale,    label: '法律服务', q: '法律' },
+      { emoji: '🧾', icon: Receipt,  label: '税务服务', q: '税务' },
+      { emoji: '🛡️', icon: Shield,   label: '保险服务', q: '保险' },
     ],
   },
   {
     id: 'study',
     label: '留学移民',
-    emoji: '🎓',
+    emoji: '🎓', icon: GraduationCap,
     color: 'text-sky-600',
     bgColor: 'bg-sky-50',
     headerColor: 'from-sky-500 to-sky-700',
     desc: '留学·签证·培训',
     to: null,
     subs: [
-      { emoji: '🎓', label: '留学', q: '留学' },
-      { emoji: '📋', label: '签证', q: '签证' },
-      { emoji: '📚', label: '培训', q: '培训' },
+      { emoji: '🎓', icon: GraduationCap, label: '留学', q: '留学' },
+      { emoji: '📋', icon: FileText,      label: '签证', q: '签证' },
+      { emoji: '📚', icon: BookOpen,      label: '培训', q: '培训' },
     ],
   },
   {
     id: 'secondhand',
     label: '二手交易',
-    emoji: '♻️',
+    emoji: '♻️', icon: Recycle,
     color: 'text-teal-600',
     bgColor: 'bg-teal-50',
     headerColor: 'from-teal-500 to-teal-700',
     desc: '家具·家电·汽车摩托',
     to: '/secondhand',
     subs: [
-      { emoji: '🛋️', label: '家具家电', q: '家具' },
-      { emoji: '🚗', label: '汽车摩托', q: '汽车' },
-      { emoji: '✈️', label: '船艇飞机', q: '船艇' },
-      { emoji: '🎽', label: '各类装备', q: '装备' },
+      { emoji: '🛋️', icon: Sofa,       label: '家具家电', q: '家具' },
+      { emoji: '🚗', icon: Car,         label: '汽车摩托', q: '汽车' },
+      { emoji: '✈️', icon: Plane,       label: '船艇飞机', q: '船艇' },
+      { emoji: '🎽', icon: ShoppingBag, label: '各类装备', q: '装备' },
     ],
   },
   {
     id: 'plaza',
     label: '大多广场',
-    emoji: '🎪',
+    emoji: '🎪', icon: MapPin,
     color: 'text-pink-600',
     bgColor: 'bg-pink-50',
     headerColor: 'from-pink-500 to-pink-700',
     desc: '同城活动·集市·公益',
     to: '/events',
     subs: [
-      { emoji: '🎉', label: '同城活动', q: '' },
-      { emoji: '🛒', label: '集市摊位', q: '' },
-      { emoji: '❤️', label: '公益慈善', q: '' },
+      { emoji: '🎉', icon: Calendar,     label: '同城活动', q: '' },
+      { emoji: '🛒', icon: ShoppingCart, label: '集市摊位', q: '' },
+      { emoji: '❤️', icon: Heart,        label: '公益慈善', q: '' },
     ],
   },
   {
     id: 'community',
     label: '多村论坛',
-    emoji: '💬',
+    emoji: '💬', icon: MessageSquare,
     color: 'text-indigo-600',
     bgColor: 'bg-indigo-50',
     headerColor: 'from-indigo-500 to-indigo-700',
@@ -210,7 +235,10 @@ export default function CategoryButtons() {
             className={`relative ${cat.bgColor} rounded-2xl p-4 flex flex-col items-center gap-2
                         border border-white/60 hover:shadow-md active:brightness-95 transition-all`}
           >
-            <span className="text-3xl leading-none">{cat.emoji}</span>
+            {USE_ICONS
+              ? <cat.icon size={28} strokeWidth={1.5} className={cat.color} />
+              : <span className="text-3xl leading-none">{cat.emoji}</span>
+            }
             <span className={`text-sm font-semibold ${cat.color}`}>{cat.label}</span>
             <span className="text-xs text-gray-500 text-center leading-tight line-clamp-2">
               {cat.desc}
@@ -248,8 +276,11 @@ export default function CategoryButtons() {
               <div className="flex items-center justify-between px-5 pt-4 pb-3
                               border-b border-gray-100/80">
                 <div className="flex items-center gap-2">
-                  <span className={`w-8 h-8 rounded-xl ${activeSheet.bgColor} flex items-center justify-center text-lg`}>
-                    {activeSheet.emoji}
+                  <span className={`w-8 h-8 rounded-xl ${activeSheet.bgColor} flex items-center justify-center`}>
+                    {USE_ICONS
+                      ? <activeSheet.icon size={18} strokeWidth={1.5} className={activeSheet.color} />
+                      : <span className="text-lg">{activeSheet.emoji}</span>
+                    }
                   </span>
                   <div>
                     <p className={`text-sm font-bold ${activeSheet.color}`}>{activeSheet.label}</p>
@@ -275,7 +306,10 @@ export default function CategoryButtons() {
                                border border-gray-100 hover:border-gray-200 hover:shadow-sm
                                active:scale-95 transition-all"
                   >
-                    <span className="text-2xl leading-none">{sub.emoji}</span>
+                    {USE_ICONS
+                      ? <sub.icon size={22} strokeWidth={1.5} className={activeSheet.color} />
+                      : <span className="text-2xl leading-none">{sub.emoji}</span>
+                    }
                     <span className={`text-xs font-semibold ${activeSheet.color} text-center leading-tight`}>
                       {sub.label}
                     </span>
