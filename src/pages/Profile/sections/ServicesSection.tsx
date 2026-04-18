@@ -10,6 +10,7 @@ import {
 } from 'lucide-react'
 import { supabase } from '../../../lib/supabase'
 import { useAuthStore } from '../../../store/authStore'
+import { notifyAdminPromoRequest } from '../../../lib/notify'
 import { compressImage, validateImageFile } from '../../../lib/compressImage'
 import { JOB_CATEGORY_CONFIG, getCategoryLabel } from '../../Jobs/types'
 import type { Job } from '../../Jobs/types'
@@ -52,8 +53,11 @@ export default function ServicesSection() {
   const [events,      setEvents]      = useState<Event[]>([])
   const [loading,     setLoading]     = useState(true)
   const [confirmDel,  setConfirmDel]  = useState<string | null>(null)
-  const [showPostMenu, setShowPostMenu] = useState(false)
-  const [promoToast,  setPromoToast]  = useState(false)
+  const [showPostMenu,   setShowPostMenu]   = useState(false)
+  const [promoServiceId, setPromoServiceId] = useState<string | null>(null)
+  const [promoNote,      setPromoNote]      = useState('')
+  const [promoSending,   setPromoSending]   = useState(false)
+  const [promoSent,      setPromoSent]      = useState(false)
 
   // Service edit state
   const [editingId,   setEditingId]   = useState<string | null>(null)
@@ -242,7 +246,7 @@ export default function ServicesSection() {
             </button>
           )}
 
-          <button onClick={() => { setPromoToast(true); setTimeout(() => setPromoToast(false), 4000) }}
+          <button onClick={() => { setPromoServiceId(id); setPromoNote(''); setPromoSent(false) }}
             className="w-9 h-9 flex items-center justify-center rounded-xl text-gray-400 hover:bg-amber-50 hover:text-amber-500 transition-colors flex-shrink-0"
             title="申请置顶推广">
             <Zap size={16} />
@@ -278,16 +282,109 @@ export default function ServicesSection() {
   return (
     <div className="relative flex-1 px-4 py-5 max-w-md lg:max-w-none mx-auto w-full">
 
-      {/* Promo toast */}
+      {/* Promo request modal */}
       <AnimatePresence>
-        {promoToast && (
-          <motion.div initial={{ opacity: 0, y: -12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}
-            className="fixed top-20 left-1/2 -translate-x-1/2 z-50 bg-amber-500 text-white text-sm font-semibold
-                       px-5 py-3 rounded-2xl shadow-lg flex items-center gap-2 whitespace-nowrap">
-            <Zap size={15} />
-            请发邮件至 admin@huarenq.com 申请置顶推广
-          </motion.div>
-        )}
+        {promoServiceId && (() => {
+          const svc = services.find(s => s.id === promoServiceId)
+          if (!svc) return null
+          return (
+            <>
+              <motion.div key="promo-backdrop"
+                initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                onClick={() => { if (!promoSending) { setPromoServiceId(null); setPromoNote(''); setPromoSent(false) } }}
+                className="fixed inset-0 bg-black/40 backdrop-blur-[2px] z-50"
+              />
+              <motion.div key="promo-modal"
+                initial={{ opacity: 0, scale: 0.93, y: 12 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.93, y: 12 }}
+                transition={{ type: 'spring', stiffness: 380, damping: 30 }}
+                className="fixed inset-x-4 top-[35%] -translate-y-1/2 z-50
+                           bg-white rounded-3xl shadow-2xl border border-gray-100 max-w-sm mx-auto p-5"
+              >
+                {promoSent ? (
+                  <div className="text-center py-4">
+                    <div className="w-12 h-12 rounded-full bg-amber-100 flex items-center justify-center mx-auto mb-3">
+                      <Zap size={22} className="text-amber-500 fill-amber-400" />
+                    </div>
+                    <p className="font-bold text-gray-800 mb-1">申请已提交！</p>
+                    <p className="text-xs text-gray-500 mb-4">管理员收到您的申请后会通过邮件联系您，审核通过即可置顶展示。</p>
+                    <button
+                      onClick={() => { setPromoServiceId(null); setPromoNote(''); setPromoSent(false) }}
+                      className="text-sm text-primary-600 font-semibold hover:underline"
+                    >
+                      关闭
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-xl bg-amber-50 flex items-center justify-center">
+                          <Zap size={16} className="text-amber-500" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-bold text-gray-800">申请置顶推广</p>
+                          <p className="text-[11px] text-gray-400">管理员审核后为您开启</p>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => { setPromoServiceId(null); setPromoNote('') }}
+                        className="w-7 h-7 rounded-full bg-gray-100 flex items-center justify-center text-gray-400 hover:bg-gray-200"
+                      >
+                        <X size={14} />
+                      </button>
+                    </div>
+
+                    {/* Service info */}
+                    <div className="bg-amber-50 border border-amber-100 rounded-2xl px-4 py-3 mb-4">
+                      <p className="text-[11px] text-amber-600 font-semibold mb-0.5">推广服务</p>
+                      <p className="text-sm font-semibold text-gray-800 truncate">{svc.title}</p>
+                      <p className="text-[11px] text-gray-400 mt-0.5">{user?.email}</p>
+                    </div>
+
+                    {/* Note */}
+                    <div className="mb-4">
+                      <label className="block text-xs font-medium text-gray-600 mb-1.5">
+                        留言给管理员 <span className="text-gray-400 font-normal">（可选）</span>
+                      </label>
+                      <textarea
+                        value={promoNote}
+                        onChange={e => setPromoNote(e.target.value)}
+                        placeholder="例：希望推广两周，可以电话/微信联系我"
+                        rows={3}
+                        className="w-full resize-none rounded-xl border border-gray-200 px-3 py-2.5
+                                   text-sm text-gray-800 placeholder-gray-400
+                                   focus:outline-none focus:ring-2 focus:ring-amber-300 focus:border-transparent"
+                      />
+                    </div>
+
+                    <button
+                      onClick={async () => {
+                        if (!user || promoSending) return
+                        setPromoSending(true)
+                        await notifyAdminPromoRequest({
+                          serviceName:   svc.title,
+                          serviceId:     svc.id,
+                          providerName:  user.user_metadata?.name ?? user.email ?? '服务商',
+                          providerEmail: user.email ?? '',
+                          note:          promoNote.trim(),
+                        })
+                        setPromoSending(false)
+                        setPromoSent(true)
+                      }}
+                      disabled={promoSending}
+                      className="w-full py-3 rounded-2xl bg-amber-500 hover:bg-amber-600 text-white
+                                 font-semibold text-sm transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
+                    >
+                      {promoSending ? '提交中…' : <><Zap size={15} className="fill-white" /> 提交申请</>}
+                    </button>
+                  </>
+                )}
+              </motion.div>
+            </>
+          )
+        })()}
       </AnimatePresence>
 
       {/* ── Tabs ─────────────────────────────────────────────────────────── */}

@@ -96,6 +96,32 @@ export async function notifyNewQuestion(opts: {
   })
 }
 
+export async function notifyAdminPromoRequest(opts: {
+  serviceName:   string
+  serviceId:     string
+  providerName:  string
+  providerEmail: string
+  note:          string
+}) {
+  try {
+    await supabase.functions.invoke('send-notification', {
+      body: {
+        type: 'admin_promo_request',
+        recipientRole: 'admin',
+        data: {
+          serviceName:   opts.serviceName,
+          serviceId:     opts.serviceId,
+          providerName:  opts.providerName,
+          providerEmail: opts.providerEmail,
+          note:          opts.note,
+        },
+      },
+    })
+  } catch (err) {
+    console.warn('[notify] promo request failed silently:', err)
+  }
+}
+
 export async function notifyAdminCommunityReport(opts: {
   reportType: 'post' | 'comment'
   reasonLabel: string

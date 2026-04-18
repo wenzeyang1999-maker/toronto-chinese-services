@@ -196,6 +196,38 @@ function buildEmail(type: string, recipientName: string, data: Record<string, st
         ),
       }
 
+    case 'admin_promo_request':
+      return {
+        subject: `⭐ 置顶申请：${h(data.serviceName)}`,
+        html: template(
+          `新的置顶推广申请`,
+          `<p>您好 <strong>${h(recipientName)}</strong>，</p>
+           <p>有服务商通过平台提交了置顶推广申请，请尽快审核并联系对方。</p>
+           <table style="width:100%;border-collapse:collapse;font-size:14px;margin:16px 0;">
+             <tr style="background:#f9fafb;">
+               <td style="padding:10px 14px;color:#6b7280;width:90px;font-weight:600;">服务名称</td>
+               <td style="padding:10px 14px;color:#111827;font-weight:700;">${h(data.serviceName)}</td>
+             </tr>
+             <tr>
+               <td style="padding:10px 14px;color:#6b7280;font-weight:600;">服务商</td>
+               <td style="padding:10px 14px;color:#111827;">${h(data.providerName)}</td>
+             </tr>
+             <tr style="background:#f9fafb;">
+               <td style="padding:10px 14px;color:#6b7280;font-weight:600;">联系邮箱</td>
+               <td style="padding:10px 14px;color:#111827;">${h(data.providerEmail)}</td>
+             </tr>
+             ${data.note ? `
+             <tr>
+               <td style="padding:10px 14px;color:#6b7280;font-weight:600;">留言</td>
+               <td style="padding:10px 14px;color:#374151;">${h(data.note)}</td>
+             </tr>` : ''}
+           </table>
+           <p style="color:#6b7280;font-size:13px;">审核通过后，在管理后台将该服务的「置顶推广」开关打开即可。</p>`,
+          '前往管理后台',
+          `${SITE}/admin`
+        ),
+      }
+
     case 'admin_community_report': {
       const isComment = data.reportType === 'comment'
       const itemLabel = isComment ? '评论' : '帖子'
@@ -329,7 +361,7 @@ Deno.serve(async (req) => {
   // Types that a regular authenticated user may trigger (directed at a specific recipient).
   const USER_ALLOWED_TYPES = new Set(['new_message', 'new_follower', 'new_review', 'new_question'])
   // Types that are broadcast to all users of a given role — only allowed for specific types.
-  const ROLE_BROADCAST_TYPES = new Set(['admin_community_report', 'provider_inquiry'])
+  const ROLE_BROADCAST_TYPES = new Set(['admin_community_report', 'provider_inquiry', 'admin_promo_request'])
 
   try {
     await getActor(req)
