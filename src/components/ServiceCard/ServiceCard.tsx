@@ -88,7 +88,7 @@ export default function ServiceCard({ service }: Props) {
               近期活跃
             </span>
           )}
-          {service.distance !== undefined && (
+          {service.distance != null && service.distance > 0.05 && (
             <span className="inline-flex items-center gap-1 rounded-full border border-gray-200 bg-gray-50 px-2 py-0.5 text-[10px] font-semibold text-gray-700">
               <MapPin size={9} />
               {service.distance < 1 ? `${(service.distance * 1000).toFixed(0)}m` : `${service.distance.toFixed(1)}km`}

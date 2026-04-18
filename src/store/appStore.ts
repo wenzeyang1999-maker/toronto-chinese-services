@@ -77,8 +77,10 @@ function mapRow(row: ServiceRow): Service {
     price: row.price?.toString() ?? '0',
     priceType: row.price_type ?? 'hourly',
     location: {
-      lat: row.lat ?? undefined,
-      lng: row.lng ?? undefined,
+      // Treat 0/null/undefined all as "no real coordinate" — avoids showing
+      // bogus distances when the DB stores 0,0 as a placeholder.
+      lat: row.lat ? row.lat : undefined,
+      lng: row.lng ? row.lng : undefined,
       address: row.address ?? row.area ?? 'Toronto',
       city: row.city ?? 'Toronto',
       area: row.area ?? undefined,
