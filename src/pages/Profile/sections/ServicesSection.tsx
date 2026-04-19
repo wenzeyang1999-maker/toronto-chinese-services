@@ -363,6 +363,13 @@ export default function ServicesSection() {
                       onClick={async () => {
                         if (!user || promoSending) return
                         setPromoSending(true)
+                        // Write to promo_requests table (admin sees it in backend)
+                        await supabase.from('promo_requests').insert({
+                          service_id:  svc.id,
+                          provider_id: user.id,
+                          note:        promoNote.trim() || null,
+                        })
+                        // Also fire email so admin is notified immediately
                         await notifyAdminPromoRequest({
                           serviceName:   svc.title,
                           serviceId:     svc.id,
