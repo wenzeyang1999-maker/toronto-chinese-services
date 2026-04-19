@@ -149,11 +149,15 @@ export const useAppStore = create<AppState>((set, get) => ({
     }
     if (searchFilters.keyword) {
       const kw = searchFilters.keyword.toLowerCase()
+      const variants = (searchFilters.keywordVariants ?? []).map((term) => term.toLowerCase())
+      const allTerms = Array.from(new Set([kw, ...variants])).filter(Boolean)
       result = result.filter(
         (s) =>
-          s.title.toLowerCase().includes(kw) ||
-          s.description.toLowerCase().includes(kw) ||
-          (s.tags ?? []).some((t) => t.toLowerCase().includes(kw))
+          allTerms.some((term) =>
+            s.title.toLowerCase().includes(term) ||
+            s.description.toLowerCase().includes(term) ||
+            (s.tags ?? []).some((t) => t.toLowerCase().includes(term))
+          )
       )
     }
     if (searchFilters.minRating) {

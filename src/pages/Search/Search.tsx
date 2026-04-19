@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
 import { useSearchParams, useNavigate } from 'react-router-dom'
-import { ArrowLeft, Search as SearchIcon, SlidersHorizontal, Sparkles, MessageSquare, Heart } from 'lucide-react'
+import { ArrowLeft, Search as SearchIcon, SlidersHorizontal, Sparkles, MessageSquare, Heart, LayoutList, Map } from 'lucide-react'
 import { motion } from 'framer-motion'
 import ServiceCard from '../../components/ServiceCard/ServiceCard'
+import ServiceMap from '../../components/ServiceMap/ServiceMap'
 import { useAppStore } from '../../store/appStore'
 import Header from '../../components/Header/Header'
 import InquiryModal from '../../components/InquiryModal/InquiryModal'
@@ -13,6 +14,7 @@ import SearchFilterSummary from './components/SearchFilterSummary'
 import SearchEmptyState from './components/SearchEmptyState'
 import { supabase } from '../../lib/supabase'
 import { POST_TYPE_CONFIG } from '../Community/config'
+import { expandSemanticSearch } from '../../lib/aiTools'
 
 interface CommunityResult {
   id: string
@@ -37,8 +39,11 @@ export default function Search() {
   const [localQuery, setLocalQuery] = useState(searchParams.get('q') ?? '')
   const [showFilters, setShowFilters] = useState(false)
   const [inquiryOpen, setInquiryOpen] = useState(false)
+  const [viewMode, setViewMode] = useState<'list' | 'map'>('list')
   const [communityResults, setCommunityResults] = useState<CommunityResult[]>([])
   const [communityLoading, setCommunityLoading] = useState(false)
+  const [semanticTerms, setSemanticTerms] = useState<string[]>([])
+  const [semanticLoading, setSemanticLoading] = useState(false)
 
   useEffect(() => {
     const q   = searchParams.get('q') ?? ''
@@ -48,7 +53,12 @@ export default function Search() {
 
     // Parallel community posts search
     const kw = q.trim()
-    if (!kw) { setCommunityResults([]); return }
+    if (!kw) {
+      setCommunityResults([])
+      setSemanticTerms([])
+      setSearchFilters({ keywordVariants: [] })
+      return
+    }
     setCommunityLoading(true)
     supabase
       .from('community_posts')
@@ -65,6 +75,16 @@ export default function Search() {
         )
         setCommunityLoading(false)
       })
+
+    const timer = window.setTimeout(() => {
+      setSemanticLoading(true)
+      void expandSemanticSearch(kw).then((terms) => {
+        setSemanticTerms(terms)
+        setSearchFilters({ keywordVariants: terms })
+      }).finally(() => setSemanticLoading(false))
+    }, 250)
+
+    return () => window.clearTimeout(timer)
   }, [searchParams, setSearchFilters])
 
   const handleSearch = () => {
@@ -129,9 +149,17 @@ export default function Search() {
               <Sparkles size={12} />
               AI帮你找
             </motion.button>
+            {/* Map / List toggle */}
+            <button
+              onClick={() => setViewMode(viewMode === 'list' ? 'map' : 'list')}
+              className={`${viewMode === 'map' ? 'text-primary-600' : 'text-gray-500'} flex-shrink-0`}
+              title={viewMode === 'list' ? '切换地图模式' : '切换列表模式'}
+            >
+              {viewMode === 'list' ? <Map size={18} /> : <LayoutList size={18} />}
+            </button>
             <button
               onClick={() => setShowFilters(!showFilters)}
-              className={`${showFilters ? 'text-primary-600' : 'text-gray-500'}`}
+              className={`${showFilters ? 'text-primary-600' : 'text-gray-500'} flex-shrink-0`}
             >
               <SlidersHorizontal size={18} />
             </button>
@@ -243,13 +271,43 @@ export default function Search() {
           hasLocation={!!userLocation}
           sortBy={searchFilters.sortBy}
         />
+        {(semanticLoading || semanticTerms.length > 0) && localQuery.trim() && (
+          <div className="mb-3 flex flex-wrap items-center gap-2">
+            <span className="text-[11px] font-semibold text-gray-400">语义联想</span>
+            {semanticLoading && <span className="text-[11px] text-gray-400">生成中…</span>}
+            {semanticTerms.map((term) => (
+              <button
+                key={term}
+                onClick={() => {
+                  setLocalQuery(term)
+                  setSearchParams(searchFilters.category ? { q: term, cat: searchFilters.category } : { q: term })
+                }}
+                className="text-[11px] px-2.5 py-1 rounded-full bg-primary-50 text-primary-600 hover:bg-primary-100 transition-colors"
+              >
+                {term}
+              </button>
+            ))}
+          </div>
+        )}
         <SearchFilterSummary
           filters={searchFilters}
           onClearCategory={() => handleCategorySelect(undefined)}
           onResetToRating={() => setSearchFilters({ sortBy: 'rating' })}
         />
 
-        {results.length === 0 && communityResults.length === 0 ? (
+        {/* ── Map mode ── */}
+        {viewMode === 'map' ? (
+          <>
+            <ServiceMap services={results} />
+            {results.length === 0 && communityResults.length === 0 && (
+              <SearchEmptyState
+                query={localQuery.trim()}
+                onOpenInquiry={() => setInquiryOpen(true)}
+                onPost={() => navigate('/post')}
+              />
+            )}
+          </>
+        ) : results.length === 0 && communityResults.length === 0 ? (
           <SearchEmptyState
             query={localQuery.trim()}
             onOpenInquiry={() => setInquiryOpen(true)}
@@ -258,9 +316,11 @@ export default function Search() {
         ) : (
           <>
             {results.length > 0 && (
-              <div className="flex flex-col gap-2">
+              <div className="columns-1 md:columns-2 gap-3 [column-fill:_balance]">
                 {results.map((svc) => (
-                  <ServiceCard key={svc.id} service={svc} />
+                  <div key={svc.id} className="break-inside-avoid mb-3">
+                    <ServiceCard service={svc} layout="masonry" />
+                  </div>
                 ))}
               </div>
             )}

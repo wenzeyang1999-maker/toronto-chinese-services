@@ -7,8 +7,6 @@ import L from 'leaflet'
 import { useNavigate } from 'react-router-dom'
 import type { Service } from '../../types'
 import { useAppStore } from '../../store/appStore'
-import 'leaflet/dist/leaflet.css'
-
 // Fix default marker icons broken by Vite asset handling
 delete (L.Icon.Default.prototype as any)._getIconUrl
 L.Icon.Default.mergeOptions({

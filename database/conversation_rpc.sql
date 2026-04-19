@@ -17,9 +17,27 @@ RETURNS void
 LANGUAGE plpgsql
 SECURITY DEFINER
 AS $$
+DECLARE
+  is_participant boolean;
 BEGIN
   IF col_name NOT IN ('client_unread', 'provider_unread') THEN
     RAISE EXCEPTION 'invalid column: %', col_name;
+  END IF;
+
+  IF auth.uid() IS NULL THEN
+    RAISE EXCEPTION 'authentication required';
+  END IF;
+
+  SELECT EXISTS (
+    SELECT 1
+    FROM public.conversations
+    WHERE id = conv_id
+      AND (client_id = auth.uid() OR provider_id = auth.uid())
+  )
+  INTO is_participant;
+
+  IF NOT is_participant THEN
+    RAISE EXCEPTION 'forbidden';
   END IF;
 
   EXECUTE format(
@@ -28,3 +46,6 @@ BEGIN
   ) USING conv_id;
 END;
 $$;
+
+REVOKE ALL ON FUNCTION public.increment_conversation_unread(uuid, text) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.increment_conversation_unread(uuid, text) TO authenticated;

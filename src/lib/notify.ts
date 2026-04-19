@@ -96,6 +96,19 @@ export async function notifyNewQuestion(opts: {
   })
 }
 
+export async function notifyFollowerNewService(opts: {
+  recipientUserId: string
+  providerName: string
+  serviceTitle: string
+  serviceId: string
+}) {
+  await notify('new_service_post', opts.recipientUserId, {
+    providerName: opts.providerName,
+    serviceTitle: opts.serviceTitle,
+    serviceId: opts.serviceId,
+  })
+}
+
 export async function notifyAdminPromoRequest(opts: {
   serviceName:   string
   serviceId:     string

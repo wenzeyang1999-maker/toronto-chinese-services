@@ -16,6 +16,9 @@ CREATE TABLE IF NOT EXISTS public.promo_requests (
 CREATE INDEX IF NOT EXISTS idx_promo_requests_status     ON public.promo_requests (status);
 CREATE INDEX IF NOT EXISTS idx_promo_requests_provider   ON public.promo_requests (provider_id);
 CREATE INDEX IF NOT EXISTS idx_promo_requests_service    ON public.promo_requests (service_id);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_promo_requests_one_pending_per_service
+  ON public.promo_requests (service_id)
+  WHERE status = 'pending';
 
 ALTER TABLE public.promo_requests ENABLE ROW LEVEL SECURITY;
 
@@ -24,7 +27,15 @@ DO $$ BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename='promo_requests' AND policyname='providers can insert own promo requests') THEN
     CREATE POLICY "providers can insert own promo requests"
       ON public.promo_requests FOR INSERT
-      WITH CHECK (auth.uid() = provider_id);
+      WITH CHECK (
+        auth.uid() = provider_id
+        AND EXISTS (
+          SELECT 1
+          FROM public.services s
+          WHERE s.id = service_id
+            AND s.provider_id = auth.uid()
+        )
+      );
   END IF;
 END $$;
 
@@ -62,6 +73,7 @@ BEGIN
 
   SELECT * INTO req FROM public.promo_requests WHERE id = request_id;
   IF NOT FOUND THEN RAISE EXCEPTION 'request not found'; END IF;
+  IF req.status <> 'pending' THEN RAISE EXCEPTION 'request already reviewed'; END IF;
 
   UPDATE public.promo_requests
   SET status      = CASE WHEN approved THEN 'approved' ELSE 'rejected' END,

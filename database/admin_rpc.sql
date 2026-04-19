@@ -32,6 +32,8 @@ BEGIN
           jsonb_build_object('role', new_role));
 END;
 $$;
+REVOKE ALL ON FUNCTION public.admin_set_user_role(uuid, text) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.admin_set_user_role(uuid, text) TO authenticated;
 
 
 -- ── 2. Approve or reject a verification request ───────────────────────────────
@@ -57,6 +59,8 @@ BEGIN
           'user', target_user_id::text, '{}'::jsonb);
 END;
 $$;
+REVOKE ALL ON FUNCTION public.admin_review_verification(uuid, boolean) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.admin_review_verification(uuid, boolean) TO authenticated;
 
 
 -- ── 3. Toggle promoted flag on any supported table ────────────────────────────
@@ -86,6 +90,8 @@ BEGIN
           jsonb_build_object('promoted', promoted));
 END;
 $$;
+REVOKE ALL ON FUNCTION public.admin_toggle_promoted(uuid, text, boolean) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.admin_toggle_promoted(uuid, text, boolean) TO authenticated;
 
 
 -- ── 4. Set inquiry status ─────────────────────────────────────────────────────
@@ -110,6 +116,8 @@ BEGIN
           jsonb_build_object('status', new_status));
 END;
 $$;
+REVOKE ALL ON FUNCTION public.admin_set_inquiry_status(uuid, text) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.admin_set_inquiry_status(uuid, text) TO authenticated;
 
 
 -- ── 5. Delete a community post (and close all its reports atomically) ─────────
@@ -123,17 +131,19 @@ AS $$
 BEGIN
   IF NOT public.is_admin() THEN RAISE EXCEPTION 'forbidden'; END IF;
 
-  DELETE FROM public.community_posts WHERE id = post_id;
-
   UPDATE public.community_post_reports
   SET status = 'removed'
   WHERE post_id = admin_delete_community_post.post_id
     AND status = 'pending';
 
+  DELETE FROM public.community_posts WHERE id = post_id;
+
   INSERT INTO public.admin_audit_logs(actor_id, action_type, target_type, target_id, details)
   VALUES (auth.uid(), 'community_post_deleted', 'community_post', post_id::text, '{}'::jsonb);
 END;
 $$;
+REVOKE ALL ON FUNCTION public.admin_delete_community_post(uuid) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.admin_delete_community_post(uuid) TO authenticated;
 
 
 -- ── 6. Delete a community comment (and close all its reports atomically) ──────
@@ -148,18 +158,20 @@ AS $$
 BEGIN
   IF NOT public.is_admin() THEN RAISE EXCEPTION 'forbidden'; END IF;
 
-  DELETE FROM public.community_comments WHERE id = comment_id;
-
   UPDATE public.community_comment_reports
   SET status = 'removed'
   WHERE community_comment_reports.comment_id = admin_delete_community_comment.comment_id
     AND status = 'pending';
+
+  DELETE FROM public.community_comments WHERE id = comment_id;
 
   INSERT INTO public.admin_audit_logs(actor_id, action_type, target_type, target_id, details)
   VALUES (auth.uid(), 'community_comment_report_removed', 'community_comment', comment_id::text,
           jsonb_build_object('post_id', post_id));
 END;
 $$;
+REVOKE ALL ON FUNCTION public.admin_delete_community_comment(uuid, uuid) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.admin_delete_community_comment(uuid, uuid) TO authenticated;
 
 
 -- ── 7. Grant or revoke membership ─────────────────────────────────────────────
@@ -193,6 +205,8 @@ BEGIN
           jsonb_build_object('level', new_level, 'expires_at', new_expires_at));
 END;
 $$;
+REVOKE ALL ON FUNCTION public.admin_set_membership(uuid, text, timestamptz) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.admin_set_membership(uuid, text, timestamptz) TO authenticated;
 
 
 -- ── 8. Set service availability (takedown / restore) ─────────────────────────
@@ -215,6 +229,8 @@ BEGIN
           'service', service_id::text, '{}'::jsonb);
 END;
 $$;
+REVOKE ALL ON FUNCTION public.admin_set_service_availability(uuid, boolean) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.admin_set_service_availability(uuid, boolean) TO authenticated;
 
 
 -- ── 9. Bulk set service availability ─────────────────────────────────────────
@@ -238,6 +254,8 @@ BEGIN
           jsonb_build_object('ids', service_ids, 'available', available));
 END;
 $$;
+REVOKE ALL ON FUNCTION public.admin_bulk_set_service_availability(uuid[], boolean) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.admin_bulk_set_service_availability(uuid[], boolean) TO authenticated;
 
 
 -- ── 10. Remove a review and close its report ──────────────────────────────────
@@ -252,17 +270,19 @@ AS $$
 BEGIN
   IF NOT public.is_admin() THEN RAISE EXCEPTION 'forbidden'; END IF;
 
-  DELETE FROM public.reviews WHERE id = review_id;
-
   UPDATE public.review_reports
   SET status = 'removed'
   WHERE review_id = admin_remove_review.review_id;
+
+  DELETE FROM public.reviews WHERE id = review_id;
 
   INSERT INTO public.admin_audit_logs(actor_id, action_type, target_type, target_id, details)
   VALUES (auth.uid(), 'review_removed', 'review', review_id::text,
           jsonb_build_object('report_id', report_id));
 END;
 $$;
+REVOKE ALL ON FUNCTION public.admin_remove_review(uuid, uuid) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.admin_remove_review(uuid, uuid) TO authenticated;
 
 
 -- ── 11. Dismiss a review report ───────────────────────────────────────────────
@@ -282,6 +302,8 @@ BEGIN
   VALUES (auth.uid(), 'review_report_dismissed', 'review_report', report_id::text, '{}'::jsonb);
 END;
 $$;
+REVOKE ALL ON FUNCTION public.admin_dismiss_review_report(uuid) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.admin_dismiss_review_report(uuid) TO authenticated;
 
 
 -- ── 12. Dismiss a community post report ──────────────────────────────────────
@@ -301,6 +323,8 @@ BEGIN
   VALUES (auth.uid(), 'community_report_dismissed', 'community_post_report', report_id::text, '{}'::jsonb);
 END;
 $$;
+REVOKE ALL ON FUNCTION public.admin_dismiss_community_post_report(uuid) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.admin_dismiss_community_post_report(uuid) TO authenticated;
 
 
 -- ── 13. Dismiss a community comment report ───────────────────────────────────
@@ -320,3 +344,5 @@ BEGIN
   VALUES (auth.uid(), 'community_comment_report_dismissed', 'community_comment_report', report_id::text, '{}'::jsonb);
 END;
 $$;
+REVOKE ALL ON FUNCTION public.admin_dismiss_community_comment_report(uuid) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.admin_dismiss_community_comment_report(uuid) TO authenticated;

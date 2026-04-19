@@ -50,6 +50,7 @@ export interface Service {
 export interface SearchFilters {
   category?: ServiceCategory
   keyword?: string
+  keywordVariants?: string[]
   maxDistance?: number
   minRating?: number
   priceType?: string

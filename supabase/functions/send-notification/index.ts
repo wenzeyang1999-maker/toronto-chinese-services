@@ -133,6 +133,22 @@ function buildEmail(type: string, recipientName: string, data: Record<string, st
         ),
       }
 
+    case 'new_service_post':
+      return {
+        subject: `📣 ${h(data.providerName)} 发布了新服务`,
+        html: template(
+          `您关注的服务商发布了新服务`,
+          `<p>您好 <strong>${h(recipientName)}</strong>，</p>
+           <p>您关注的服务商 <strong>${h(data.providerName)}</strong> 刚刚发布了一个新服务：</p>
+           <p style="background:#f9fafb;border-left:3px solid #10b981;padding:12px 16px;border-radius:0 8px 8px 0;color:#374151;">
+             ${h(data.serviceTitle)}
+           </p>
+           <p>现在去看看，可能正好适合您当前的需求。</p>`,
+          '查看服务',
+          `${SITE}/service/${h(data.serviceId)}`
+        ),
+      }
+
     case 'provider_inquiry':
       return {
         subject: `🔔 有客户正在寻找「${h(data.categoryLabel)}」服务`,
@@ -310,17 +326,23 @@ async function createInAppNotification(recipientUserId: string, type: string, da
   const admin = await getAdminClient()
   const title = type === 'admin_community_report'
     ? `新的社区${data.reportType === 'comment' ? '评论' : '帖子'}举报`
-    : '新通知'
+    : type === 'new_service_post'
+      ? `${data.providerName} 发布了新服务`
+      : '新通知'
   const body = type === 'admin_community_report'
     ? `${data.reporterName} 举报了「${data.postTitle}」，原因：${data.reasonLabel}`
-    : ''
+    : type === 'new_service_post'
+      ? `新服务：${data.serviceTitle}`
+      : ''
 
   const { error } = await admin.from('notifications').insert({
     recipient_id: recipientUserId,
     type,
     title,
     body,
-    link_url: data.postId ? `/community/${data.postId}` : '/admin',
+    link_url: type === 'new_service_post'
+      ? `/service/${data.serviceId}`
+      : data.postId ? `/community/${data.postId}` : '/admin',
     metadata: data,
   })
 
@@ -359,9 +381,13 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS })
 
   // Types that a regular authenticated user may trigger (directed at a specific recipient).
-  const USER_ALLOWED_TYPES = new Set(['new_message', 'new_follower', 'new_review', 'new_question'])
-  // Types that are broadcast to all users of a given role — only allowed for specific types.
-  const ROLE_BROADCAST_TYPES = new Set(['admin_community_report', 'provider_inquiry', 'admin_promo_request'])
+  const USER_ALLOWED_TYPES = new Set(['new_message', 'new_follower', 'new_review', 'new_question', 'new_service_post'])
+  // Types that may be broadcast to a role. Keep this list narrow to prevent
+  // authenticated users from spamming whole roles through the Edge Function.
+  const ROLE_BROADCAST_RULES: Record<string, string> = {
+    admin_community_report: 'admin',
+    admin_promo_request: 'admin',
+  }
 
   try {
     await getActor(req)
@@ -374,8 +400,13 @@ Deno.serve(async (req) => {
     }
 
     // Validate allowed types to prevent notification spam / abuse
-    if (recipientRole && !ROLE_BROADCAST_TYPES.has(type)) {
+    if (recipientRole && !ROLE_BROADCAST_RULES[type]) {
       return new Response(JSON.stringify({ error: 'forbidden type for role broadcast' }), {
+        status: 403, headers: { ...CORS, 'Content-Type': 'application/json' },
+      })
+    }
+    if (recipientRole && ROLE_BROADCAST_RULES[type] !== recipientRole) {
+      return new Response(JSON.stringify({ error: 'forbidden role for type' }), {
         status: 403, headers: { ...CORS, 'Content-Type': 'application/json' },
       })
     }

@@ -10,6 +10,8 @@ import type { PostServiceForm } from '../../types'
 import Header from '../../components/Header/Header'
 import { compressImage, validateImageFile } from '../../lib/compressImage'
 import LocationInput, { type LocationResult } from '../../components/LocationInput/LocationInput'
+import { generateServiceDraft } from '../../lib/aiTools'
+import { notifyFollowerNewService } from '../../lib/notify'
 
 // ── 内置服务库（搜索用）──────────────────────────────────────────────────────
 type ServiceCat = 'moving' | 'cleaning' | 'ride' | 'renovation' | 'cashwork' | 'food' | 'other'
@@ -203,8 +205,10 @@ export default function PostService() {
   const [location, setLocation] = useState<LocationResult | null>(null)
   const [submitted, setSubmitted] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [aiGenerating, setAiGenerating] = useState(false)
   const [submitError, setSubmitError] = useState('')
   const [errors, setErrors] = useState<Partial<PostServiceForm>>({})
+  const [aiKeywords, setAiKeywords] = useState('')
   const [catSearch, setCatSearch]         = useState('')
   const [areaSearch, setAreaSearch]       = useState('')
   const [areaDropdownOpen, setAreaDropdownOpen] = useState(false)
@@ -382,7 +386,7 @@ export default function PostService() {
 
       // 3. Insert service into Supabase
       const areaDisplay = selectedAreas.join('、') || 'Toronto'
-      const { error } = await supabase.from('services').insert({
+      const { data: insertedService, error } = await supabase.from('services').insert({
         category_id: form.category,
         title: form.title.trim(),
         description: form.description.trim(),
@@ -399,7 +403,7 @@ export default function PostService() {
         images: imageUrls,
         is_available: true,
         is_verified: false,
-      })
+      }).select('id').single()
 
       if (error) throw error
 
@@ -409,6 +413,24 @@ export default function PostService() {
         await supabase.from('service_types').upsert(
           { name: serviceTypeName, category_id: form.category, usage_count: 1 },
           { onConflict: 'name', ignoreDuplicates: true }
+        )
+      }
+
+      const { data: followers } = await supabase
+        .from('follows')
+        .select('follower_id')
+        .eq('provider_id', user.id)
+
+      if (insertedService?.id && followers?.length) {
+        await Promise.all(
+          followers.map((row: { follower_id: string }) =>
+            notifyFollowerNewService({
+              recipientUserId: row.follower_id,
+              providerName: form.name.trim(),
+              serviceTitle: form.title.trim(),
+              serviceId: insertedService.id,
+            })
+          )
         )
       }
 
@@ -616,7 +638,48 @@ export default function PostService() {
 
           {/* Service info */}
           <div ref={serviceInfoRef} className="card p-4 space-y-4">
-            <h3 className="text-sm font-semibold text-gray-700">服务信息</h3>
+            <div className="flex items-center justify-between gap-3">
+              <h3 className="text-sm font-semibold text-gray-700">服务信息</h3>
+              <button
+                type="button"
+                onClick={async () => {
+                  setAiGenerating(true)
+                  const draft = await generateServiceDraft({
+                    categoryId: form.category,
+                    title: form.title,
+                    keywords: `${aiKeywords}\n${form.tags}`.trim(),
+                    serviceAreas: selectedAreas,
+                    priceType: form.priceType,
+                    imageCount: images.length,
+                  })
+                  setAiGenerating(false)
+                  if (!draft) {
+                    setSubmitError('AI 文案生成失败，请稍后再试')
+                    return
+                  }
+                  setForm((prev) => ({
+                    ...prev,
+                    title: draft.title || prev.title,
+                    description: draft.description || prev.description,
+                    tags: draft.tags.length ? draft.tags.join(' ') : prev.tags,
+                  }))
+                }}
+                disabled={aiGenerating}
+                className="text-xs font-semibold px-3 py-1.5 rounded-full bg-primary-50 text-primary-600 hover:bg-primary-100 disabled:opacity-60 transition-colors"
+              >
+                {aiGenerating ? 'AI 生成中…' : 'AI 辅助写文案'}
+              </button>
+            </div>
+
+            <Field label="AI 关键词">
+              <input
+                className="input-base"
+                value={aiKeywords}
+                onChange={(e) => setAiKeywords(e.target.value)}
+                placeholder="例：家里漏水、北约克、10年经验、可上门急修"
+              />
+              <p className="text-xs text-gray-400 mt-1">可结合已选图片数量、分类和区域生成更自然的服务标题与描述</p>
+            </Field>
 
             <Field label="服务标题" required error={errors.title}>
               <input

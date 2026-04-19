@@ -363,22 +363,28 @@ export default function ServicesSection() {
                       onClick={async () => {
                         if (!user || promoSending) return
                         setPromoSending(true)
-                        // Write to promo_requests table (admin sees it in backend)
-                        await supabase.from('promo_requests').insert({
-                          service_id:  svc.id,
-                          provider_id: user.id,
-                          note:        promoNote.trim() || null,
-                        })
-                        // Also fire email so admin is notified immediately
-                        await notifyAdminPromoRequest({
-                          serviceName:   svc.title,
-                          serviceId:     svc.id,
-                          providerName:  user.user_metadata?.name ?? user.email ?? '服务商',
-                          providerEmail: user.email ?? '',
-                          note:          promoNote.trim(),
-                        })
-                        setPromoSending(false)
-                        setPromoSent(true)
+                        try {
+                          const { error } = await supabase.from('promo_requests').insert({
+                            service_id:  svc.id,
+                            provider_id: user.id,
+                            note:        promoNote.trim() || null,
+                          })
+                          if (error) throw error
+
+                          await notifyAdminPromoRequest({
+                            serviceName:   svc.title,
+                            serviceId:     svc.id,
+                            providerName:  user.user_metadata?.name ?? user.email ?? '服务商',
+                            providerEmail: user.email ?? '',
+                            note:          promoNote.trim(),
+                          })
+
+                          setPromoSent(true)
+                        } catch (err) {
+                          alert(err instanceof Error ? `提交失败：${err.message}` : '提交失败，请稍后再试')
+                        } finally {
+                          setPromoSending(false)
+                        }
                       }}
                       disabled={promoSending}
                       className="w-full py-3 rounded-2xl bg-amber-500 hover:bg-amber-600 text-white
