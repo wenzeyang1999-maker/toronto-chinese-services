@@ -8,7 +8,7 @@
       "headers": [
         {
           "key": "Content-Security-Policy",
-          "value": "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://suvjhtiglecjgcnzdgfo.supabase.co https://unpkg.com; connect-src 'self' https://suvjhtiglecjgcnzdgfo.supabase.co wss://suvjhtiglecjgcnzdgfo.supabase.co; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'"
+          "value": "default-src 'self'; script-src 'self' 'unsafe-inline' https://maps.googleapis.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com https://maps.gstatic.com; img-src 'self' data: blob: https://suvjhtiglecjgcnzdgfo.supabase.co https://unpkg.com https://maps.googleapis.com https://maps.gstatic.com https://*.googleapis.com https://*.gstatic.com; connect-src 'self' https://suvjhtiglecjgcnzdgfo.supabase.co wss://suvjhtiglecjgcnzdgfo.supabase.co https://maps.googleapis.com https://maps.gstatic.com https://*.googleapis.com https://*.gstatic.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'"
         },
         { "key": "X-Frame-Options",        "value": "DENY" },
         { "key": "X-Content-Type-Options",  "value": "nosniff" },

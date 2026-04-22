@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { ArrowLeft, Star, MapPin, Phone, ShieldCheck, Clock, Tag, MessageSquare, CheckCircle2, ExternalLink, ChevronDown, ChevronUp } from 'lucide-react'
 import { motion } from 'framer-motion'
@@ -17,17 +17,7 @@ import PageMeta from '../../components/PageMeta/PageMeta'
 import ViewCount from '../../components/ViewCount/ViewCount'
 import { SOCIAL_PLATFORMS } from '../../lib/socialPlatforms'
 import ContactActions from './components/ContactActions'
-import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet'
-import L from 'leaflet'
-import 'leaflet/dist/leaflet.css'
-
-// Fix Leaflet default icons broken by Vite
-delete (L.Icon.Default.prototype as any)._getIconUrl
-L.Icon.Default.mergeOptions({
-  iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-  iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
-  shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-})
+import GoogleMapCanvas, { type GoogleMapPoint } from '../../components/ServiceMap/GoogleMapCanvas'
 
 function recordBrowse(entry: BrowseEntry) {
   try {
@@ -85,6 +75,39 @@ export default function ServiceDetail() {
       })
     }
   }, [service?.id])
+
+  const detailMapPoints = useMemo<GoogleMapPoint[]>(() => {
+    if (!service || service.location.lat == null || service.location.lng == null) return []
+
+    const content = document.createElement('div')
+    content.className = 'text-sm space-y-1.5 py-0.5 min-w-[190px]'
+
+    const title = document.createElement('p')
+    title.className = 'font-semibold text-gray-900 leading-snug'
+    title.textContent = service.title
+    content.appendChild(title)
+
+    const address = document.createElement('p')
+    address.className = 'text-gray-500 text-xs'
+    address.textContent = `${service.location.area ?? service.location.address}，${service.location.city}`
+    content.appendChild(address)
+
+    const link = document.createElement('a')
+    link.href = `https://www.google.com/maps?q=${service.location.lat},${service.location.lng}`
+    link.target = '_blank'
+    link.rel = 'noopener noreferrer'
+    link.className = 'block text-center bg-primary-600 hover:bg-primary-700 text-white text-xs font-semibold py-1.5 px-3 rounded-lg transition-colors'
+    link.textContent = '在 Google Maps 打开'
+    content.appendChild(link)
+
+    return [{
+      id: service.id,
+      lat: service.location.lat,
+      lng: service.location.lng,
+      title: service.title,
+      infoContent: content,
+    }]
+  }, [service])
 
   if (!service) {
     return (
@@ -396,35 +419,14 @@ export default function ServiceDetail() {
               className="mt-3 space-y-2"
             >
               <div className="rounded-xl overflow-hidden border border-gray-200" style={{ height: 220 }}>
-                <MapContainer
-                  center={[service.location.lat, service.location.lng]}
-                  zoom={15}
-                  className="w-full h-full"
-                  zoomControl={true}
-                  scrollWheelZoom={false}
-                >
-                  <TileLayer
-                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                <div className="relative h-full w-full">
+                  <GoogleMapCanvas
+                    center={{ lat: service.location.lat, lng: service.location.lng }}
+                    zoom={15}
+                    points={detailMapPoints}
+                    scrollWheel={false}
                   />
-                  <Marker position={[service.location.lat, service.location.lng]}>
-                    <Popup>
-                      <div className="text-sm space-y-1.5 py-0.5">
-                        <p className="font-semibold text-gray-900 leading-snug">{service.title}</p>
-                        <p className="text-gray-500 text-xs">{service.location.area ?? service.location.address}，{service.location.city}</p>
-                        <a
-                          href={`https://www.google.com/maps?q=${service.location.lat},${service.location.lng}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="block text-center bg-primary-600 hover:bg-primary-700 text-white
-                                     text-xs font-semibold py-1.5 px-3 rounded-lg transition-colors"
-                        >
-                          在 Google Maps 打开
-                        </a>
-                      </div>
-                    </Popup>
-                  </Marker>
-                </MapContainer>
+                </div>
               </div>
 
               {/* Google Maps navigation button */}

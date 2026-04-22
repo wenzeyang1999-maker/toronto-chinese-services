@@ -11,14 +11,14 @@
 //   /register       → User registration page
 //   /login          → User login page
 //   /profile        → User profile page
-import { lazy, Suspense, useCallback, useEffect, useState } from 'react'
-import { Routes, Route, useNavigate, useLocation } from 'react-router-dom'
+import { lazy, Suspense, useEffect } from 'react'
+import { Routes, Route } from 'react-router-dom'
 import { AnimatePresence } from 'framer-motion'
-import { MessageSquare } from 'lucide-react'
 import type { User } from '@supabase/supabase-js'
 import LoadingScreen from './components/LoadingScreen/LoadingScreen'
 import Home from './pages/Home/Home'
 import AiChatWidget from './components/AiChatWidget/AiChatWidget'
+import MessagesButton from './components/MessagesButton/MessagesButton'
 
 const Category        = lazy(() => import('./pages/Category/Category'))
 const Search          = lazy(() => import('./pages/Search/Search'))
@@ -164,62 +164,5 @@ export default function App() {
       {isLoadingDone && <AiChatWidget />}
       {isLoadingDone && <MessagesButton />}
     </>
-  )
-}
-
-// ── Floating messages button with unread badge ─────────────────────────────
-function MessagesButton() {
-  const user     = useAuthStore((s) => s.user)
-  const navigate = useNavigate()
-  const location = useLocation()
-  const [unread, setUnread] = useState(0)
-
-  const fetchUnread = useCallback(async () => {
-    if (!user) { setUnread(0); return }
-    const { data } = await supabase
-      .from('conversations')
-      .select('client_unread, provider_unread, client_id')
-      .or(`client_id.eq.${user.id},provider_id.eq.${user.id}`)
-    if (!data) return
-    const total = data.reduce((sum, row) => {
-      const mine = row.client_id === user.id ? row.client_unread : row.provider_unread
-      return sum + (mine ?? 0)
-    }, 0)
-    setUnread(total)
-  }, [user])
-
-  // Refetch on every route change (e.g. after leaving a conversation the count is fresh)
-  useEffect(() => {
-    fetchUnread()
-  }, [location.pathname, fetchUnread])
-
-  // Realtime subscription — also updates when another device/tab changes the count
-  useEffect(() => {
-    if (!user) return
-    const channel = supabase
-      .channel('global-unread')
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'conversations' }, fetchUnread)
-      .subscribe()
-    return () => { supabase.removeChannel(channel) }
-  }, [user, fetchUnread])
-
-  if (!user) return null
-
-  return (
-    <div className="fixed bottom-40 right-5 lg:bottom-20 lg:right-16 z-50">
-      <button
-        onClick={() => navigate('/profile?section=messages')}
-        className="relative flex items-center gap-2 bg-white shadow-lg border border-gray-200
-                   text-primary-600 rounded-full px-4 py-3
-                   hover:bg-gray-50 active:scale-95 transition-all"
-        aria-label="消息"
-      >
-        <MessageSquare size={20} />
-        <span className="text-sm font-semibold whitespace-nowrap">消息</span>
-        {unread > 0 && (
-          <span className="absolute top-0 right-0 w-4 h-4 bg-red-500 rounded-full border-2 border-white" />
-        )}
-      </button>
-    </div>
   )
 }
