@@ -80,8 +80,8 @@ export default function HomeServiceShelf({
         </div>
       </div>
 
-      <form onSubmit={handleSearch} className="mb-3 flex items-center gap-2 rounded-xl bg-gray-100 px-3 py-2">
-        <Search size={15} className="shrink-0 text-gray-400" />
+      <form onSubmit={handleSearch} className="mb-3 flex items-center gap-2.5 rounded-2xl border border-primary-200 bg-white px-4 py-2.5 shadow-sm focus-within:border-primary-400 focus-within:ring-2 focus-within:ring-primary-100 transition-all">
+        <Search size={16} className="shrink-0 text-primary-400" />
         <input
           type="search"
           value={query}
@@ -90,7 +90,7 @@ export default function HomeServiceShelf({
           className="min-w-0 flex-1 bg-transparent text-sm text-gray-800 placeholder-gray-400 outline-none"
         />
         {query.trim() && (
-          <button type="submit" className="shrink-0 text-xs font-medium text-primary-600">
+          <button type="submit" className="shrink-0 rounded-lg bg-primary-600 px-3 py-1 text-xs font-semibold text-white hover:bg-primary-700 transition-colors">
             搜索
           </button>
         )}
