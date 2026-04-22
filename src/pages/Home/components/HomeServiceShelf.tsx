@@ -1,6 +1,6 @@
-import { ChevronRight, List, Map } from 'lucide-react'
+import { ChevronRight, List, Map, Search } from 'lucide-react'
 import { motion } from 'framer-motion'
-import { Suspense } from 'react'
+import { Suspense, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import type { Service } from '../../../types'
 import type { ReactNode } from 'react'
@@ -24,6 +24,19 @@ export default function HomeServiceShelf({
   mapContent,
 }: Props) {
   const navigate = useNavigate()
+  const [query, setQuery] = useState('')
+
+  const filtered = query.trim()
+    ? services.filter((s) =>
+        s.title.toLowerCase().includes(query.toLowerCase()) ||
+        s.provider.name.toLowerCase().includes(query.toLowerCase())
+      )
+    : services
+
+  function handleSearch(e: React.FormEvent) {
+    e.preventDefault()
+    if (query.trim()) navigate(`/search?q=${encodeURIComponent(query.trim())}`)
+  }
 
   return (
     <motion.section
@@ -67,11 +80,28 @@ export default function HomeServiceShelf({
         </div>
       </div>
 
+      <form onSubmit={handleSearch} className="mb-3 flex items-center gap-2 rounded-xl bg-gray-100 px-3 py-2">
+        <Search size={15} className="shrink-0 text-gray-400" />
+        <input
+          type="search"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="搜索商家或服务名称…"
+          className="min-w-0 flex-1 bg-transparent text-sm text-gray-800 placeholder-gray-400 outline-none"
+        />
+        {query.trim() && (
+          <button type="submit" className="shrink-0 text-xs font-medium text-primary-600">
+            搜索
+          </button>
+        )}
+      </form>
+
       {viewMode === 'list' ? (
         <div className="flex flex-col gap-2">
-          {services.map((svc) => (
-            <ServiceCard key={svc.id} service={svc} />
-          ))}
+          {filtered.length > 0
+            ? filtered.map((svc) => <ServiceCard key={svc.id} service={svc} />)
+            : <p className="py-6 text-center text-sm text-gray-400">没有找到相关服务</p>
+          }
         </div>
       ) : (
         <Suspense
