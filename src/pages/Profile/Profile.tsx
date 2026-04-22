@@ -6,7 +6,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import {
   ChevronLeft, ChevronRight, Camera, LogOut,
-  ShieldCheck, Briefcase, Clock, MessageSquare, BadgeCheck, Crown, Heart, UserCheck, TrendingUp, Gift, LayoutDashboard,
+  ShieldCheck, Clock, MessageSquare, BadgeCheck, Crown, Heart, UserCheck, Gift, LayoutDashboard,
 } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { useAuthStore } from '../../store/authStore'
@@ -31,11 +31,8 @@ const MENU: { key: Section; icon: React.ReactNode; label: string; sub: string }[
   { key: 'account',      icon: <ShieldCheck   size={18} />, label: '帐号和安全',        sub: '个人信息、密码修改' },
   { key: 'verification', icon: <BadgeCheck    size={18} />, label: '联系方式与资质验证', sub: '社交媒体、手机验证、商户认证' },
   { key: 'membership',   icon: <Crown         size={18} />, label: '会员等级',           sub: '查看商家会员权益' },
-  { key: 'services',     icon: <Briefcase     size={18} />, label: '我的发布',           sub: '服务·招聘·房源·闲置·活动' },
   { key: 'saves',        icon: <Heart         size={18} />, label: '我的收藏',           sub: '已收藏的服务、招聘、房源等' },
   { key: 'follows',      icon: <UserCheck     size={18} />, label: '我的关注',           sub: '已关注的服务商' },
-  { key: 'stats',        icon: <TrendingUp    size={18} />, label: '数据面板',            sub: '浏览·收藏·消息·评价统计' },
-  { key: 'community',    icon: <MessageSquare size={18} />, label: '我的帖子',           sub: '社区圈子发布的内容' },
   { key: 'messages',     icon: <MessageSquare size={18} />, label: '我的消息',           sub: '与商家的对话记录' },
   { key: 'browse',       icon: <Clock         size={18} />, label: '浏览记录',           sub: '最近查看的服务' },
   { key: 'referral',    icon: <Gift          size={18} />, label: '邀请好友',            sub: '我的分享码 · 已邀请人数' },

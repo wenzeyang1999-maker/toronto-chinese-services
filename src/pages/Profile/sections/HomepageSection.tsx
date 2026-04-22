@@ -5,6 +5,18 @@ import { supabase } from '../../../lib/supabase'
 import { useAuthStore } from '../../../store/authStore'
 import { useNavigate } from 'react-router-dom'
 import MembershipBadge, { type MemberLevel } from '../../../components/MembershipBadge/MembershipBadge'
+import ServicesSection from './ServicesSection'
+import CommunitySection from './CommunitySection'
+import StatsSection from './StatsSection'
+
+type Tab = 'edit' | 'services' | 'community' | 'stats'
+
+const TABS: { key: Tab; label: string }[] = [
+  { key: 'edit',      label: '✏️ 装修' },
+  { key: 'services',  label: '📦 我的发布' },
+  { key: 'community', label: '💬 我的帖子' },
+  { key: 'stats',     label: '📊 数据面板' },
+]
 
 interface Profile {
   name: string
@@ -19,6 +31,7 @@ export default function HomepageSection() {
   const user     = useAuthStore((s) => s.user)
   const navigate = useNavigate()
 
+  const [tab,          setTab]          = useState<Tab>('edit')
   const [profile,      setProfile]      = useState<Profile | null>(null)
   const [saving,       setSaving]       = useState(false)
   const [uploadingCover, setUploadingCover] = useState(false)
@@ -67,7 +80,6 @@ export default function HomepageSection() {
       if (error) throw error
       const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(path)
       const coverUrl = publicUrl + '?t=' + Date.now()
-      // Store in social_links._cover
       const { data: existing } = await supabase.from('users').select('social_links').eq('id', user!.id).single()
       const merged = { ...(existing?.social_links ?? {}), _cover: coverUrl }
       await supabase.from('users').update({ social_links: merged }).eq('id', user!.id)
@@ -113,171 +125,181 @@ export default function HomepageSection() {
     <motion.div
       initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}
       transition={{ duration: 0.2 }}
-      className="flex-1 px-4 py-6 max-w-md lg:max-w-none mx-auto w-full space-y-4"
+      className="flex-1 w-full"
     >
-      {/* ── Preview card ─────────────────────────────────────────────────── */}
-      <div className="bg-white rounded-3xl border border-gray-100 shadow-sm">
-        {/* Cover — overflow-hidden scoped here so avatar can overlap below */}
-        <div className="relative h-36 bg-gradient-to-br from-primary-400 to-primary-700 rounded-t-3xl overflow-hidden">
-          {profile.cover_url && (
-            <img src={profile.cover_url} alt="封面" className="w-full h-full object-cover" />
-          )}
-          <button
-            onClick={() => coverRef.current?.click()}
-            disabled={uploadingCover}
-            className="absolute bottom-3 right-3 flex items-center gap-1.5 bg-black/40 hover:bg-black/60
-                       text-white text-xs font-medium px-3 py-1.5 rounded-full backdrop-blur-sm transition-colors"
-          >
-            <Camera size={13} />
-            {uploadingCover ? '上传中…' : '更换封面'}
-          </button>
-          <input ref={coverRef} type="file" accept="image/*" className="hidden" onChange={handleCoverUpload} />
-        </div>
-
-        {/* Avatar + name */}
-        <div className="px-5 pb-5">
-          <div className="-mt-10 mb-3 flex items-end justify-between">
-            <div className="w-20 h-20 rounded-full border-4 border-white shadow-md overflow-hidden bg-primary-100 flex items-center justify-center flex-shrink-0 relative z-10">
-              {profile.avatar_url
-                ? <img src={profile.avatar_url} alt={profile.name} className="w-full h-full object-cover" />
-                : <span className="text-2xl font-bold text-primary-600">{profile.name.slice(0, 1)}</span>
-              }
-            </div>
-            <div className="flex gap-2 pb-1">
-              <button
-                onClick={share}
-                className="flex items-center gap-1.5 border border-gray-200 text-gray-600 text-xs font-medium px-3 py-1.5 rounded-full hover:bg-gray-50 transition-colors"
-              >
-                <Share2 size={13} />
-                {copied ? '已复制！' : '分享主页'}
-              </button>
-              <button
-                onClick={() => navigate(`/provider/${user.id}`)}
-                className="flex items-center gap-1.5 bg-primary-600 text-white text-xs font-medium px-3 py-1.5 rounded-full hover:bg-primary-700 transition-colors"
-              >
-                <ExternalLink size={13} />
-                查看主页
-              </button>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2 mb-1">
-            <p className="text-lg font-bold text-gray-900">{profile.name}</p>
-            <MembershipBadge level={profile.membership_level} size="sm" />
-          </div>
-
-          {/* Bio preview */}
-          {profile.bio
-            ? <p className="text-sm text-gray-500 leading-relaxed line-clamp-2">{profile.bio}</p>
-            : <p className="text-sm text-gray-400 italic">还没有简介，点下方编辑吧</p>
-          }
-
-          {/* Tags preview */}
-          {profile.tags.length > 0 && (
-            <div className="flex flex-wrap gap-1.5 mt-3">
-              {profile.tags.map(t => (
-                <span key={t} className="text-xs bg-primary-50 text-primary-600 px-2.5 py-1 rounded-full font-medium">
-                  # {t}
-                </span>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* ── Edit bio ─────────────────────────────────────────────────────── */}
-      <div className="bg-white rounded-3xl border border-gray-100 shadow-sm divide-y divide-gray-100 overflow-hidden">
-        <div className="px-5 py-4">
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-2 text-sm font-medium text-gray-700">
-              <AlignLeft size={15} className="text-primary-400" />
-              个人简介
-            </div>
-            {!editingBio && (
-              <button onClick={() => { setBioInput(profile.bio ?? ''); setEditingBio(true) }}
-                className="text-gray-400 hover:text-primary-600">
-                <Pencil size={14} />
-              </button>
+      {/* ── Profile card (always visible) ───────────────────────────────── */}
+      <div className="px-4 pt-6 pb-0 max-w-md lg:max-w-none mx-auto">
+        <div className="bg-white rounded-3xl border border-gray-100 shadow-sm mb-4">
+          {/* Cover */}
+          <div className="relative h-32 bg-gradient-to-br from-primary-400 to-primary-700 rounded-t-3xl overflow-hidden">
+            {profile.cover_url && (
+              <img src={profile.cover_url} alt="封面" className="w-full h-full object-cover" />
             )}
+            <button
+              onClick={() => coverRef.current?.click()}
+              disabled={uploadingCover}
+              className="absolute bottom-2 right-3 flex items-center gap-1.5 bg-black/40 hover:bg-black/60
+                         text-white text-xs font-medium px-3 py-1.5 rounded-full backdrop-blur-sm transition-colors"
+            >
+              <Camera size={13} />
+              {uploadingCover ? '上传中…' : '更换封面'}
+            </button>
+            <input ref={coverRef} type="file" accept="image/*" className="hidden" onChange={handleCoverUpload} />
           </div>
-          {editingBio ? (
-            <div>
-              <textarea
-                autoFocus rows={4} value={bioInput}
-                onChange={e => setBioInput(e.target.value)}
-                placeholder="介绍一下自己，让客户更了解你…"
-                className="w-full text-sm border border-primary-200 rounded-xl px-3 py-2.5 outline-none resize-none focus:ring-2 focus:ring-primary-100"
-              />
-              <div className="flex gap-2 mt-2">
-                <button onClick={saveBio} disabled={saving}
-                  className="flex items-center gap-1 text-xs text-white bg-primary-600 px-3 py-1.5 rounded-lg">
-                  <Check size={12} /> 保存
+
+          <div className="px-4 pb-4">
+            <div className="-mt-9 mb-2 flex items-end justify-between">
+              <div className="w-[68px] h-[68px] rounded-full border-4 border-white shadow-md overflow-hidden bg-primary-100 flex items-center justify-center flex-shrink-0 relative z-10">
+                {profile.avatar_url
+                  ? <img src={profile.avatar_url} alt={profile.name} className="w-full h-full object-cover" />
+                  : <span className="text-xl font-bold text-primary-600">{profile.name.slice(0, 1)}</span>
+                }
+              </div>
+              <div className="flex gap-1.5 pb-0.5">
+                <button onClick={share}
+                  className="flex items-center gap-1 border border-gray-200 text-gray-600 text-xs font-medium px-2.5 py-1.5 rounded-full hover:bg-gray-50 transition-colors">
+                  <Share2 size={12} />
+                  {copied ? '已复制' : '分享'}
                 </button>
-                <button onClick={() => setEditingBio(false)} className="flex items-center gap-1 text-xs text-gray-400">
-                  <X size={12} /> 取消
+                <button onClick={() => navigate(`/provider/${user.id}`)}
+                  className="flex items-center gap-1 bg-primary-600 text-white text-xs font-medium px-2.5 py-1.5 rounded-full hover:bg-primary-700 transition-colors">
+                  <ExternalLink size={12} />
+                  查看主页
                 </button>
               </div>
             </div>
-          ) : (
-            <p className="text-sm text-gray-600 leading-relaxed whitespace-pre-wrap">
-              {profile.bio || <span className="text-gray-400 italic">未填写</span>}
-            </p>
-          )}
-        </div>
 
-        {/* Edit tags */}
-        <div className="px-5 py-4">
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-2 text-sm font-medium text-gray-700">
-              <Tag size={15} className="text-primary-400" />
-              个人标签
+            <div className="flex items-center gap-2 mb-0.5">
+              <p className="text-base font-bold text-gray-900">{profile.name}</p>
+              <MembershipBadge level={profile.membership_level} size="sm" />
             </div>
-            {!editingTags && (
-              <button onClick={() => { setTagsInput(profile.tags.join('，')); setEditingTags(true) }}
-                className="text-gray-400 hover:text-primary-600">
-                <Pencil size={14} />
-              </button>
+            {profile.bio
+              ? <p className="text-xs text-gray-500 leading-relaxed line-clamp-2">{profile.bio}</p>
+              : <p className="text-xs text-gray-400 italic">还没有简介，切到「装修」tab 编辑吧</p>
+            }
+            {profile.tags.length > 0 && (
+              <div className="flex flex-wrap gap-1 mt-2">
+                {profile.tags.map(t => (
+                  <span key={t} className="text-xs bg-primary-50 text-primary-600 px-2 py-0.5 rounded-full font-medium">
+                    # {t}
+                  </span>
+                ))}
+              </div>
             )}
           </div>
-          {editingTags ? (
-            <div>
-              <input
-                autoFocus value={tagsInput}
-                onChange={e => setTagsInput(e.target.value)}
-                placeholder="用逗号分隔，例如：翻译，导游，会计"
-                className="w-full text-sm border border-primary-200 rounded-xl px-3 py-2.5 outline-none focus:ring-2 focus:ring-primary-100"
-              />
-              <p className="text-xs text-gray-400 mt-1">用中英文逗号分隔，最多 6 个标签</p>
-              <div className="flex gap-2 mt-2">
-                <button onClick={saveTags} disabled={saving}
-                  className="flex items-center gap-1 text-xs text-white bg-primary-600 px-3 py-1.5 rounded-lg">
-                  <Check size={12} /> 保存
-                </button>
-                <button onClick={() => setEditingTags(false)} className="flex items-center gap-1 text-xs text-gray-400">
-                  <X size={12} /> 取消
-                </button>
-              </div>
-            </div>
-          ) : (
-            <div className="flex flex-wrap gap-1.5">
-              {profile.tags.length > 0
-                ? profile.tags.slice(0, 6).map(t => (
-                    <span key={t} className="text-xs bg-primary-50 text-primary-600 px-2.5 py-1 rounded-full font-medium">
-                      # {t}
-                    </span>
-                  ))
-                : <span className="text-sm text-gray-400 italic">未添加标签</span>
-              }
-            </div>
-          )}
         </div>
       </div>
 
-      {/* ── Tips ─────────────────────────────────────────────────────────── */}
-      <div className="bg-primary-50 rounded-2xl px-4 py-3 text-xs text-primary-600 leading-relaxed">
-        💡 完善主页信息可以让客户更信任你，提高接单率。
-        建议上传封面、填写简介并添加技能标签。
+      {/* ── Tabs ─────────────────────────────────────────────────────────── */}
+      <div className="sticky top-14 z-10 bg-gray-50 border-b border-gray-200 px-4">
+        <div className="max-w-md lg:max-w-none mx-auto flex gap-1 overflow-x-auto scrollbar-hide py-2">
+          {TABS.map(t => (
+            <button key={t.key} onClick={() => setTab(t.key)}
+              className={`flex-shrink-0 px-4 py-1.5 rounded-full text-sm font-medium transition-all ${
+                tab === t.key
+                  ? 'bg-primary-600 text-white shadow-sm'
+                  : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
+              }`}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
       </div>
+
+      {/* ── Tab content ──────────────────────────────────────────────────── */}
+      {tab === 'edit' && (
+        <div className="px-4 py-4 max-w-md lg:max-w-none mx-auto space-y-3">
+          {/* Edit bio */}
+          <div className="bg-white rounded-3xl border border-gray-100 shadow-sm divide-y divide-gray-100 overflow-hidden">
+            <div className="px-5 py-4">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2 text-sm font-medium text-gray-700">
+                  <AlignLeft size={15} className="text-primary-400" />
+                  个人简介
+                </div>
+                {!editingBio && (
+                  <button onClick={() => { setBioInput(profile.bio ?? ''); setEditingBio(true) }}
+                    className="text-gray-400 hover:text-primary-600">
+                    <Pencil size={14} />
+                  </button>
+                )}
+              </div>
+              {editingBio ? (
+                <div>
+                  <textarea autoFocus rows={4} value={bioInput} onChange={e => setBioInput(e.target.value)}
+                    placeholder="介绍一下自己，让客户更了解你…"
+                    className="w-full text-sm border border-primary-200 rounded-xl px-3 py-2.5 outline-none resize-none focus:ring-2 focus:ring-primary-100" />
+                  <div className="flex gap-2 mt-2">
+                    <button onClick={saveBio} disabled={saving}
+                      className="flex items-center gap-1 text-xs text-white bg-primary-600 px-3 py-1.5 rounded-lg">
+                      <Check size={12} /> 保存
+                    </button>
+                    <button onClick={() => setEditingBio(false)} className="flex items-center gap-1 text-xs text-gray-400">
+                      <X size={12} /> 取消
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-sm text-gray-600 leading-relaxed whitespace-pre-wrap">
+                  {profile.bio || <span className="text-gray-400 italic">未填写</span>}
+                </p>
+              )}
+            </div>
+
+            <div className="px-5 py-4">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2 text-sm font-medium text-gray-700">
+                  <Tag size={15} className="text-primary-400" />
+                  个人标签
+                </div>
+                {!editingTags && (
+                  <button onClick={() => { setTagsInput(profile.tags.join('，')); setEditingTags(true) }}
+                    className="text-gray-400 hover:text-primary-600">
+                    <Pencil size={14} />
+                  </button>
+                )}
+              </div>
+              {editingTags ? (
+                <div>
+                  <input autoFocus value={tagsInput} onChange={e => setTagsInput(e.target.value)}
+                    placeholder="用逗号分隔，例如：翻译，导游，会计"
+                    className="w-full text-sm border border-primary-200 rounded-xl px-3 py-2.5 outline-none focus:ring-2 focus:ring-primary-100" />
+                  <p className="text-xs text-gray-400 mt-1">用中英文逗号分隔，最多 6 个标签</p>
+                  <div className="flex gap-2 mt-2">
+                    <button onClick={saveTags} disabled={saving}
+                      className="flex items-center gap-1 text-xs text-white bg-primary-600 px-3 py-1.5 rounded-lg">
+                      <Check size={12} /> 保存
+                    </button>
+                    <button onClick={() => setEditingTags(false)} className="flex items-center gap-1 text-xs text-gray-400">
+                      <X size={12} /> 取消
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex flex-wrap gap-1.5">
+                  {profile.tags.length > 0
+                    ? profile.tags.slice(0, 6).map(t => (
+                        <span key={t} className="text-xs bg-primary-50 text-primary-600 px-2.5 py-1 rounded-full font-medium">
+                          # {t}
+                        </span>
+                      ))
+                    : <span className="text-sm text-gray-400 italic">未添加标签</span>
+                  }
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="bg-primary-50 rounded-2xl px-4 py-3 text-xs text-primary-600 leading-relaxed">
+            💡 完善主页信息可以让客户更信任你，提高接单率。建议上传封面、填写简介并添加技能标签。
+          </div>
+        </div>
+      )}
+
+      {tab === 'services'  && <ServicesSection />}
+      {tab === 'community' && <CommunitySection />}
+      {tab === 'stats'     && <StatsSection />}
     </motion.div>
   )
 }
