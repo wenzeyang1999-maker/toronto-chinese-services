@@ -6,7 +6,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import {
   ChevronLeft, ChevronRight, Camera, LogOut,
-  ShieldCheck, Briefcase, Clock, MessageSquare, BadgeCheck, Crown, Heart, UserCheck, TrendingUp, Gift,
+  ShieldCheck, Briefcase, Clock, MessageSquare, BadgeCheck, Crown, Heart, UserCheck, TrendingUp, Gift, LayoutDashboard,
 } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { useAuthStore } from '../../store/authStore'
@@ -24,8 +24,10 @@ import FollowsSection      from './sections/FollowsSection'
 import StatsSection        from './sections/StatsSection'
 import CommunitySection    from './sections/CommunitySection'
 import ReferralSection     from './sections/ReferralSection'
+import HomepageSection    from './sections/HomepageSection'
 
 const MENU: { key: Section; icon: React.ReactNode; label: string; sub: string }[] = [
+  { key: 'homepage',     icon: <LayoutDashboard size={18} />, label: '我的主页',         sub: '封面 · 简介 · 标签装修' },
   { key: 'account',      icon: <ShieldCheck   size={18} />, label: '帐号和安全',        sub: '个人信息、密码修改' },
   { key: 'verification', icon: <BadgeCheck    size={18} />, label: '联系方式与资质验证', sub: '社交媒体、手机验证、商户认证' },
   { key: 'membership',   icon: <Crown         size={18} />, label: '会员等级',           sub: '查看商家会员权益' },
@@ -178,6 +180,7 @@ export default function Profile() {
   // ── Section content renderer ─────────────────────────────────────────────────
   function renderSection(key: Section | null) {
     switch (key) {
+      case 'homepage':     return <HomepageSection />
       case 'account':      return <AccountSection user={user!} name={name} phone={phone} onNameChange={setName} onPhoneChange={setPhone} />
       case 'verification': return <VerificationSection user={user!} />
       case 'membership':   return <MembershipSection level={memberLevel} expiresAt={memberExpiresAt} />
