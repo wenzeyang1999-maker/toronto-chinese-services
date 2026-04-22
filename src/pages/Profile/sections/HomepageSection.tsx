@@ -12,7 +12,7 @@ import StatsSection from './StatsSection'
 type Tab = 'edit' | 'services' | 'community' | 'stats'
 
 const TABS: { key: Tab; label: string }[] = [
-  { key: 'edit',      label: '✏️ 装修' },
+  { key: 'edit',      label: '编辑主页' },
   { key: 'services',  label: '📦 我的发布' },
   { key: 'community', label: '💬 我的帖子' },
   { key: 'stats',     label: '📊 数据面板' },
