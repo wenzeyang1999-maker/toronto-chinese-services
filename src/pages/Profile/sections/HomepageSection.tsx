@@ -116,9 +116,9 @@ export default function HomepageSection() {
       className="flex-1 px-4 py-6 max-w-md lg:max-w-none mx-auto w-full space-y-4"
     >
       {/* ── Preview card ─────────────────────────────────────────────────── */}
-      <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
-        {/* Cover */}
-        <div className="relative h-36 bg-gradient-to-br from-primary-400 to-primary-700">
+      <div className="bg-white rounded-3xl border border-gray-100 shadow-sm">
+        {/* Cover — overflow-hidden scoped here so avatar can overlap below */}
+        <div className="relative h-36 bg-gradient-to-br from-primary-400 to-primary-700 rounded-t-3xl overflow-hidden">
           {profile.cover_url && (
             <img src={profile.cover_url} alt="封面" className="w-full h-full object-cover" />
           )}
@@ -137,13 +137,13 @@ export default function HomepageSection() {
         {/* Avatar + name */}
         <div className="px-5 pb-5">
           <div className="-mt-10 mb-3 flex items-end justify-between">
-            <div className="w-20 h-20 rounded-full border-4 border-white shadow-md overflow-hidden bg-primary-100 flex items-center justify-center flex-shrink-0">
+            <div className="w-20 h-20 rounded-full border-4 border-white shadow-md overflow-hidden bg-primary-100 flex items-center justify-center flex-shrink-0 relative z-10">
               {profile.avatar_url
                 ? <img src={profile.avatar_url} alt={profile.name} className="w-full h-full object-cover" />
                 : <span className="text-2xl font-bold text-primary-600">{profile.name.slice(0, 1)}</span>
               }
             </div>
-            <div className="flex gap-2 mb-1">
+            <div className="flex gap-2 pb-1">
               <button
                 onClick={share}
                 className="flex items-center gap-1.5 border border-gray-200 text-gray-600 text-xs font-medium px-3 py-1.5 rounded-full hover:bg-gray-50 transition-colors"
