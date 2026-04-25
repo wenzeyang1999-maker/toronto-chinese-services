@@ -48,7 +48,7 @@ export default function Profile() {
   const [section, setSection] = useState<Section | null>(() => {
     const param = searchParams.get('section') as Section | null
     if (param && VALID_SECTIONS.includes(param)) return param
-    return typeof window !== 'undefined' && window.innerWidth >= 1024 ? 'account' : null
+    return typeof window !== 'undefined' && window.innerWidth >= 1024 ? 'homepage' : null
   })
 
   // React to URL param changes while Profile is already mounted
