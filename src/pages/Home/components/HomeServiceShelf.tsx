@@ -3,7 +3,6 @@ import { motion } from 'framer-motion'
 import { Suspense, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import type { Service } from '../../../types'
-import type { ReactNode } from 'react'
 import ServiceCard from '../../../components/ServiceCard/ServiceCard'
 
 interface Props {
@@ -11,8 +10,9 @@ interface Props {
   subtitle: string
   viewMode: 'list' | 'map'
   onViewModeChange: (next: 'list' | 'map') => void
-  services: Service[]
-  mapContent: ReactNode
+  services: Service[]          // list view (nearby/recent subset)
+  allServices: Service[]       // map view (full set to search across)
+  mapContent: (filtered: Service[]) => React.ReactNode
 }
 
 export default function HomeServiceShelf({
@@ -21,21 +21,32 @@ export default function HomeServiceShelf({
   viewMode,
   onViewModeChange,
   services,
+  allServices,
   mapContent,
 }: Props) {
   const navigate = useNavigate()
   const [query, setQuery] = useState('')
 
-  const filtered = query.trim()
+  const q = query.trim().toLowerCase()
+
+  const filteredList = q
     ? services.filter((s) =>
-        s.title.toLowerCase().includes(query.toLowerCase()) ||
-        s.provider.name.toLowerCase().includes(query.toLowerCase())
+        s.title.toLowerCase().includes(q) ||
+        s.provider.name.toLowerCase().includes(q)
       )
     : services
 
+  const filteredMap = q
+    ? allServices.filter((s) =>
+        s.title.toLowerCase().includes(q) ||
+        s.provider.name.toLowerCase().includes(q)
+      )
+    : allServices
+
   function handleSearch(e: React.FormEvent) {
     e.preventDefault()
-    if (query.trim()) navigate(`/search?q=${encodeURIComponent(query.trim())}`)
+    // In map mode just filter markers; in list mode navigate to full search
+    if (query.trim() && viewMode === 'list') navigate(`/search?q=${encodeURIComponent(query.trim())}`)
   }
 
   return (
@@ -98,8 +109,8 @@ export default function HomeServiceShelf({
 
       {viewMode === 'list' ? (
         <div className="flex flex-col gap-2">
-          {filtered.length > 0
-            ? filtered.map((svc) => <ServiceCard key={svc.id} service={svc} />)
+          {filteredList.length > 0
+            ? filteredList.map((svc) => <ServiceCard key={svc.id} service={svc} />)
             : <p className="py-6 text-center text-sm text-gray-400">没有找到相关服务</p>
           }
         </div>
@@ -107,7 +118,7 @@ export default function HomeServiceShelf({
         <Suspense
           fallback={<div className="w-full rounded-2xl bg-gray-100 animate-pulse" style={{ height: '60vh', minHeight: 320 }} />}
         >
-          {mapContent}
+          {mapContent(filteredMap)}
         </Suspense>
       )}
     </motion.section>

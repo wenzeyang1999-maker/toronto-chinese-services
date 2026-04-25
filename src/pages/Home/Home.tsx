@@ -128,7 +128,8 @@ export default function Home() {
           viewMode={viewMode}
           onViewModeChange={handleViewMode}
           services={recent}
-          mapContent={<ServiceMap services={services.filter((s) => s.available)} />}
+          allServices={services.filter((s) => s.available)}
+          mapContent={(filtered) => <ServiceMap services={filtered} />}
         />
 
         {/* Recommended for you */}
