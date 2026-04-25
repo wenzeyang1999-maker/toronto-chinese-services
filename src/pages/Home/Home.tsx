@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useRef, useState } from 'react'
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react'
 import HeroBanner from '../../components/HeroBanner/HeroBanner'
 import CategoryButtons from '../../components/CategoryButtons/CategoryButtons'
 import InquiryModal from '../../components/InquiryModal/InquiryModal'
@@ -81,6 +81,27 @@ export default function Home() {
         .slice(0, 4)
     : services.filter((s) => s.available).slice(0, 4)
 
+  // Map default view: nearby services only (within 25 km, max 40 markers)
+  const MAX_MAP_MARKERS = 40
+  const MAP_RADIUS_KM   = 25
+  const nearbyForMap = useMemo(() => {
+    const available = services.filter(
+      (s) => s.available && s.location.lat != null && s.location.lng != null
+    )
+    if (!userLocation) return available.slice(0, MAX_MAP_MARKERS)
+    return available
+      .map((s) => ({
+        ...s,
+        _dist: calcDistance(userLocation.lat, userLocation.lng, s.location.lat!, s.location.lng!),
+      }))
+      .filter((s) => s._dist <= MAP_RADIUS_KM)
+      .sort((a, b) => {
+        if (a.isPromoted !== b.isPromoted) return a.isPromoted ? -1 : 1
+        return a._dist - b._dist
+      })
+      .slice(0, MAX_MAP_MARKERS)
+  }, [services, userLocation])
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Sticky: banner + section tabs */}
@@ -129,7 +150,8 @@ export default function Home() {
           onViewModeChange={handleViewMode}
           services={recent}
           allServices={services.filter((s) => s.available)}
-          mapContent={(filtered) => <ServiceMap services={filtered} />}
+          defaultMapServices={nearbyForMap}
+          mapContent={(filtered) => <ServiceMap services={filtered} count={nearbyForMap.length} />}
         />
 
         {/* Recommended for you */}

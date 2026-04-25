@@ -8,6 +8,7 @@ import GoogleMapCanvas, { type GoogleMapPoint } from './GoogleMapCanvas'
 
 interface Props {
   services: Service[]
+  count?: number  // nearby service count used to size the map
 }
 
 function hasCoordinates(service: Service): service is Service & {
@@ -65,7 +66,15 @@ function createServiceInfoContent(service: Service): HTMLElement {
   return wrapper
 }
 
-export default function ServiceMap({ services }: Props) {
+function mapHeight(count: number): number {
+  if (count === 0)        return 320
+  if (count <= 5)         return 380
+  if (count <= 15)        return 480
+  if (count <= 30)        return 560
+  return 640
+}
+
+export default function ServiceMap({ services, count }: Props) {
   const navigate = useNavigate()
   const userLocation = useAppStore((s) => s.userLocation)
   const mapped = useMemo(() => services.filter(hasCoordinates), [services])
@@ -73,6 +82,8 @@ export default function ServiceMap({ services }: Props) {
   const center = userLocation
     ? { lat: userLocation.lat, lng: userLocation.lng }
     : { lat: 43.7, lng: -79.42 }
+
+  const height = mapHeight(count ?? mapped.length)
 
   const points = useMemo<GoogleMapPoint[]>(() => mapped.map((service) => ({
     id: service.id,
@@ -88,7 +99,7 @@ export default function ServiceMap({ services }: Props) {
   })), [mapped, navigate])
 
   return (
-    <div className="relative w-full rounded-2xl overflow-hidden border border-gray-200 shadow-sm" style={{ height: '60vh', minHeight: 320 }}>
+    <div className="relative w-full rounded-2xl overflow-hidden border border-gray-200 shadow-sm transition-all duration-500" style={{ height, minHeight: 320 }}>
       {mapped.length === 0 && (
         <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-gray-50 text-gray-400">
           <span className="text-4xl mb-2">📍</span>

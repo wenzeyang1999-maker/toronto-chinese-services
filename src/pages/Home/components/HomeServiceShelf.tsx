@@ -10,8 +10,9 @@ interface Props {
   subtitle: string
   viewMode: 'list' | 'map'
   onViewModeChange: (next: 'list' | 'map') => void
-  services: Service[]          // list view (nearby/recent subset)
-  allServices: Service[]       // map view (full set to search across)
+  services: Service[]              // list view (nearby/recent subset)
+  allServices: Service[]           // full pool for keyword search
+  defaultMapServices: Service[]    // nearby-only default for map (no search)
   mapContent: (filtered: Service[]) => React.ReactNode
 }
 
@@ -22,6 +23,7 @@ export default function HomeServiceShelf({
   onViewModeChange,
   services,
   allServices,
+  defaultMapServices,
   mapContent,
 }: Props) {
   const navigate = useNavigate()
@@ -36,12 +38,13 @@ export default function HomeServiceShelf({
       )
     : services
 
+  // No query → show nearby-only default; with query → search across all services
   const filteredMap = q
     ? allServices.filter((s) =>
         s.title.toLowerCase().includes(q) ||
         s.provider.name.toLowerCase().includes(q)
       )
-    : allServices
+    : defaultMapServices
 
   function handleSearch(e: React.FormEvent) {
     e.preventDefault()
