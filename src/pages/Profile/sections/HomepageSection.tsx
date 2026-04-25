@@ -129,16 +129,17 @@ export default function HomepageSection() {
     >
       {/* ── Profile card (always visible) ───────────────────────────────── */}
       <div className="px-4 pt-6 pb-0 max-w-md lg:max-w-none mx-auto">
-        <div className="bg-white rounded-3xl border border-gray-100 shadow-sm mb-4">
+        <div className="bg-white rounded-3xl border border-gray-100 shadow-sm mb-4 overflow-visible">
+
           {/* Cover */}
-          <div className="relative h-32 bg-gradient-to-br from-primary-400 to-primary-700 rounded-t-3xl overflow-hidden">
+          <div className="relative h-40 bg-gradient-to-br from-primary-400 to-primary-700 rounded-t-3xl overflow-hidden">
             {profile.cover_url && (
               <img src={profile.cover_url} alt="封面" className="w-full h-full object-cover" />
             )}
             <button
               onClick={() => coverRef.current?.click()}
               disabled={uploadingCover}
-              className="absolute bottom-2 right-3 flex items-center gap-1.5 bg-black/40 hover:bg-black/60
+              className="absolute bottom-3 right-4 flex items-center gap-1.5 bg-black/40 hover:bg-black/60
                          text-white text-xs font-medium px-3 py-1.5 rounded-full backdrop-blur-sm transition-colors"
             >
               <Camera size={13} />
@@ -147,40 +148,42 @@ export default function HomepageSection() {
             <input ref={coverRef} type="file" accept="image/*" className="hidden" onChange={handleCoverUpload} />
           </div>
 
-          <div className="px-4 pb-4">
-            <div className="-mt-9 mb-2 flex items-end justify-between">
-              <div className="w-[68px] h-[68px] rounded-full border-4 border-white shadow-md overflow-hidden bg-primary-100 flex items-center justify-center flex-shrink-0 relative z-10">
-                {profile.avatar_url
-                  ? <img src={profile.avatar_url} alt={profile.name} className="w-full h-full object-cover" />
-                  : <span className="text-xl font-bold text-primary-600">{profile.name.slice(0, 1)}</span>
-                }
-              </div>
-              <div className="flex gap-1.5 pb-0.5">
-                <button onClick={share}
-                  className="flex items-center gap-1 border border-gray-200 text-gray-600 text-xs font-medium px-2.5 py-1.5 rounded-full hover:bg-gray-50 transition-colors">
-                  <Share2 size={12} />
-                  {copied ? '已复制' : '分享'}
-                </button>
-                <button onClick={() => navigate(`/provider/${user.id}`)}
-                  className="flex items-center gap-1 bg-primary-600 text-white text-xs font-medium px-2.5 py-1.5 rounded-full hover:bg-primary-700 transition-colors">
-                  <ExternalLink size={12} />
-                  查看主页
-                </button>
-              </div>
+          {/* Avatar row */}
+          <div className="px-5 -mt-10 flex items-end justify-between">
+            <div className="w-20 h-20 rounded-full border-4 border-white shadow-lg overflow-hidden bg-primary-100 flex items-center justify-center flex-shrink-0 relative z-10">
+              {profile.avatar_url
+                ? <img src={profile.avatar_url} alt={profile.name} className="w-full h-full object-cover" />
+                : <span className="text-2xl font-bold text-primary-600">{profile.name.slice(0, 1)}</span>
+              }
             </div>
+            <div className="flex gap-2 mb-1">
+              <button onClick={share}
+                className="flex items-center gap-1.5 border border-gray-200 text-gray-600 text-xs font-semibold px-3 py-2 rounded-full hover:bg-gray-50 transition-colors">
+                <Share2 size={13} />
+                {copied ? '已复制' : '分享'}
+              </button>
+              <button onClick={() => navigate(`/provider/${user.id}`)}
+                className="flex items-center gap-1.5 bg-primary-600 text-white text-xs font-semibold px-3 py-2 rounded-full hover:bg-primary-700 transition-colors shadow-sm">
+                <ExternalLink size={13} />
+                查看主页
+              </button>
+            </div>
+          </div>
 
-            <div className="flex items-center gap-2 mb-0.5">
-              <p className="text-base font-bold text-gray-900">{profile.name}</p>
+          {/* Name / bio / tags */}
+          <div className="px-5 pt-3 pb-5">
+            <div className="flex items-center gap-2 mb-1">
+              <p className="text-lg font-bold text-gray-900">{profile.name}</p>
               <MembershipBadge level={profile.membership_level} size="sm" />
             </div>
             {profile.bio
-              ? <p className="text-xs text-gray-500 leading-relaxed line-clamp-2">{profile.bio}</p>
-              : <p className="text-xs text-gray-400 italic">还没有简介，切到「装修」tab 编辑吧</p>
+              ? <p className="text-sm text-gray-500 leading-relaxed line-clamp-3">{profile.bio}</p>
+              : <p className="text-sm text-gray-400 italic">还没有简介，切到「编辑主页」tab 填写吧</p>
             }
             {profile.tags.length > 0 && (
-              <div className="flex flex-wrap gap-1 mt-2">
+              <div className="flex flex-wrap gap-1.5 mt-3">
                 {profile.tags.map(t => (
-                  <span key={t} className="text-xs bg-primary-50 text-primary-600 px-2 py-0.5 rounded-full font-medium">
+                  <span key={t} className="text-xs bg-primary-50 text-primary-600 px-2.5 py-1 rounded-full font-medium">
                     # {t}
                   </span>
                 ))}
