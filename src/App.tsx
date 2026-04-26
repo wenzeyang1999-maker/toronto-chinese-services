@@ -20,6 +20,7 @@ import Home from './pages/Home/Home'
 import AiChatWidget from './components/AiChatWidget/AiChatWidget'
 import MessagesButton from './components/MessagesButton/MessagesButton'
 import MessageToast from './components/MessageToast/MessageToast'
+import InstallPWA from './components/InstallPWA/InstallPWA'
 
 const Category        = lazy(() => import('./pages/Category/Category'))
 const Search          = lazy(() => import('./pages/Search/Search'))
@@ -165,6 +166,7 @@ export default function App() {
       {isLoadingDone && <AiChatWidget />}
       {isLoadingDone && <MessagesButton />}
       {isLoadingDone && <MessageToast />}
+      {isLoadingDone && <InstallPWA />}
     </>
   )
 }

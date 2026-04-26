@@ -7,6 +7,9 @@ import { HelmetProvider } from 'react-helmet-async'
 import ErrorBoundary from './components/ErrorBoundary/ErrorBoundary'
 import App from './App'
 import './index.css'
+import { registerServiceWorker } from './lib/pwa'
+
+registerServiceWorker()
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>

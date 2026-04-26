@@ -1,0 +1,44 @@
+{
+  "name": "NCC · 北美华人圈",
+  "short_name": "NCC",
+  "description": "北美华人生活服务平台 — 找服务、招聘、租房、二手、活动、社区一站搞定",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#ffffff",
+  "theme_color": "#2563eb",
+  "lang": "zh-CN",
+  "categories": ["lifestyle", "social", "shopping"],
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "找服务",
+      "url": "/?from=tabs",
+      "description": "搜索本地华人服务"
+    },
+    {
+      "name": "我的消息",
+      "url": "/profile?section=messages",
+      "description": "查看对话和未读消息"
+    },
+    {
+      "name": "发布服务",
+      "url": "/post",
+      "description": "发布你的技能和服务"
+    }
+  ]
+}
