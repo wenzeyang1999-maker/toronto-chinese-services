@@ -7,8 +7,9 @@ import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Search, SlidersHorizontal, MapPin, X,
-  Phone, MessageCircle, Copy, Package, User, ExternalLink,
+  Phone, MessageCircle, MessageSquare, Copy, Package, User, ExternalLink,
 } from 'lucide-react'
+import { supabase } from '../../lib/supabase'
 import Header from '../../components/Header/Header'
 import PostFAB from '../../components/PostFAB/PostFAB'
 import SectionTabs from '../../components/SectionTabs/SectionTabs'
@@ -280,8 +281,9 @@ export default function SecondhandList() {
 function DetailPanel({ item, onClose }: { item: SecondhandItem; onClose: () => void }) {
   const navigate  = useNavigate()
   const user      = useAuthStore((s) => s.user)
-  const [imgIdx,  setImgIdx]  = useState(0)
-  const [copied,  setCopied]  = useState(false)
+  const [imgIdx,    setImgIdx]    = useState(0)
+  const [copied,    setCopied]    = useState(false)
+  const [messaging, setMessaging] = useState(false)
 
   // Reset image index when item changes
   useEffect(() => { setImgIdx(0) }, [item.id])
@@ -294,6 +296,30 @@ function DetailPanel({ item, onClose }: { item: SecondhandItem; onClose: () => v
       setTimeout(() => setCopied(false), 2000)
     } catch {
       alert(`微信号：${item.contact_wechat}`)
+    }
+  }
+
+  async function messageSeller() {
+    if (!user) { navigate('/login'); return }
+    if (!item.seller) return
+    setMessaging(true)
+    try {
+      const { data: existing } = await supabase
+        .from('conversations')
+        .select('id')
+        .eq('client_id', user.id)
+        .eq('provider_id', item.seller.id)
+        .is('service_id', null)
+        .maybeSingle()
+      if (existing) { navigate(`/conversation/${existing.id}`); return }
+      const { data, error } = await supabase
+        .from('conversations')
+        .insert({ client_id: user.id, provider_id: item.seller.id, service_id: null })
+        .select('id')
+        .single()
+      if (!error && data) navigate(`/conversation/${data.id}`)
+    } finally {
+      setMessaging(false)
     }
   }
 
@@ -356,22 +382,35 @@ function DetailPanel({ item, onClose }: { item: SecondhandItem; onClose: () => v
         </div>
 
         {/* Contact */}
-        <div className="flex gap-2">
-          <a href={`tel:${item.contact_phone}`}
-            className="flex-1 flex items-center justify-center gap-2 bg-primary-600 hover:bg-primary-700
-                       text-white text-sm font-semibold py-2.5 rounded-xl transition-colors active:scale-95">
-            <Phone size={15} />
-            {item.contact_phone}
-          </a>
-          {item.contact_wechat && (
-            <button onClick={copyWechat}
-              className="flex items-center justify-center gap-2 bg-green-500 hover:bg-green-600
-                         text-white text-sm font-semibold px-4 py-2.5 rounded-xl transition-colors active:scale-95">
-              {copied ? <Copy size={15} /> : <MessageCircle size={15} />}
-              {copied ? '已复制' : '微信'}
-            </button>
-          )}
-        </div>
+        {(!user || user.id !== item.seller_id) && (
+          <div className="space-y-2">
+            {!item.is_sold && item.seller && (
+              <button onClick={messageSeller} disabled={messaging}
+                className="w-full flex items-center justify-center gap-2 bg-primary-600 hover:bg-primary-700
+                           text-white text-sm font-semibold py-2.5 rounded-xl transition-colors active:scale-95
+                           disabled:opacity-60">
+                <MessageSquare size={15} />
+                {messaging ? '连接中…' : '发消息给卖家'}
+              </button>
+            )}
+            <div className="flex gap-2">
+              <a href={`tel:${item.contact_phone}`}
+                className="flex-1 flex items-center justify-center gap-2 bg-gray-100 hover:bg-gray-200
+                           text-gray-800 text-sm font-semibold py-2.5 rounded-xl transition-colors active:scale-95">
+                <Phone size={15} />
+                {item.contact_phone}
+              </a>
+              {item.contact_wechat && (
+                <button onClick={copyWechat}
+                  className="flex items-center justify-center gap-2 bg-green-500 hover:bg-green-600
+                             text-white text-sm font-semibold px-4 py-2.5 rounded-xl transition-colors active:scale-95">
+                  {copied ? <Copy size={15} /> : <MessageCircle size={15} />}
+                  {copied ? '已复制' : '微信'}
+                </button>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Description */}
         <div className="pt-3 border-t border-gray-100">
