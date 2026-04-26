@@ -56,12 +56,24 @@ function createServiceInfoContent(service: Service): HTMLElement {
     wrapper.appendChild(address)
   }
 
-  const button = document.createElement('button')
-  button.type = 'button'
-  button.dataset.serviceId = service.id
-  button.className = 'w-full bg-primary-600 hover:bg-primary-700 text-white text-xs font-semibold py-1.5 rounded-lg transition-colors'
-  button.textContent = '查看详情'
-  wrapper.appendChild(button)
+  const row = document.createElement('div')
+  row.className = 'flex gap-1.5'
+
+  const detailBtn = document.createElement('button')
+  detailBtn.type = 'button'
+  detailBtn.dataset.serviceId = service.id
+  detailBtn.className = 'flex-1 bg-primary-600 hover:bg-primary-700 text-white text-xs font-semibold py-2 rounded-lg transition-colors'
+  detailBtn.textContent = '查看详情'
+  row.appendChild(detailBtn)
+
+  const providerBtn = document.createElement('button')
+  providerBtn.type = 'button'
+  providerBtn.dataset.providerId = service.provider.id
+  providerBtn.className = 'flex-1 border border-primary-200 text-primary-600 hover:bg-primary-50 text-xs font-semibold py-2 rounded-lg transition-colors'
+  providerBtn.textContent = '商家主页'
+  row.appendChild(providerBtn)
+
+  wrapper.appendChild(row)
 
   return wrapper
 }
@@ -93,8 +105,10 @@ export default function ServiceMap({ services, count }: Props) {
     promoted: service.isPromoted,
     infoContent: createServiceInfoContent(service),
     onInfoReady: (content) => {
-      const button = content.querySelector('button')
-      if (button) button.onclick = () => navigate(`/service/${service.id}`)
+      const detailBtn = content.querySelector<HTMLButtonElement>('[data-service-id]')
+      if (detailBtn) detailBtn.onclick = () => navigate(`/service/${service.id}`)
+      const providerBtn = content.querySelector<HTMLButtonElement>('[data-provider-id]')
+      if (providerBtn) providerBtn.onclick = () => navigate(`/provider/${service.provider.id}`)
     },
   })), [mapped, navigate])
 
