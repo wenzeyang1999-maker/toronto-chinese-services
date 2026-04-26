@@ -10,40 +10,49 @@ export default function MessagesButton() {
   const location = useLocation()
   const [unread, setUnread] = useState(0)
 
-  // Tab title flashing when unread > 0 and tab not focused
+  // Tab title badge + flashing when unread > 0
+  // Safari throttles setInterval in background tabs, so we ALSO update the title
+  // immediately (Safari will display the latest title even for inactive tabs).
   const originalTitleRef = useRef<string>('')
   useEffect(() => {
     if (typeof document === 'undefined') return
-    if (!originalTitleRef.current) originalTitleRef.current = document.title
+    if (!originalTitleRef.current) {
+      const cleaned = document.title.replace(/^\(\d+\)\s*💬\s*新消息\s*·\s*/, '')
+      originalTitleRef.current = cleaned
+    }
+    const original = originalTitleRef.current
+    const badged   = `(${unread}) 💬 新消息 · ${original}`
 
     let intervalId: number | undefined
-    let toggle = false
+    let toggle = true
 
     const stopFlash = () => {
       if (intervalId) { window.clearInterval(intervalId); intervalId = undefined }
-      document.title = originalTitleRef.current
     }
 
-    const startFlash = () => {
-      if (intervalId) return
-      intervalId = window.setInterval(() => {
-        toggle = !toggle
-        document.title = toggle
-          ? `(${unread}) 💬 新消息`
-          : originalTitleRef.current
-      }, 1200)
-    }
-
-    const update = () => {
-      if (unread > 0 && document.hidden) startFlash()
-      else stopFlash()
-    }
-
-    update()
-    document.addEventListener('visibilitychange', update)
-    return () => {
-      document.removeEventListener('visibilitychange', update)
+    const apply = () => {
       stopFlash()
+      if (unread <= 0) {
+        document.title = original
+        return
+      }
+      // Always show badge first — Safari relies on this single update.
+      document.title = badged
+      // Foreground & some browsers: animate by toggling between badge and plain.
+      if (!document.hidden) {
+        intervalId = window.setInterval(() => {
+          toggle = !toggle
+          document.title = toggle ? badged : original
+        }, 1200)
+      }
+    }
+
+    apply()
+    document.addEventListener('visibilitychange', apply)
+    return () => {
+      document.removeEventListener('visibilitychange', apply)
+      stopFlash()
+      document.title = original
     }
   }, [unread])
 
