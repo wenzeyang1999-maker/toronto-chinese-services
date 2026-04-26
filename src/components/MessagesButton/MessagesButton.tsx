@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { MessageSquare } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
@@ -9,6 +9,43 @@ export default function MessagesButton() {
   const navigate = useNavigate()
   const location = useLocation()
   const [unread, setUnread] = useState(0)
+
+  // Tab title flashing when unread > 0 and tab not focused
+  const originalTitleRef = useRef<string>('')
+  useEffect(() => {
+    if (typeof document === 'undefined') return
+    if (!originalTitleRef.current) originalTitleRef.current = document.title
+
+    let intervalId: number | undefined
+    let toggle = false
+
+    const stopFlash = () => {
+      if (intervalId) { window.clearInterval(intervalId); intervalId = undefined }
+      document.title = originalTitleRef.current
+    }
+
+    const startFlash = () => {
+      if (intervalId) return
+      intervalId = window.setInterval(() => {
+        toggle = !toggle
+        document.title = toggle
+          ? `(${unread}) 💬 新消息`
+          : originalTitleRef.current
+      }, 1200)
+    }
+
+    const update = () => {
+      if (unread > 0 && document.hidden) startFlash()
+      else stopFlash()
+    }
+
+    update()
+    document.addEventListener('visibilitychange', update)
+    return () => {
+      document.removeEventListener('visibilitychange', update)
+      stopFlash()
+    }
+  }, [unread])
 
   const fetchUnread = useCallback(async () => {
     if (!user) {
