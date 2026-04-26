@@ -1,7 +1,9 @@
 // ─── MessageToast ─────────────────────────────────────────────────────────────
-// Global in-app toast that appears in the top-right when a new chat message
-// arrives. Click → navigate to the conversation. Auto-dismisses after 5s.
-// Suppressed if the user is already viewing that conversation page.
+// In-app toast (top-right) for new chat messages — plus an OS-level Notification
+// when the tab is hidden and the user has granted permission.
+//   • Tab visible    → in-app toast only (custom UI)
+//   • Tab hidden     → browser Notification (system tray / notification center)
+//   • Suppressed entirely if user is on /conversation/<that id>
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -19,6 +21,31 @@ interface Toast {
 
 const TOAST_DURATION_MS = 5000
 const MAX_TOASTS        = 3
+const PERMISSION_PROMPTED_KEY = 'tcs_notif_permission_prompted'
+
+function canUseNotifications() {
+  return typeof window !== 'undefined' && 'Notification' in window
+}
+
+function showSystemNotification(t: Toast, onClick: () => void) {
+  if (!canUseNotifications()) return
+  if (Notification.permission !== 'granted') return
+  try {
+    const n = new Notification(`${t.senderName} 给你发了消息`, {
+      body: t.content,
+      icon: t.senderAvatar ?? '/favicon.ico',
+      tag:  `tcs-msg-${t.conversationId}`, // dedupe per conversation
+      renotify: true,
+    } as NotificationOptions & { renotify?: boolean })
+    n.onclick = () => {
+      window.focus()
+      onClick()
+      n.close()
+    }
+  } catch {
+    /* some browsers throw if called before user gesture; ignore */
+  }
+}
 
 export default function MessageToast() {
   const user     = useAuthStore((s) => s.user)
@@ -29,6 +56,21 @@ export default function MessageToast() {
   // Keep latest pathname accessible inside the realtime callback closure
   const pathRef = useRef(location.pathname)
   useEffect(() => { pathRef.current = location.pathname }, [location.pathname])
+
+  // Ask for Notification permission once per browser (after auth, on first user action)
+  useEffect(() => {
+    if (!user || !canUseNotifications()) return
+    if (Notification.permission !== 'default') return
+    if (localStorage.getItem(PERMISSION_PROMPTED_KEY)) return
+
+    const onFirstClick = () => {
+      localStorage.setItem(PERMISSION_PROMPTED_KEY, '1')
+      Notification.requestPermission().catch(() => {})
+      window.removeEventListener('click', onFirstClick)
+    }
+    window.addEventListener('click', onFirstClick, { once: true })
+    return () => window.removeEventListener('click', onFirstClick)
+  }, [user])
 
   useEffect(() => {
     if (!user) { setToasts([]); return }
@@ -65,10 +107,15 @@ export default function MessageToast() {
           content:        msg.content,
         }
 
-        setToasts(prev => [toast, ...prev.filter(t => t.id !== toast.id)].slice(0, MAX_TOASTS))
-        window.setTimeout(() => {
-          setToasts(prev => prev.filter(t => t.id !== toast.id))
-        }, TOAST_DURATION_MS)
+        // OS notification when tab is hidden; in-app toast when visible
+        if (document.hidden) {
+          showSystemNotification(toast, () => navigate(`/conversation/${toast.conversationId}`))
+        } else {
+          setToasts(prev => [toast, ...prev.filter(t => t.id !== toast.id)].slice(0, MAX_TOASTS))
+          window.setTimeout(() => {
+            setToasts(prev => prev.filter(t => t.id !== toast.id))
+          }, TOAST_DURATION_MS)
+        }
       })
       .subscribe()
 
