@@ -10,6 +10,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { MessageSquare, X } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { useAuthStore } from '../../store/authStore'
+import { subscribeToWebPush } from '../../lib/webPush'
 
 interface Toast {
   id: string
@@ -63,13 +64,25 @@ export default function MessageToast() {
     if (Notification.permission !== 'default') return
     if (localStorage.getItem(PERMISSION_PROMPTED_KEY)) return
 
-    const onFirstClick = () => {
+    const onFirstClick = async () => {
       localStorage.setItem(PERMISSION_PROMPTED_KEY, '1')
-      Notification.requestPermission().catch(() => {})
+      try {
+        const result = await Notification.requestPermission()
+        if (result === 'granted' && user) {
+          await subscribeToWebPush(user.id)
+        }
+      } catch { /* ignore */ }
       window.removeEventListener('click', onFirstClick)
     }
     window.addEventListener('click', onFirstClick, { once: true })
     return () => window.removeEventListener('click', onFirstClick)
+  }, [user])
+
+  // Re-subscribe on subsequent loads if user already granted permission
+  useEffect(() => {
+    if (!user || !canUseNotifications()) return
+    if (Notification.permission !== 'granted') return
+    subscribeToWebPush(user.id)
   }, [user])
 
   useEffect(() => {

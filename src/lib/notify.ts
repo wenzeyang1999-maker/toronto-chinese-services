@@ -17,6 +17,20 @@ async function notify(
   }
 }
 
+async function sendWebPush(opts: {
+  recipientUserId: string
+  title:           string
+  body:            string
+  url?:            string
+  tag?:            string
+}): Promise<void> {
+  try {
+    await supabase.functions.invoke('send-web-push', { body: opts })
+  } catch (err) {
+    console.warn('[push] failed silently:', err)
+  }
+}
+
 // ── Typed helpers ─────────────────────────────────────────────────────────────
 
 export async function notifyNewMessage(opts: {
@@ -25,11 +39,21 @@ export async function notifyNewMessage(opts: {
   preview:        string
   conversationId: string
 }) {
-  await notify('new_message', opts.recipientUserId, {
-    senderName:     opts.senderName,
-    preview:        opts.preview.slice(0, 80),
-    conversationId: opts.conversationId,
-  })
+  // Send email + push in parallel (both are best-effort)
+  await Promise.allSettled([
+    notify('new_message', opts.recipientUserId, {
+      senderName:     opts.senderName,
+      preview:        opts.preview.slice(0, 80),
+      conversationId: opts.conversationId,
+    }),
+    sendWebPush({
+      recipientUserId: opts.recipientUserId,
+      title: `${opts.senderName} 给你发了消息`,
+      body:  opts.preview.slice(0, 120),
+      url:   `/conversation/${opts.conversationId}`,
+      tag:   `msg-${opts.conversationId}`,
+    }),
+  ])
 }
 
 export async function notifyNewFollower(opts: {
