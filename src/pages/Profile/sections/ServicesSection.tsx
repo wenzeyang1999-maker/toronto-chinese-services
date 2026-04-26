@@ -678,7 +678,7 @@ export default function ServicesSection() {
       </AnimatePresence>
 
       {/* ── FAB with post menu ───────────────────────────────────────────── */}
-      <div className="fixed bottom-24 right-8 lg:bottom-32 lg:right-16 z-30">
+      <div className="fixed bottom-56 right-8 lg:bottom-44 lg:right-16 z-30">
         <AnimatePresence>
           {showPostMenu && (
             <motion.div initial={{ opacity: 0, y: 8, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 8, scale: 0.95 }}

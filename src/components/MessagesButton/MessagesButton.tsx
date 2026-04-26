@@ -48,7 +48,7 @@ export default function MessagesButton() {
   if (!user) return null
 
   return (
-    <div className="fixed bottom-40 right-5 lg:bottom-20 lg:right-16 z-50">
+    <div className="fixed bottom-44 right-5 lg:bottom-24 lg:right-16 z-50">
       <button
         onClick={() => navigate('/profile?section=messages')}
         className="relative flex items-center gap-2 bg-white shadow-lg border border-gray-200
