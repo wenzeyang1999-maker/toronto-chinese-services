@@ -11,6 +11,7 @@ import SaveButton from '../../components/SaveButton/SaveButton'
 import ShareButton from '../../components/ShareButton/ShareButton'
 import PageMeta from '../../components/PageMeta/PageMeta'
 import ViewCount from '../../components/ViewCount/ViewCount'
+import SecondhandComments from './components/SecondhandComments'
 
 interface Review {
   id: string
@@ -363,6 +364,9 @@ export default function SecondhandDetail() {
                 )}
               </motion.div>
             )}
+
+            {/* ── Public comments / Q&A ──────────────────────────────────── */}
+            <SecondhandComments itemId={item.id} sellerId={item.seller_id} />
 
             {/* ── Reviews ─────────────────────────────────────────────────── */}
             {reviewsReady && (

@@ -18,6 +18,7 @@ import {
   SECONDHAND_CATEGORY_CONFIG, ITEM_CONDITION_CONFIG, getPriceLabel,
   type SecondhandItem, type SecondhandCategory, type ItemCondition,
 } from './types'
+import SecondhandComments from './components/SecondhandComments'
 
 const GTA_AREAS = [
   '多伦多市区', '北约克', '士嘉堡', '密西沙加', '万锦',
@@ -417,6 +418,11 @@ function DetailPanel({ item, onClose }: { item: SecondhandItem; onClose: () => v
             </button>
           </div>
         )}
+      </div>
+
+      {/* Public comments */}
+      <div className="px-5 pb-5">
+        <SecondhandComments itemId={item.id} sellerId={item.seller_id} />
       </div>
     </div>
   )
