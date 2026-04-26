@@ -19,6 +19,7 @@ import LoadingScreen from './components/LoadingScreen/LoadingScreen'
 import Home from './pages/Home/Home'
 import AiChatWidget from './components/AiChatWidget/AiChatWidget'
 import MessagesButton from './components/MessagesButton/MessagesButton'
+import MessageToast from './components/MessageToast/MessageToast'
 
 const Category        = lazy(() => import('./pages/Category/Category'))
 const Search          = lazy(() => import('./pages/Search/Search'))
@@ -163,6 +164,7 @@ export default function App() {
       {/* Global AI chat widget — always visible after loading */}
       {isLoadingDone && <AiChatWidget />}
       {isLoadingDone && <MessagesButton />}
+      {isLoadingDone && <MessageToast />}
     </>
   )
 }
