@@ -20,10 +20,7 @@ export default function ReferralSection({ user }: Props) {
   async function loadReferralData(code: string) {
     setReferralCode(code)
 
-    const { count, error: countError } = await supabase
-      .from('users')
-      .select('id', { count: 'exact', head: true })
-      .eq('referred_by_code', code)
+    const { data: count, error: countError } = await supabase.rpc('count_my_referrals')
 
     if (countError) throw countError
     setReferralCount(count ?? 0)

@@ -14,10 +14,6 @@ function urlBase64ToUint8Array(base64: string): Uint8Array {
   return bytes
 }
 
-function bufferToBase64(buf: ArrayBuffer): string {
-  return btoa(String.fromCharCode(...new Uint8Array(buf)))
-}
-
 export async function subscribeToWebPush(userId: string): Promise<boolean> {
   if (!VAPID_PUBLIC_KEY) {
     console.warn('[webPush] VITE_VAPID_PUBLIC_KEY not configured')
@@ -27,6 +23,10 @@ export async function subscribeToWebPush(userId: string): Promise<boolean> {
   if (Notification.permission !== 'granted') return false
 
   try {
+    // getRegistration resolves immediately with undefined in dev (SW skipped).
+    // Calling .ready without a registration hangs forever.
+    const existing = await navigator.serviceWorker.getRegistration('/')
+    if (!existing) return false
     const reg = await navigator.serviceWorker.ready
     let sub = await reg.pushManager.getSubscription()
 
@@ -43,6 +43,9 @@ export async function subscribeToWebPush(userId: string): Promise<boolean> {
     const auth   = json.keys?.auth
     if (!json.endpoint || !p256dh || !auth) return false
 
+    // A push endpoint is browser/device-scoped, so cross-user duplicates would
+    // leak notifications. The DB trigger `push_subs_endpoint_dedupe` enforces
+    // single-owner-per-endpoint atomically with this upsert.
     await supabase.from('push_subscriptions').upsert(
       {
         user_id:    userId,
@@ -64,6 +67,8 @@ export async function subscribeToWebPush(userId: string): Promise<boolean> {
 export async function unsubscribeFromWebPush(userId: string): Promise<void> {
   if (!('serviceWorker' in navigator)) return
   try {
+    const existing = await navigator.serviceWorker.getRegistration('/')
+    if (!existing) return
     const reg = await navigator.serviceWorker.ready
     const sub = await reg.pushManager.getSubscription()
     if (!sub) return
@@ -73,6 +78,3 @@ export async function unsubscribeFromWebPush(userId: string): Promise<void> {
     console.warn('[webPush] unsubscribe failed:', err)
   }
 }
-
-// Convert ArrayBuffer to base64url (used elsewhere if needed)
-export const _bufferToBase64 = bufferToBase64

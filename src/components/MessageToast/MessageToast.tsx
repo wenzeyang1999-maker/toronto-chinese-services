@@ -82,7 +82,9 @@ export default function MessageToast() {
   useEffect(() => {
     if (!user || !canUseNotifications()) return
     if (Notification.permission !== 'granted') return
-    subscribeToWebPush(user.id)
+    subscribeToWebPush(user.id).catch(err => {
+      console.warn('[webPush] re-subscribe failed:', err)
+    })
   }, [user])
 
   useEffect(() => {
@@ -133,7 +135,7 @@ export default function MessageToast() {
       .subscribe()
 
     return () => { supabase.removeChannel(channel) }
-  }, [user])
+  }, [user, navigate])
 
   function dismiss(id: string) {
     setToasts(prev => prev.filter(t => t.id !== id))

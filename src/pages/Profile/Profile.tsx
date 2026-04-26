@@ -10,6 +10,7 @@ import {
 } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { useAuthStore } from '../../store/authStore'
+import { compressImage } from '../../lib/compressImage'
 import type { BrowseEntry, Section } from './types'
 import type { MemberLevel } from '../../components/MembershipBadge/MembershipBadge'
 import MembershipBadge from '../../components/MembershipBadge/MembershipBadge'
@@ -96,8 +97,9 @@ export default function Profile() {
     if (!file) return
     setUploading(true)
     try {
-      const path = `${user!.id}/avatar.${file.name.split('.').pop()}`
-      const { error } = await supabase.storage.from('avatars').upload(path, file, { upsert: true })
+      const compressed = await compressImage(file)
+      const path = `${user!.id}/avatar.jpg`
+      const { error } = await supabase.storage.from('avatars').upload(path, compressed, { upsert: true })
       if (error) throw error
       const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(path)
       await supabase.from('users').update({ avatar_url: publicUrl }).eq('id', user!.id)

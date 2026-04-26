@@ -27,10 +27,9 @@ function saveChatSession(messages: Message[]) {
   try {
     const key = 'tcs_chat_history'
     const prev: ChatSession[] = JSON.parse(localStorage.getItem(key) ?? '[]')
-    const first = messages.find(m => m.role === 'user')
     const session: ChatSession = {
       id: Date.now().toString(),
-      preview: first?.content.slice(0, 40) ?? '对话',
+      preview: `对话记录（${messages.length} 条消息）`,
       ts: Date.now(),
       count: messages.length,
     }

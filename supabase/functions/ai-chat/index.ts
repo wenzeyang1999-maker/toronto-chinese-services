@@ -1,7 +1,18 @@
-const cors = {
-  'Access-Control-Allow-Origin':  '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+const ALLOWED_ORIGINS = new Set([
+  'https://toronto-chinese-services.vercel.app',
+  'http://localhost:5173',
+  'http://localhost:4173',
+])
+
+function corsHeaders(origin: string | null) {
+  const allowed = origin && ALLOWED_ORIGINS.has(origin)
+    ? origin
+    : 'https://toronto-chinese-services.vercel.app'
+  return {
+    'Access-Control-Allow-Origin':  allowed,
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  }
 }
 
 interface ServiceRow {
@@ -10,20 +21,28 @@ interface ServiceRow {
   area:        string | null
   price:       number | null
   price_type:  string | null
+  provider:    { is_online: boolean } | null
 }
 
 async function fetchServicesSummary(): Promise<string> {
-  const url     = Deno.env.get('SUPABASE_URL')
-  const anonKey = Deno.env.get('SUPABASE_ANON_KEY')
-  if (!url || !anonKey) return ''
+  const url            = Deno.env.get('SUPABASE_URL')
+  const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
+  if (!url || !serviceRoleKey) return ''
   try {
     const res = await fetch(
-      `${url}/rest/v1/services?select=title,category_id,area,price,price_type&is_available=eq.true&order=created_at.desc&limit=60`,
-      { headers: { apikey: anonKey, Authorization: `Bearer ${anonKey}` } }
+      `${url}/rest/v1/services?select=title,category_id,area,price,price_type,provider:provider_id(is_online)&is_available=eq.true&order=created_at.desc&limit=80`,
+      { headers: { apikey: serviceRoleKey, Authorization: `Bearer ${serviceRoleKey}` } }
     )
     if (!res.ok) return ''
     const rows: ServiceRow[] = await res.json()
     if (!rows.length) return ''
+
+    // Online providers first, then the rest
+    rows.sort((a, b) => {
+      const aOnline = a.provider?.is_online ? 1 : 0
+      const bOnline = b.provider?.is_online ? 1 : 0
+      return bOnline - aOnline
+    })
 
     const label: Record<string, string> = {
       moving: '搬家', cleaning: '保洁', ride: '接送',
@@ -36,11 +55,12 @@ async function fetchServicesSummary(): Promise<string> {
       const priceStr = r.price
         ? `(${r.price}/${r.price_type === 'hourly' ? '小时' : r.price_type === 'fixed' ? '固定' : '面议'})`
         : ''
-      const areaStr = r.area ? ` · ${r.area}` : ''
-      grouped[cat].push(`  - ${r.title}${priceStr}${areaStr}`)
+      const areaStr  = r.area ? ` · ${r.area}` : ''
+      const onlineMark = r.provider?.is_online ? ' ⚡在线接单' : ''
+      grouped[cat].push(`  - ${r.title}${priceStr}${areaStr}${onlineMark}`)
     }
 
-    const lines = ['当前平台在架服务（实时数据）：']
+    const lines = ['当前平台在架服务（实时数据，⚡在线接单 = 服务商当前在线可立即响应）：']
     for (const [cat, items] of Object.entries(grouped)) {
       lines.push(`【${label[cat] ?? cat}】`)
       lines.push(...items.slice(0, 10))
@@ -61,12 +81,16 @@ const BASE_PROMPT = `你是 TCS 智能助手，多伦多华人一站式生活服
 
 行为准则：
 - 用用户使用的语言回复（中文回中文，英文回英文）
+- 优先推荐标注「⚡在线接单」的服务商，他们当前在线、响应更快
 - 优先推荐平台现有服务，回答简洁（3-5句话）
 - 不要编造不存在的服务商信息或电话
 - 如用户需要具体报价，引导使用"获取报价"功能
 - 语气专业但亲切，像一位熟悉多伦多华人生活的朋友`
 
 Deno.serve(async (req: Request) => {
+  const origin = req.headers.get('origin')
+  const cors   = corsHeaders(origin)
+
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: cors })
   }

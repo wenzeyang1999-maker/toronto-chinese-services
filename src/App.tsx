@@ -53,6 +53,7 @@ const PostCommunity   = lazy(() => import('./pages/Community/PostCommunity'))
 import { useAppStore } from './store/appStore'
 import { useAuthStore } from './store/authStore'
 import { supabase } from './lib/supabase'
+import { unsubscribeFromWebPush } from './lib/webPush'
 
 export default function App() {
   const isLoadingDone = useAppStore((s) => s.isLoadingDone)
@@ -73,6 +74,10 @@ export default function App() {
     const syncSessionUser = async (authUser: User | null) => {
       if (!isActive) return
       if (!authUser) {
+        const prevUser = useAuthStore.getState().user
+        if (prevUser) {
+          unsubscribeFromWebPush(prevUser.id).catch(() => {})
+        }
         setUser(null)
         return
       }

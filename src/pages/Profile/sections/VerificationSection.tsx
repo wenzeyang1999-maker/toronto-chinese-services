@@ -10,6 +10,7 @@ import {
   AlertCircle, CheckCircle2, Send, RefreshCw, Pencil, Check, X,
 } from 'lucide-react'
 import { supabase } from '../../../lib/supabase'
+import { compressImage } from '../../../lib/compressImage'
 import type { User as SupabaseUser } from '@supabase/supabase-js'
 
 interface Props { user: SupabaseUser }
@@ -177,9 +178,9 @@ export default function VerificationSection({ user }: Props) {
     if (file.size > 5 * 1024 * 1024) { setUploadMsg({ ok: false, text: '文件不能超过 5MB' }); return }
     setUploading(true); setUploadMsg(null)
     try {
-      const ext  = file.name.split('.').pop()
-      const path = `${user.id}/verify-doc.${ext}`
-      const { error } = await supabase.storage.from('avatars').upload(path, file, { upsert: true })
+      const compressed = await compressImage(file)
+      const path = `${user.id}/verify-doc.jpg`
+      const { error } = await supabase.storage.from('avatars').upload(path, compressed, { upsert: true })
       if (error) throw error
       const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(path)
       await supabase.from('users').update({

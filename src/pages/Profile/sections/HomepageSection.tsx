@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
-import { Camera, Check, ExternalLink, Pencil, Share2, Tag, X, AlignLeft } from 'lucide-react'
+import { Camera, Check, ExternalLink, Pencil, Share2, Tag, X, AlignLeft, Wifi, WifiOff } from 'lucide-react'
+import { compressImage } from '../../../lib/compressImage'
 import { supabase } from '../../../lib/supabase'
 import { useAuthStore } from '../../../store/authStore'
 import { useNavigate } from 'react-router-dom'
@@ -25,6 +26,7 @@ interface Profile {
   cover_url: string | null
   tags: string[]
   membership_level: MemberLevel
+  is_online: boolean
 }
 
 export default function HomepageSection() {
@@ -33,9 +35,10 @@ export default function HomepageSection() {
 
   const [tab,          setTab]          = useState<Tab>('edit')
   const [profile,      setProfile]      = useState<Profile | null>(null)
-  const [saving,       setSaving]       = useState(false)
+  const [saving,        setSaving]        = useState(false)
   const [uploadingCover, setUploadingCover] = useState(false)
-  const [copied,       setCopied]       = useState(false)
+  const [copied,        setCopied]        = useState(false)
+  const [togglingOnline, setTogglingOnline] = useState(false)
 
   const [editingBio,  setEditingBio]  = useState(false)
   const [bioInput,    setBioInput]    = useState('')
@@ -47,7 +50,7 @@ export default function HomepageSection() {
   useEffect(() => {
     if (!user) return
     supabase.from('users')
-      .select('name, avatar_url, bio, social_links, membership_level, membership_expires_at')
+      .select('name, avatar_url, bio, social_links, membership_level, membership_expires_at, is_online')
       .eq('id', user.id).single()
       .then(({ data }) => {
         if (!data) return
@@ -61,6 +64,7 @@ export default function HomepageSection() {
           cover_url: links['_cover'] ?? null,
           tags: links['_tags'] ? links['_tags'].split(',').map((t: string) => t.trim()).filter(Boolean) : [],
           membership_level: isActive ? (data.membership_level as MemberLevel) ?? 'L1' : 'L1',
+          is_online: data.is_online ?? false,
         })
       })
   }, [user])
@@ -74,9 +78,9 @@ export default function HomepageSection() {
     if (!file) return
     setUploadingCover(true)
     try {
-      const ext = file.name.split('.').pop()
-      const path = `${user!.id}/cover.${ext}`
-      const { error } = await supabase.storage.from('avatars').upload(path, file, { upsert: true })
+      const compressed = await compressImage(file)
+      const path = `${user!.id}/cover.jpg`
+      const { error } = await supabase.storage.from('avatars').upload(path, compressed, { upsert: true })
       if (error) throw error
       const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(path)
       const coverUrl = publicUrl + '?t=' + Date.now()
@@ -119,6 +123,15 @@ export default function HomepageSection() {
     } catch {
       alert('主页链接：' + profileUrl)
     }
+  }
+
+  async function toggleOnline() {
+    if (!user || !profile) return
+    setTogglingOnline(true)
+    const next = !profile.is_online
+    const { error } = await supabase.from('users').update({ is_online: next }).eq('id', user.id)
+    if (!error) setProfile(p => p ? { ...p, is_online: next } : p)
+    setTogglingOnline(false)
   }
 
   return (
@@ -213,6 +226,23 @@ export default function HomepageSection() {
       {/* ── Tab content ──────────────────────────────────────────────────── */}
       {tab === 'edit' && (
         <div className="px-4 py-4 max-w-md lg:max-w-none mx-auto space-y-3">
+
+          {/* ── Online status toggle ─────────────────────────────────────── */}
+          <button
+            onClick={toggleOnline}
+            disabled={togglingOnline}
+            className={`w-full flex items-center justify-center gap-3 py-4 rounded-2xl text-base font-bold transition-all active:scale-[0.98] disabled:opacity-60 shadow-sm ${
+              profile.is_online
+                ? 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                : 'bg-emerald-500 text-white hover:bg-emerald-600 shadow-emerald-200'
+            }`}
+          >
+            {profile.is_online
+              ? <><WifiOff size={20} />我下线休息</>
+              : <><Wifi size={20} />上线接单</>
+            }
+          </button>
+
           {/* Edit bio */}
           <div className="bg-white rounded-3xl border border-gray-100 shadow-sm divide-y divide-gray-100 overflow-hidden">
             <div className="px-5 py-4">
