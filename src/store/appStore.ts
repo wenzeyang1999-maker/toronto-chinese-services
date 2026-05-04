@@ -4,7 +4,7 @@ import type { Service, SearchFilters, ServiceCategory } from '../types'
 import { supabase } from '../lib/supabase'
 
 // Shape of a raw row returned from Supabase (services + joined users)
-interface ServiceRow {
+export interface ServiceRow {
   id: string
   category_id: string | null
   title: string
@@ -47,6 +47,7 @@ interface AppState {
   setSearchFilters: (filters: Partial<SearchFilters>) => void
   addService: (service: Service) => void
   fetchServices: () => Promise<void>
+  fetchServicesByKeyword: (keyword: string) => Promise<Service[]>
   getFilteredServices: () => Service[]
   getServicesByCategory: (category: ServiceCategory) => Service[]
 }
@@ -68,7 +69,7 @@ function calcDistance(
 }
 
 // Map a Supabase services row to the frontend Service type
-function mapRow(row: ServiceRow): Service {
+export function mapRow(row: ServiceRow): Service {
   return {
     id: row.id,
     category: (row.category_id ?? 'other') as ServiceCategory,
@@ -136,6 +137,21 @@ export const useAppStore = create<AppState>((set, get) => ({
     if (!error && data) {
       set({ services: (data as ServiceRow[]).map(mapRow) })
     }
+  },
+
+  fetchServicesByKeyword: async (keyword: string) => {
+    const kw = keyword.trim()
+    if (!kw) return []
+    // Uses trigram GIN index for fast ILIKE — fts_search_patch.sql must be applied
+    const { data, error } = await supabase
+      .from('services')
+      .select('*, provider:users(id, name, phone, wechat, avatar_url, last_seen_at), reviews(rating)')
+      .eq('is_available', true)
+      .or(`title.ilike.%${kw}%,description.ilike.%${kw}%`)
+      .order('created_at', { ascending: false })
+      .limit(50)
+    if (error || !data) return []
+    return (data as ServiceRow[]).map(mapRow)
   },
 
   // Returns services filtered by keyword, category, rating and sorted accordingly.

@@ -6,7 +6,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import {
   ChevronLeft, ChevronRight, Camera, LogOut,
-  ShieldCheck, Clock, MessageSquare, BadgeCheck, Crown, Heart, UserCheck, Gift, LayoutDashboard,
+  ShieldCheck, Clock, MessageSquare, BadgeCheck, Crown, Heart, UserCheck, Gift, LayoutDashboard, ClipboardList, Bell,
 } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { useAuthStore } from '../../store/authStore'
@@ -26,6 +26,9 @@ import StatsSection        from './sections/StatsSection'
 import CommunitySection    from './sections/CommunitySection'
 import ReferralSection     from './sections/ReferralSection'
 import HomepageSection    from './sections/HomepageSection'
+import InquiriesSection      from './sections/InquiriesSection'
+import NotificationsSection  from './sections/NotificationsSection'
+import { toast } from '../../lib/toast'
 
 const MENU: { key: Section; icon: React.ReactNode; label: string; sub: string }[] = [
   { key: 'homepage',     icon: <LayoutDashboard size={18} />, label: '我的主页',         sub: '封面 · 简介 · 标签装修' },
@@ -34,9 +37,11 @@ const MENU: { key: Section; icon: React.ReactNode; label: string; sub: string }[
   { key: 'membership',   icon: <Crown         size={18} />, label: '会员等级',           sub: '查看商家会员权益' },
   { key: 'saves',        icon: <Heart         size={18} />, label: '我的收藏',           sub: '已收藏的服务、招聘、房源等' },
   { key: 'follows',      icon: <UserCheck     size={18} />, label: '我的关注',           sub: '已关注的服务商' },
-  { key: 'messages',     icon: <MessageSquare size={18} />, label: '我的消息',           sub: '与商家的对话记录' },
-  { key: 'browse',       icon: <Clock         size={18} />, label: '浏览记录',           sub: '最近查看的服务' },
-  { key: 'referral',    icon: <Gift          size={18} />, label: '邀请好友',            sub: '我的分享码 · 已邀请人数' },
+  { key: 'messages',     icon: <MessageSquare  size={18} />, label: '我的消息',     sub: '与商家的对话记录' },
+  { key: 'inquiries',   icon: <ClipboardList  size={18} />, label: '我的报价请求', sub: '已提交的需求和匹配结果' },
+  { key: 'browse',       icon: <Clock         size={18} />, label: '浏览记录',     sub: '最近查看的服务' },
+  { key: 'referral',       icon: <Gift          size={18} />, label: '邀请好友',    sub: '我的分享码 · 已邀请人数' },
+  { key: 'notifications',  icon: <Bell          size={18} />, label: '通知设置',    sub: '管理推送通知偏好' },
 ]
 
 export default function Profile() {
@@ -105,7 +110,7 @@ export default function Profile() {
       await supabase.from('users').update({ avatar_url: publicUrl }).eq('id', user!.id)
       setAvatarUrl(publicUrl + '?t=' + Date.now())
     } catch (err) {
-      alert('头像上传失败：' + (err instanceof Error ? err.message : '请先创建 avatars 存储桶'))
+      toast('头像上传失败：' + (err instanceof Error ? err.message : '请先创建 avatars 存储桶'), 'error')
     } finally {
       setUploading(false)
       if (fileRef.current) fileRef.current.value = ''
@@ -189,7 +194,9 @@ export default function Profile() {
       case 'stats':        return <StatsSection />
       case 'community':    return <CommunitySection />
       case 'referral':     return <ReferralSection user={user!} />
-      case 'messages':     return <MessagesSection />
+      case 'inquiries':      return <InquiriesSection />
+      case 'notifications':  return <NotificationsSection />
+      case 'messages':       return <MessagesSection />
       case 'browse':       return <BrowseSection items={browse} onClear={() => { localStorage.removeItem('tcs_browse_history'); setBrowse([]) }} />
       default:             return null
     }

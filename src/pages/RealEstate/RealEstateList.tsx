@@ -17,6 +17,8 @@ import {
   LISTING_TYPE_CONFIG, PROPERTY_TYPE_CONFIG, PRICE_TYPE_LABEL, getPriceLabel, getBedroomLabel,
   type Property, type RealEstateListingType, type PropertyType,
 } from './types'
+import { toast } from '../../lib/toast'
+import { useUrlFilters } from '../../lib/useUrlFilters'
 
 const GTA_AREAS = [
   '多伦多市区', '北约克', '士嘉堡', '密西沙加', '万锦',
@@ -32,6 +34,8 @@ export default function RealEstateList() {
   const [localKeyword, setLocalKeyword] = useState(filters.keyword ?? '')
   const [selectedId,   setSelectedId]   = useState<string | null>(null)
   const detailRef = useRef<HTMLDivElement>(null)
+
+  useUrlFilters(filters, setFilters, ['listing_type', 'keyword', 'property_type', 'area', 'max_price', 'bedrooms'], { numericKeys: ['max_price', 'bedrooms'] })
 
   useEffect(() => { fetchProperties() }, [])
 
@@ -281,7 +285,7 @@ function DetailPanel({ prop, onClose }: { prop: Property; onClose: () => void })
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
     } catch {
-      alert(`微信号：${prop.contact_wechat}`)
+      toast(`微信号：${prop.contact_wechat}（请手动复制）`)
     }
   }
 

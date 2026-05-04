@@ -14,6 +14,7 @@ import SaveButton from '../../components/SaveButton/SaveButton'
 import ShareButton from '../../components/ShareButton/ShareButton'
 import PageMeta from '../../components/PageMeta/PageMeta'
 import ViewCount from '../../components/ViewCount/ViewCount'
+import { toast } from '../../lib/toast'
 
 export default function EventDetail() {
   const { id }   = useParams<{ id: string }>()
@@ -51,7 +52,7 @@ export default function EventDetail() {
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
     } catch {
-      alert(`微信号：${ev.contact_wechat}`)
+      toast(`微信号：${ev.contact_wechat}（请手动复制）`)
     }
   }
 

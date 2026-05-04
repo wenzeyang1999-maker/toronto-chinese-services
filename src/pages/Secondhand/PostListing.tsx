@@ -162,8 +162,8 @@ export default function PostListing() {
       is_active:      true,
       is_sold:        false,
       address:        location?.address ?? null,
-      lat:            location?.lat     ?? null,
-      lng:            location?.lng     ?? null,
+      lat:            (location?.lat != null && location?.lng != null && !(location.lat === 0 && location.lng === 0)) ? location.lat : null,
+      lng:            (location?.lat != null && location?.lng != null && !(location.lat === 0 && location.lng === 0)) ? location.lng : null,
     }
 
     const { data, error } = await supabase

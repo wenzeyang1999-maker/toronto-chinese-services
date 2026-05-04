@@ -2,6 +2,7 @@
 // Uses Web Share API if available, otherwise copies link to clipboard.
 import { useState } from 'react'
 import { Share2, Check } from 'lucide-react'
+import { toast } from '../../lib/toast'
 
 interface Props {
   title: string
@@ -26,7 +27,7 @@ export default function ShareButton({ title, size = 20, className = '' }: Props)
         setCopied(true)
         setTimeout(() => setCopied(false), 2000)
       } catch {
-        alert(`链接：${url}`)
+        toast(`链接：${url}`)
       }
     }
   }

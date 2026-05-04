@@ -96,9 +96,10 @@ src/
 ├── lib/
 │   ├── supabase.ts                   # Supabase 客户端
 │   ├── notify.ts                     # 邮件通知封装（调用 Edge Function）
-│   ├── matchAndEmail.ts              # AI 匹配商家并批量发邮件（最多5家）
 │   ├── compressImage.ts              # 图片压缩工具
-│   └── imgTransform.ts              # Supabase 图片转换 URL 工具
+│   ├── imgTransform.ts               # Supabase 图片转换 URL 工具
+│   ├── toast.ts                      # 全局轻提示状态
+│   └── useUrlFilters.ts              # 列表筛选与 URL query 同步
 │
 ├── pages/
 │   ├── Home/
@@ -216,7 +217,7 @@ main.tsx
 | 服务被提问 | 商家 | `new_question` |
 | 注册成功 | 新用户 | `welcome` |
 
-匹配逻辑见 `src/lib/matchAndEmail.ts`：按类别筛选 available 服务 → 按商家去重 → 按 rating 降序 → 取前5。
+匹配逻辑见 `supabase/functions/match-inquiry-providers/index.ts`：按类别筛选 available 服务 → 按商家去重 → 按 rating 降序 → 取前5。
 
 ---
 
@@ -237,7 +238,7 @@ UPDATE public.users SET role = 'admin' WHERE email = '你的邮箱';
 ## Changelog
 
 ### 2026-04-06
-- **AI 帮你找 邮件通知**：询价提交后自动匹配商家并发邮件（`src/lib/matchAndEmail.ts`）
+- **AI 帮你找 邮件通知**：询价提交后自动匹配商家并发邮件（`supabase/functions/match-inquiry-providers/index.ts`）
   - 按类别筛选、按 rating 排序、去重，≥5家取前5，全部 fire-and-forget
   - `notify.ts` 新增 `notifyProviderInquiry()` 类型化封装
   - Edge Function 新增 `provider_inquiry` 邮件模板

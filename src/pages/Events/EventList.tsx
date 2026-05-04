@@ -18,6 +18,8 @@ import {
   EVENT_TYPE_CONFIG, getPriceLabel, formatEventDate, formatEventTime, isUpcoming,
   type Event, type EventType,
 } from './types'
+import { toast } from '../../lib/toast'
+import { useUrlFilters } from '../../lib/useUrlFilters'
 
 const GTA_AREAS = [
   '多伦多市区', '北约克', '士嘉堡', '密西沙加', '万锦',
@@ -33,6 +35,8 @@ export default function EventList() {
   const [localKeyword, setLocalKeyword] = useState(filters.keyword ?? '')
   const [selectedId,   setSelectedId]   = useState<string | null>(null)
   const detailRef = useRef<HTMLDivElement>(null)
+
+  useUrlFilters(filters, setFilters, ['keyword', 'event_type', 'area', 'upcoming_only'], { boolKeys: ['upcoming_only'] })
 
   useEffect(() => { fetchEvents() }, [])
 
@@ -344,7 +348,7 @@ function DetailPanel({ ev, onClose }: { ev: Event; onClose: () => void }) {
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
     } catch {
-      alert(`微信号：${ev.contact_wechat}`)
+      toast(`微信号：${ev.contact_wechat}（请手动复制）`)
     }
   }
 

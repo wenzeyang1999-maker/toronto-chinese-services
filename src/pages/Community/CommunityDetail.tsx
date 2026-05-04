@@ -4,9 +4,10 @@
 import { useEffect, useRef, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ArrowLeft, Heart, MessageCircle, Send, Trash2, Flag, Share2, Check } from 'lucide-react'
+import { ArrowLeft, Heart, MessageCircle, Send, Trash2, Flag, Share2, Check, Pencil } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { notifyAdminCommunityReport } from '../../lib/notify'
+import { toast } from '../../lib/toast'
 import { useAuthStore } from '../../store/authStore'
 import { POST_TYPE_CONFIG, AREA_CONFIG } from './config'
 
@@ -108,9 +109,10 @@ export default function CommunityDetail() {
 
   useEffect(() => {
     if (!id || !user) return
-    supabase.from('community_post_reports')
-      .select('post_id')
-      .eq('post_id', id)
+    supabase.from('content_reports')
+      .select('content_id')
+      .eq('content_type', 'community_post')
+      .eq('content_id', id)
       .eq('reporter_id', user.id)
       .maybeSingle()
       .then(({ data }) => { if (data) setReportSubmitted(true) })
@@ -119,12 +121,13 @@ export default function CommunityDetail() {
   useEffect(() => {
     if (!user || comments.length === 0) return
     const ids = comments.map(c => c.id)
-    supabase.from('community_comment_reports')
-      .select('comment_id')
+    supabase.from('content_reports')
+      .select('content_id')
+      .eq('content_type', 'community_comment')
       .eq('reporter_id', user.id)
-      .in('comment_id', ids)
+      .in('content_id', ids)
       .then(({ data }) => {
-        setReportedCommentIds(new Set((data ?? []).map((row: any) => row.comment_id)))
+        setReportedCommentIds(new Set((data ?? []).map((row: any) => row.content_id)))
       })
   }, [comments, user])
 
@@ -157,7 +160,7 @@ export default function CommunityDetail() {
       .insert({ post_id: id, author_id: user.id, content: text })
     if (error) {
       setInput(text) // restore on failure
-      alert('评论发送失败，请稍后再试')
+      toast('评论发送失败，请稍后再试', 'error')
     }
     setSending(false)
   }
@@ -168,7 +171,7 @@ export default function CommunityDetail() {
     const { error } = await supabase.from('community_comments').delete().eq('id', commentId)
     if (error) {
       setComments(prev) // rollback
-      alert('删除失败，请稍后再试')
+      toast('删除失败，请稍后再试', 'error')
     }
   }
 
@@ -177,7 +180,7 @@ export default function CommunityDetail() {
     if (!confirm('确定删除这条帖子？')) return
     const { error } = await supabase.from('community_posts').delete().eq('id', post.id)
     if (error) {
-      alert('删除失败，请稍后再试')
+      toast('删除失败，请稍后再试', 'error')
       return
     }
     navigate('/community')
@@ -205,8 +208,10 @@ export default function CommunityDetail() {
     if (!id || !user || !reportReason) return
     setReportError(null)
     setReportSubmitting(true)
-    const { error } = await supabase.from('community_post_reports').insert({
-      post_id: id,
+    const { error } = await supabase.from('content_reports').insert({
+      content_type: 'community_post',
+      content_id: id,
+      content_title: post?.title ?? '社区帖子',
       reporter_id: user.id,
       reason: reportReason,
     })
@@ -230,8 +235,11 @@ export default function CommunityDetail() {
     if (!user || !commentReportReason) return
     setCommentReportError(null)
     setCommentReportSubmitting(true)
-    const { error } = await supabase.from('community_comment_reports').insert({
-      comment_id: commentId,
+    const comment = comments.find((item) => item.id === commentId)
+    const { error } = await supabase.from('content_reports').insert({
+      content_type: 'community_comment',
+      content_id: commentId,
+      content_title: `评论: ${(comment?.content ?? '').slice(0, 50)}`,
       reporter_id: user.id,
       reason: commentReportReason,
     })
@@ -243,7 +251,6 @@ export default function CommunityDetail() {
     setReportedCommentIds(prev => new Set([...prev, commentId]))
     setReportingCommentId(null)
     setCommentReportReason('')
-    const comment = comments.find((item) => item.id === commentId)
     void notifyAdminsAboutReport({
       reportType: 'comment',
       reason: commentReportReason,
@@ -322,9 +329,18 @@ export default function CommunityDetail() {
         </button>
         <span className="flex-1 text-sm font-semibold text-gray-800 truncate">社区圈子</span>
         {user?.id === post.author_id && (
-          <button onClick={deletePost} className="text-gray-400 hover:text-red-500 transition-colors">
-            <Trash2 size={18} />
-          </button>
+          <>
+            <button
+              onClick={() => navigate(`/community/post?edit=${post.id}`)}
+              className="text-gray-400 hover:text-primary-500 transition-colors"
+              title="编辑帖子"
+            >
+              <Pencil size={17} />
+            </button>
+            <button onClick={deletePost} className="text-gray-400 hover:text-red-500 transition-colors" title="删除帖子">
+              <Trash2 size={18} />
+            </button>
+          </>
         )}
       </div>
 

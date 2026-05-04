@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ChevronLeft, MapPin, Phone, MessageCircle, Copy, Package, User, ExternalLink, MessageSquare, Star } from 'lucide-react'
+import { ChevronLeft, MapPin, Phone, MessageCircle, Copy, Package, User, ExternalLink, MessageSquare, Star, Flag } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { useAuthStore } from '../../store/authStore'
 import { SECONDHAND_CATEGORY_CONFIG, ITEM_CONDITION_CONFIG, getPriceLabel, type SecondhandItem } from './types'
@@ -12,6 +12,15 @@ import ShareButton from '../../components/ShareButton/ShareButton'
 import PageMeta from '../../components/PageMeta/PageMeta'
 import ViewCount from '../../components/ViewCount/ViewCount'
 import SecondhandComments from './components/SecondhandComments'
+import { toast } from '../../lib/toast'
+
+const REPORT_REASONS = [
+  { key: 'fake',       label: '虚假信息' },
+  { key: 'spam',       label: '垃圾广告' },
+  { key: 'malicious',  label: '欺诈/恶意' },
+  { key: 'irrelevant', label: '内容无关' },
+  { key: 'other',      label: '其他' },
+] as const
 
 interface Review {
   id: string
@@ -32,6 +41,11 @@ export default function SecondhandDetail() {
   const [imgIdx,  setImgIdx]  = useState(0)
   const [copied,  setCopied]  = useState(false)
   const [messaging, setMessaging] = useState(false)
+  const [showReportForm,   setShowReportForm]   = useState(false)
+  const [reportReason,     setReportReason]     = useState('')
+  const [reportSubmitting, setReportSubmitting] = useState(false)
+  const [reportSubmitted,  setReportSubmitted]  = useState(false)
+  const [reportError,      setReportError]      = useState<string | null>(null)
 
   // Reviews state
   const [reviews,       setReviews]       = useState<Review[]>([])
@@ -40,6 +54,17 @@ export default function SecondhandDetail() {
   const [myComment,     setMyComment]     = useState('')
   const [submittingRev, setSubmittingRev] = useState(false)
   const [myReview,      setMyReview]      = useState<Review | null>(null)
+
+  useEffect(() => {
+    if (!id || !user) return
+    supabase.from('content_reports')
+      .select('content_id')
+      .eq('content_type', 'secondhand')
+      .eq('content_id', id)
+      .eq('reporter_id', user.id)
+      .maybeSingle()
+      .then(({ data }) => { if (data) setReportSubmitted(true) })
+  }, [id, user])
 
   useEffect(() => {
     if (!id) return
@@ -90,7 +115,7 @@ export default function SecondhandDetail() {
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
     } catch {
-      alert(`微信号：${item.contact_wechat}`)
+      toast(`微信号：${item.contact_wechat}（请手动复制）`)
     }
   }
 
@@ -121,6 +146,27 @@ export default function SecondhandDetail() {
     } finally {
       setMessaging(false)
     }
+  }
+
+  async function submitReport() {
+    if (!id || !user || !reportReason) return
+    setReportError(null)
+    setReportSubmitting(true)
+    const { error } = await supabase.from('content_reports').insert({
+      content_type: 'secondhand',
+      content_id: id,
+      content_title: item?.title ?? '二手商品',
+      reporter_id: user.id,
+      reason: reportReason,
+    })
+    setReportSubmitting(false)
+    if (error) {
+      setReportError(error.code === '23505' ? '您已经举报过这个商品了' : '举报失败，请稍后再试')
+      return
+    }
+    setReportSubmitted(true)
+    setReportReason('')
+    setShowReportForm(false)
   }
 
   async function submitReview() {
@@ -285,6 +331,69 @@ export default function SecondhandDetail() {
                 <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{item.description}</p>
               </div>
               <ViewCount type="secondhand" id={item.id} className="mt-3" />
+
+              {/* Report */}
+              {user && !isOwn && (
+                <div className="mt-4 pt-3 border-t border-gray-100">
+                  {reportSubmitted ? (
+                    <span className="flex items-center gap-1 text-xs text-orange-500">
+                      <Flag size={12} /> 已举报，我们会尽快处理
+                    </span>
+                  ) : (
+                    <button
+                      onClick={() => setShowReportForm(v => !v)}
+                      className="flex items-center gap-1 text-xs text-gray-400 hover:text-orange-500 transition-colors"
+                    >
+                      <Flag size={12} /> 举报此商品
+                    </button>
+                  )}
+                  <AnimatePresence>
+                    {showReportForm && !reportSubmitted && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        exit={{ opacity: 0, height: 0 }}
+                        className="overflow-hidden"
+                      >
+                        <div className="mt-2 bg-orange-50 border border-orange-200 rounded-xl p-3 space-y-2">
+                          <p className="text-xs font-semibold text-orange-700">选择举报原因</p>
+                          <div className="space-y-1">
+                            {REPORT_REASONS.map(opt => (
+                              <label key={opt.key} className="flex items-center gap-2 text-xs text-gray-700 cursor-pointer">
+                                <input
+                                  type="radio"
+                                  name="secondhand-report"
+                                  value={opt.key}
+                                  checked={reportReason === opt.key}
+                                  onChange={() => setReportReason(opt.key)}
+                                  className="accent-orange-500"
+                                />
+                                {opt.label}
+                              </label>
+                            ))}
+                          </div>
+                          {reportError && <p className="text-xs text-red-500">{reportError}</p>}
+                          <div className="flex gap-2 pt-1">
+                            <button
+                              onClick={() => { setShowReportForm(false); setReportReason(''); setReportError(null) }}
+                              className="flex-1 text-xs py-1.5 rounded-lg border border-gray-200 text-gray-500 hover:bg-white transition-colors"
+                            >
+                              取消
+                            </button>
+                            <button
+                              onClick={submitReport}
+                              disabled={!reportReason || reportSubmitting}
+                              className="flex-1 text-xs py-1.5 rounded-lg bg-orange-500 text-white hover:bg-orange-600 disabled:opacity-50 transition-colors"
+                            >
+                              {reportSubmitting ? '提交中…' : '提交举报'}
+                            </button>
+                          </div>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              )}
             </motion.div>
 
             {/* Contact card — hidden for own items */}

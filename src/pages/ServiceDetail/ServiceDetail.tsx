@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ArrowLeft, Star, MapPin, Phone, ShieldCheck, Clock, Tag, MessageSquare, CheckCircle2, ExternalLink, ChevronDown, ChevronUp } from 'lucide-react'
-import { motion } from 'framer-motion'
-import { useAppStore } from '../../store/appStore'
+import { ArrowLeft, Star, MapPin, Phone, ShieldCheck, Clock, Tag, MessageSquare, CheckCircle2, ExternalLink, ChevronDown, ChevronUp, Flag } from 'lucide-react'
+import { toast } from '../../lib/toast'
+import { motion, AnimatePresence } from 'framer-motion'
+import { useAppStore, mapRow } from '../../store/appStore'
 import { useAuthStore } from '../../store/authStore'
 import { supabase } from '../../lib/supabase'
 import { getCategoryById } from '../../data/categories'
@@ -18,6 +19,15 @@ import ViewCount from '../../components/ViewCount/ViewCount'
 import { SOCIAL_PLATFORMS } from '../../lib/socialPlatforms'
 import ContactActions from './components/ContactActions'
 import GoogleMapCanvas, { type GoogleMapPoint } from '../../components/ServiceMap/GoogleMapCanvas'
+import { ServiceDetailSkeleton } from '../../components/Skeleton/Skeleton'
+
+const REPORT_REASONS = [
+  { key: 'fake',       label: '虚假信息' },
+  { key: 'spam',       label: '垃圾广告' },
+  { key: 'malicious',  label: '欺诈/恶意' },
+  { key: 'irrelevant', label: '内容无关' },
+  { key: 'other',      label: '其他' },
+] as const
 
 function recordBrowse(entry: BrowseEntry) {
   try {
@@ -34,9 +44,11 @@ export default function ServiceDetail() {
   const navigate = useNavigate()
   const services = useAppStore((s) => s.services)
 
-  const service = services.find((s) => s.id === id)
+  const storeService = services.find((s) => s.id === id)
+  const [localService, setLocalService] = useState<ReturnType<typeof mapRow> | null>(null)
+  const service = storeService ?? localService
 
-  // Provider extra info — fetched separately, not in global store
+  const [loading,        setLoading]        = useState(!storeService)
   const [socialLinks,    setSocialLinks]    = useState<Record<string, string>>({})
   const [emailVerified,  setEmailVerified]  = useState(false)
   const [phoneVerified,  setPhoneVerified]  = useState(false)
@@ -44,24 +56,62 @@ export default function ServiceDetail() {
   const [avgReplyHours,  setAvgReplyHours]  = useState<number | null>(null)
   const [showMap,        setShowMap]        = useState(false)
   const [showContactActions, setShowContactActions] = useState(false)
+  const [showReportForm,  setShowReportForm]  = useState(false)
+  const [reportReason,    setReportReason]    = useState('')
+  const [reportSubmitting, setReportSubmitting] = useState(false)
+  const [reportSubmitted,  setReportSubmitted]  = useState(false)
+  const [reportError,      setReportError]      = useState<string | null>(null)
 
   useEffect(() => {
-    if (!service?.provider.id) return
-    // Single query via public_profiles view (RLS-safe, no auth required).
-    supabase
-      .from('public_profiles')
-      .select('email, is_email_verified, phone_verified, social_links, avg_reply_hours')
-      .eq('id', service.provider.id)
-      .single()
-      .then(({ data, error }) => {
-        if (error) return // provider may not exist yet — silently skip
-        if (data?.email)             setProviderEmail(data.email as string)
-        if (data?.is_email_verified) setEmailVerified(true)
-        if (data?.phone_verified)    setPhoneVerified(true)
-        if (data?.social_links)      setSocialLinks(data.social_links as Record<string, string>)
-        if (data?.avg_reply_hours != null) setAvgReplyHours(data.avg_reply_hours as number)
-      })
-  }, [service?.provider.id])
+    if (!id) return
+
+    async function load() {
+      let providerId: string | undefined = storeService?.provider.id
+
+      if (!storeService) {
+        // Direct navigation (shared link / refresh) — fetch service + provider in one query
+        const { data } = await supabase
+          .from('services')
+          .select('*, provider:users!provider_id(id, name, phone, wechat, avatar_url, last_seen_at), reviews(rating)')
+          .eq('id', id)
+          .single()
+        if (!data) { setLoading(false); return }
+        const mapped = mapRow(data as Parameters<typeof mapRow>[0])
+        setLocalService(mapped)
+        providerId = mapped.provider.id
+      }
+
+      if (!providerId) { setLoading(false); return }
+
+      // Fetch provider extras + report status in parallel
+      const [{ data: profile }, { data: report }] = await Promise.all([
+        supabase.from('public_profiles')
+          .select('email, is_email_verified, phone_verified, social_links, avg_reply_hours')
+          .eq('id', providerId)
+          .single(),
+        user
+          ? supabase.from('content_reports')
+              .select('content_id')
+              .eq('content_type', 'service')
+              .eq('content_id', id)
+              .eq('reporter_id', user.id)
+              .maybeSingle()
+          : Promise.resolve({ data: null }),
+      ])
+
+      if (profile) {
+        if (profile.email)                   setProviderEmail(profile.email as string)
+        if (profile.is_email_verified)       setEmailVerified(true)
+        if (profile.phone_verified)          setPhoneVerified(true)
+        if (profile.social_links)            setSocialLinks(profile.social_links as Record<string, string>)
+        if (profile.avg_reply_hours != null) setAvgReplyHours(profile.avg_reply_hours as number)
+      }
+      if (report) setReportSubmitted(true)
+      setLoading(false)
+    }
+
+    load()
+  }, [id, user?.id, !!storeService])
 
   // Record browse history on view
   useEffect(() => {
@@ -109,6 +159,42 @@ export default function ServiceDetail() {
     }]
   }, [service])
 
+  async function submitReport() {
+    if (!id || !user || !reportReason) return
+    setReportError(null)
+    setReportSubmitting(true)
+    const { error } = await supabase.from('content_reports').insert({
+      content_type: 'service',
+      content_id: id,
+      content_title: service?.title ?? '服务',
+      reporter_id: user.id,
+      reason: reportReason,
+    })
+    setReportSubmitting(false)
+    if (error) {
+      setReportError(error.code === '23505' ? '您已经举报过这个服务了' : '举报失败，请稍后再试')
+      return
+    }
+    setReportSubmitted(true)
+    setReportReason('')
+    setShowReportForm(false)
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 pb-28">
+        <div className="bg-gray-50 px-4 pt-safe">
+          <div className="max-w-2xl lg:max-w-4xl mx-auto flex items-center h-14">
+            <button onClick={() => navigate(-1)} className="text-gray-400">
+              <ArrowLeft size={20} />
+            </button>
+          </div>
+        </div>
+        <ServiceDetailSkeleton />
+      </div>
+    )
+  }
+
   if (!service) {
     return (
       <div className="min-h-screen flex items-center justify-center text-gray-500">
@@ -134,9 +220,9 @@ export default function ServiceDetail() {
     if (!service.provider.wechat) return
     try {
       await navigator.clipboard.writeText(service.provider.wechat)
-      alert(`微信号已复制：${service.provider.wechat}`)
+      toast('微信号已复制 ✓', 'success')
     } catch {
-      alert(`微信号：${service.provider.wechat}（请手动复制）`)
+      toast(`微信号：${service.provider.wechat}（请手动复制）`)
     }
   }
 
@@ -154,7 +240,7 @@ export default function ServiceDetail() {
     if (!error && data) {
       navigate(`/conversation/${data.id}`)
     } else if (error) {
-      alert('发起对话失败，请稍后再试')
+      toast('发起对话失败，请稍后再试', 'error')
     }
   }
 
@@ -191,7 +277,9 @@ export default function ServiceDetail() {
         >
           <div className="flex items-start gap-3 mb-4">
             <div className={`${cat?.bgColor ?? 'bg-gray-50'} w-14 h-14 rounded-2xl flex items-center justify-center flex-shrink-0`}>
-              <img src={cat?.image} alt={cat?.label} className="w-10 h-10 object-contain" />
+              {cat?.image
+                ? <img src={cat.image} alt={cat.label} className="w-10 h-10 object-contain" />
+                : <span className="text-2xl">{cat?.emoji ?? '✦'}</span>}
             </div>
             <div className="flex-1 min-w-0">
               <h2 className="text-lg font-bold text-gray-900 leading-snug">{service.title}</h2>
@@ -235,7 +323,7 @@ export default function ServiceDetail() {
             {service.distance !== undefined && (
               <span className="inline-flex items-center gap-1 rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-xs font-medium text-gray-700">
                 <MapPin size={11} />
-                {service.distance < 1 ? `${(service.distance * 1000).toFixed(0)}m` : `${service.distance.toFixed(1)}km`}
+                {service.distance < 1 ? `直线 ${(service.distance * 1000).toFixed(0)}m` : `直线 ${service.distance.toFixed(1)}km`}
               </span>
             )}
             <ReplyTimeBadge
@@ -271,6 +359,69 @@ export default function ServiceDetail() {
               </span>
             ))}
           </div>
+
+          {/* Report */}
+          {user && user.id !== service.provider.id && (
+            <div className="mt-4 pt-3 border-t border-gray-100">
+              {reportSubmitted ? (
+                <span className="flex items-center gap-1 text-xs text-orange-500">
+                  <Flag size={12} /> 已举报，我们会尽快处理
+                </span>
+              ) : (
+                <button
+                  onClick={() => setShowReportForm(v => !v)}
+                  className="flex items-center gap-1 text-xs text-gray-400 hover:text-orange-500 transition-colors"
+                >
+                  <Flag size={12} /> 举报此服务
+                </button>
+              )}
+              <AnimatePresence>
+                {showReportForm && !reportSubmitted && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="overflow-hidden"
+                  >
+                    <div className="mt-2 bg-orange-50 border border-orange-200 rounded-xl p-3 space-y-2">
+                      <p className="text-xs font-semibold text-orange-700">选择举报原因</p>
+                      <div className="space-y-1">
+                        {REPORT_REASONS.map(opt => (
+                          <label key={opt.key} className="flex items-center gap-2 text-xs text-gray-700 cursor-pointer">
+                            <input
+                              type="radio"
+                              name="service-report"
+                              value={opt.key}
+                              checked={reportReason === opt.key}
+                              onChange={() => setReportReason(opt.key)}
+                              className="accent-orange-500"
+                            />
+                            {opt.label}
+                          </label>
+                        ))}
+                      </div>
+                      {reportError && <p className="text-xs text-red-500">{reportError}</p>}
+                      <div className="flex gap-2 pt-1">
+                        <button
+                          onClick={() => { setShowReportForm(false); setReportReason(''); setReportError(null) }}
+                          className="flex-1 text-xs py-1.5 rounded-lg border border-gray-200 text-gray-500 hover:bg-white transition-colors"
+                        >
+                          取消
+                        </button>
+                        <button
+                          onClick={submitReport}
+                          disabled={!reportReason || reportSubmitting}
+                          className="flex-1 text-xs py-1.5 rounded-lg bg-orange-500 text-white hover:bg-orange-600 disabled:opacity-50 transition-colors"
+                        >
+                          {reportSubmitting ? '提交中…' : '提交举报'}
+                        </button>
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          )}
         </motion.div>
 
         {/* Service images */}
@@ -391,7 +542,7 @@ export default function ServiceDetail() {
             <span className="text-sm flex-1">{service.location.area ?? service.location.address}，{service.location.city}</span>
             {service.distance !== undefined && (
               <span className="text-xs text-gray-400 flex-shrink-0">
-                距您约 {service.distance < 1
+                直线距离约 {service.distance < 1
                   ? `${(service.distance * 1000).toFixed(0)}m`
                   : `${service.distance.toFixed(1)}km`}
               </span>

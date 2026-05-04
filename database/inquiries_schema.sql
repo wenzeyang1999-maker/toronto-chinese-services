@@ -71,3 +71,16 @@ DO $$ BEGIN
     ON inquiry_matches FOR ALL TO public
     USING (EXISTS (SELECT 1 FROM public.users WHERE id = auth.uid() AND role = 'admin'));
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+DO $$ BEGIN
+  CREATE POLICY "users can read own inquiry_matches"
+    ON inquiry_matches FOR SELECT TO public
+    USING (
+      EXISTS (
+        SELECT 1
+        FROM public.inquiries
+        WHERE inquiries.id = inquiry_matches.inquiry_id
+          AND inquiries.user_id = auth.uid()
+      )
+    );
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;

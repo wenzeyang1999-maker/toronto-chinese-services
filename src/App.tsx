@@ -18,6 +18,7 @@ import type { User } from '@supabase/supabase-js'
 import LoadingScreen from './components/LoadingScreen/LoadingScreen'
 import Home from './pages/Home/Home'
 import AiChatWidget from './components/AiChatWidget/AiChatWidget'
+import ToastContainer from './components/Toast/ToastContainer'
 import MessagesButton from './components/MessagesButton/MessagesButton'
 import MessageToast from './components/MessageToast/MessageToast'
 import InstallPWA from './components/InstallPWA/InstallPWA'
@@ -172,6 +173,7 @@ export default function App() {
       {isLoadingDone && <MessagesButton />}
       {isLoadingDone && <MessageToast />}
       {isLoadingDone && <InstallPWA />}
+      <ToastContainer />
     </>
   )
 }

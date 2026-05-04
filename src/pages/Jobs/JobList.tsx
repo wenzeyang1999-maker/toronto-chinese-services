@@ -18,6 +18,8 @@ import {
   JOB_CATEGORY_CONFIG, JOB_TYPE_CONFIG, SALARY_TYPE_LABEL, getCategoryLabel,
   type Job, type JobCategory, type JobType, type ListingType,
 } from './types'
+import { toast } from '../../lib/toast'
+import { useUrlFilters } from '../../lib/useUrlFilters'
 
 const GTA_AREAS = [
   '多伦多市区', '北约克', '士嘉堡', '密西沙加', '万锦',
@@ -33,6 +35,8 @@ export default function JobList() {
   const [localKeyword, setLocalKeyword] = useState(filters.keyword ?? '')
   const [selectedId,   setSelectedId]   = useState<string | null>(null)
   const detailRef = useRef<HTMLDivElement>(null)
+
+  useUrlFilters(filters, setFilters, ['listing_type', 'keyword', 'category', 'job_type', 'area'])
 
   useEffect(() => { fetchJobs() }, [])
 
@@ -284,7 +288,7 @@ function DetailPanel({ job, salaryLabel, onClose }: { job: Job; salaryLabel: str
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
     } catch {
-      alert(`微信号：${job.contact_wechat}`)
+      toast(`微信号：${job.contact_wechat}（请手动复制）`)
     }
   }
 

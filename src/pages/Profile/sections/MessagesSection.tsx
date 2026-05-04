@@ -6,6 +6,7 @@ import { motion } from 'framer-motion'
 import { MessageSquare, ChevronRight } from 'lucide-react'
 import { supabase } from '../../../lib/supabase'
 import { useAuthStore } from '../../../store/authStore'
+import { SectionSkeleton } from '../../../components/Skeleton/Skeleton'
 
 interface ConvRow {
   id: string
@@ -67,9 +68,7 @@ export default function MessagesSection() {
     return () => { supabase.removeChannel(channel) }
   }, [user])
 
-  if (loading) {
-    return <div className="flex-1 flex items-center justify-center text-gray-400 text-sm">加载中…</div>
-  }
+  if (loading) return <SectionSkeleton rows={4} />
 
   if (convs.length === 0) {
     return (

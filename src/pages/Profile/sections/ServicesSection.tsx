@@ -21,6 +21,7 @@ import type { SecondhandItem } from '../../Secondhand/types'
 import { EVENT_TYPE_CONFIG, getPriceLabel as eventPrice, formatEventDate } from '../../Events/types'
 import type { Event } from '../../Events/types'
 import ViewCount from '../../../components/ViewCount/ViewCount'
+import { toast } from '../../../lib/toast'
 
 type Tab = 'services' | 'jobs' | 'properties' | 'secondhand' | 'events'
 
@@ -115,7 +116,7 @@ export default function ServicesSection() {
   function handleImgAdd(e: React.ChangeEvent<HTMLInputElement>) {
     const files = Array.from(e.target.files ?? [])
     const invalid = files.map(validateImageFile).filter(Boolean)
-    if (invalid.length > 0) { alert(invalid.join('\n')); e.target.value = ''; return }
+    if (invalid.length > 0) { toast(invalid[0] ?? '图片格式不支持', 'error'); e.target.value = ''; return }
     const slots = 3 - editForm.images.length - newImgFiles.length
     const toAdd = files.slice(0, slots)
     setNewImgFiles(prev => [...prev, ...toAdd])
@@ -381,7 +382,7 @@ export default function ServicesSection() {
 
                           setPromoSent(true)
                         } catch (err) {
-                          alert(err instanceof Error ? `提交失败：${err.message}` : '提交失败，请稍后再试')
+                          toast(err instanceof Error ? `提交失败：${err.message}` : '提交失败，请稍后再试', 'error')
                         } finally {
                           setPromoSending(false)
                         }

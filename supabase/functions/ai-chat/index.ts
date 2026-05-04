@@ -31,7 +31,7 @@ async function fetchServicesSummary(): Promise<string> {
   try {
     const res = await fetch(
       `${url}/rest/v1/services?select=title,category_id,area,price,price_type,provider:provider_id(is_online)&is_available=eq.true&order=created_at.desc&limit=80`,
-      { headers: { apikey: serviceRoleKey, Authorization: `Bearer ${serviceRoleKey}` } }
+      { signal: AbortSignal.timeout(5_000), headers: { apikey: serviceRoleKey, Authorization: `Bearer ${serviceRoleKey}` } }
     )
     if (!res.ok) return ''
     const rows: ServiceRow[] = await res.json()
@@ -46,7 +46,7 @@ async function fetchServicesSummary(): Promise<string> {
 
     const label: Record<string, string> = {
       moving: '搬家', cleaning: '保洁', ride: '接送',
-      renovation: '装修', cashwork: '现金工', food: '餐饮', other: '其他',
+      renovation: '装修', cashwork: '现金工', food: '餐饮', other: '其他服务',
     }
     const grouped: Record<string, string[]> = {}
     for (const r of rows) {
@@ -108,6 +108,7 @@ Deno.serve(async (req: Request) => {
 
     const groqRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method:  'POST',
+      signal:  AbortSignal.timeout(20_000),
       headers: {
         'Content-Type':  'application/json',
         'Authorization': `Bearer ${apiKey}`,

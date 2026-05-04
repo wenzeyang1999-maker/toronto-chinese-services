@@ -1,7 +1,7 @@
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { ArrowLeft, SlidersHorizontal, List, Map, Sparkles } from 'lucide-react'
 import { motion } from 'framer-motion'
-import { useState, lazy, Suspense } from 'react'
+import { useEffect, useState, lazy, Suspense } from 'react'
 import ServiceCard from '../../components/ServiceCard/ServiceCard'
 import InquiryModal from '../../components/InquiryModal/InquiryModal'
 import { useAppStore } from '../../store/appStore'
@@ -12,15 +12,26 @@ import { useGeolocation } from '../../hooks/useGeolocation'
 
 const ServiceMap = lazy(() => import('../../components/ServiceMap/ServiceMap'))
 
+const PAGE_SIZE = 20
+
 export default function Category() {
   const requestLocation = useGeolocation()
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
   const getServicesByCategory = useAppStore((s) => s.getServicesByCategory)
   const userLocation = useAppStore((s) => s.userLocation)
-  const [sortBy, setSortBy] = useState<'distance' | 'rating' | 'price'>('rating')
-  const [viewMode, setViewMode] = useState<'list' | 'map'>('list')
+  const [sortBy, setSortBy] = useState<'distance' | 'rating' | 'price'>(
+    () => (searchParams.get('sort') as 'distance' | 'rating' | 'price') || 'rating'
+  )
+  const [viewMode, setViewMode] = useState<'list' | 'map'>(
+    () => searchParams.get('view') === 'map' ? 'map' : 'list'
+  )
   const [inquiryOpen, setInquiryOpen] = useState(false)
+  const [page, setPage] = useState(1)
+
+  // Reset pagination on sort change
+  useEffect(() => { setPage(1) }, [sortBy])
 
   const category = getCategoryById(id as ServiceCategory)
   const services = getServicesByCategory(id as ServiceCategory)
@@ -33,11 +44,13 @@ export default function Category() {
 
   const handleSortChange = (next: typeof sortBy) => {
     setSortBy(next)
+    setSearchParams((prev) => { const n = new URLSearchParams(prev); n.set('sort', next); return n }, { replace: true })
     if (next === 'distance' && !userLocation) requestLocation()
   }
 
   const handleViewModeChange = (next: typeof viewMode) => {
     setViewMode(next)
+    setSearchParams((prev) => { const n = new URLSearchParams(prev); if (next !== 'list') n.set('view', next); else n.delete('view'); return n }, { replace: true })
     if (next === 'map' && !userLocation) requestLocation()
   }
 
@@ -162,24 +175,35 @@ export default function Category() {
             </button>
           </div>
         ) : (
-          <motion.div
-            initial="hidden"
-            animate="show"
-            variants={{ show: { transition: { staggerChildren: 0.04 } } }}
-            className="flex flex-col gap-2 mb-6"
-          >
-            {sorted.map((svc) => (
-              <motion.div
-                key={svc.id}
-                variants={{
-                  hidden: { opacity: 0, y: 10 },
-                  show: { opacity: 1, y: 0 },
-                }}
+          <>
+            <motion.div
+              initial="hidden"
+              animate="show"
+              variants={{ show: { transition: { staggerChildren: 0.04 } } }}
+              className="flex flex-col gap-2 mb-3"
+            >
+              {sorted.slice(0, page * PAGE_SIZE).map((svc) => (
+                <motion.div
+                  key={svc.id}
+                  variants={{ hidden: { opacity: 0, y: 10 }, show: { opacity: 1, y: 0 } }}
+                >
+                  <ServiceCard service={svc} />
+                </motion.div>
+              ))}
+            </motion.div>
+            {sorted.length > page * PAGE_SIZE && (
+              <button
+                onClick={() => setPage((p) => p + 1)}
+                className="w-full mb-6 py-3 rounded-2xl border border-gray-200 bg-white text-sm text-gray-600
+                           font-medium hover:bg-gray-50 transition-colors"
               >
-                <ServiceCard service={svc} />
-              </motion.div>
-            ))}
-          </motion.div>
+                加载更多（还有 {sorted.length - page * PAGE_SIZE} 条）
+              </button>
+            )}
+            {sorted.length <= page * PAGE_SIZE && sorted.length > PAGE_SIZE && (
+              <p className="text-center text-xs text-gray-400 py-3 mb-3">已显示全部 {sorted.length} 条结果</p>
+            )}
+          </>
         ))}
       </div>
     </div>

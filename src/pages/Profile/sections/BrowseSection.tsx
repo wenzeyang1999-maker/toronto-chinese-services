@@ -21,7 +21,14 @@ export default function BrowseSection({ items, onClear }: Props) {
       {items.length === 0 ? (
         <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-10 text-center">
           <Clock size={36} className="text-gray-300 mx-auto mb-3" />
-          <p className="text-sm text-gray-500">暂无浏览记录</p>
+          <p className="text-sm text-gray-600 font-medium">暂无浏览记录</p>
+          <p className="text-xs text-gray-400 mt-1 mb-4">浏览过的服务会出现在这里</p>
+          <button
+            onClick={() => navigate('/')}
+            className="px-5 py-2.5 bg-primary-600 text-white text-sm font-semibold rounded-2xl hover:bg-primary-700 transition-colors"
+          >
+            去发现服务
+          </button>
         </div>
       ) : (
         <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">

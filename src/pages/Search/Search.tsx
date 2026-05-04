@@ -5,6 +5,7 @@ import { motion } from 'framer-motion'
 import ServiceCard from '../../components/ServiceCard/ServiceCard'
 import ServiceMap from '../../components/ServiceMap/ServiceMap'
 import { useAppStore } from '../../store/appStore'
+import type { SearchFilters } from '../../types'
 import Header from '../../components/Header/Header'
 import InquiryModal from '../../components/InquiryModal/InquiryModal'
 import { CATEGORIES } from '../../data/categories'
@@ -31,10 +32,12 @@ export default function Search() {
   const [searchParams, setSearchParams] = useSearchParams()
   const navigate = useNavigate()
   const requestLocation = useGeolocation()
-  const setSearchFilters = useAppStore((s) => s.setSearchFilters)
-  const searchFilters = useAppStore((s) => s.searchFilters)
-  const userLocation = useAppStore((s) => s.userLocation)
-  const getFilteredServices = useAppStore((s) => s.getFilteredServices)
+  const setSearchFilters       = useAppStore((s) => s.setSearchFilters)
+  const searchFilters          = useAppStore((s) => s.searchFilters)
+  const userLocation           = useAppStore((s) => s.userLocation)
+  const getFilteredServices    = useAppStore((s) => s.getFilteredServices)
+  const fetchServicesByKeyword = useAppStore((s) => s.fetchServicesByKeyword)
+  const storeServices          = useAppStore((s) => s.services)
 
   const [localQuery, setLocalQuery] = useState(searchParams.get('q') ?? '')
   const [showFilters, setShowFilters] = useState(false)
@@ -44,18 +47,28 @@ export default function Search() {
   const [communityLoading, setCommunityLoading] = useState(false)
   const [semanticTerms, setSemanticTerms] = useState<string[]>([])
   const [semanticLoading, setSemanticLoading] = useState(false)
+  const [dbResults, setDbResults] = useState<import('../../types').Service[] | null>(null)
+  const [dbLoading, setDbLoading] = useState(false)
+  const [page, setPage] = useState(1)
+  const PAGE_SIZE = 20
 
   useEffect(() => {
-    const q   = searchParams.get('q') ?? ''
-    const cat = searchParams.get('cat') ?? undefined
+    const q    = searchParams.get('q') ?? ''
+    const cat  = searchParams.get('cat') ?? undefined
+    const sort = searchParams.get('sort') as SearchFilters['sortBy'] | null
     setLocalQuery(q)
-    setSearchFilters({ keyword: q || undefined, category: cat as never ?? undefined })
+    setSearchFilters({
+      keyword: q || undefined,
+      category: cat as never ?? undefined,
+      ...(sort ? { sortBy: sort } : {}),
+    })
 
     // Parallel community posts search
     const kw = q.trim()
     if (!kw) {
       setCommunityResults([])
       setSemanticTerms([])
+      setDbResults(null)
       setSearchFilters({ keywordVariants: [] })
       return
     }
@@ -75,6 +88,18 @@ export default function Search() {
         )
         setCommunityLoading(false)
       })
+
+    // DB-level keyword search — runs when store services haven't loaded yet
+    // (e.g. direct navigation to /search?q=...). Uses trigram index on title/description.
+    if (storeServices.length === 0) {
+      setDbLoading(true)
+      fetchServicesByKeyword(kw).then((rows) => {
+        setDbResults(rows)
+        setDbLoading(false)
+      })
+    } else {
+      setDbResults(null)
+    }
 
     const timer = window.setTimeout(() => {
       setSemanticLoading(true)
@@ -107,12 +132,23 @@ export default function Search() {
   const handleSortChange = (sortBy: 'distance' | 'rating' | 'newest' | 'price') => {
     setSearchFilters({ sortBy })
     if (sortBy === 'distance' && !userLocation) requestLocation()
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev)
+      if (sortBy !== 'rating') next.set('sort', sortBy)
+      else next.delete('sort')
+      return next
+    }, { replace: true })
   }
 
-  const results = getFilteredServices()
+  // Use DB results when store hasn't loaded (direct navigation), otherwise client-side filter
+  const results = dbResults ?? getFilteredServices()
+  const isSearching = dbLoading && dbResults === null
+
+  // Reset to first page whenever filters/query change
+  useEffect(() => { setPage(1) }, [searchParams.toString()])
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-[100dvh] bg-gray-50">
       <Header />
       <InquiryModal open={inquiryOpen} onClose={() => setInquiryOpen(false)} />
 
@@ -307,6 +343,8 @@ export default function Search() {
               />
             )}
           </>
+        ) : isSearching ? (
+          <div className="py-12 text-center text-gray-400 text-sm">搜索中…</div>
         ) : results.length === 0 && communityResults.length === 0 ? (
           <SearchEmptyState
             query={localQuery.trim()}
@@ -316,13 +354,27 @@ export default function Search() {
         ) : (
           <>
             {results.length > 0 && (
-              <div className="columns-1 md:columns-2 gap-3 [column-fill:_balance]">
-                {results.map((svc) => (
-                  <div key={svc.id} className="break-inside-avoid mb-3">
-                    <ServiceCard service={svc} layout="masonry" />
-                  </div>
-                ))}
-              </div>
+              <>
+                <div className="columns-1 md:columns-2 gap-3 [column-fill:_balance]">
+                  {results.slice(0, page * PAGE_SIZE).map((svc) => (
+                    <div key={svc.id} className="break-inside-avoid mb-3">
+                      <ServiceCard service={svc} layout="masonry" />
+                    </div>
+                  ))}
+                </div>
+                {results.length > page * PAGE_SIZE && (
+                  <button
+                    onClick={() => setPage((p) => p + 1)}
+                    className="w-full mt-2 py-3 rounded-2xl border border-gray-200 bg-white text-sm text-gray-600
+                               font-medium hover:bg-gray-50 transition-colors"
+                  >
+                    加载更多（还有 {results.length - page * PAGE_SIZE} 条）
+                  </button>
+                )}
+                {results.length <= page * PAGE_SIZE && results.length > PAGE_SIZE && (
+                  <p className="text-center text-xs text-gray-400 py-3">已显示全部 {results.length} 条结果</p>
+                )}
+              </>
             )}
 
             {/* Community posts section */}

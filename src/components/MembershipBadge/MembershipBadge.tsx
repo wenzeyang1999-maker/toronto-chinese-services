@@ -3,6 +3,9 @@
 // L1 — emerald green  (普通会员)
 // L2 — gold           (黄金会员)
 // L3 — black-gold     (至尊会员)
+//
+// On mobile, tapping the badge shows a tooltip explaining what the level means.
+import { useState, useRef, useEffect } from 'react'
 
 export type MemberLevel = 'L1' | 'L2' | 'L3'
 
@@ -48,13 +51,50 @@ const SIZE = {
 }
 
 export default function MembershipBadge({ level = 'L1', size = 'sm' }: Props) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLSpanElement>(null)
+
+  // Close on outside tap
+  useEffect(() => {
+    if (!open) return
+    function onOutside(e: MouseEvent | TouchEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+    }
+    document.addEventListener('mousedown', onOutside)
+    document.addEventListener('touchstart', onOutside)
+    return () => {
+      document.removeEventListener('mousedown', onOutside)
+      document.removeEventListener('touchstart', onOutside)
+    }
+  }, [open])
+
   if (!level) return null
   const cfg = LEVEL_CONFIG[level]
+
   return (
-    <span className={`inline-flex items-center font-bold tracking-wide
-                      ${cfg.bg} ${cfg.text} ${cfg.ring} ${cfg.shadow} ${SIZE[size]}`}>
-      <span>{cfg.icon}</span>
-      <span>{level}</span>
+    <span ref={ref} className="relative inline-flex">
+      <button
+        type="button"
+        onClick={() => setOpen(v => !v)}
+        className={`inline-flex items-center font-bold tracking-wide cursor-pointer
+                    ${cfg.bg} ${cfg.text} ${cfg.ring} ${cfg.shadow} ${SIZE[size]}`}
+      >
+        <span>{cfg.icon}</span>
+        <span>{level}</span>
+      </button>
+
+      {open && (
+        <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-50
+                         bg-gray-900 text-white text-xs rounded-xl px-3 py-2
+                         whitespace-nowrap shadow-xl pointer-events-none">
+          <span className="font-semibold">{cfg.name}</span>
+          <span className="mx-1 text-gray-400">·</span>
+          {cfg.description}
+          {/* Arrow */}
+          <span className="absolute top-full left-1/2 -translate-x-1/2
+                           border-4 border-transparent border-t-gray-900" />
+        </span>
+      )}
     </span>
   )
 }

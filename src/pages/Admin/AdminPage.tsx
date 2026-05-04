@@ -30,8 +30,7 @@ interface Stats {
   secondhand: number
   events: number
   pending_reports: number
-  pending_community_reports: number
-  pending_community_comment_reports: number
+  pending_content_reports: number
   pending_verifications: number
 }
 
@@ -73,33 +72,14 @@ interface InquiryRow {
   matches: InquiryMatch[]
 }
 
-interface CommunityReportRow {
+interface ContentReportRow {
   id: string
+  content_type: 'community_post' | 'community_comment' | 'service' | 'secondhand' | 'job' | 'property' | 'event'
+  content_id: string
+  content_title: string
   reason: string
   status: string
   created_at: string
-  post: {
-    id: string
-    title: string
-    content: string
-    author_id: string
-    author: { id: string; name: string } | null
-  } | null
-  reporter: { id: string; name: string } | null
-}
-
-interface CommunityCommentReportRow {
-  id: string
-  reason: string
-  status: string
-  created_at: string
-  comment: {
-    id: string
-    content: string
-    author_id: string
-    post_id: string
-    author: { id: string; name: string } | null
-  } | null
   reporter: { id: string; name: string } | null
 }
 
@@ -149,6 +129,7 @@ interface UserRow {
   role: 'user' | 'provider' | 'admin' | 'banned'
   created_at: string
   is_email_verified: boolean
+  business_verified: boolean
   referral_code: string | null
 }
 
@@ -205,8 +186,7 @@ export default function AdminPage() {
   const [stats,          setStats]          = useState<Stats | null>(null)
   const [tab,            setTab]            = useState<'reports' | 'communityReports' | 'verification' | 'promoted' | 'promoRequests' | 'overview' | 'community' | 'membership' | 'inquiries' | 'users' | 'services' | 'logs'>('reports')
   const [inquiries,      setInquiries]      = useState<InquiryRow[]>([])
-  const [communityReports, setCommunityReports] = useState<CommunityReportRow[]>([])
-  const [communityCommentReports, setCommunityCommentReports] = useState<CommunityCommentReportRow[]>([])
+  const [contentReports, setContentReports] = useState<ContentReportRow[]>([])
   const [promoRequests,  setPromoRequests]  = useState<PromoRequestRow[]>([])
   const [auditLogs,      setAuditLogs]      = useState<AuditLogRow[]>([])
   const [communityPosts, setCommunityPosts] = useState<{ id: string; title: string; type: string; area: string; created_at: string; author: { name: string } | null }[]>([])
@@ -236,7 +216,7 @@ export default function AdminPage() {
 
   async function loadAll() {
     setLoading(true)
-    await Promise.all([loadReports(), loadCommunityReports(), loadCommunityCommentReports(), loadVerifications(), loadStats()])
+    await Promise.all([loadReports(), loadContentReports(), loadVerifications(), loadStats()])
     setLoading(false)
   }
 
@@ -365,64 +345,26 @@ export default function AdminPage() {
     }
   }
 
-  async function loadCommunityReports() {
+  async function loadContentReports() {
     const { data, error } = await supabase
-      .from('community_post_reports')
-      .select(`
-        id, reason, status, created_at,
-        post:post_id(id, title, content, author_id, author:author_id(id, name)),
-        reporter:reporter_id(id, name)
-      `)
+      .from('content_reports')
+      .select('id, content_type, content_id, content_title, reason, status, created_at, reporter:reporter_id(id, name)')
       .eq('status', 'pending')
       .order('created_at', { ascending: false })
     if (error) {
-      showNotice('error', `加载社区举报失败：${error.message}`)
+      showNotice('error', `加载内容举报失败：${error.message}`)
       return
     }
     if (data) {
-      setCommunityReports(data.map((r: any) => ({
+      setContentReports(data.map((r: any) => ({
         ...r,
-        post: Array.isArray(r.post) ? {
-          ...r.post[0],
-          author: Array.isArray(r.post[0]?.author) ? r.post[0].author[0] : r.post[0]?.author,
-        } : r.post
-          ? { ...r.post, author: Array.isArray(r.post.author) ? r.post.author[0] : r.post.author }
-          : null,
-        reporter: Array.isArray(r.reporter) ? r.reporter[0] : r.reporter,
-      })))
-    }
-  }
-
-  async function loadCommunityCommentReports() {
-    const { data, error } = await supabase
-      .from('community_comment_reports')
-      .select(`
-        id, reason, status, created_at,
-        comment:comment_id(id, content, author_id, post_id, author:author_id(id, name)),
-        reporter:reporter_id(id, name)
-      `)
-      .eq('status', 'pending')
-      .order('created_at', { ascending: false })
-    if (error) {
-      showNotice('error', `加载社区评论举报失败：${error.message}`)
-      return
-    }
-    if (data) {
-      setCommunityCommentReports(data.map((r: any) => ({
-        ...r,
-        comment: Array.isArray(r.comment) ? {
-          ...r.comment[0],
-          author: Array.isArray(r.comment[0]?.author) ? r.comment[0].author[0] : r.comment[0]?.author,
-        } : r.comment
-          ? { ...r.comment, author: Array.isArray(r.comment.author) ? r.comment.author[0] : r.comment.author }
-          : null,
         reporter: Array.isArray(r.reporter) ? r.reporter[0] : r.reporter,
       })))
     }
   }
 
   async function loadStats() {
-    const [users, services, jobs, properties, secondhand, events, reports, communityReportsCount, communityCommentReportsCount, verifs] = await Promise.all([
+    const [users, services, jobs, properties, secondhand, events, reports, contentReportsCount, verifs] = await Promise.all([
       supabase.from('users').select('id', { count: 'exact', head: true }),
       supabase.from('services').select('id', { count: 'exact', head: true }),
       supabase.from('jobs').select('id', { count: 'exact', head: true }),
@@ -430,21 +372,19 @@ export default function AdminPage() {
       supabase.from('secondhand').select('id', { count: 'exact', head: true }),
       supabase.from('events').select('id', { count: 'exact', head: true }),
       supabase.from('review_reports').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
-      supabase.from('community_post_reports').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
-      supabase.from('community_comment_reports').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
+      supabase.from('content_reports').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
       supabase.from('users').select('id', { count: 'exact', head: true }).eq('verification_status', 'pending'),
     ])
     setStats({
-      users:                 users.count ?? 0,
-      services:              services.count ?? 0,
-      jobs:                  jobs.count ?? 0,
-      properties:            properties.count ?? 0,
-      secondhand:            secondhand.count ?? 0,
-      events:                events.count ?? 0,
-      pending_reports:       reports.count ?? 0,
-      pending_community_reports: communityReportsCount.count ?? 0,
-      pending_community_comment_reports: communityCommentReportsCount.count ?? 0,
-      pending_verifications: verifs.count ?? 0,
+      users:                  users.count ?? 0,
+      services:               services.count ?? 0,
+      jobs:                   jobs.count ?? 0,
+      properties:             properties.count ?? 0,
+      secondhand:             secondhand.count ?? 0,
+      events:                 events.count ?? 0,
+      pending_reports:        reports.count ?? 0,
+      pending_content_reports: contentReportsCount.count ?? 0,
+      pending_verifications:  verifs.count ?? 0,
     })
   }
 
@@ -562,56 +502,57 @@ export default function AdminPage() {
     setActing(null)
   }
 
-  async function dismissCommunityReport(reportId: string) {
+  async function dismissContentReport(reportId: string) {
     setActing(reportId)
     const ok = await runAdminAction(async () => {
-      const { error } = await supabase.rpc('admin_dismiss_community_post_report', { report_id: reportId })
+      const { error } = await supabase.rpc('admin_dismiss_content_report', { p_report_id: reportId })
       if (error) throw error
-    }, '已忽略社区举报')
+    }, '已忽略举报')
     if (ok !== null) {
-      setCommunityReports(prev => prev.filter(r => r.id !== reportId))
+      setContentReports(prev => prev.filter(r => r.id !== reportId))
     }
     setActing(null)
   }
 
-  async function removeCommunityPostFromReport(report: CommunityReportRow) {
-    if (!report.post) return
+  async function removeReportedContent(report: ContentReportRow) {
     setActing(report.id)
-    const ok = await runAdminAction(async () => {
-      const { error } = await supabase.rpc('admin_delete_community_post', { post_id: report.post!.id })
-      if (error) throw error
-    }, '已删除被举报帖子')
-    if (ok !== null) {
-      setCommunityReports(prev => prev.filter(r => r.post?.id !== report.post?.id))
-      setCommunityPosts(prev => prev.filter(p => p.id !== report.post?.id))
-    }
-    setActing(null)
-  }
+    let rpcName = ''
+    let rpcArgs: Record<string, string> = {}
+    let successMsg = ''
 
-  async function dismissCommunityCommentReport(reportId: string) {
-    setActing(reportId)
-    const ok = await runAdminAction(async () => {
-      const { error } = await supabase.rpc('admin_dismiss_community_comment_report', { report_id: reportId })
-      if (error) throw error
-    }, '已忽略社区评论举报')
-    if (ok !== null) {
-      setCommunityCommentReports(prev => prev.filter(r => r.id !== reportId))
+    if (report.content_type === 'community_post') {
+      rpcName = 'admin_remove_reported_post'
+      rpcArgs = { p_report_id: report.id, p_post_id: report.content_id }
+      successMsg = '已删除被举报帖子'
+    } else if (report.content_type === 'community_comment') {
+      rpcName = 'admin_remove_reported_comment'
+      rpcArgs = { p_report_id: report.id, p_comment_id: report.content_id }
+      successMsg = '已删除被举报评论'
+    } else if (report.content_type === 'service') {
+      rpcName = 'admin_remove_reported_service'
+      rpcArgs = { p_report_id: report.id, p_service_id: report.content_id }
+      successMsg = '服务已下架'
+    } else if (report.content_type === 'secondhand') {
+      rpcName = 'admin_remove_reported_secondhand'
+      rpcArgs = { p_report_id: report.id, p_item_id: report.content_id }
+      successMsg = '商品已删除'
+    } else {
+      setActing(null)
+      return
     }
-    setActing(null)
-  }
 
-  async function removeCommunityCommentFromReport(report: CommunityCommentReportRow) {
-    if (!report.comment) return
-    setActing(report.id)
     const ok = await runAdminAction(async () => {
-      const { error } = await supabase.rpc('admin_delete_community_comment', {
-        comment_id: report.comment!.id,
-        post_id: report.comment!.post_id,
-      })
+      const { error } = await supabase.rpc(rpcName, rpcArgs)
       if (error) throw error
-    }, '已删除被举报评论')
+    }, successMsg)
+
     if (ok !== null) {
-      setCommunityCommentReports(prev => prev.filter(r => r.comment?.id !== report.comment?.id))
+      setContentReports(prev => prev.filter(r =>
+        !(r.content_type === report.content_type && r.content_id === report.content_id)
+      ))
+      if (report.content_type === 'community_post') {
+        setCommunityPosts(prev => prev.filter(p => p.id !== report.content_id))
+      }
     }
     setActing(null)
   }
@@ -756,7 +697,7 @@ export default function AdminPage() {
     const kw = userSearch.trim()
     const query = supabase
       .from('users')
-      .select('id, name, email, role, created_at, is_email_verified, referral_code')
+      .select('id, name, email, role, created_at, is_email_verified, business_verified, referral_code')
       .order('created_at', { ascending: false })
       .limit(30)
     if (kw) query.or(`name.ilike.%${kw}%,email.ilike.%${kw}%`)
@@ -779,6 +720,28 @@ export default function AdminPage() {
     }, role === 'banned' ? '账号已封禁' : role === 'provider' ? '已设为服务商' : '角色已更新')
     if (ok !== null) {
       setUserResults(prev => prev.map(u => u.id === userId ? { ...u, role } : u))
+    }
+    setActing(null)
+  }
+
+  async function promoteToVerifiedProvider(userId: string) {
+    setActing(userId)
+    const ok = await runAdminAction(async () => {
+      const { error: roleErr } = await supabase.rpc('admin_set_user_role', {
+        target_user_id: userId,
+        new_role: 'provider',
+      })
+      if (roleErr) throw roleErr
+      const { error: verifyErr } = await supabase.rpc('admin_review_verification', {
+        target_user_id: userId,
+        approved: true,
+      })
+      if (verifyErr) throw verifyErr
+    }, '已设为认证服务商')
+    if (ok !== null) {
+      setUserResults(prev => prev.map(u =>
+        u.id === userId ? { ...u, role: 'provider', business_verified: true } : u
+      ))
     }
     setActing(null)
   }
@@ -928,11 +891,11 @@ export default function AdminPage() {
             }`}>
             举报 {stats ? `(${stats.pending_reports})` : ''}
           </button>
-          <button onClick={() => { setTab('communityReports'); loadCommunityReports() }}
+          <button onClick={() => { setTab('communityReports'); loadContentReports() }}
             className={`flex-1 py-2 rounded-xl text-sm font-semibold transition-all ${
               tab === 'communityReports' ? 'bg-white text-primary-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'
             }`}>
-            社区举报 {stats ? `(${(stats.pending_community_reports + stats.pending_community_comment_reports)})` : ''}
+            内容举报 {stats ? `(${stats.pending_content_reports})` : ''}
           </button>
           <button onClick={() => setTab('verification')}
             className={`flex-1 py-2 rounded-xl text-sm font-semibold transition-all ${
@@ -1010,8 +973,8 @@ export default function AdminPage() {
               { icon: <Home size={20} />,         label: '房源',       value: stats.properties,      color: 'text-green-600 bg-green-50' },
               { icon: <ShoppingBag size={20} />,  label: '闲置',       value: stats.secondhand,      color: 'text-orange-600 bg-orange-50' },
               { icon: <Calendar size={20} />,     label: '活动',       value: stats.events,          color: 'text-pink-600 bg-pink-50' },
-              { icon: <Flag size={20} />,         label: '待处理举报', value: stats.pending_reports, color: 'text-red-600 bg-red-50' },
-              { icon: <Flag size={20} />,         label: '社区举报',   value: stats.pending_community_reports + stats.pending_community_comment_reports, color: 'text-orange-600 bg-orange-50' },
+              { icon: <Flag size={20} />,         label: '待处理举报', value: stats.pending_reports,         color: 'text-red-600 bg-red-50' },
+              { icon: <Flag size={20} />,         label: '内容举报',   value: stats.pending_content_reports, color: 'text-orange-600 bg-orange-50' },
             ].map(({ icon, label, value, color }) => (
               <div key={label} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 flex items-center gap-3">
                 <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${color}`}>
@@ -1165,115 +1128,74 @@ export default function AdminPage() {
           <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-3">
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-3 flex items-center gap-3 flex-wrap">
               <span className="text-sm text-gray-500 flex-1">
-                帖子举报 <strong className="text-orange-600">{communityReports.length}</strong> · 评论举报 <strong className="text-orange-600">{communityCommentReports.length}</strong>
+                待处理举报 <strong className="text-orange-600">{contentReports.length}</strong>
               </span>
-              <button onClick={() => { loadCommunityReports(); loadCommunityCommentReports() }}
+              <button onClick={loadContentReports}
                 className="px-3 py-2 border border-gray-200 text-sm text-gray-600 rounded-xl hover:bg-gray-50 transition-colors">
                 刷新
               </button>
             </div>
-            {communityReports.length === 0 && communityCommentReports.length === 0 ? (
+            {contentReports.length === 0 ? (
               <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-12 text-center">
-                <p className="text-sm text-gray-400">暂无待处理社区举报</p>
+                <p className="text-sm text-gray-400">暂无待处理内容举报</p>
               </div>
             ) : (
               <div className="space-y-3">
-                {communityReports.length > 0 && (
-                  <div className="text-xs font-semibold text-gray-400 px-1">帖子举报</div>
-                )}
-                {communityReports.map(r => (
-                  <div key={r.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
-                    <div className="flex items-center gap-2 mb-3">
-                      <Flag size={14} className="text-orange-400 flex-shrink-0" />
-                      <span className="text-xs font-semibold text-orange-500">{REASON_LABEL[r.reason] ?? r.reason}</span>
-                      <span className="text-xs text-gray-400 ml-auto">{r.created_at.slice(0, 10)}</span>
-                    </div>
-                    {r.post ? (
-                      <div className="bg-gray-50 rounded-xl p-3 mb-3 space-y-1">
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm font-semibold text-gray-800 flex-1">{r.post.title}</span>
-                          <button onClick={() => navigate(`/community/${r.post!.id}`)}
-                            className="text-xs text-primary-600 underline">
-                            查看帖子
-                          </button>
-                        </div>
-                        <p className="text-xs text-gray-500">作者：{r.post.author?.name ?? '匿名'}</p>
-                        <p className="text-sm text-gray-700 leading-relaxed">{r.post.content || '（无内容）'}</p>
+                {contentReports.map(r => {
+                  const typeLabel: Record<string, string> = {
+                    community_post: '社区帖子', community_comment: '社区评论',
+                    service: '服务', secondhand: '二手', job: '招聘',
+                    property: '房产', event: '活动',
+                  }
+                  const actionLabel: Record<string, string> = {
+                    community_post: '删除帖子', community_comment: '删除评论',
+                    service: '下架服务', secondhand: '删除商品', job: '删除招聘',
+                    property: '删除房源', event: '删除活动',
+                  }
+                  const viewPath: Record<string, string> = {
+                    community_post: `/community/${r.content_id}`,
+                    service: `/service/${r.content_id}`,
+                    secondhand: `/secondhand/${r.content_id}`,
+                  }
+                  return (
+                    <div key={r.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
+                      <div className="flex items-center gap-2 mb-3">
+                        <Flag size={14} className="text-orange-400 flex-shrink-0" />
+                        <span className="text-xs font-semibold text-orange-500">{REASON_LABEL[r.reason] ?? r.reason}</span>
+                        <span className="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">{typeLabel[r.content_type] ?? r.content_type}</span>
+                        <span className="text-xs text-gray-400 ml-auto">{r.created_at.slice(0, 10)}</span>
                       </div>
-                    ) : (
-                      <p className="text-xs text-gray-400 mb-3">帖子已被删除</p>
-                    )}
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs text-gray-400 flex-1">
-                        举报人：{r.reporter?.name ?? '匿名'}
-                      </span>
-                      <button
-                        onClick={() => dismissCommunityReport(r.id)}
-                        disabled={!!acting}
-                        className="text-xs px-3 py-1.5 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 transition-colors disabled:opacity-50"
-                      >
-                        {acting === r.id ? '处理中…' : '忽略'}
-                      </button>
-                      {r.post && (
+                      <div className="bg-gray-50 rounded-xl p-3 mb-3">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-semibold text-gray-800 flex-1 truncate">{r.content_title || '（内容已删除）'}</span>
+                          {viewPath[r.content_type] && (
+                            <button onClick={() => navigate(viewPath[r.content_type])}
+                              className="text-xs text-primary-600 underline flex-shrink-0">
+                              查看
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-gray-400 flex-1">举报人：{r.reporter?.name ?? '匿名'}</span>
                         <button
-                          onClick={() => removeCommunityPostFromReport(r)}
+                          onClick={() => dismissContentReport(r.id)}
+                          disabled={!!acting}
+                          className="text-xs px-3 py-1.5 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 transition-colors disabled:opacity-50"
+                        >
+                          {acting === r.id ? '处理中…' : '忽略'}
+                        </button>
+                        <button
+                          onClick={() => removeReportedContent(r)}
                           disabled={!!acting}
                           className="text-xs px-3 py-1.5 rounded-lg bg-red-500 hover:bg-red-600 text-white font-semibold transition-colors disabled:opacity-50 flex items-center gap-1"
                         >
-                          <Trash2 size={12} /> 删除帖子
+                          <Trash2 size={12} /> {actionLabel[r.content_type] ?? '删除'}
                         </button>
-                      )}
-                    </div>
-                  </div>
-                ))}
-                {communityCommentReports.length > 0 && (
-                  <div className="text-xs font-semibold text-gray-400 px-1 pt-2">评论举报</div>
-                )}
-                {communityCommentReports.map(r => (
-                  <div key={r.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
-                    <div className="flex items-center gap-2 mb-3">
-                      <Flag size={14} className="text-orange-400 flex-shrink-0" />
-                      <span className="text-xs font-semibold text-orange-500">{REASON_LABEL[r.reason] ?? r.reason}</span>
-                      <span className="text-xs text-gray-400 ml-auto">{r.created_at.slice(0, 10)}</span>
-                    </div>
-                    {r.comment ? (
-                      <div className="bg-gray-50 rounded-xl p-3 mb-3 space-y-1">
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm font-semibold text-gray-800 flex-1">评论内容</span>
-                          <button onClick={() => navigate(`/community/${r.comment!.post_id}`)}
-                            className="text-xs text-primary-600 underline">
-                            查看帖子
-                          </button>
-                        </div>
-                        <p className="text-xs text-gray-500">评论作者：{r.comment.author?.name ?? '匿名'}</p>
-                        <p className="text-sm text-gray-700 leading-relaxed">{r.comment.content || '（无内容）'}</p>
                       </div>
-                    ) : (
-                      <p className="text-xs text-gray-400 mb-3">评论已被删除</p>
-                    )}
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs text-gray-400 flex-1">
-                        举报人：{r.reporter?.name ?? '匿名'}
-                      </span>
-                      <button
-                        onClick={() => dismissCommunityCommentReport(r.id)}
-                        disabled={!!acting}
-                        className="text-xs px-3 py-1.5 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 transition-colors disabled:opacity-50"
-                      >
-                        {acting === r.id ? '处理中…' : '忽略'}
-                      </button>
-                      {r.comment && (
-                        <button
-                          onClick={() => removeCommunityCommentFromReport(r)}
-                          disabled={!!acting}
-                          className="text-xs px-3 py-1.5 rounded-lg bg-red-500 hover:bg-red-600 text-white font-semibold transition-colors disabled:opacity-50 flex items-center gap-1"
-                        >
-                          <Trash2 size={12} /> 删除评论
-                        </button>
-                      )}
                     </div>
-                  </div>
-                ))}
+                  )
+                })}
               </div>
             )}
           </motion.div>
@@ -1481,16 +1403,22 @@ export default function AdminPage() {
                         </div>
                       </div>
                       <div className="flex gap-2 flex-wrap">
-                        <button onClick={() => grantMembership(row, 'L2')} disabled={acting === row.id}
+                        <button
+                          onClick={() => { if (confirm(`授予 ${row.name} 黄金会员 (L2) 30 天？`)) grantMembership(row, 'L2') }}
+                          disabled={acting === row.id}
                           className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg bg-amber-100 text-amber-700 hover:bg-amber-200 transition-colors font-semibold disabled:opacity-50">
                           <Crown size={11} /> 授予L2 +30天
                         </button>
-                        <button onClick={() => grantMembership(row, 'L3')} disabled={acting === row.id}
+                        <button
+                          onClick={() => { if (confirm(`授予 ${row.name} 至尊会员 (L3) 30 天？`)) grantMembership(row, 'L3') }}
+                          disabled={acting === row.id}
                           className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg bg-zinc-900 text-amber-400 hover:bg-zinc-700 transition-colors font-semibold disabled:opacity-50">
                           <Crown size={11} /> 授予L3 +30天
                         </button>
                         {effectiveLevel !== 'L1' && (
-                          <button onClick={() => revokeMembership(row)} disabled={acting === row.id}
+                          <button
+                            onClick={() => { if (confirm(`撤销 ${row.name} 的会员资格？`)) revokeMembership(row) }}
+                            disabled={acting === row.id}
                             className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 transition-colors disabled:opacity-50">
                             <X size={11} /> 撤销会员
                           </button>
@@ -1650,6 +1578,11 @@ export default function AdminPage() {
                             }`}>
                               {isBanned ? '已封号' : isAdmin ? '管理员' : isProvider ? '服务商' : '用户'}
                             </span>
+                            {u.business_verified && (
+                              <span className="text-xs text-blue-600 flex items-center gap-0.5 font-semibold">
+                                <BadgeCheck size={13} /> 已认证
+                              </span>
+                            )}
                             {u.is_email_verified && (
                               <span className="text-xs text-green-600 flex items-center gap-0.5">
                                 <CheckCircle2 size={11} /> 已验证
@@ -1689,16 +1622,31 @@ export default function AdminPage() {
                           )}
                           {!isProvider && !isBanned && (
                             <button
-                              onClick={() => setUserRole(u.id, 'provider')}
+                              onClick={() => {
+                                if (!confirm(`设 ${u.name} 为认证服务商？`)) return
+                                promoteToVerifiedProvider(u.id)
+                              }}
                               disabled={acting === u.id}
                               className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 font-semibold transition-colors disabled:opacity-50"
                             >
-                              <UserCog size={12} /> 设为服务商
+                              <BadgeCheck size={12} /> 设为认证服务商
                             </button>
                           )}
                           {isProvider && (
                             <button
-                              onClick={() => setUserRole(u.id, 'user')}
+                              onClick={async () => {
+                                if (!confirm(`撤销 ${u.name} 的服务商资格？`)) return
+                                await setUserRole(u.id, 'user')
+                                if (u.business_verified) {
+                                  await supabase.rpc('admin_review_verification', {
+                                    target_user_id: u.id,
+                                    approved: false,
+                                  })
+                                  setUserResults(prev => prev.map(r =>
+                                    r.id === u.id ? { ...r, business_verified: false } : r
+                                  ))
+                                }
+                              }}
                               disabled={acting === u.id}
                               className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 transition-colors disabled:opacity-50"
                             >

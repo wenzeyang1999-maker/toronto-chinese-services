@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
 import { Camera, Check, ExternalLink, Pencil, Share2, Tag, X, AlignLeft, Wifi, WifiOff } from 'lucide-react'
-import { compressImage } from '../../../lib/compressImage'
+import { cropAndCompressImage } from '../../../lib/compressImage'
 import { supabase } from '../../../lib/supabase'
 import { useAuthStore } from '../../../store/authStore'
 import { useNavigate } from 'react-router-dom'
@@ -9,6 +9,7 @@ import MembershipBadge, { type MemberLevel } from '../../../components/Membershi
 import ServicesSection from './ServicesSection'
 import CommunitySection from './CommunitySection'
 import StatsSection from './StatsSection'
+import { toast } from '../../../lib/toast'
 
 type Tab = 'edit' | 'services' | 'community' | 'stats'
 
@@ -78,7 +79,7 @@ export default function HomepageSection() {
     if (!file) return
     setUploadingCover(true)
     try {
-      const compressed = await compressImage(file)
+      const compressed = await cropAndCompressImage(file, 3)
       const path = `${user!.id}/cover.jpg`
       const { error } = await supabase.storage.from('avatars').upload(path, compressed, { upsert: true })
       if (error) throw error
@@ -89,7 +90,7 @@ export default function HomepageSection() {
       await supabase.from('users').update({ social_links: merged }).eq('id', user!.id)
       setProfile(p => p ? { ...p, cover_url: coverUrl } : p)
     } catch (err) {
-      alert('封面上传失败：' + (err instanceof Error ? err.message : '未知错误'))
+      toast('封面上传失败：' + (err instanceof Error ? err.message : '未知错误'), 'error')
     } finally {
       setUploadingCover(false)
       if (coverRef.current) coverRef.current.value = ''
@@ -121,7 +122,7 @@ export default function HomepageSection() {
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
     } catch {
-      alert('主页链接：' + profileUrl)
+      toast('主页链接已复制 ✓', 'success')
     }
   }
 
@@ -225,7 +226,7 @@ export default function HomepageSection() {
 
       {/* ── Tab content ──────────────────────────────────────────────────── */}
       {tab === 'edit' && (
-        <div className="px-4 py-4 max-w-md lg:max-w-none mx-auto space-y-3">
+        <div className="px-4 py-4 max-w-md lg:max-w-none mx-auto space-y-3 scroll-mt-28">
 
           {/* ── Online status toggle ─────────────────────────────────────── */}
           <button
@@ -330,9 +331,9 @@ export default function HomepageSection() {
         </div>
       )}
 
-      {tab === 'services'  && <ServicesSection />}
-      {tab === 'community' && <CommunitySection />}
-      {tab === 'stats'     && <StatsSection />}
+      {tab === 'services'  && <div className="scroll-mt-28"><ServicesSection /></div>}
+      {tab === 'community' && <div className="scroll-mt-28"><CommunitySection /></div>}
+      {tab === 'stats'     && <div className="scroll-mt-28"><StatsSection /></div>}
     </motion.div>
   )
 }

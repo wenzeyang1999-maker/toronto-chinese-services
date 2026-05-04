@@ -6,6 +6,7 @@ import { Heart, Wrench, Briefcase, Home, ShoppingBag, Calendar, Trash2 } from 'l
 import { supabase } from '../../../lib/supabase'
 import { useAuthStore } from '../../../store/authStore'
 import { useSavesStore } from '../../../store/savesStore'
+import { SectionSkeleton } from '../../../components/Skeleton/Skeleton'
 
 type TargetType = 'service' | 'job' | 'property' | 'secondhand' | 'event'
 type TabKey = 'all' | TargetType
@@ -45,13 +46,6 @@ const TABLE_MAP: Record<TargetType, string> = {
   secondhand: 'secondhand',
   event:      'events',
 }
-const TITLE_COL: Record<TargetType, string> = {
-  service:    'title',
-  job:        'title',
-  property:   'title',
-  secondhand: 'title',
-  event:      'title',
-}
 const PATH_PREFIX: Record<TargetType, string> = {
   service:    '/service',
   job:        '/jobs',
@@ -63,7 +57,7 @@ const PATH_PREFIX: Record<TargetType, string> = {
 export default function SavesSection() {
   const user     = useAuthStore((s) => s.user)
   const navigate = useNavigate()
-  const { fetchSaves, toggleSave, isReady } = useSavesStore()
+  const { fetchSaves, toggleSave } = useSavesStore()
 
   const [tab,     setTab]     = useState<TabKey>('all')
   const [items,   setItems]   = useState<SavedItem[]>([])
@@ -141,7 +135,7 @@ export default function SavesSection() {
     event:      items.filter(i => i.target_type === 'event').length,
   }
 
-  if (loading) return <div className="flex-1 flex items-center justify-center text-gray-400 text-sm py-20">加载中…</div>
+  if (loading) return <SectionSkeleton rows={5} />
 
   return (
     <div className="flex-1 px-4 py-5 max-w-md lg:max-w-none mx-auto w-full">
@@ -167,8 +161,14 @@ export default function SavesSection() {
       {filtered.length === 0 ? (
         <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-12 text-center">
           <Heart size={36} className="text-gray-200 mx-auto mb-3" />
-          <p className="text-sm text-gray-400">还没有收藏任何内容</p>
-          <p className="text-xs text-gray-300 mt-1">在详情页点击 ♡ 即可收藏</p>
+          <p className="text-sm text-gray-600 font-medium">还没有收藏任何内容</p>
+          <p className="text-xs text-gray-400 mt-1 mb-4">在详情页点击 ♡ 即可收藏</p>
+          <button
+            onClick={() => navigate('/')}
+            className="px-5 py-2.5 bg-primary-600 text-white text-sm font-semibold rounded-2xl hover:bg-primary-700 transition-colors"
+          >
+            去发现服务
+          </button>
         </div>
       ) : (
         <div className="space-y-2">

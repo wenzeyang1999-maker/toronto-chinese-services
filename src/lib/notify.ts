@@ -18,6 +18,7 @@ async function notify(
 }
 
 async function sendWebPush(opts: {
+  conversationId:  string
   recipientUserId: string
   title:           string
   body:            string
@@ -47,11 +48,12 @@ export async function notifyNewMessage(opts: {
       conversationId: opts.conversationId,
     }),
     sendWebPush({
+      conversationId:  opts.conversationId,
       recipientUserId: opts.recipientUserId,
       title: `${opts.senderName} 给你发了消息`,
       body:  opts.preview.slice(0, 120),
       url:   `/conversation/${opts.conversationId}`,
-      tag:   `msg-${opts.conversationId}`,
+      tag:   `tcs-msg-${opts.conversationId}`,
     }),
   ])
 }

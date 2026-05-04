@@ -138,7 +138,7 @@ export default function ServiceMap({ services, count }: Props) {
           </span>
         )}
         {mapped.length > 0 && (
-          <span>共 <strong>{mapped.length}</strong> 家</span>
+          <span>共 <strong>{mapped.length}</strong> 项服务</span>
         )}
         {mapped.some((s) => s.isPromoted) && (
           <span className="flex items-center gap-1">

@@ -8,6 +8,7 @@ import { UserCheck, UserMinus } from 'lucide-react'
 import { supabase } from '../../../lib/supabase'
 import { useAuthStore } from '../../../store/authStore'
 import { useFollowsStore } from '../../../store/followsStore'
+import { SectionSkeleton } from '../../../components/Skeleton/Skeleton'
 
 interface FollowedProvider {
   id:         string
@@ -72,9 +73,7 @@ export default function FollowsSection() {
     setProviders(prev => prev.filter(x => x.id !== p.id))
   }
 
-  if (loading) return (
-    <div className="flex-1 flex items-center justify-center text-gray-400 text-sm py-20">加载中…</div>
-  )
+  if (loading) return <SectionSkeleton rows={4} />
 
   return (
     <div className="flex-1 px-4 py-5 max-w-md lg:max-w-none mx-auto w-full">

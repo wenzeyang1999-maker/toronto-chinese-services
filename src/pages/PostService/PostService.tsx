@@ -12,6 +12,7 @@ import { compressImage, validateImageFile } from '../../lib/compressImage'
 import LocationInput, { type LocationResult } from '../../components/LocationInput/LocationInput'
 import { generateServiceDraft } from '../../lib/aiTools'
 import { notifyFollowerNewService } from '../../lib/notify'
+import { toast } from '../../lib/toast'
 
 // ── 内置服务库（搜索用）──────────────────────────────────────────────────────
 type ServiceCat = 'moving' | 'cleaning' | 'ride' | 'renovation' | 'cashwork' | 'food' | 'other'
@@ -301,7 +302,7 @@ export default function PostService() {
   const handleImageAdd = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files ?? [])
     const invalid = files.map(validateImageFile).filter(Boolean)
-    if (invalid.length > 0) { alert(invalid.join('\n')); e.target.value = ''; return }
+    if (invalid.length > 0) { toast(invalid[0] ?? '图片格式不支持', 'error'); e.target.value = ''; return }
     const remaining = 3 - images.length
     const toAdd = files.slice(0, remaining)
     setImages((prev) => [...prev, ...toAdd])
@@ -393,8 +394,8 @@ export default function PostService() {
         price: form.priceType === 'negotiable' ? 0 : parseFloat(form.price) || 0,
         price_type: form.priceType,
         address: location?.address ?? null,
-        lat: location?.lat ?? null,
-        lng: location?.lng ?? null,
+        lat: (location?.lat != null && location?.lng != null && !(location.lat === 0 && location.lng === 0)) ? location.lat : null,
+        lng: (location?.lat != null && location?.lng != null && !(location.lat === 0 && location.lng === 0)) ? location.lng : null,
         area: areaDisplay,
         service_areas: selectedAreas.length > 0 ? selectedAreas : ['Toronto'],
         city: 'Toronto',

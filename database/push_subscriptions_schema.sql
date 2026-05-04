@@ -56,3 +56,32 @@ CREATE POLICY "push_subs_delete_own"
   ON push_subscriptions
   FOR DELETE
   USING (auth.uid() = user_id);
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- ENDPOINT DEDUPE TRIGGER
+-- A web push endpoint is browser/device-scoped, not user-scoped. If a different
+-- user signed in on the same browser and re-subscribed, two rows would point
+-- to the same endpoint and the previous user could receive notifications meant
+-- for the new owner. This trigger atomically removes any foreign-user rows
+-- for the endpoint when one is inserted or updated. SECURITY DEFINER bypasses
+-- RLS so it can clean up rows the calling user doesn't own.
+-- ─────────────────────────────────────────────────────────────────────────────
+CREATE OR REPLACE FUNCTION push_subs_endpoint_dedupe()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  DELETE FROM push_subscriptions
+   WHERE endpoint = NEW.endpoint
+     AND id != NEW.id;
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS push_subs_endpoint_dedupe_trg ON push_subscriptions;
+CREATE TRIGGER push_subs_endpoint_dedupe_trg
+  AFTER INSERT OR UPDATE OF endpoint ON push_subscriptions
+  FOR EACH ROW
+  EXECUTE FUNCTION push_subs_endpoint_dedupe();

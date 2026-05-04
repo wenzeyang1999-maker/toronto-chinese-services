@@ -1,38 +1,68 @@
 // ─── Post Community (小红书风格) ──────────────────────────────────────────────
-// Route: /community/post
-import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+// Route: /community/post          → create new post
+// Route: /community/post?edit=ID  → edit existing post (owner only)
+import { useEffect, useState } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { ArrowLeft, ImagePlus, X, MapPin, Tag } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { useAuthStore } from '../../store/authStore'
 import { compressImage, validateImageFile } from '../../lib/compressImage'
 import { POST_TYPE_CONFIG, AREA_CONFIG } from './config'
+import { toast } from '../../lib/toast'
 
 const MAX_IMAGES = 4
 
 export default function PostCommunity() {
-  const navigate = useNavigate()
-  const user     = useAuthStore((s) => s.user)
+  const navigate      = useNavigate()
+  const [searchParams] = useSearchParams()
+  const editId        = searchParams.get('edit')
+  const user          = useAuthStore((s) => s.user)
 
   const [title,        setTitle]        = useState('')
   const [content,      setContent]      = useState('')
-  const [type,         setType]         = useState<string>('')        // optional
-  const [area,         setArea]         = useState<string>('')        // optional
-  const [images,       setImages]       = useState<File[]>([])
-  const [previews,     setPreviews]     = useState<string[]>([])
+  const [type,         setType]         = useState<string>('')
+  const [area,         setArea]         = useState<string>('')
+  // Existing images (already uploaded URLs) that the user wants to keep
+  const [keptUrls,     setKeptUrls]     = useState<string[]>([])
+  // New images selected in this session (File objects)
+  const [newImages,    setNewImages]    = useState<File[]>([])
+  const [newPreviews,  setNewPreviews]  = useState<string[]>([])
   const [submitting,   setSubmitting]   = useState(false)
   const [uploadingImg, setUploadingImg] = useState(false)
+  const [loading,      setLoading]      = useState(!!editId)
   const [error,        setError]        = useState('')
   const [showTypePicker, setShowTypePicker] = useState(false)
   const [showAreaPicker, setShowAreaPicker] = useState(false)
 
   if (!user) { navigate('/login'); return null }
 
+  const totalImages = keptUrls.length + newImages.length
+
+  // Load existing post when in edit mode
+  useEffect(() => {
+    if (!editId) return
+    supabase
+      .from('community_posts')
+      .select('id, title, content, type, area, images, author_id')
+      .eq('id', editId)
+      .single()
+      .then(({ data, error }) => {
+        if (error || !data) { setLoading(false); navigate('/community'); return }
+        if (data.author_id !== user!.id) { setLoading(false); navigate('/community'); return }
+        setTitle(data.title ?? '')
+        setContent(data.content ?? '')
+        setType(data.type ?? '')
+        setArea(data.area ?? '')
+        setKeptUrls(data.images ?? [])
+        setLoading(false)
+      })
+  }, [editId])
+
   async function handleImageChange(e: React.ChangeEvent<HTMLInputElement>) {
     const files = Array.from(e.target.files ?? [])
     if (!files.length) return
     e.target.value = ''
-    const remaining = MAX_IMAGES - images.length
+    const remaining = MAX_IMAGES - totalImages
     const toProcess = files.slice(0, remaining)
     for (const file of toProcess) {
       const err = validateImageFile(file)
@@ -40,15 +70,19 @@ export default function PostCommunity() {
     }
     setUploadingImg(true)
     const compressed = await Promise.all(toProcess.map(f => compressImage(f)))
-    setImages(prev => [...prev, ...compressed])
-    setPreviews(prev => [...prev, ...compressed.map(f => URL.createObjectURL(f))])
+    setNewImages(prev => [...prev, ...compressed])
+    setNewPreviews(prev => [...prev, ...compressed.map(f => URL.createObjectURL(f))])
     setUploadingImg(false)
   }
 
-  function removeImage(idx: number) {
-    URL.revokeObjectURL(previews[idx])
-    setImages(prev => prev.filter((_, i) => i !== idx))
-    setPreviews(prev => prev.filter((_, i) => i !== idx))
+  function removeKept(idx: number) {
+    setKeptUrls(prev => prev.filter((_, i) => i !== idx))
+  }
+
+  function removeNew(idx: number) {
+    URL.revokeObjectURL(newPreviews[idx])
+    setNewImages(prev => prev.filter((_, i) => i !== idx))
+    setNewPreviews(prev => prev.filter((_, i) => i !== idx))
   }
 
   async function submit() {
@@ -57,35 +91,71 @@ export default function PostCommunity() {
     setError('')
     setSubmitting(true)
 
-    const imageUrls: string[] = []
-    for (const file of images) {
+    // Upload new images
+    const uploadedUrls: string[] = []
+    for (const file of newImages) {
       const ext  = file.name.split('.').pop()?.toLowerCase() ?? 'jpg'
       const path = `community/${user!.id}/${Date.now()}.${ext}`
       const { error: uploadErr } = await supabase.storage
         .from('service-images').upload(path, file, { upsert: true })
-      if (uploadErr) { setError(`图片上传失败：${uploadErr.message}`); setSubmitting(false); return }
+      if (uploadErr) {
+        setError(`图片上传失败：${uploadErr.message}`)
+        setSubmitting(false)
+        return
+      }
       const { data: urlData } = supabase.storage.from('service-images').getPublicUrl(path)
-      imageUrls.push(urlData.publicUrl)
+      uploadedUrls.push(urlData.publicUrl)
     }
 
-    const { data, error: err } = await supabase
-      .from('community_posts')
-      .insert({
-        author_id: user!.id,
-        type:      type || 'question',
-        area:      area || 'other',
-        title:     title.trim(),
-        content:   content.trim(),
-        images:    imageUrls,
-      })
-      .select('id').single()
+    const finalImages = [...keptUrls, ...uploadedUrls]
 
-    setSubmitting(false)
-    if (err || !data) { setError('发布失败，请重试'); return }
-    navigate(`/community/${data.id}`)
+    if (editId) {
+      // Edit mode — UPDATE existing post
+      const { error: err } = await supabase
+        .from('community_posts')
+        .update({
+          title:   title.trim(),
+          content: content.trim(),
+          type:    type || 'question',
+          area:    area || 'other',
+          images:  finalImages,
+        })
+        .eq('id', editId)
+        .eq('author_id', user!.id)
+
+      setSubmitting(false)
+      if (err) { setError('保存失败，请重试'); return }
+      toast('帖子已更新', 'success')
+      navigate(`/community/${editId}`)
+    } else {
+      // Create mode — INSERT new post
+      const { data, error: err } = await supabase
+        .from('community_posts')
+        .insert({
+          author_id: user!.id,
+          type:      type || 'question',
+          area:      area || 'other',
+          title:     title.trim(),
+          content:   content.trim(),
+          images:    finalImages,
+        })
+        .select('id').single()
+
+      setSubmitting(false)
+      if (err || !data) { setError('发布失败，请重试'); return }
+      navigate(`/community/${data.id}`)
+    }
   }
 
   const canSubmit = title.trim().length > 0 && content.trim().length > 0
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center text-gray-400 text-sm">
+        加载中…
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-white">
@@ -95,43 +165,60 @@ export default function PostCommunity() {
         <button onClick={() => navigate(-1)} className="text-gray-500 hover:text-gray-800 p-1">
           <ArrowLeft size={22} />
         </button>
+        <span className="text-sm font-semibold text-gray-700">
+          {editId ? '编辑帖子' : '发布帖子'}
+        </span>
         <button
           onClick={submit}
           disabled={!canSubmit || submitting || uploadingImg}
           className="bg-primary-600 hover:bg-primary-700 disabled:bg-gray-200 disabled:text-gray-400
                      text-white text-sm font-bold px-5 py-2 rounded-full transition-colors"
         >
-          {submitting ? '发布中…' : '发布'}
+          {submitting ? (editId ? '保存中…' : '发布中…') : (editId ? '保存' : '发布')}
         </button>
       </div>
 
       <div className="max-w-2xl mx-auto px-4 pt-4 pb-32">
 
-        {/* Image grid — 小红书风格，图片优先 */}
+        {/* Image grid */}
         <div className="mb-5">
           <div className="grid grid-cols-3 gap-2">
-            {previews.map((src, idx) => (
-              <div key={idx} className="relative aspect-square rounded-2xl overflow-hidden bg-gray-100">
-                <img src={src} alt="" className="w-full h-full object-cover" />
-                <button onClick={() => removeImage(idx)}
+            {/* Kept existing images */}
+            {keptUrls.map((url, idx) => (
+              <div key={`kept-${idx}`} className="relative aspect-square rounded-2xl overflow-hidden bg-gray-100">
+                <img src={url} alt="" className="w-full h-full object-cover" />
+                <button onClick={() => removeKept(idx)}
                   className="absolute top-1.5 right-1.5 w-6 h-6 bg-black/50 text-white rounded-full
                              flex items-center justify-center hover:bg-black/70 transition-colors">
                   <X size={12} />
                 </button>
               </div>
             ))}
-            {images.length < MAX_IMAGES && (
+            {/* New image previews */}
+            {newPreviews.map((src, idx) => (
+              <div key={`new-${idx}`} className="relative aspect-square rounded-2xl overflow-hidden bg-gray-100">
+                <img src={src} alt="" className="w-full h-full object-cover" />
+                <button onClick={() => removeNew(idx)}
+                  className="absolute top-1.5 right-1.5 w-6 h-6 bg-black/50 text-white rounded-full
+                             flex items-center justify-center hover:bg-black/70 transition-colors">
+                  <X size={12} />
+                </button>
+              </div>
+            ))}
+            {totalImages < MAX_IMAGES && (
               <label className="aspect-square rounded-2xl border-2 border-dashed border-gray-200 bg-gray-50
                                 flex flex-col items-center justify-center gap-1.5 cursor-pointer
                                 hover:border-primary-300 hover:bg-primary-50 transition-all">
                 <ImagePlus size={24} className="text-gray-300" />
-                <span className="text-[11px] text-gray-400">{uploadingImg ? '处理中…' : images.length === 0 ? '添加图片' : '继续添加'}</span>
+                <span className="text-[11px] text-gray-400">
+                  {uploadingImg ? '处理中…' : totalImages === 0 ? '添加图片' : '继续添加'}
+                </span>
                 <input type="file" accept="image/*" multiple className="hidden"
                   onChange={handleImageChange} disabled={uploadingImg} />
               </label>
             )}
           </div>
-          {images.length === 0 && (
+          {totalImages === 0 && (
             <p className="text-xs text-gray-400 mt-2 text-center">添加图片让帖子更吸引人（选填）</p>
           )}
         </div>
@@ -157,7 +244,6 @@ export default function PostCommunity() {
                      outline-none border-none bg-transparent resize-none leading-relaxed"
         />
 
-        {/* Error */}
         {error && <p className="text-sm text-red-500 mt-2">{error}</p>}
       </div>
 

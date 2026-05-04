@@ -11,6 +11,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { supabase } from '../../lib/supabase'
 import { useAuthStore } from '../../store/authStore'
 import { notifyNewReview } from '../../lib/notify'
+import { toast } from '../../lib/toast'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -311,7 +312,7 @@ export default function ReviewsSection({ serviceId, providerId }: Props) {
     const reply = replies[reviewId]
     if (!reply) return
     const { error } = await supabase.from('review_replies').delete().eq('id', reply.id).eq('replier_id', user.id)
-    if (error) { alert('删除回复失败，请稍后再试'); return }
+    if (error) { toast('删除回复失败，请稍后再试', 'error'); return }
     load()
   }
 

@@ -4,6 +4,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { ArrowLeft, CheckCircle2, Clock, ExternalLink, MessageSquare, Phone, ShieldCheck, Star, Briefcase, DollarSign, MapPin, BadgeCheck } from 'lucide-react'
+import { toast } from '../../lib/toast'
 import { motion, AnimatePresence } from 'framer-motion'
 import { supabase } from '../../lib/supabase'
 import { useAuthStore } from '../../store/authStore'
@@ -20,6 +21,7 @@ import type { SecondhandItem } from '../Secondhand/types'
 import { EVENT_TYPE_CONFIG, getPriceLabel as getEventPriceLabel, formatEventDate, isUpcoming } from '../Events/types'
 import type { Event } from '../Events/types'
 import { SOCIAL_PLATFORMS } from '../../lib/socialPlatforms'
+import { ProviderProfileSkeleton } from '../../components/Skeleton/Skeleton'
 
 interface ProviderUser {
   id: string
@@ -82,129 +84,74 @@ export default function ProviderProfile() {
     if (!id) return
     setLoading(true)
 
-    // Fetch core user profile (columns that always exist)
-    supabase
-      .from('public_profiles')
-      .select('id, name, avatar_url, email, bio, created_at, is_email_verified, last_seen_at, phone_verified, social_links, membership_level, business_verified, avg_reply_hours')
-      .eq('id', id)
-      .single()
-      .then(({ data, error }) => {
-        if (error || !data) { setNotFound(true); setLoading(false); return }
-        setProvider({
-          ...data,
-          bio: data.bio ?? null,
-          phone: null,
-          wechat: null,
-          created_at: data.created_at,
-          phone_verified: data.phone_verified ?? false,
-          social_links: (data.social_links as Record<string, string>) ?? {},
-          membership_level: (data.membership_level as MemberLevel) ?? 'L1',
-          business_verified: data.business_verified ?? false,
-          avg_reply_hours: data.avg_reply_hours ?? null,
-        })
-        setLoading(false)
+    async function load() {
+      const [
+        { data: profile, error: profileError },
+        { data: svcsData },
+        { data: propertiesData },
+        { data: secondhandData },
+        { data: eventsData },
+        { data: jobsData },
+        { count: followCount },
+      ] = await Promise.all([
+        supabase.from('public_profiles')
+          .select('id, name, avatar_url, email, bio, created_at, is_email_verified, last_seen_at, phone_verified, social_links, membership_level, business_verified, avg_reply_hours')
+          .eq('id', id).single(),
+        supabase.from('services')
+          .select('id, title, description, category_id, price, price_type, area, images, reviews:reviews(id, rating, comment, created_at, reply:review_replies(content), reviewer:reviewer_id(id, name, avatar_url))')
+          .eq('provider_id', id).eq('is_available', true).order('created_at', { ascending: false }),
+        supabase.from('properties')
+          .select('*').eq('poster_id', id).eq('is_active', true).order('created_at', { ascending: false }),
+        supabase.from('secondhand')
+          .select('*').eq('seller_id', id).eq('is_active', true).eq('is_sold', false).order('created_at', { ascending: false }),
+        supabase.from('events')
+          .select('*').eq('poster_id', id).eq('is_active', true).order('event_date', { ascending: true }),
+        supabase.from('jobs')
+          .select('*').eq('poster_id', id).eq('is_active', true).order('created_at', { ascending: false }),
+        supabase.from('follows')
+          .select('id', { count: 'exact', head: true }).eq('provider_id', id),
+      ])
+
+      if (profileError || !profile) { setNotFound(true); setLoading(false); return }
+
+      setProvider({
+        ...profile,
+        bio: profile.bio ?? null,
+        phone: null,
+        wechat: null,
+        phone_verified: profile.phone_verified ?? false,
+        social_links: (profile.social_links as Record<string, string>) ?? {},
+        membership_level: (profile.membership_level as MemberLevel) ?? 'L1',
+        business_verified: profile.business_verified ?? false,
+        avg_reply_hours: profile.avg_reply_hours ?? null,
       })
 
-    // Fetch their active property listings
-    supabase
-      .from('properties')
-      .select('*')
-      .eq('poster_id', id)
-      .eq('is_active', true)
-      .order('created_at', { ascending: false })
-      .then(({ data }) => {
-        if (data) setProperties(data.map(p => ({ ...p, images: p.images ?? [] })) as Property[])
-      })
+      if (svcsData) {
+        setServices(svcsData.map(r => ({ ...r, images: r.images ?? [] })))
+        const allReviews: ProviderReview[] = svcsData.flatMap(svc =>
+          ((svc as any).reviews ?? []).map((r: any) => ({
+            id:         r.id,
+            rating:     r.rating,
+            comment:    r.comment,
+            created_at: r.created_at,
+            service:    { id: svc.id, title: svc.title },
+            reviewer:   Array.isArray(r.reviewer) ? r.reviewer[0] : r.reviewer,
+            reply:      Array.isArray(r.reply) ? (r.reply[0]?.content ?? null) : (r.reply?.content ?? null),
+          }))
+        )
+        allReviews.sort((a, b) => b.created_at.localeCompare(a.created_at))
+        setProviderReviews(allReviews)
+      }
+      if (propertiesData) setProperties(propertiesData.map(p => ({ ...p, images: p.images ?? [] })) as Property[])
+      if (secondhandData) setSecondhandItems(secondhandData.map(i => ({ ...i, images: i.images ?? [] })) as SecondhandItem[])
+      if (eventsData) setEvents(eventsData.map(e => ({ ...e, images: e.images ?? [] })) as Event[])
+      if (jobsData) setJobs(jobsData.map(j => ({ ...j, listing_type: j.listing_type ?? 'hiring' })) as Job[])
+      if (followCount !== null) setFollowerCount(followCount)
 
-    // Fetch their active secondhand listings
-    supabase
-      .from('secondhand')
-      .select('*')
-      .eq('seller_id', id)
-      .eq('is_active', true)
-      .eq('is_sold', false)
-      .order('created_at', { ascending: false })
-      .then(({ data }) => {
-        if (data) setSecondhandItems(data.map(i => ({ ...i, images: i.images ?? [] })) as SecondhandItem[])
-      })
+      setLoading(false)
+    }
 
-    // Fetch their active events
-    supabase
-      .from('events')
-      .select('*')
-      .eq('poster_id', id)
-      .eq('is_active', true)
-      .order('event_date', { ascending: true })
-      .then(({ data }) => {
-        if (data) setEvents(data.map(e => ({ ...e, images: e.images ?? [] })) as Event[])
-      })
-
-    // Fetch their active job posts (hiring + seeking)
-    supabase
-      .from('jobs')
-      .select('*')
-      .eq('poster_id', id)
-      .eq('is_active', true)
-      .order('created_at', { ascending: false })
-      .then(({ data }) => {
-        if (data) setJobs(data.map(j => ({ ...j, listing_type: j.listing_type ?? 'hiring' })) as Job[])
-      })
-
-    // Fetch their active services, then load reviews for those services
-    supabase
-      .from('services')
-      .select('id, title, description, category_id, price, price_type, area, images')
-      .eq('provider_id', id)
-      .eq('is_available', true)
-      .order('created_at', { ascending: false })
-      .then(({ data }) => {
-        const rows = data?.map(r => ({ ...r, images: r.images ?? [] })) ?? []
-        setServices(rows)
-
-        if (rows.length === 0) return
-        const serviceIds = rows.map(r => r.id)
-        supabase
-          .from('reviews')
-          .select('id, rating, comment, created_at, service:service_id(id, title), reviewer:reviewer_id(id, name, avatar_url)')
-          .in('service_id', serviceIds)
-          .order('created_at', { ascending: false })
-          .then(({ data: rData }) => {
-            if (!rData) return
-            const mapped = rData.map((r: any) => ({
-              id:         r.id,
-              rating:     r.rating,
-              comment:    r.comment,
-              created_at: r.created_at,
-              service:    Array.isArray(r.service)  ? r.service[0]  : r.service,
-              reviewer:   Array.isArray(r.reviewer) ? r.reviewer[0] : r.reviewer,
-              reply:      null as string | null,
-            }))
-            setProviderReviews(mapped)
-
-            // Fetch replies for all reviews
-            const reviewIds = mapped.map((r: any) => r.id)
-            supabase
-              .from('review_replies')
-              .select('review_id, content')
-              .in('review_id', reviewIds)
-              .then(({ data: replies }) => {
-                if (!replies) return
-                const replyMap: Record<string, string> = {}
-                replies.forEach((rp: any) => { replyMap[rp.review_id] = rp.content })
-                setProviderReviews(prev => prev.map(r => ({
-                  ...r,
-                  reply: replyMap[r.id] ?? null,
-                })))
-              })
-          })
-      })
-
-    // Fetch follower count
-    supabase
-      .from('follows')
-      .select('id', { count: 'exact', head: true })
-      .eq('provider_id', id)
-      .then(({ count }) => { if (count !== null) setFollowerCount(count) })
+    load()
   }, [id])
 
   async function handleMessage() {
@@ -230,16 +177,22 @@ export default function ProviderProfile() {
     if (!provider?.wechat) return
     try {
       await navigator.clipboard.writeText(provider.wechat)
-      alert(`微信号已复制：${provider.wechat}`)
+      toast('微信号已复制 ✓', 'success')
     } catch {
-      alert(`微信号：${provider.wechat}（请手动复制）`)
+      toast(`微信号：${provider.wechat}（请手动复制）`)
     }
   }
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center text-gray-400 text-sm">
-        加载中…
+      <div className="min-h-screen bg-gray-50">
+        <div className="sticky top-0 z-20 bg-white border-b border-gray-200 px-4 h-14 flex items-center gap-3">
+          <button onClick={() => navigate(-1)} className="text-gray-400">
+            <ArrowLeft size={22} />
+          </button>
+          <div className="h-4 w-32 bg-gray-200 animate-pulse rounded-lg" />
+        </div>
+        <ProviderProfileSkeleton />
       </div>
     )
   }

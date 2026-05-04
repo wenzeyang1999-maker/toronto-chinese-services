@@ -20,6 +20,8 @@ import {
   type SecondhandItem, type SecondhandCategory, type ItemCondition,
 } from './types'
 import SecondhandComments from './components/SecondhandComments'
+import { toast } from '../../lib/toast'
+import { useUrlFilters } from '../../lib/useUrlFilters'
 
 const GTA_AREAS = [
   '多伦多市区', '北约克', '士嘉堡', '密西沙加', '万锦',
@@ -35,6 +37,8 @@ export default function SecondhandList() {
   const [localKeyword, setLocalKeyword] = useState(filters.keyword ?? '')
   const [selectedId,   setSelectedId]   = useState<string | null>(null)
   const detailRef = useRef<HTMLDivElement>(null)
+
+  useUrlFilters(filters, setFilters, ['keyword', 'category', 'condition', 'area', 'max_price'], { numericKeys: ['max_price'] })
 
   useEffect(() => { fetchItems() }, [])
 
@@ -295,7 +299,7 @@ function DetailPanel({ item, onClose }: { item: SecondhandItem; onClose: () => v
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
     } catch {
-      alert(`微信号：${item.contact_wechat}`)
+      toast(`微信号：${item.contact_wechat}（请手动复制）`)
     }
   }
 
