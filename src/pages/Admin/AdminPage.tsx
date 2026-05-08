@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { ShieldCheck, Flag, CheckCircle2, Trash2, ChevronLeft, Users, Briefcase, Home, ShoppingBag, Calendar, Wrench, Star, BadgeCheck, X, ExternalLink, Zap, Crown, Search, Inbox, Mail, CheckCheck, Ban, UserCheck, UserCog } from 'lucide-react'
+import { ShieldCheck, Flag, CheckCircle2, Trash2, ChevronLeft, Users, Briefcase, Home, ShoppingBag, Calendar, Wrench, Star, BadgeCheck, X, ExternalLink, Zap, Crown, Search, Inbox, Mail, CheckCheck, Ban, UserCheck, UserCog, Pencil } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { useAuthStore } from '../../store/authStore'
 import AdminNotificationsBell from '../../components/AdminNotifications/AdminNotificationsBell'
@@ -115,6 +115,7 @@ interface NewServiceRow {
   id: string
   title: string
   description: string
+  price: number | null
   category_id: string
   is_available: boolean
   is_promoted: boolean
@@ -166,6 +167,7 @@ const ADMIN_ACTION_LABEL: Record<string, string> = {
   service_takedown: '下架服务',
   service_restored: '恢复服务',
   service_bulk_takedown: '批量下架服务',
+  service_content_updated: '编辑服务内容',
   user_role_updated: '修改用户角色',
   community_report_dismissed: '忽略社区举报',
   community_report_removed: '删除被举报帖子',
@@ -203,6 +205,10 @@ export default function AdminPage() {
   const [logActionFilter, setLogActionFilter] = useState<'all' | string>('all')
   const [logDateFrom,    setLogDateFrom]    = useState('')
   const [logDateTo,      setLogDateTo]      = useState('')
+  const [editingSvcId,   setEditingSvcId]   = useState<string | null>(null)
+  const [editTitle,      setEditTitle]      = useState('')
+  const [editDescription, setEditDescription] = useState('')
+  const [editPrice,      setEditPrice]      = useState('')
 
   useEffect(() => {
     if (!user) { navigate('/login'); return }
@@ -615,7 +621,7 @@ export default function AdminPage() {
   async function loadNewServices() {
     const { data, error } = await supabase
       .from('services')
-      .select('id, title, description, category_id, is_available, is_promoted, created_at, provider:provider_id(id, name, email)')
+      .select('id, title, description, price, category_id, is_available, is_promoted, created_at, provider:provider_id(id, name, email)')
       .order('created_at', { ascending: false })
       .limit(60)
     if (error) {
@@ -674,6 +680,48 @@ export default function AdminPage() {
       setNewServices(prev => prev.map(s => ids.includes(s.id) ? { ...s, is_available: false } : s))
       setSelectedSvcs(new Set())
     }
+  }
+
+  function startEditService(svc: NewServiceRow) {
+    setEditingSvcId(svc.id)
+    setEditTitle(svc.title)
+    setEditDescription(svc.description)
+    setEditPrice(svc.price?.toString() ?? '')
+  }
+
+  function cancelEditService() {
+    setEditingSvcId(null)
+    setEditTitle('')
+    setEditDescription('')
+    setEditPrice('')
+  }
+
+  async function saveServiceEdit() {
+    if (!editingSvcId) return
+    setActing(editingSvcId)
+    const id = editingSvcId
+    const newPrice = editPrice.trim() === '' ? null : Number(editPrice)
+    if (newPrice !== null && (isNaN(newPrice) || newPrice < 0)) {
+      showNotice('error', '价格必须是非负数字')
+      setActing(null)
+      return
+    }
+    const ok = await runAdminAction(async () => {
+      const { error } = await supabase.rpc('admin_update_service_content', {
+        service_id: id,
+        new_title: editTitle.trim(),
+        new_description: editDescription.trim(),
+        new_price: newPrice,
+      })
+      if (error) throw error
+    }, '服务内容已更新')
+    if (ok !== null) {
+      setNewServices(prev => prev.map(s =>
+        s.id === id ? { ...s, title: editTitle.trim(), description: editDescription.trim(), price: newPrice } : s
+      ))
+      cancelEditService()
+    }
+    setActing(null)
   }
 
   function toggleSelect(id: string) {
@@ -1761,6 +1809,14 @@ export default function AdminPage() {
                         >
                           <ExternalLink size={14} />
                         </a>
+                        <button
+                          onClick={() => startEditService(svc)}
+                          disabled={acting === svc.id || editingSvcId === svc.id}
+                          className="p-1.5 rounded-lg border border-gray-200 text-gray-400 hover:bg-blue-50 hover:text-blue-600 transition-colors disabled:opacity-50"
+                          title="编辑内容"
+                        >
+                          <Pencil size={14} />
+                        </button>
                         {svc.is_available ? (
                           <button
                             onClick={() => takedownService(svc.id)}
@@ -1780,6 +1836,57 @@ export default function AdminPage() {
                         )}
                       </div>
                     </div>
+
+                    {/* Inline edit form */}
+                    {editingSvcId === svc.id && (
+                      <div className="mt-3 pt-3 border-t border-gray-100 space-y-2">
+                        <div>
+                          <label className="text-xs text-gray-500 mb-1 block">标题</label>
+                          <input
+                            value={editTitle}
+                            onChange={e => setEditTitle(e.target.value)}
+                            className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-primary-300"
+                            maxLength={50}
+                          />
+                        </div>
+                        <div>
+                          <label className="text-xs text-gray-500 mb-1 block">描述</label>
+                          <textarea
+                            value={editDescription}
+                            onChange={e => setEditDescription(e.target.value)}
+                            rows={3}
+                            maxLength={500}
+                            className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-primary-300 resize-none"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-xs text-gray-500 mb-1 block">价格（留空保持不变）</label>
+                          <input
+                            type="number"
+                            min="0"
+                            value={editPrice}
+                            onChange={e => setEditPrice(e.target.value)}
+                            placeholder={svc.price?.toString() ?? '面议'}
+                            className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-primary-300"
+                          />
+                        </div>
+                        <div className="flex gap-2 pt-1">
+                          <button
+                            onClick={cancelEditService}
+                            className="flex-1 text-xs py-2 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 transition-colors"
+                          >
+                            取消
+                          </button>
+                          <button
+                            onClick={saveServiceEdit}
+                            disabled={acting === svc.id || !editTitle.trim() || !editDescription.trim()}
+                            className="flex-1 text-xs py-2 rounded-lg bg-primary-600 text-white hover:bg-primary-700 disabled:opacity-50 transition-colors"
+                          >
+                            {acting === svc.id ? '保存中…' : '保存'}
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
