@@ -173,6 +173,9 @@ const ADMIN_ACTION_LABEL: Record<string, string> = {
   community_report_removed: '删除被举报帖子',
   community_comment_report_dismissed: '忽略评论举报',
   community_comment_report_removed: '删除被举报评论',
+  takedown_job: '下架招聘',
+  takedown_property: '下架房源',
+  takedown_event: '下架活动',
 }
 
 export default function AdminPage() {
@@ -209,6 +212,14 @@ export default function AdminPage() {
   const [editTitle,      setEditTitle]      = useState('')
   const [editDescription, setEditDescription] = useState('')
   const [editPrice,      setEditPrice]      = useState('')
+  const [trendStats,        setTrendStats]        = useState<Record<string, number> | null>(null)
+  const [svcStatusFilter,   setSvcStatusFilter]   = useState<'all' | 'online' | 'offline'>('all')
+  const [svcCategoryFilter, setSvcCategoryFilter] = useState('all')
+  const [showVerifHistory,  setShowVerifHistory]  = useState(false)
+  const [verifHistory,      setVerifHistory]      = useState<VerificationRow[]>([])
+  const [servicesHasMore,   setServicesHasMore]   = useState(false)
+  const [inquiriesHasMore,  setInquiriesHasMore]  = useState(false)
+  const [communityHasMore,  setCommunityHasMore]  = useState(false)
 
   useEffect(() => {
     if (!user) { navigate('/login'); return }
@@ -436,17 +447,22 @@ export default function AdminPage() {
     setActing(null)
   }
 
-  async function loadCommunityPosts() {
+  async function loadCommunityPosts(append = false) {
+    const PAGE = 30
+    const start = append ? communityPosts.length : 0
     const { data, error } = await supabase
       .from('community_posts')
       .select('id, title, type, area, created_at, author:author_id(name)')
       .order('created_at', { ascending: false })
-      .limit(50)
+      .range(start, start + PAGE - 1)
     if (error) {
       showNotice('error', `加载社区帖子失败：${error.message}`)
       return
     }
-    if (data) setCommunityPosts(data.map((p: any) => ({ ...p, author: Array.isArray(p.author) ? p.author[0] : p.author })))
+    const mapped = (data ?? []).map((p: any) => ({ ...p, author: Array.isArray(p.author) ? p.author[0] : p.author }))
+    if (append) setCommunityPosts(prev => [...prev, ...mapped])
+    else setCommunityPosts(mapped)
+    setCommunityHasMore((data ?? []).length === PAGE)
   }
 
   async function deleteCommunityPost(postId: string) {
@@ -461,12 +477,14 @@ export default function AdminPage() {
     setActing(null)
   }
 
-  async function loadInquiries() {
+  async function loadInquiries(append = false) {
+    const PAGE = 30
+    const start = append ? inquiries.length : 0
     const { data, error } = await supabase
       .from('inquiries')
       .select('id, category_id, description, budget, timing, name, phone, wechat, status, created_at')
       .order('created_at', { ascending: false })
-      .limit(50)
+      .range(start, start + PAGE - 1)
     if (error) {
       showNotice('error', `加载询价失败：${error.message}`)
       return
@@ -488,7 +506,10 @@ export default function AdminPage() {
       if (!matchMap[m.inquiry_id]) matchMap[m.inquiry_id] = []
       matchMap[m.inquiry_id].push(m)
     }
-    setInquiries(data.map((r: any) => ({ ...r, matches: matchMap[r.id] ?? [] })))
+    const newItems = data.map((r: any) => ({ ...r, matches: matchMap[r.id] ?? [] }))
+    if (append) setInquiries(prev => [...prev, ...newItems])
+    else setInquiries(newItems)
+    setInquiriesHasMore(data.length === PAGE)
   }
 
   async function updateInquiryStatus(inquiryId: string, status: InquiryRow['status']) {
@@ -542,6 +563,18 @@ export default function AdminPage() {
       rpcName = 'admin_remove_reported_secondhand'
       rpcArgs = { p_report_id: report.id, p_item_id: report.content_id }
       successMsg = '商品已删除'
+    } else if (report.content_type === 'job') {
+      rpcName = 'admin_remove_reported_job'
+      rpcArgs = { p_report_id: report.id, p_job_id: report.content_id }
+      successMsg = '招聘已下架'
+    } else if (report.content_type === 'property') {
+      rpcName = 'admin_remove_reported_property'
+      rpcArgs = { p_report_id: report.id, p_property_id: report.content_id }
+      successMsg = '房源已下架'
+    } else if (report.content_type === 'event') {
+      rpcName = 'admin_remove_reported_event'
+      rpcArgs = { p_report_id: report.id, p_event_id: report.content_id }
+      successMsg = '活动已下架'
     } else {
       setActing(null)
       return
@@ -565,12 +598,13 @@ export default function AdminPage() {
 
   async function searchMembers() {
     const kw = memberSearch.trim()
-    if (!kw) return
-    const { data, error } = await supabase
+    const query = supabase
       .from('users')
       .select('id, name, email, membership_level, membership_expires_at')
-      .or(`name.ilike.%${kw}%,email.ilike.%${kw}%`)
+      .order('created_at', { ascending: false })
       .limit(20)
+    if (kw) query.or(`name.ilike.%${kw}%,email.ilike.%${kw}%`)
+    const { data, error } = await query
     if (error) {
       showNotice('error', `搜索会员失败：${error.message}`)
       return
@@ -618,20 +652,40 @@ export default function AdminPage() {
     setActing(null)
   }
 
-  async function loadNewServices() {
+  async function loadNewServices(append = false) {
+    const PAGE = 40
+    const start = append ? newServices.length : 0
     const { data, error } = await supabase
       .from('services')
       .select('id, title, description, price, category_id, is_available, is_promoted, created_at, provider:provider_id(id, name, email)')
       .order('created_at', { ascending: false })
-      .limit(60)
+      .range(start, start + PAGE - 1)
     if (error) {
       showNotice('error', `加载服务审核列表失败：${error.message}`)
       return
     }
-    if (data) setNewServices(data.map((r: any) => ({
+    const mapped = (data ?? []).map((r: any) => ({
       ...r,
       provider: Array.isArray(r.provider) ? r.provider[0] : r.provider,
-    })))
+    }))
+    if (append) setNewServices(prev => [...prev, ...mapped])
+    else setNewServices(mapped)
+    setServicesHasMore((data ?? []).length === PAGE)
+  }
+
+  async function loadTrendStats() {
+    const { data, error } = await supabase.rpc('admin_stats_trend')
+    if (!error && data) setTrendStats(data as Record<string, number>)
+  }
+
+  async function loadVerifHistory() {
+    const { data } = await supabase
+      .from('users')
+      .select('id, name, email, verification_doc_url, verification_status, created_at')
+      .in('verification_status', ['approved', 'rejected'])
+      .order('created_at', { ascending: false })
+      .limit(50)
+    if (data) setVerifHistory(data as VerificationRow[])
   }
 
   async function takedownService(id: string) {
@@ -931,109 +985,71 @@ export default function AdminPage() {
           </div>
         )}
 
-        {/* Tabs */}
-        <div className="flex gap-1 bg-gray-100 rounded-2xl p-1">
-          <button onClick={() => setTab('reports')}
-            className={`flex-1 py-2 rounded-xl text-sm font-semibold transition-all ${
-              tab === 'reports' ? 'bg-white text-primary-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'
-            }`}>
-            举报 {stats ? `(${stats.pending_reports})` : ''}
-          </button>
-          <button onClick={() => { setTab('communityReports'); loadContentReports() }}
-            className={`flex-1 py-2 rounded-xl text-sm font-semibold transition-all ${
-              tab === 'communityReports' ? 'bg-white text-primary-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'
-            }`}>
-            内容举报 {stats ? `(${stats.pending_content_reports})` : ''}
-          </button>
-          <button onClick={() => setTab('verification')}
-            className={`flex-1 py-2 rounded-xl text-sm font-semibold transition-all ${
-              tab === 'verification' ? 'bg-white text-primary-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'
-            }`}>
-            认证审核 {stats ? `(${stats.pending_verifications})` : ''}
-          </button>
-          <button onClick={() => { setTab('promoted'); searchPromoted() }}
-            className={`flex-1 py-2 rounded-xl text-sm font-semibold transition-all ${
-              tab === 'promoted' ? 'bg-white text-primary-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'
-            }`}>
-            置顶推广
-          </button>
-          <button onClick={() => { setTab('promoRequests'); loadPromoRequests() }}
-            className={`flex-1 py-2 rounded-xl text-sm font-semibold transition-all ${
-              tab === 'promoRequests' ? 'bg-white text-amber-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'
-            }`}>
-            置顶申请 {promoRequests.filter(r => r.status === 'pending').length > 0
-              ? `(${promoRequests.filter(r => r.status === 'pending').length})`
-              : ''}
-          </button>
-          <button onClick={() => { setTab('community'); loadCommunityPosts() }}
-            className={`flex-1 py-2 rounded-xl text-sm font-semibold transition-all ${
-              tab === 'community' ? 'bg-white text-primary-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'
-            }`}>
-            社区帖子
-          </button>
-          <button onClick={() => { setTab('inquiries'); loadInquiries() }}
-            className={`flex-1 py-2 rounded-xl text-sm font-semibold transition-all ${
-              tab === 'inquiries' ? 'bg-white text-primary-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'
-            }`}>
-            询价
-          </button>
-          <button onClick={() => setTab('overview')}
-            className={`flex-1 py-2 rounded-xl text-sm font-semibold transition-all ${
-              tab === 'overview' ? 'bg-white text-primary-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'
-            }`}>
-            数据概览
-          </button>
-          <button onClick={() => setTab('membership')}
-            className={`flex-1 py-2 rounded-xl text-sm font-semibold transition-all ${
-              tab === 'membership' ? 'bg-white text-primary-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'
-            }`}>
-            会员管理
-          </button>
-          <button onClick={() => { setTab('users'); searchUsers() }}
-            className={`flex-1 py-2 rounded-xl text-sm font-semibold transition-all ${
-              tab === 'users' ? 'bg-white text-primary-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'
-            }`}>
-            用户管理
-          </button>
-          <button onClick={() => { setTab('services'); loadNewServices() }}
-            className={`flex-1 py-2 rounded-xl text-sm font-semibold transition-all ${
-              tab === 'services' ? 'bg-white text-primary-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'
-            }`}>
-            服务审核
-          </button>
-          <button onClick={() => { setTab('logs'); loadAuditLogs() }}
-            className={`flex-1 py-2 rounded-xl text-sm font-semibold transition-all ${
-              tab === 'logs' ? 'bg-white text-primary-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'
-            }`}>
-            操作日志
-          </button>
+        {/* Tabs — horizontally scrollable */}
+        <div className="overflow-x-auto -mx-4 px-4 pb-0.5">
+          <div className="flex gap-1.5 min-w-max">
+            {([
+              { key: 'reports',        label: `举报${stats ? ` (${stats.pending_reports})` : ''}`,                   onClick: () => setTab('reports') },
+              { key: 'communityReports', label: `内容举报${stats ? ` (${stats.pending_content_reports})` : ''}`,     onClick: () => { setTab('communityReports'); loadContentReports() } },
+              { key: 'verification',   label: `认证审核${stats ? ` (${stats.pending_verifications})` : ''}`,         onClick: () => { setTab('verification'); setShowVerifHistory(false) } },
+              { key: 'promoted',       label: '置顶推广',     onClick: () => { setTab('promoted'); searchPromoted() } },
+              { key: 'promoRequests',  label: `置顶申请${promoRequests.filter(r => r.status === 'pending').length > 0 ? ` (${promoRequests.filter(r => r.status === 'pending').length})` : ''}`, onClick: () => { setTab('promoRequests'); loadPromoRequests() } },
+              { key: 'community',      label: '社区帖子',     onClick: () => { setTab('community'); loadCommunityPosts() } },
+              { key: 'inquiries',      label: '询价',         onClick: () => { setTab('inquiries'); loadInquiries() } },
+              { key: 'overview',       label: '数据概览',     onClick: () => { setTab('overview'); if (!trendStats) loadTrendStats() } },
+              { key: 'membership',     label: '会员管理',     onClick: () => { setTab('membership'); searchMembers() } },
+              { key: 'users',          label: '用户管理',     onClick: () => { setTab('users'); searchUsers() } },
+              { key: 'services',       label: '服务审核',     onClick: () => { setTab('services'); loadNewServices() } },
+              { key: 'logs',           label: '操作日志',     onClick: () => { setTab('logs'); loadAuditLogs() } },
+            ] as { key: typeof tab; label: string; onClick: () => void }[]).map(({ key, label, onClick }) => (
+              <button key={key} onClick={onClick}
+                className={`whitespace-nowrap px-3 py-2 rounded-xl text-sm font-semibold transition-all ${
+                  tab === key ? 'bg-primary-600 text-white shadow-sm' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}>
+                {label}
+              </button>
+            ))}
+          </div>
         </div>
 
         {loading ? (
           <div className="text-center py-20 text-gray-400 text-sm">加载中…</div>
         ) : tab === 'overview' && stats ? (
-          <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
-            className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-            {[
-              { icon: <Users size={20} />,       label: '注册用户',   value: stats.users,           color: 'text-blue-600 bg-blue-50' },
-              { icon: <Wrench size={20} />,       label: '服务',       value: stats.services,        color: 'text-primary-600 bg-primary-50' },
-              { icon: <Briefcase size={20} />,    label: '招聘职位',   value: stats.jobs,            color: 'text-purple-600 bg-purple-50' },
-              { icon: <Home size={20} />,         label: '房源',       value: stats.properties,      color: 'text-green-600 bg-green-50' },
-              { icon: <ShoppingBag size={20} />,  label: '闲置',       value: stats.secondhand,      color: 'text-orange-600 bg-orange-50' },
-              { icon: <Calendar size={20} />,     label: '活动',       value: stats.events,          color: 'text-pink-600 bg-pink-50' },
-              { icon: <Flag size={20} />,         label: '待处理举报', value: stats.pending_reports,         color: 'text-red-600 bg-red-50' },
-              { icon: <Flag size={20} />,         label: '内容举报',   value: stats.pending_content_reports, color: 'text-orange-600 bg-orange-50' },
-            ].map(({ icon, label, value, color }) => (
-              <div key={label} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 flex items-center gap-3">
-                <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${color}`}>
-                  {icon}
+          <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-3">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              {[
+                { icon: <Users size={20} />,       label: '注册用户',   value: stats.users,           color: 'text-blue-600 bg-blue-50',      tKey: 'users' },
+                { icon: <Wrench size={20} />,       label: '服务',       value: stats.services,        color: 'text-primary-600 bg-primary-50', tKey: 'services' },
+                { icon: <Briefcase size={20} />,    label: '招聘职位',   value: stats.jobs,            color: 'text-purple-600 bg-purple-50',  tKey: 'jobs' },
+                { icon: <Home size={20} />,         label: '房源',       value: stats.properties,      color: 'text-green-600 bg-green-50',    tKey: 'properties' },
+                { icon: <ShoppingBag size={20} />,  label: '闲置',       value: stats.secondhand,      color: 'text-orange-600 bg-orange-50',  tKey: 'secondhand' },
+                { icon: <Calendar size={20} />,     label: '活动',       value: stats.events,          color: 'text-pink-600 bg-pink-50',      tKey: 'events' },
+                { icon: <Flag size={20} />,         label: '待处理举报', value: stats.pending_reports,          color: 'text-red-600 bg-red-50',    tKey: null },
+                { icon: <Flag size={20} />,         label: '内容举报',   value: stats.pending_content_reports,  color: 'text-orange-600 bg-orange-50', tKey: null },
+              ].map(({ icon, label, value, color, tKey }) => (
+                <div key={label} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 flex items-center gap-3">
+                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${color}`}>
+                    {icon}
+                  </div>
+                  <div>
+                    <p className="text-xl font-bold text-gray-900">{value}</p>
+                    <p className="text-xs text-gray-400">{label}</p>
+                    {tKey && trendStats && (
+                      <p className="text-[11px] text-gray-400 mt-0.5">
+                        <span className="text-green-600 font-semibold">+{trendStats[`${tKey}_7d`] ?? 0}</span> 7天 ·{' '}
+                        <span className="text-blue-600 font-semibold">+{trendStats[`${tKey}_30d`] ?? 0}</span> 30天
+                      </p>
+                    )}
+                  </div>
                 </div>
-                <div>
-                  <p className="text-xl font-bold text-gray-900">{value}</p>
-                  <p className="text-xs text-gray-400">{label}</p>
-                </div>
-              </div>
-            ))}
+              ))}
+            </div>
+            {!trendStats && (
+              <button onClick={loadTrendStats}
+                className="w-full py-2 text-xs text-primary-600 border border-primary-200 rounded-xl hover:bg-primary-50 transition-colors">
+                加载增长趋势数据
+              </button>
+            )}
           </motion.div>
         ) : tab === 'promoted' ? (
           <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-3">
@@ -1253,32 +1269,89 @@ export default function AdminPage() {
               <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-12 text-center">
                 <p className="text-sm text-gray-400">暂无社区帖子</p>
               </div>
-            ) : communityPosts.map(p => (
-              <div key={p.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm px-4 py-3 flex items-center gap-3">
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-gray-800 truncate">{p.title}</p>
-                  <p className="text-xs text-gray-400 mt-0.5">
-                    {p.author?.name ?? '匿名'} · {p.type} · {p.area} · {p.created_at.slice(0, 10)}
-                  </p>
-                </div>
-                <button onClick={() => deleteCommunityPost(p.id)} disabled={acting === p.id}
-                  className="flex items-center gap-1 text-xs text-red-500 hover:text-red-700
-                             border border-red-200 hover:border-red-400 px-3 py-1.5 rounded-lg
-                             transition-colors disabled:opacity-50 flex-shrink-0">
-                  <Trash2 size={13} /> 删除
-                </button>
-              </div>
-            ))}
+            ) : (
+              <>
+                {communityPosts.map(p => (
+                  <div key={p.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm px-4 py-3 flex items-center gap-3">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-gray-800 truncate">{p.title}</p>
+                      <p className="text-xs text-gray-400 mt-0.5">
+                        {p.author?.name ?? '匿名'} · {p.type} · {p.area} · {p.created_at.slice(0, 10)}
+                      </p>
+                    </div>
+                    <button onClick={() => deleteCommunityPost(p.id)} disabled={acting === p.id}
+                      className="flex items-center gap-1 text-xs text-red-500 hover:text-red-700
+                                 border border-red-200 hover:border-red-400 px-3 py-1.5 rounded-lg
+                                 transition-colors disabled:opacity-50 flex-shrink-0">
+                      <Trash2 size={13} /> 删除
+                    </button>
+                  </div>
+                ))}
+                {communityHasMore && (
+                  <button
+                    onClick={() => loadCommunityPosts(true)}
+                    className="w-full py-3 rounded-2xl border border-gray-200 bg-white text-sm text-gray-600 font-medium hover:bg-gray-50 transition-colors"
+                  >
+                    加载更多
+                  </button>
+                )}
+              </>
+            )}
           </motion.div>
         ) : tab === 'verification' ? (
-          verifications.length === 0 ? (
-            <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-12 text-center">
-              <BadgeCheck size={36} className="text-green-300 mx-auto mb-3" />
-              <p className="text-sm text-gray-400">暂无待审核的认证申请</p>
+          <div className="space-y-3">
+            {/* Pending / History toggle */}
+            <div className="flex gap-1.5">
+              <button
+                onClick={() => setShowVerifHistory(false)}
+                className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all ${
+                  !showVerifHistory ? 'bg-primary-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}>
+                待审核 {verifications.length > 0 ? `(${verifications.length})` : ''}
+              </button>
+              <button
+                onClick={() => { setShowVerifHistory(true); if (!verifHistory.length) loadVerifHistory() }}
+                className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all ${
+                  showVerifHistory ? 'bg-primary-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}>
+                已审核记录
+              </button>
             </div>
-          ) : (
-            <div className="space-y-3">
-              {verifications.map(v => (
+
+            {showVerifHistory ? (
+              verifHistory.length === 0 ? (
+                <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-12 text-center">
+                  <p className="text-sm text-gray-400">暂无已审核记录</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {verifHistory.map(v => (
+                    <div key={v.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-3 flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center font-bold text-gray-500 flex-shrink-0 text-sm">
+                        {v.name.charAt(0)}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-gray-800">{v.name}</p>
+                        <p className="text-xs text-gray-400 truncate">{v.email}</p>
+                        <p className="text-xs text-gray-400">{v.created_at.slice(0, 10)}</p>
+                      </div>
+                      <span className={`flex-shrink-0 text-xs px-2.5 py-1 rounded-full font-semibold ${
+                        v.verification_status === 'approved' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'
+                      }`}>
+                        {v.verification_status === 'approved' ? '已通过' : '已拒绝'}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )
+            ) : verifications.length === 0 ? (
+              <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-12 text-center">
+                <BadgeCheck size={36} className="text-green-300 mx-auto mb-3" />
+                <p className="text-sm text-gray-400">暂无待审核的认证申请</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {verifications.map(v => (
                 <motion.div key={v.id}
                   initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
                   className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4"
@@ -1336,7 +1409,8 @@ export default function AdminPage() {
                 </motion.div>
               ))}
             </div>
-          )
+          )}
+          </div>
         ) : tab === 'reports' ? (
           reports.length === 0 ? (
             <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-12 text-center">
@@ -1484,7 +1558,7 @@ export default function AdminPage() {
               <span className="text-sm text-gray-500 flex-1">
                 共 <strong>{inquiries.length}</strong> 条 · 待处理 <strong className="text-green-600">{inquiries.filter(i => i.status === 'open').length}</strong> · 已匹配 <strong className="text-blue-600">{inquiries.filter(i => i.status === 'matched').length}</strong> · 已关闭 <strong className="text-gray-500">{inquiries.filter(i => i.status === 'closed').length}</strong>
               </span>
-              <button onClick={loadInquiries}
+              <button onClick={() => loadInquiries()}
                 className="px-3 py-2 border border-gray-200 text-sm text-gray-600 rounded-xl hover:bg-gray-50 transition-colors">
                 刷新
               </button>
@@ -1573,6 +1647,14 @@ export default function AdminPage() {
                 </div>
               </div>
             ))}
+            {inquiriesHasMore && (
+              <button
+                onClick={() => loadInquiries(true)}
+                className="w-full py-3 rounded-2xl border border-gray-200 bg-white text-sm text-gray-600 font-medium hover:bg-gray-50 transition-colors"
+              >
+                加载更多
+              </button>
+            )}
           </motion.div>
         ) : tab === 'users' ? (
           <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-3">
@@ -1740,20 +1822,52 @@ export default function AdminPage() {
                 {selectedSvcs.size === newServices.filter(s => s.is_available).length && newServices.filter(s => s.is_available).length > 0
                   ? '取消全选' : '全选在线'}
               </button>
-              <button onClick={loadNewServices}
+              <button onClick={() => loadNewServices()}
                 className="px-3 py-2 border border-gray-200 text-sm text-gray-600 rounded-xl hover:bg-gray-50 transition-colors">
                 刷新
               </button>
             </div>
 
+            {/* Filter chips */}
+            {newServices.length > 0 && (
+              <div className="flex gap-2 flex-wrap items-center">
+                {(['all', 'online', 'offline'] as const).map(f => (
+                  <button key={f} onClick={() => setSvcStatusFilter(f)}
+                    className={`text-xs px-3 py-1.5 rounded-full font-semibold transition-all ${
+                      svcStatusFilter === f ? 'bg-primary-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    }`}>
+                    {{ all: '全部', online: '在线', offline: '已下架' }[f]}
+                  </button>
+                ))}
+                <span className="text-gray-300">|</span>
+                <select
+                  value={svcCategoryFilter}
+                  onChange={e => setSvcCategoryFilter(e.target.value)}
+                  className="text-xs border border-gray-200 rounded-xl px-2 py-1.5 bg-white outline-none focus:ring-2 focus:ring-primary-300"
+                >
+                  <option value="all">全部分类</option>
+                  {Array.from(new Set(newServices.map(s => s.category_id))).sort().map(cat => (
+                    <option key={cat} value={cat}>{cat}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+
             {/* Service list */}
-            {newServices.length === 0 ? (
+            {(() => {
+              const filtered = newServices.filter(svc => {
+                if (svcStatusFilter === 'online' && !svc.is_available) return false
+                if (svcStatusFilter === 'offline' && svc.is_available) return false
+                if (svcCategoryFilter !== 'all' && svc.category_id !== svcCategoryFilter) return false
+                return true
+              })
+              return filtered.length === 0 ? (
               <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-10 text-center text-sm text-gray-400">
                 暂无服务记录
               </div>
             ) : (
               <div className="space-y-2">
-                {newServices.map(svc => (
+                {filtered.map(svc => (
                   <div
                     key={svc.id}
                     className={`bg-white rounded-2xl border shadow-sm p-4 transition-all ${
@@ -1890,6 +2004,15 @@ export default function AdminPage() {
                   </div>
                 ))}
               </div>
+            )
+            })()}
+            {servicesHasMore && (svcStatusFilter === 'all' && svcCategoryFilter === 'all') && (
+              <button
+                onClick={() => loadNewServices(true)}
+                className="w-full py-3 rounded-2xl border border-gray-200 bg-white text-sm text-gray-600 font-medium hover:bg-gray-50 transition-colors"
+              >
+                加载更多
+              </button>
             )}
           </motion.div>
         ) : tab === 'logs' ? (
