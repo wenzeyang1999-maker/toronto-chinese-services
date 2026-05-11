@@ -1,6 +1,6 @@
 // ─── Global State (Zustand) ───────────────────────────────────────────────────
 import { create } from 'zustand'
-import type { Service, SearchFilters, ServiceCategory } from '../types'
+import type { Service, SearchFilters, ServiceCategory, ServiceRequest } from '../types'
 import { supabase } from '../lib/supabase'
 
 // Shape of a raw row returned from Supabase (services + joined users)
@@ -38,6 +38,7 @@ export interface ServiceRow {
 
 interface AppState {
   services: Service[]
+  serviceRequests: ServiceRequest[]
   userLocation: { lat: number; lng: number } | null
   searchFilters: SearchFilters
   isLoadingDone: boolean
@@ -50,6 +51,8 @@ interface AppState {
   fetchServicesByKeyword: (keyword: string) => Promise<Service[]>
   getFilteredServices: () => Service[]
   getServicesByCategory: (category: ServiceCategory) => Service[]
+  fetchServiceRequests: () => Promise<void>
+  addServiceRequest: (req: ServiceRequest) => void
 }
 
 // Haversine formula — returns distance in km between two lat/lng points
@@ -110,8 +113,35 @@ export function mapRow(row: ServiceRow): Service {
   }
 }
 
+function mapRequestRow(row: any): ServiceRequest {
+  const expires = new Date(row.expires_at)
+  const daysLeft = Math.max(0, Math.ceil((expires.getTime() - Date.now()) / 86_400_000))
+  return {
+    id: row.id,
+    userId: row.user_id,
+    title: row.title,
+    description: row.description ?? '',
+    category: (row.category ?? 'other') as ServiceCategory,
+    area: row.area ?? '',
+    city: row.city ?? 'Toronto',
+    lat: row.lat ?? undefined,
+    lng: row.lng ?? undefined,
+    budget: row.budget ?? '',
+    expiresAt: row.expires_at,
+    status: row.status,
+    createdAt: row.created_at,
+    requester: {
+      id: row.requester?.id ?? row.user_id,
+      name: row.requester?.name ?? '用户',
+      avatar: row.requester?.avatar_url ?? undefined,
+    },
+    daysLeft,
+  }
+}
+
 export const useAppStore = create<AppState>((set, get) => ({
   services: [],
+  serviceRequests: [],
   userLocation: null,
   searchFilters: { sortBy: 'rating' },
   isLoadingDone: false,
@@ -127,6 +157,21 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   addService: (service) =>
     set((state) => ({ services: [service, ...state.services] })),
+
+  addServiceRequest: (req) =>
+    set((state) => ({ serviceRequests: [req, ...state.serviceRequests] })),
+
+  fetchServiceRequests: async () => {
+    const { data, error } = await supabase
+      .from('service_requests')
+      .select('*, requester:users(id, name, avatar_url)')
+      .eq('status', 'open')
+      .gt('expires_at', new Date().toISOString())
+      .order('created_at', { ascending: false })
+    if (!error && data) {
+      set({ serviceRequests: data.map(mapRequestRow) })
+    }
+  },
 
   fetchServices: async () => {
     const { data, error } = await supabase

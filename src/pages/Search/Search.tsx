@@ -28,6 +28,16 @@ interface CommunityResult {
   author: { name: string } | null
 }
 
+interface ProviderResult {
+  id: string
+  name: string
+  avatar_url: string | null
+  bio: string | null
+  is_online: boolean
+  business_type: 'individual' | 'business'
+  skill_tags: string[]
+}
+
 export default function Search() {
   const [searchParams, setSearchParams] = useSearchParams()
   const navigate = useNavigate()
@@ -45,6 +55,7 @@ export default function Search() {
   const [viewMode, setViewMode] = useState<'list' | 'map'>('list')
   const [communityResults, setCommunityResults] = useState<CommunityResult[]>([])
   const [communityLoading, setCommunityLoading] = useState(false)
+  const [providerResults, setProviderResults] = useState<ProviderResult[]>([])
   const [semanticTerms, setSemanticTerms] = useState<string[]>([])
   const [semanticLoading, setSemanticLoading] = useState(false)
   const [dbResults, setDbResults] = useState<import('../../types').Service[] | null>(null)
@@ -67,6 +78,7 @@ export default function Search() {
     const kw = q.trim()
     if (!kw) {
       setCommunityResults([])
+      setProviderResults([])
       setSemanticTerms([])
       setDbResults(null)
       setSearchFilters({ keywordVariants: [] })
@@ -88,6 +100,14 @@ export default function Search() {
         )
         setCommunityLoading(false)
       })
+
+    // Search providers by skill_tags — exact tag containment (uses GIN index)
+    supabase
+      .from('users')
+      .select('id, name, avatar_url, bio, is_online, business_type, skill_tags')
+      .filter('skill_tags', 'cs', `{"${kw}"}`)
+      .limit(6)
+      .then(({ data }) => setProviderResults((data as ProviderResult[]) ?? []))
 
     // DB-level keyword search — runs when store services haven't loaded yet
     // (e.g. direct navigation to /search?q=...). Uses trigram index on title/description.
@@ -375,6 +395,55 @@ export default function Search() {
                   <p className="text-center text-xs text-gray-400 py-3">已显示全部 {results.length} 条结果</p>
                 )}
               </>
+            )}
+
+            {/* Matching providers section */}
+            {providerResults.length > 0 && (
+              <div className="mt-6">
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="text-base">👤</span>
+                  <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">匹配服务商</h3>
+                </div>
+                <div className="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1 scrollbar-hide">
+                  {providerResults.map((p) => (
+                    <button
+                      key={p.id}
+                      onClick={() => navigate(`/provider/${p.id}`)}
+                      className="flex-shrink-0 w-36 bg-white rounded-2xl border border-gray-100 shadow-sm p-3 text-left
+                                 hover:border-primary-200 hover:shadow-md transition-all"
+                    >
+                      <div className="flex items-center gap-2 mb-2">
+                        {p.avatar_url ? (
+                          <img src={p.avatar_url} alt={p.name}
+                            className="w-9 h-9 rounded-full object-cover flex-shrink-0 border border-gray-100" />
+                        ) : (
+                          <div className="w-9 h-9 rounded-full bg-gradient-to-br from-primary-400 to-primary-600
+                                          flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
+                            {p.name.charAt(0)}
+                          </div>
+                        )}
+                        {p.is_online && (
+                          <span className="w-2 h-2 rounded-full bg-green-400 ring-2 ring-white flex-shrink-0" />
+                        )}
+                      </div>
+                      <p className="text-sm font-semibold text-gray-900 leading-tight truncate">{p.name}</p>
+                      {p.bio && (
+                        <p className="text-[11px] text-gray-400 mt-0.5 line-clamp-2 leading-snug">{p.bio}</p>
+                      )}
+                      {p.skill_tags.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mt-2">
+                          {p.skill_tags.slice(0, 2).map((tag) => (
+                            <span key={tag}
+                              className="text-[10px] px-1.5 py-0.5 rounded-full bg-primary-50 text-primary-600 font-medium">
+                              {tag}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </div>
             )}
 
             {/* Community posts section */}

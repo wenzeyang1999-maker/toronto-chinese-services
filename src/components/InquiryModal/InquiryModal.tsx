@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { X, CheckCircle, ChevronDown, Sparkles, UserCheck, Clock3, ShieldCheck } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { useAuthStore } from '../../store/authStore'
+import { useAppStore } from '../../store/appStore'
 import { CATEGORIES } from '../../data/categories'
 
 interface Props {
@@ -40,7 +41,9 @@ const TIMING_OPTIONS = [
 ] as const
 
 export default function InquiryModal({ open, onClose }: Props) {
-  const user = useAuthStore((s) => s.user)
+  const user             = useAuthStore((s) => s.user)
+  const userLocation     = useAppStore((s) => s.userLocation)
+  const addServiceRequest = useAppStore((s) => s.addServiceRequest)
   const [form, setForm]         = useState<InquiryForm>(INITIAL)
   const [errors, setErrors]     = useState<Partial<Record<keyof InquiryForm, string>>>({})
   const [submitting, setSubmitting] = useState(false)
@@ -85,6 +88,52 @@ export default function InquiryModal({ open, onClose }: Props) {
         status:      'open',
       }).select('id').single()
       if (error) throw error
+
+      // Also create a public service_request so it appears on the provider map
+      if (user?.id) {
+        const expiryDays = form.timing === 'asap' ? 7 : form.timing === 'next_week' ? 14 : 30
+        const expiresAt  = new Date(Date.now() + expiryDays * 86_400_000).toISOString()
+        const cat        = CATEGORIES.find((c) => c.id === form.categoryId)
+        const title      = `${form.timing === 'asap' ? '急需' : '需要'} ${cat?.label ?? ''} 服务`
+        const { data: reqData } = await supabase
+          .from('service_requests')
+          .insert({
+            user_id:     user.id,
+            title,
+            description: form.description.trim(),
+            category:    form.categoryId || 'other',
+            budget:      form.budget.trim() || null,
+            lat:         userLocation?.lat ?? null,
+            lng:         userLocation?.lng ?? null,
+            expires_at:  expiresAt,
+            status:      'open',
+          })
+          .select('*, requester:users(id, name, avatar_url)')
+          .single()
+        if (reqData) {
+          addServiceRequest({
+            id: reqData.id,
+            userId: reqData.user_id,
+            title: reqData.title,
+            description: reqData.description ?? '',
+            category: reqData.category,
+            area: reqData.area ?? '',
+            city: reqData.city ?? 'Toronto',
+            lat: reqData.lat ?? undefined,
+            lng: reqData.lng ?? undefined,
+            budget: reqData.budget ?? '',
+            expiresAt: reqData.expires_at,
+            status: 'open',
+            createdAt: reqData.created_at,
+            requester: {
+              id: reqData.requester?.id ?? user.id,
+              name: reqData.requester?.name ?? form.name,
+              avatar: reqData.requester?.avatar_url ?? undefined,
+            },
+            daysLeft: expiryDays,
+          })
+        }
+      }
 
       // Fire-and-forget: match and notify providers on the server side
       const cat = CATEGORIES.find((c) => c.id === form.categoryId)
@@ -173,6 +222,11 @@ export default function InquiryModal({ open, onClose }: Props) {
                   <p className="text-sm text-gray-500 mb-2">
                     服务商将通过您留的电话或微信联系您，请保持畅通。
                   </p>
+                  {user && (
+                    <p className="text-xs text-primary-600 bg-primary-50 rounded-xl px-3 py-2 mb-3">
+                      📍 您的需求已同步显示在服务商地图上
+                    </p>
+                  )}
                   <p className="text-xs text-gray-400 mb-8">通常在 24 小时内收到回复</p>
                   <button
                     onClick={handleClose}

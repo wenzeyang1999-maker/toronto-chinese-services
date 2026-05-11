@@ -3,24 +3,11 @@ import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   X, ChevronRight, type LucideIcon,
-  // L1
-  Home, Building2, Car, Factory, Scale, GraduationCap, Recycle, MapPin, MessageSquare,
-  // Subs — 生活
-  Truck, Sparkles, Leaf, Hammer, Wrench,
-  // Subs — 房产
-  Handshake, Key, BedDouble,
-  // Subs — 汽车
-  Gauge, LifeBuoy,
-  // Subs — 商业
-  Package, Settings2, HardHat,
-  // Subs — 专业
-  Receipt, Shield, FileText,
-  // Subs — 留学
-  BookOpen,
-  // Subs — 二手
+  Home, Recycle, MapPin, MessageSquare,
+  Truck, Sparkles, Car, Leaf, Hammer, Wrench,
   Sofa, Plane, ShoppingBag,
-  // Subs — 广场
   Calendar, ShoppingCart, Heart,
+  Gauge, Shield, ParkingCircle,
 } from 'lucide-react'
 
 // ── Toggle: true = Lucide icons, false = emoji ──────────────────────────────
@@ -30,7 +17,8 @@ interface SubCat {
   emoji: string
   icon: LucideIcon
   label: string
-  q: string       // search keyword
+  q: string           // search keyword
+  sectionLabel?: string  // optional section divider before this item
 }
 
 interface L1Category {
@@ -57,89 +45,17 @@ const TOP_CATEGORIES: L1Category[] = [
     desc: '搬家·保洁·接送·装修',
     to: '/search',
     subs: [
-      { emoji: '🚚', icon: Truck,     label: '搬运',   q: '搬运' },
-      { emoji: '✨', icon: Sparkles,  label: '保洁',   q: '保洁' },
-      { emoji: '🚗', icon: Car,       label: '接送',   q: '接送' },
-      { emoji: '🌿', icon: Leaf,      label: '园艺',   q: '园艺' },
-      { emoji: '🔨', icon: Hammer,    label: '装修',   q: '装修' },
-      { emoji: '🔧', icon: Wrench,    label: '水电维修', q: '水电维修' },
-    ],
-  },
-  {
-    id: 'realestate',
-    label: '房产服务',
-    emoji: '🏢', icon: Building2,
-    color: 'text-green-600',
-    bgColor: 'bg-green-50',
-    headerColor: 'from-green-500 to-green-700',
-    desc: '地产经纪·房产出售·出租',
-    to: '/realestate',
-    subs: [
-      { emoji: '🤝', icon: Handshake, label: '地产经纪', q: '地产经纪' },
-      { emoji: '🏠', icon: Home,      label: '房产出售', q: '房产出售' },
-      { emoji: '🔑', icon: Key,       label: '整租',    q: '整租' },
-      { emoji: '🛏️', icon: BedDouble, label: '合租',    q: '合租' },
-    ],
-  },
-  {
-    id: 'auto',
-    label: '汽车服务',
-    emoji: '🚘', icon: Car,
-    color: 'text-orange-600',
-    bgColor: 'bg-orange-50',
-    headerColor: 'from-orange-500 to-orange-700',
-    desc: '维修·轮胎·道路救援',
-    to: null,
-    subs: [
-      { emoji: '🔩', icon: Wrench,   label: '维修保养', q: '汽车维修' },
-      { emoji: '🛞', icon: Gauge,    label: '轮胎更换', q: '轮胎更换' },
-      { emoji: '🆘', icon: LifeBuoy, label: '紧急救援', q: '道路救援' },
-    ],
-  },
-  {
-    id: 'business',
-    label: '商业服务',
-    emoji: '🏭', icon: Factory,
-    color: 'text-amber-600',
-    bgColor: 'bg-amber-50',
-    headerColor: 'from-amber-500 to-amber-700',
-    desc: '仓储·物流·建筑工程',
-    to: null,
-    subs: [
-      { emoji: '📦', icon: Package,  label: '仓库仓储', q: '仓储' },
-      { emoji: '🚛', icon: Truck,    label: '物流运输', q: '物流运输' },
-      { emoji: '⚙️', icon: Settings2, label: '设备安装', q: '设备安装' },
-      { emoji: '🏗️', icon: HardHat,  label: '建筑工程', q: '建筑工程' },
-    ],
-  },
-  {
-    id: 'pro',
-    label: '专业服务',
-    emoji: '⚖️', icon: Scale,
-    color: 'text-purple-600',
-    bgColor: 'bg-purple-50',
-    headerColor: 'from-purple-500 to-purple-700',
-    desc: '法律·税务·保险',
-    to: null,
-    subs: [
-      { emoji: '⚖️', icon: Scale,    label: '法律服务', q: '法律' },
-      { emoji: '🧾', icon: Receipt,  label: '税务服务', q: '税务' },
-      { emoji: '🛡️', icon: Shield,   label: '保险服务', q: '保险' },
-    ],
-  },
-  {
-    id: 'study',
-    label: '留学移民',
-    emoji: '🎓', icon: GraduationCap,
-    color: 'text-sky-600',
-    bgColor: 'bg-sky-50',
-    headerColor: 'from-sky-500 to-sky-700',
-    desc: '留学·签证·培训',
-    to: null,
-    subs: [
-      { emoji: '🎓', icon: GraduationCap, label: '留学', q: '留学' },
-      { emoji: '📋', icon: FileText,      label: '签证', q: '签证' },
-      { emoji: '📚', icon: BookOpen,      label: '培训', q: '培训' },
+      { emoji: '🚚', icon: Truck,       label: '搬运',   q: '搬运' },
+      { emoji: '✨', icon: Sparkles,    label: '保洁',   q: '保洁' },
+      { emoji: '🚗', icon: Car,         label: '接送',   q: '接送' },
+      { emoji: '🌿', icon: Leaf,        label: '园艺',   q: '园艺' },
+      { emoji: '🔨', icon: Hammer,      label: '装修',   q: '装修' },
+      { emoji: '🔧', icon: Wrench,      label: '水电维修', q: '水电维修' },
+      // 汽车服务
+      { emoji: '🚘', icon: Gauge,       label: '汽车维修', q: '汽车维修', sectionLabel: '汽车服务' },
+      { emoji: '🧹', icon: Wrench,       label: '洗车美容', q: '洗车' },
+      { emoji: '🛡️', icon: Shield,      label: '汽车保险', q: '汽车保险' },
+      { emoji: '🅿️', icon: ParkingCircle, label: '道路救援', q: '道路救援' },
     ],
   },
   {
@@ -224,7 +140,7 @@ export default function CategoryButtons() {
         variants={containerVariants}
         initial="hidden"
         animate="show"
-        className="grid grid-cols-3 gap-3"
+        className="grid grid-cols-2 md:grid-cols-4 gap-3"
       >
         {TOP_CATEGORIES.map((cat) => (
           <motion.button
@@ -299,21 +215,31 @@ export default function CategoryButtons() {
               {/* Subcategories */}
               <div className="p-4 grid grid-cols-3 gap-2.5">
                 {activeSheet.subs?.map((sub) => (
-                  <button
-                    key={sub.label}
-                    onClick={() => handleSubClick(activeSheet, sub)}
-                    className="bg-white/70 hover:bg-white rounded-2xl p-3 flex flex-col items-center gap-1.5
-                               border border-gray-100 hover:border-gray-200 hover:shadow-sm
-                               active:scale-95 transition-all"
-                  >
-                    {USE_ICONS
-                      ? <sub.icon size={22} strokeWidth={1.5} className={activeSheet.color} />
-                      : <span className="text-2xl leading-none">{sub.emoji}</span>
-                    }
-                    <span className={`text-xs font-semibold ${activeSheet.color} text-center leading-tight`}>
-                      {sub.label}
-                    </span>
-                  </button>
+                  <div key={sub.label} className="contents">
+                    {sub.sectionLabel && (
+                      <div className="col-span-3 flex items-center gap-2 mt-1 mb-0.5">
+                        <div className="flex-1 h-px bg-gray-100" />
+                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wide px-1">
+                          {sub.sectionLabel}
+                        </span>
+                        <div className="flex-1 h-px bg-gray-100" />
+                      </div>
+                    )}
+                    <button
+                      onClick={() => handleSubClick(activeSheet, sub)}
+                      className="bg-white/70 hover:bg-white rounded-2xl p-3 flex flex-col items-center gap-1.5
+                                 border border-gray-100 hover:border-gray-200 hover:shadow-sm
+                                 active:scale-95 transition-all"
+                    >
+                      {USE_ICONS
+                        ? <sub.icon size={22} strokeWidth={1.5} className={activeSheet.color} />
+                        : <span className="text-2xl leading-none">{sub.emoji}</span>
+                      }
+                      <span className={`text-xs font-semibold ${activeSheet.color} text-center leading-tight`}>
+                        {sub.label}
+                      </span>
+                    </button>
+                  </div>
                 ))}
               </div>
 

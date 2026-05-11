@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react'
 import { loadGoogleMaps } from '../../lib/googleMaps'
 
 export interface GoogleMapPoint {
@@ -7,8 +7,14 @@ export interface GoogleMapPoint {
   lng: number
   title: string
   promoted?: boolean
+  demandPin?: boolean    // orange "求服务" pin
+  onlineProv?: boolean   // green "在线接单" pin
   infoContent?: string | HTMLElement
   onInfoReady?: (content: HTMLElement) => void
+}
+
+export interface GoogleMapCanvasHandle {
+  panToUser: () => void
 }
 
 interface Props {
@@ -19,19 +25,28 @@ interface Props {
   scrollWheel?: boolean
 }
 
-export default function GoogleMapCanvas({
+const GoogleMapCanvas = forwardRef<GoogleMapCanvasHandle, Props>(function GoogleMapCanvas({
   points,
   center,
   zoom,
   userLocation = null,
   scrollWheel = true,
-}: Props) {
+}, ref) {
   const containerRef = useRef<HTMLDivElement | null>(null)
   const mapRef = useRef<any>(null)
   const markersRef = useRef<any[]>([])
   const overlaysRef = useRef<any[]>([])
   const infoWindowRef = useRef<any>(null)
   const [error, setError] = useState('')
+
+  useImperativeHandle(ref, () => ({
+    panToUser() {
+      if (mapRef.current && userLocation) {
+        mapRef.current.panTo(userLocation)
+        mapRef.current.setZoom(15)
+      }
+    },
+  }), [userLocation])
 
   useEffect(() => {
     let active = true
@@ -90,8 +105,8 @@ export default function GoogleMapCanvas({
           title: '我的位置',
           icon: {
             path: maps.SymbolPath.CIRCLE,
-            scale: 8,
-            fillColor: '#4285F4',
+            scale: 12,
+            fillColor: '#EF4444',
             fillOpacity: 1,
             strokeColor: '#ffffff',
             strokeWeight: 3,
@@ -102,10 +117,10 @@ export default function GoogleMapCanvas({
           map: mapRef.current,
           center: userLocation,
           radius: 300,
-          fillColor: '#4285F4',
+          fillColor: '#EF4444',
           fillOpacity: 0.08,
-          strokeColor: '#4285F4',
-          strokeOpacity: 0.45,
+          strokeColor: '#EF4444',
+          strokeOpacity: 0.35,
           strokeWeight: 1,
         })
         markersRef.current.push(userMarker)
@@ -120,9 +135,13 @@ export default function GoogleMapCanvas({
           position,
           title: point.title,
           icon: {
-            url: point.promoted
-              ? 'https://maps.google.com/mapfiles/ms/icons/red-dot.png'
-              : 'https://maps.google.com/mapfiles/ms/icons/blue-dot.png',
+            url: point.demandPin
+              ? 'https://maps.google.com/mapfiles/ms/icons/orange-dot.png'
+              : point.onlineProv
+                ? 'https://maps.google.com/mapfiles/ms/icons/green-dot.png'
+                : point.promoted
+                  ? 'https://maps.google.com/mapfiles/ms/icons/red-dot.png'
+                  : 'https://maps.google.com/mapfiles/ms/icons/blue-dot.png',
           },
         })
 
@@ -157,4 +176,6 @@ export default function GoogleMapCanvas({
       )}
     </>
   )
-}
+})
+
+export default GoogleMapCanvas

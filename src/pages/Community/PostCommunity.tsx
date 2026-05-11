@@ -9,6 +9,7 @@ import { useAuthStore } from '../../store/authStore'
 import { compressImage, validateImageFile } from '../../lib/compressImage'
 import { POST_TYPE_CONFIG, AREA_CONFIG } from './config'
 import { toast } from '../../lib/toast'
+import { moderateContent } from '../../hooks/useContentModeration'
 
 const MAX_IMAGES = 4
 
@@ -90,6 +91,13 @@ export default function PostCommunity() {
     if (!content.trim()) { setError('请填写内容'); return }
     setError('')
     setSubmitting(true)
+
+    const modResult = await moderateContent({ title, content })
+    if (!modResult.pass) {
+      setError(`内容审核未通过：${modResult.reason ?? '包含违规内容'}。请修改后重新发布。`)
+      setSubmitting(false)
+      return
+    }
 
     // Upload new images
     const uploadedUrls: string[] = []

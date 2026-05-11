@@ -57,6 +57,28 @@ export interface SearchFilters {
   sortBy: 'distance' | 'rating' | 'newest' | 'price'
 }
 
+export interface ServiceRequest {
+  id: string
+  userId: string
+  title: string
+  description: string
+  category: ServiceCategory
+  area: string
+  city: string
+  lat?: number
+  lng?: number
+  budget: string
+  expiresAt: string
+  status: 'open' | 'closed'
+  createdAt: string
+  requester: {
+    id: string
+    name: string
+    avatar?: string
+  }
+  daysLeft: number   // calculated at runtime
+}
+
 export interface PostServiceForm {
   category: ServiceCategory
   title: string

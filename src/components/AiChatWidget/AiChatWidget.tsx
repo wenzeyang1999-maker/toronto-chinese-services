@@ -8,7 +8,10 @@
 // ─────────────────────────────────────────────────────────────────────────────
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Bot, X, Send, ChevronDown } from 'lucide-react'
+import { Bot, Send, ChevronDown, RotateCcw, ArrowLeft } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import { supabase } from '../../lib/supabase'
+import { useAuthStore } from '../../store/authStore'
 import type { ChatSession } from '../../pages/Profile/types'
 
 const SUPABASE_URL      = import.meta.env.VITE_SUPABASE_URL as string
@@ -45,8 +48,13 @@ const QUICK_REPLIES = [
   '有现金工吗',
 ]
 
+const REPORT_REASON_TAGS = ['虚假信息', '骚扰/辱骂', '诈骗', '违法内容', '政治敏感', '侵权', '其他']
+type ChatMode = 'chat' | 'report' | 'complaint'
+
 // ─────────────────────────────────────────────────────────────────────────────
-export default function AiChatWidget() {
+interface Props { grouped?: boolean }
+
+export default function AiChatWidget({ grouped }: Props) {
   const [open, setOpen]         = useState(false)
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput]       = useState('')
@@ -54,6 +62,50 @@ export default function AiChatWidget() {
   const bottomRef               = useRef<HTMLDivElement>(null)
   const inputRef                = useRef<HTMLTextAreaElement>(null)
   const abortRef                = useRef<AbortController | null>(null)
+  const navigate                = useNavigate()
+  const user                    = useAuthStore((s) => s.user)
+
+  // Support form state
+  const [mode,           setMode]           = useState<ChatMode>('chat')
+  const [reportType,     setReportType]     = useState<'user' | 'service' | 'post'>('user')
+  const [reportTarget,   setReportTarget]   = useState('')
+  const [reportReasonTag, setReportReasonTag] = useState('')
+  const [reportDetail,   setReportDetail]   = useState('')
+  const [complaintText,  setComplaintText]  = useState('')
+  const [submitting,     setSubmitting]     = useState(false)
+  const [submitDone,     setSubmitDone]     = useState(false)
+
+  function resetChat() {
+    abortRef.current?.abort()
+    setMessages([])
+    setInput('')
+    setBusy(false)
+    setMode('chat')
+    setSubmitDone(false)
+    setReportTarget('')
+    setReportReasonTag('')
+    setReportDetail('')
+    setComplaintText('')
+  }
+
+  // Extract last user message as search keyword
+  function lastUserQuery(): string {
+    return [...messages].reverse().find(m => m.role === 'user')?.content.trim() ?? ''
+  }
+
+  async function submitFeedback(type: 'report' | 'complaint') {
+    setSubmitting(true)
+    await supabase.from('feedback').insert({
+      user_id:     user?.id ?? null,
+      type,
+      report_type: type === 'report' ? reportType : null,
+      target:      type === 'report' ? reportTarget.trim() || null : null,
+      reason_tag:  type === 'report' ? reportReasonTag || null : null,
+      detail:      type === 'report' ? reportDetail.trim() || null : complaintText.trim() || null,
+    })
+    setSubmitting(false)
+    setSubmitDone(true)
+  }
 
   // Auto-scroll to newest message
   useEffect(() => {
@@ -185,10 +237,10 @@ export default function AiChatWidget() {
             whileHover={{ scale: 1.08 }}
             whileTap={{ scale: 0.93 }}
             onClick={() => setOpen(true)}
-            className="fixed bottom-24 right-5 lg:bottom-6 lg:right-16 z-50 flex items-center gap-2
+            className={`${grouped ? '' : 'fixed bottom-24 right-5 lg:bottom-6 lg:right-16 z-50 '}flex items-center gap-2
                        bg-primary-600 hover:bg-primary-700
                        text-white rounded-full shadow-lg px-4 py-3
-                       transition-colors"
+                       transition-colors`}
             aria-label="打开 AI 客服"
           >
             <Bot size={20} />
@@ -223,16 +275,155 @@ export default function AiChatWidget() {
                   <p className="text-xs text-blue-200 leading-tight">在线 · 即时回复</p>
                 </div>
               </div>
-              <button
-                onClick={() => setOpen(false)}
-                className="p-1 rounded-lg hover:bg-white/20 transition-colors"
-                aria-label="关闭"
-              >
-                <ChevronDown size={20} />
-              </button>
+              <div className="flex items-center gap-1">
+                {messages.length > 0 && (
+                  <button
+                    onClick={resetChat}
+                    title="重新开始"
+                    className="p-1.5 rounded-lg hover:bg-white/20 transition-colors"
+                  >
+                    <RotateCcw size={16} />
+                  </button>
+                )}
+                <button
+                  onClick={() => setOpen(false)}
+                  className="p-1 rounded-lg hover:bg-white/20 transition-colors"
+                  aria-label="关闭"
+                >
+                  <ChevronDown size={20} />
+                </button>
+              </div>
             </div>
 
+            {/* ── Structured forms (report / complaint) ── */}
+            {mode !== 'chat' && (
+              <div className="flex-1 overflow-y-auto px-4 py-4 bg-gray-50">
+                {submitDone ? (
+                  <div className="flex flex-col items-center justify-center h-full gap-3 text-center">
+                    <span className="text-4xl">✅</span>
+                    <p className="text-sm font-semibold text-gray-800">已提交，感谢您的反馈</p>
+                    <p className="text-xs text-gray-400">平台会在 1-3 个工作日内处理</p>
+                    <button onClick={resetChat}
+                      className="mt-2 text-xs text-primary-600 border border-primary-200 px-4 py-2 rounded-full hover:bg-primary-50 transition-colors">
+                      返回
+                    </button>
+                  </div>
+                ) : mode === 'report' ? (
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2">
+                    <button onClick={resetChat} className="text-gray-400 hover:text-gray-700 transition-colors">
+                      <ArrowLeft size={18} />
+                    </button>
+                    <p className="text-sm font-semibold text-gray-800">🚩 提交举报</p>
+                  </div>
+
+                    {/* Target type */}
+                    <div>
+                      <p className="text-xs text-gray-500 mb-1.5">举报对象类型</p>
+                      <div className="flex gap-2">
+                        {(['user', 'service', 'post'] as const).map(t => (
+                          <button key={t} onClick={() => setReportType(t)}
+                            className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${
+                              reportType === t
+                                ? 'bg-red-500 text-white border-red-500'
+                                : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'
+                            }`}>
+                            {t === 'user' ? '👤 用户' : t === 'service' ? '🔧 服务' : '📝 帖子'}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Target name */}
+                    <div>
+                      <p className="text-xs text-gray-500 mb-1.5">
+                        {reportType === 'user' ? '用户名 / 昵称' : reportType === 'service' ? '服务标题' : '帖子标题'}
+                      </p>
+                      <input
+                        value={reportTarget}
+                        onChange={e => setReportTarget(e.target.value)}
+                        placeholder={reportType === 'user' ? '输入被举报的用户名' : '输入被举报内容的标题'}
+                        className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2 outline-none focus:border-primary-400 bg-white"
+                      />
+                    </div>
+
+                    {/* Reason tags */}
+                    <div>
+                      <p className="text-xs text-gray-500 mb-1.5">举报原因</p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {REPORT_REASON_TAGS.map(tag => (
+                          <button key={tag} onClick={() => setReportReasonTag(tag === reportReasonTag ? '' : tag)}
+                            className={`text-xs px-2.5 py-1 rounded-full border transition-colors ${
+                              reportReasonTag === tag
+                                ? 'bg-orange-500 text-white border-orange-500'
+                                : 'bg-white text-gray-600 border-gray-200 hover:border-orange-300'
+                            }`}>
+                            {tag}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Detail */}
+                    <div>
+                      <p className="text-xs text-gray-500 mb-1.5">详细说明（可选）</p>
+                      <textarea
+                        value={reportDetail}
+                        onChange={e => setReportDetail(e.target.value)}
+                        placeholder="补充说明具体情况，帮助我们更快处理…"
+                        rows={3}
+                        className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2 outline-none focus:border-primary-400 bg-white resize-none"
+                      />
+                    </div>
+
+                    <div className="flex gap-2">
+                      <button onClick={resetChat}
+                        className="flex-1 py-2 rounded-xl border border-gray-200 text-sm text-gray-500 hover:bg-gray-50 transition-colors">
+                        取消
+                      </button>
+                      <button
+                        onClick={() => submitFeedback('report')}
+                        disabled={submitting || (!reportTarget.trim() && !reportReasonTag)}
+                        className="flex-1 py-2 rounded-xl bg-red-500 text-white text-sm font-semibold hover:bg-red-600 disabled:opacity-50 transition-colors">
+                        {submitting ? '提交中…' : '提交举报'}
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  /* Complaint / suggestion form */
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2">
+                    <button onClick={resetChat} className="text-gray-400 hover:text-gray-700 transition-colors">
+                      <ArrowLeft size={18} />
+                    </button>
+                    <p className="text-sm font-semibold text-gray-800">💬 投诉 / 建议</p>
+                  </div>
+                    <textarea
+                      value={complaintText}
+                      onChange={e => setComplaintText(e.target.value)}
+                      placeholder="请描述您的问题或建议，我们会认真阅读并改进…"
+                      rows={6}
+                      className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2 outline-none focus:border-primary-400 bg-white resize-none"
+                    />
+                    <div className="flex gap-2">
+                      <button onClick={resetChat}
+                        className="flex-1 py-2 rounded-xl border border-gray-200 text-sm text-gray-500 hover:bg-gray-50 transition-colors">
+                        取消
+                      </button>
+                      <button
+                        onClick={() => submitFeedback('complaint')}
+                        disabled={submitting || !complaintText.trim()}
+                        className="flex-1 py-2 rounded-xl bg-primary-600 text-white text-sm font-semibold hover:bg-primary-700 disabled:opacity-50 transition-colors">
+                        {submitting ? '提交中…' : '提交'}
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Messages area */}
+            {mode === 'chat' && (
             <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3 bg-gray-50">
               {/* Welcome message */}
               {messages.length === 0 && (
@@ -253,19 +444,69 @@ export default function AiChatWidget() {
                       </button>
                     ))}
                   </div>
+
+                  {/* Support actions */}
+                  <div className="pl-8 mt-1">
+                    <p className="text-[10px] font-semibold text-gray-400 mb-1.5 uppercase tracking-wide">服务支持</p>
+                    <div className="flex gap-2 flex-wrap">
+                      <button
+                        onClick={() => setMode('complaint')}
+                        className="text-xs bg-white border border-orange-200 text-orange-600
+                                   rounded-full px-3 py-1.5 hover:bg-orange-50 active:scale-95 transition-all"
+                      >
+                        💬 投诉建议
+                      </button>
+                      <button
+                        onClick={() => setMode('report')}
+                        className="text-xs bg-white border border-red-200 text-red-600
+                                   rounded-full px-3 py-1.5 hover:bg-red-50 active:scale-95 transition-all"
+                      >
+                        🚩 举报
+                      </button>
+                    </div>
+                  </div>
                 </div>
               )}
 
-              {messages.map((m, i) =>
-                m.role === 'user'
-                  ? <UserBubble key={i} text={m.content} />
-                  : <BotBubble  key={i} text={m.content} streaming={m.streaming} />
-              )}
+              {messages.map((m, i) => {
+                const isLastBot = m.role === 'assistant' && !m.streaming && i === messages.length - 1
+                const query     = lastUserQuery()
+                return (
+                  <div key={i}>
+                    {m.role === 'user'
+                      ? <UserBubble text={m.content} />
+                      : <BotBubble  text={m.content} streaming={m.streaming} />
+                    }
+                    {isLastBot && (
+                      <div className="flex flex-wrap gap-2 pl-10 mt-2">
+                        {query && (
+                          <button
+                            onClick={() => { setOpen(false); navigate(`/search?q=${encodeURIComponent(query)}`) }}
+                            className="text-xs bg-primary-50 border border-primary-200 text-primary-700
+                                       rounded-full px-3 py-1.5 hover:bg-primary-100 active:scale-95 transition-all"
+                          >
+                            🔍 查看搜索结果
+                          </button>
+                        )}
+                        <button
+                          onClick={resetChat}
+                          className="text-xs bg-gray-100 border border-gray-200 text-gray-500
+                                     rounded-full px-3 py-1.5 hover:bg-gray-200 active:scale-95 transition-all"
+                        >
+                          ↩ 换个话题
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
 
               <div ref={bottomRef} />
             </div>
+            )} {/* end mode === 'chat' */}
 
-            {/* Input area */}
+            {/* Input area — only in chat mode */}
+            {mode !== 'chat' ? null : /* Input area */
             <div className="flex items-end gap-2 px-3 py-3 border-t border-gray-100 bg-white flex-shrink-0">
               <textarea
                 ref={inputRef}
@@ -294,6 +535,7 @@ export default function AiChatWidget() {
                 <Send size={16} />
               </button>
             </div>
+            }
           </motion.div>
         )}
       </AnimatePresence>

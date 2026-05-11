@@ -17,11 +17,10 @@ import { AnimatePresence } from 'framer-motion'
 import type { User } from '@supabase/supabase-js'
 import LoadingScreen from './components/LoadingScreen/LoadingScreen'
 import Home from './pages/Home/Home'
-import AiChatWidget from './components/AiChatWidget/AiChatWidget'
 import ToastContainer from './components/Toast/ToastContainer'
-import MessagesButton from './components/MessagesButton/MessagesButton'
 import MessageToast from './components/MessageToast/MessageToast'
 import InstallPWA from './components/InstallPWA/InstallPWA'
+import FABGroup from './components/FABGroup/FABGroup'
 
 const Category        = lazy(() => import('./pages/Category/Category'))
 const Search          = lazy(() => import('./pages/Search/Search'))
@@ -51,6 +50,8 @@ const GlobalSearch    = lazy(() => import('./pages/GlobalSearch/GlobalSearch'))
 const CommunityPage   = lazy(() => import('./pages/Community/CommunityPage'))
 const CommunityDetail = lazy(() => import('./pages/Community/CommunityDetail'))
 const PostCommunity   = lazy(() => import('./pages/Community/PostCommunity'))
+const PostRequest     = lazy(() => import('./pages/PostRequest/PostRequest'))
+const RequestDetail   = lazy(() => import('./pages/RequestDetail/RequestDetail'))
 import { useAppStore } from './store/appStore'
 import { useAuthStore } from './store/authStore'
 import { supabase } from './lib/supabase'
@@ -60,6 +61,7 @@ export default function App() {
   const isLoadingDone = useAppStore((s) => s.isLoadingDone)
   const setLoadingDone = useAppStore((s) => s.setLoadingDone)
   const fetchServices = useAppStore((s) => s.fetchServices)
+  const fetchServiceRequests = useAppStore((s) => s.fetchServiceRequests)
   const setUser = useAuthStore((s) => s.setUser)
 
   // Keep auth state in sync + fetch services on mount.
@@ -101,6 +103,7 @@ export default function App() {
       supabase.from('users').update({ last_seen_at: new Date().toISOString() }).eq('id', authUser.id)
     }
 
+    fetchServiceRequests()
     fetchServices()
       .then(() => { fetchDone = true; tryFinish() })
       .catch(() => { fetchDone = true; tryFinish() })
@@ -123,7 +126,7 @@ export default function App() {
       window.clearTimeout(timerId)
       subscription.unsubscribe()
     }
-  }, [setUser, fetchServices, setLoadingDone])
+  }, [setUser, fetchServices, fetchServiceRequests, setLoadingDone])
 
   return (
     <>
@@ -164,13 +167,14 @@ export default function App() {
           <Route path="/community" element={<CommunityPage />} />
           <Route path="/community/post" element={<PostCommunity />} />
           <Route path="/community/:id" element={<CommunityDetail />} />
+          <Route path="/requests/post" element={<PostRequest />} />
+          <Route path="/requests/:id" element={<RequestDetail />} />
         </Routes>
         </Suspense>
       )}
 
       {/* Global AI chat widget — always visible after loading */}
-      {isLoadingDone && <AiChatWidget />}
-      {isLoadingDone && <MessagesButton />}
+      {isLoadingDone && <FABGroup />}
       {isLoadingDone && <MessageToast />}
       {isLoadingDone && <InstallPWA />}
       <ToastContainer />

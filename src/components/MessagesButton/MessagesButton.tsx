@@ -4,7 +4,9 @@ import { MessageSquare } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { useAuthStore } from '../../store/authStore'
 
-export default function MessagesButton() {
+interface Props { grouped?: boolean }
+
+export default function MessagesButton({ grouped }: Props) {
   const user = useAuthStore((s) => s.user)
   const navigate = useNavigate()
   const location = useLocation()
@@ -93,21 +95,27 @@ export default function MessagesButton() {
 
   if (!user) return null
 
+  const btn = (
+    <button
+      onClick={() => navigate('/profile?section=messages')}
+      className="relative flex items-center gap-2 bg-white shadow-lg border border-gray-200
+                 text-primary-600 rounded-full px-4 py-3
+                 hover:bg-gray-50 active:scale-95 transition-all"
+      aria-label="消息"
+    >
+      <MessageSquare size={20} />
+      <span className="text-sm font-semibold whitespace-nowrap">消息</span>
+      {unread > 0 && (
+        <span className="absolute top-0 right-0 w-4 h-4 bg-red-500 rounded-full border-2 border-white" />
+      )}
+    </button>
+  )
+
+  if (grouped) return btn
+
   return (
     <div className="fixed bottom-44 right-5 lg:bottom-24 lg:right-16 z-50">
-      <button
-        onClick={() => navigate('/profile?section=messages')}
-        className="relative flex items-center gap-2 bg-white shadow-lg border border-gray-200
-                   text-primary-600 rounded-full px-4 py-3
-                   hover:bg-gray-50 active:scale-95 transition-all"
-        aria-label="消息"
-      >
-        <MessageSquare size={20} />
-        <span className="text-sm font-semibold whitespace-nowrap">消息</span>
-        {unread > 0 && (
-          <span className="absolute top-0 right-0 w-4 h-4 bg-red-500 rounded-full border-2 border-white" />
-        )}
-      </button>
+      {btn}
     </div>
   )
 }

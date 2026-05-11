@@ -3,7 +3,7 @@
 // Shows a provider's public info + all their active listings.
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ArrowLeft, CheckCircle2, Clock, ExternalLink, MessageSquare, Phone, ShieldCheck, Star, Briefcase, DollarSign, MapPin, BadgeCheck } from 'lucide-react'
+import { ArrowLeft, CheckCircle2, Clock, ExternalLink, MessageSquare, Phone, ShieldCheck, Star, Briefcase, MapPin, BadgeCheck, Wifi } from 'lucide-react'
 import { toast } from '../../lib/toast'
 import { motion, AnimatePresence } from 'framer-motion'
 import { supabase } from '../../lib/supabase'
@@ -23,6 +23,12 @@ import type { Event } from '../Events/types'
 import { SOCIAL_PLATFORMS } from '../../lib/socialPlatforms'
 import { ProviderProfileSkeleton } from '../../components/Skeleton/Skeleton'
 
+interface Certification {
+  name: string
+  issuer?: string
+  year?: string
+}
+
 interface ProviderUser {
   id: string
   name: string
@@ -39,6 +45,10 @@ interface ProviderUser {
   business_verified: boolean
   avg_reply_hours: number | null
   last_seen_at: string | null
+  is_online: boolean
+  business_type: 'individual' | 'business'
+  skill_tags: string[]
+  certifications: Certification[]
 }
 
 interface ProviderReview {
@@ -114,6 +124,13 @@ export default function ProviderProfile() {
 
       if (profileError || !profile) { setNotFound(true); setLoading(false); return }
 
+      // Fetch extended profile fields added by migration (gracefully handles pre-migration state)
+      const { data: ext } = await supabase
+        .from('users')
+        .select('is_online, business_type, skill_tags, certifications')
+        .eq('id', id!)
+        .single()
+
       setProvider({
         ...profile,
         bio: profile.bio ?? null,
@@ -124,6 +141,10 @@ export default function ProviderProfile() {
         membership_level: (profile.membership_level as MemberLevel) ?? 'L1',
         business_verified: profile.business_verified ?? false,
         avg_reply_hours: profile.avg_reply_hours ?? null,
+        is_online: ext?.is_online ?? false,
+        business_type: (ext?.business_type as 'individual' | 'business') ?? 'individual',
+        skill_tags: (ext?.skill_tags as string[]) ?? [],
+        certifications: (ext?.certifications as Certification[]) ?? [],
       })
 
       if (svcsData) {
@@ -254,6 +275,20 @@ export default function ProviderProfile() {
                 />
               </div>
 
+              {/* Status badges row */}
+              <div className="flex flex-wrap gap-2 mt-2">
+                {provider.is_online && (
+                  <span className="flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-semibold text-green-700 bg-green-50 border border-green-200">
+                    <Wifi size={10} />
+                    在线接单
+                  </span>
+                )}
+                <span className={`flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-medium
+                  ${provider.business_type === 'business' ? 'text-blue-700 bg-blue-50 border border-blue-200' : 'text-gray-500 bg-gray-100'}`}>
+                  {provider.business_type === 'business' ? '🏢 企业商户' : '👤 个人服务商'}
+                </span>
+              </div>
+
               {/* Verification badges */}
               <div className="flex flex-wrap gap-2 mt-2">
                 <span className={`flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-medium
@@ -291,6 +326,44 @@ export default function ProviderProfile() {
           {/* Bio */}
           {provider.bio && (
             <p className="mt-4 text-sm text-gray-600 leading-relaxed whitespace-pre-wrap">{provider.bio}</p>
+          )}
+
+          {/* Skill tags */}
+          {provider.skill_tags.length > 0 && (
+            <div className="mt-4">
+              <p className="text-xs font-semibold text-gray-400 mb-2">技能标签</p>
+              <div className="flex flex-wrap gap-1.5">
+                {provider.skill_tags.map((tag) => (
+                  <span key={tag}
+                    className="text-xs px-2.5 py-1 rounded-full bg-primary-50 text-primary-700 border border-primary-100 font-medium">
+                    {tag}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Certifications */}
+          {provider.certifications.length > 0 && (
+            <div className="mt-4">
+              <p className="text-xs font-semibold text-gray-400 mb-2">资质 / 证书 / 牌照</p>
+              <div className="flex flex-wrap gap-2">
+                {provider.certifications.map((cert, i) => (
+                  <div key={i}
+                    className="flex items-center gap-1.5 bg-amber-50 border border-amber-100 rounded-xl px-3 py-1.5">
+                    <BadgeCheck size={13} className="text-amber-500 flex-shrink-0" />
+                    <div className="min-w-0">
+                      <p className="text-xs font-semibold text-amber-800 leading-tight">{cert.name}</p>
+                      {(cert.issuer || cert.year) && (
+                        <p className="text-[10px] text-amber-600 leading-tight">
+                          {[cert.issuer, cert.year].filter(Boolean).join(' · ')}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
           )}
 
           {/* Contact info */}

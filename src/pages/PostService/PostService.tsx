@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { ArrowLeft, CheckCircle, Search, ImagePlus, X } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { useAppStore } from '../../store/appStore'
+import { moderateContent } from '../../hooks/useContentModeration'
 import { useAuthStore } from '../../store/authStore'
 import { supabase } from '../../lib/supabase'
 import { CATEGORIES } from '../../data/categories'
@@ -351,6 +352,18 @@ export default function PostService() {
     setIsSubmitting(true)
     setSubmitError('')
     try {
+      // 0. AI content moderation
+      const modResult = await moderateContent({
+        title:       form.title,
+        description: form.description,
+        tags:        form.tags,
+      })
+      if (!modResult.pass) {
+        setSubmitError(`内容审核未通过：${modResult.reason ?? '包含违规内容'}。请修改后重新发布。`)
+        setIsSubmitting(false)
+        return
+      }
+
       // 1. Update user's contact info in users table
       const { error: upsertError } = await supabase.from('users').update({
         name: form.name.trim(),
