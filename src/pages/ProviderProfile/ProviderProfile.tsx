@@ -70,6 +70,8 @@ interface ServiceRow {
   price_type: string | null
   area: string | null
   images: string[]
+  avgRating: number | null
+  reviewCount: number
 }
 
 export default function ProviderProfile() {
@@ -148,7 +150,13 @@ export default function ProviderProfile() {
       })
 
       if (svcsData) {
-        setServices(svcsData.map(r => ({ ...r, images: r.images ?? [] })))
+        setServices(svcsData.map(r => {
+          const reviews = (r as any).reviews ?? []
+          const avgRating = reviews.length
+            ? reviews.reduce((s: number, rv: any) => s + rv.rating, 0) / reviews.length
+            : null
+          return { ...r, images: r.images ?? [], avgRating, reviewCount: reviews.length }
+        }))
         const allReviews: ProviderReview[] = svcsData.flatMap(svc =>
           ((svc as any).reviews ?? []).map((r: any) => ({
             id:         r.id,
@@ -178,8 +186,13 @@ export default function ProviderProfile() {
   async function handleMessage() {
     if (!user) { navigate('/login'); return }
     if (!provider || provider.id === user.id) return
-    // Open messages section — no specific service context
-    navigate('/profile?section=messages')
+    const { data, error } = await supabase.rpc('get_or_create_conversation', {
+      p_provider_id: provider.id,
+      p_client_id:   user.id,
+      p_service_id:  null,
+    })
+    if (error || !data) { navigate('/profile?section=messages'); return }
+    navigate(`/conversation/${data}`)
   }
 
   async function handleMessageService(serviceId: string) {
@@ -501,9 +514,19 @@ export default function ProviderProfile() {
                     {/* Stars + action row */}
                     <div className="flex items-center justify-between mt-3">
                       <div className="flex items-center gap-0.5">
-                        {[1,2,3,4,5].map(s => (
-                          <Star key={s} size={13} className="text-yellow-400 fill-yellow-400" />
-                        ))}
+                        {svc.reviewCount === 0 ? (
+                          <span className="text-xs text-gray-400">暂无评价</span>
+                        ) : (
+                          <>
+                            {[1,2,3,4,5].map(s => (
+                              <Star key={s} size={13}
+                                className={s <= Math.round(svc.avgRating ?? 0)
+                                  ? 'text-yellow-400 fill-yellow-400'
+                                  : 'text-gray-200 fill-gray-200'} />
+                            ))}
+                            <span className="text-[11px] text-gray-400 ml-0.5">({svc.reviewCount})</span>
+                          </>
+                        )}
                       </div>
                       <div className="flex gap-2">
                         <button onClick={() => navigate(`/service/${svc.id}`)}

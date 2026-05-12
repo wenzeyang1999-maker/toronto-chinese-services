@@ -57,8 +57,8 @@ export default function RequestDetail() {
     if (!req) return
 
     const { data, error } = await supabase.rpc('get_or_create_conversation', {
-      p_provider_id: req.userId,
-      p_client_id:   user.id,
+      p_provider_id: user.id,      // current user is the provider reaching out
+      p_client_id:   req.userId,   // requester is the client who needs the service
       p_service_id:  null,
     })
     if (error || !data) { toast('无法发起会话', 'error'); return }
