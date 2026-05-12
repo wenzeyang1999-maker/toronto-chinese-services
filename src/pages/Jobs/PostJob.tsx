@@ -13,6 +13,8 @@ import {
   JOB_CATEGORY_CONFIG, JOB_TYPE_CONFIG, SALARY_TYPE_LABEL,
   type JobCategory, type JobType, type SalaryType, type Job, type ListingType,
 } from './types'
+import { toast } from '../../lib/toast'
+import { moderateContent } from '../../hooks/useContentModeration'
 
 const GTA_AREAS = [
   '多伦多市区', '北约克', '士嘉堡', '密西沙加', '万锦',
@@ -106,6 +108,13 @@ export default function PostJob() {
     e.preventDefault()
     if (!user || !validate()) return
     setSubmitting(true)
+
+    const modResult = await moderateContent({ title: form.title, description: form.description })
+    if (!modResult.pass) {
+      toast(`内容审核未通过：${modResult.reason ?? '包含违规内容'}`, 'error')
+      setSubmitting(false)
+      return
+    }
 
     const payload = {
       poster_id:      user.id,

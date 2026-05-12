@@ -12,6 +12,8 @@ import {
   LISTING_TYPE_CONFIG, PROPERTY_TYPE_CONFIG, PRICE_TYPE_LABEL,
   type RealEstateListingType, type PropertyType, type PriceType, type Property,
 } from './types'
+import { toast } from '../../lib/toast'
+import { moderateContent } from '../../hooks/useContentModeration'
 
 const GTA_AREAS = [
   '多伦多市区', '北约克', '士嘉堡', '密西沙加', '万锦',
@@ -127,6 +129,13 @@ export default function PostProperty() {
     e.preventDefault()
     if (!user || !validate()) return
     setSubmitting(true)
+
+    const modResult = await moderateContent({ title: form.title, description: form.description })
+    if (!modResult.pass) {
+      toast(`内容审核未通过：${modResult.reason ?? '包含违规内容'}`, 'error')
+      setSubmitting(false)
+      return
+    }
 
     const imageUrls: string[] = []
     for (const file of images) {
