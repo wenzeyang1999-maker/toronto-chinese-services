@@ -1,0 +1,30 @@
+newmtl mat_body
+Ka 0.9500 0.9500 0.9800
+Kd 0.9600 0.9600 0.9850
+Ks 0.0800 0.0800 0.0800
+Ns 18.0000
+illum 2
+
+newmtl mat_front
+Ka 1.0000 1.0000 1.0000
+Kd 1.0000 1.0000 1.0000
+Ks 0.0000 0.0000 0.0000
+Ns 1.0000
+illum 1
+map_Kd assets/opium-front.png
+
+newmtl mat_side
+Ka 1.0000 1.0000 1.0000
+Kd 1.0000 1.0000 1.0000
+Ks 0.0000 0.0000 0.0000
+Ns 1.0000
+illum 1
+map_Kd assets/opium-side.png
+
+newmtl mat_background
+Ka 1.0000 1.0000 1.0000
+Kd 1.0000 1.0000 1.0000
+Ks 0.0000 0.0000 0.0000
+Ns 1.0000
+illum 1
+map_Kd assets/toronto-dt-bg.png

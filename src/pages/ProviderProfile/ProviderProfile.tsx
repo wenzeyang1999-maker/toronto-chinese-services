@@ -165,7 +165,7 @@ export default function ProviderProfile() {
             reply:      Array.isArray(r.reply) ? (r.reply[0]?.content ?? null) : (r.reply?.content ?? null),
           }))
         )
-        allReviews.sort((a, b) => b.created_at.localeCompare(a.created_at))
+        allReviews.sort((a, b) => b.rating - a.rating || b.created_at.localeCompare(a.created_at))
         setProviderReviews(allReviews)
       }
       if (propertiesData) setProperties(propertiesData.map(p => ({ ...p, images: p.images ?? [] })) as Property[])

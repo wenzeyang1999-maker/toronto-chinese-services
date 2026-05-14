@@ -206,6 +206,7 @@ export default function PostService() {
   const [form, setForm] = useState<PostServiceForm>(INITIAL_FORM)
   const [location, setLocation] = useState<LocationResult | null>(null)
   const [submitted, setSubmitted] = useState(false)
+  const [newServiceId, setNewServiceId] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [aiGenerating, setAiGenerating] = useState(false)
   const [submitError, setSubmitError] = useState('')
@@ -455,6 +456,7 @@ export default function PostService() {
 
       // 4. Refresh services list
       await fetchServices()
+      setNewServiceId(insertedService?.id ?? null)
       setSubmitted(true)
     } catch (err: any) {
       setSubmitError(err?.message ?? '发布失败，请稍后重试')
@@ -474,7 +476,25 @@ export default function PostService() {
         >
           <CheckCircle size={72} className="text-green-500 mx-auto mb-4" />
           <h2 className="text-2xl font-bold text-gray-900 mb-2">发布成功！</h2>
-          <p className="text-gray-500 mb-8">您的服务已发布，附近的客户可以找到您了</p>
+          <p className="text-gray-500 mb-6">您的服务已发布，附近的客户可以找到您了</p>
+          {newServiceId && (
+            <button
+              onClick={async () => {
+                const url = `${window.location.origin}/service/${newServiceId}`
+                if (navigator.share) {
+                  await navigator.share({ title: '我在 TCS 发布了新服务', url }).catch(() => {})
+                } else {
+                  await navigator.clipboard.writeText(url).catch(() => {})
+                  toast('链接已复制，可分享到微信', 'success')
+                }
+              }}
+              className="w-full flex items-center justify-center gap-2 mb-3 py-3 bg-green-50
+                         border border-green-200 text-green-700 font-semibold rounded-2xl
+                         text-sm hover:bg-green-100 transition-colors"
+            >
+              📤 分享给朋友
+            </button>
+          )}
           <div className="flex flex-col gap-3">
             <button
               onClick={() => navigate('/')}

@@ -84,10 +84,16 @@ export default function FollowsSection() {
       </div>
 
       {providers.length === 0 ? (
-        <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-12 text-center">
-          <UserCheck size={36} className="text-gray-200 mx-auto mb-3" />
-          <p className="text-sm text-gray-400">还没有关注任何服务商</p>
-          <p className="text-xs text-gray-300 mt-1">在服务商主页点击「关注」即可</p>
+        <div className="bg-white rounded-3xl border border-gray-100 shadow-sm py-16 px-8 text-center">
+          <span className="text-5xl block mb-4 select-none">🔔</span>
+          <p className="text-base font-semibold text-gray-700 mb-1.5">还没有关注任何服务商</p>
+          <p className="text-sm text-gray-400 leading-relaxed mb-5">关注服务商后，他们的新内容<br />会第一时间出现在这里</p>
+          <button
+            onClick={() => navigate('/')}
+            className="px-5 py-2.5 bg-primary-600 text-white rounded-xl text-sm font-semibold hover:bg-primary-700 transition-colors"
+          >
+            去发现服务商
+          </button>
         </div>
       ) : (
         <div className="space-y-2">

@@ -159,10 +159,10 @@ export default function SavesSection() {
       </div>
 
       {filtered.length === 0 ? (
-        <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-12 text-center">
-          <Heart size={36} className="text-gray-200 mx-auto mb-3" />
-          <p className="text-sm text-gray-600 font-medium">还没有收藏任何内容</p>
-          <p className="text-xs text-gray-400 mt-1 mb-4">在详情页点击 ♡ 即可收藏</p>
+        <div className="bg-white rounded-3xl border border-gray-100 shadow-sm py-16 px-8 text-center">
+          <span className="text-5xl block mb-4 select-none">🌟</span>
+          <p className="text-base font-semibold text-gray-700 mb-1.5">还没有收藏任何内容</p>
+          <p className="text-sm text-gray-400 leading-relaxed mb-5">在详情页点击 ♡ 收藏<br />下次找起来更快</p>
           <button
             onClick={() => navigate('/')}
             className="px-5 py-2.5 bg-primary-600 text-white text-sm font-semibold rounded-2xl hover:bg-primary-700 transition-colors"

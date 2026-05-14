@@ -72,10 +72,16 @@ export default function MessagesSection() {
 
   if (convs.length === 0) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center gap-3 text-gray-400">
-        <MessageSquare size={40} strokeWidth={1.5} />
-        <p className="text-sm">暂无消息</p>
-        <p className="text-xs text-gray-300">在服务详情页点击"发消息"开始对话</p>
+      <div className="flex-1 flex flex-col items-center justify-center gap-2 px-8 text-center">
+        <span className="text-5xl mb-2 select-none">💬</span>
+        <p className="text-base font-semibold text-gray-700">还没有消息</p>
+        <p className="text-sm text-gray-400 leading-relaxed">在服务详情页点击「发消息」<br />即可和服务商开始对话</p>
+        <button
+          onClick={() => navigate('/')}
+          className="mt-3 px-5 py-2.5 bg-primary-600 text-white rounded-xl text-sm font-semibold hover:bg-primary-700 transition-colors"
+        >
+          去浏览服务
+        </button>
       </div>
     )
   }

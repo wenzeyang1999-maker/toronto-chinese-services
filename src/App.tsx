@@ -21,6 +21,7 @@ import ToastContainer from './components/Toast/ToastContainer'
 import MessageToast from './components/MessageToast/MessageToast'
 import InstallPWA from './components/InstallPWA/InstallPWA'
 import FABGroup from './components/FABGroup/FABGroup'
+import BottomNav from './components/BottomNav/BottomNav'
 
 const Category        = lazy(() => import('./pages/Category/Category'))
 const Search          = lazy(() => import('./pages/Search/Search'))
@@ -137,6 +138,7 @@ export default function App() {
 
       {isLoadingDone && (
         <Suspense fallback={<div className="min-h-screen flex items-center justify-center text-gray-400 text-sm">加载中…</div>}>
+        <div className="pb-16 md:pb-0">
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/category/:id" element={<Category />} />
@@ -170,11 +172,13 @@ export default function App() {
           <Route path="/requests/post" element={<PostRequest />} />
           <Route path="/requests/:id" element={<RequestDetail />} />
         </Routes>
+        </div>
         </Suspense>
       )}
 
-      {/* Global AI chat widget — always visible after loading */}
+      {/* Desktop FABs + mobile bottom nav */}
       {isLoadingDone && <FABGroup />}
+      {isLoadingDone && <BottomNav />}
       {isLoadingDone && <MessageToast />}
       {isLoadingDone && <InstallPWA />}
       <ToastContainer />

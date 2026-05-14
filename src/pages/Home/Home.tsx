@@ -40,7 +40,10 @@ export default function Home() {
   const [inquiryOpen, setInquiryOpen]  = useState(false)
   const [activeTab, setActiveTab]      = useState<SectionTab>('services')
   const [searchQuery, setSearchQuery]  = useState('')
-  const [viewMode, setViewMode]        = useState<'list' | 'map'>('map')
+  const [viewMode, setViewMode] = useState<'list' | 'map'>(() => {
+    const saved = localStorage.getItem('tcs_view_mode')
+    return saved === 'list' || saved === 'map' ? saved : 'map'
+  })
   const searchRef = useRef<HTMLDivElement>(null)
 
   // Detect if current user is a provider (has published at least one service)
@@ -49,12 +52,22 @@ export default function Home() {
     [user, services]
   )
 
-  // Feed mode: providers default to 'requests', clients default to 'services'
-  const [feedMode, setFeedMode] = useState<'services' | 'requests'>('services')
+  // Feed mode: persist to localStorage; first visit defaults by provider status
+  const [feedMode, setFeedMode] = useState<'services' | 'requests'>(() => {
+    const saved = localStorage.getItem('tcs_feed_mode')
+    return saved === 'requests' || saved === 'services' ? saved : 'services'
+  })
   const [requestSearch, setRequestSearch] = useState('')
   useEffect(() => {
-    setFeedMode(isProvider ? 'requests' : 'services')
+    if (!localStorage.getItem('tcs_feed_mode')) {
+      setFeedMode(isProvider ? 'requests' : 'services')
+    }
   }, [isProvider])
+
+  const handleSetFeedMode = (mode: 'services' | 'requests') => {
+    setFeedMode(mode)
+    localStorage.setItem('tcs_feed_mode', mode)
+  }
 
   // Scroll to search bar when coming from tabs
   useEffect(() => {
@@ -76,6 +89,7 @@ export default function Home() {
 
   const handleViewMode = (next: 'list' | 'map') => {
     setViewMode(next)
+    localStorage.setItem('tcs_view_mode', next)
     if (next === 'map' && !userLocation) requestLocation()
   }
 
@@ -152,7 +166,7 @@ export default function Home() {
         <div className="flex items-center gap-2 mb-4">
           <div className="flex bg-gray-100 rounded-xl p-1 gap-1">
             <button
-              onClick={() => setFeedMode('services')}
+              onClick={() => handleSetFeedMode('services')}
               className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all
                 ${feedMode === 'services'
                   ? 'bg-white text-primary-600 shadow-sm'
@@ -161,7 +175,7 @@ export default function Home() {
               找服务
             </button>
             <button
-              onClick={() => setFeedMode('requests')}
+              onClick={() => handleSetFeedMode('requests')}
               className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all
                 ${feedMode === 'requests'
                   ? 'bg-white text-orange-600 shadow-sm'
