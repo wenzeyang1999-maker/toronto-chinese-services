@@ -105,6 +105,7 @@ export default function ProviderProfile() {
         { data: eventsData },
         { data: jobsData },
         { count: followCount },
+        { data: ext },
       ] = await Promise.all([
         supabase.from('public_profiles')
           .select('id, name, avatar_url, email, bio, created_at, is_email_verified, last_seen_at, phone_verified, social_links, membership_level, business_verified, avg_reply_hours')
@@ -122,16 +123,12 @@ export default function ProviderProfile() {
           .select('*').eq('poster_id', id).eq('is_active', true).order('created_at', { ascending: false }),
         supabase.from('follows')
           .select('id', { count: 'exact', head: true }).eq('provider_id', id),
+        supabase.from('users')
+          .select('is_online, business_type, skill_tags, certifications')
+          .eq('id', id!).single(),
       ])
 
       if (profileError || !profile) { setNotFound(true); setLoading(false); return }
-
-      // Fetch extended profile fields added by migration (gracefully handles pre-migration state)
-      const { data: ext } = await supabase
-        .from('users')
-        .select('is_online, business_type, skill_tags, certifications')
-        .eq('id', id!)
-        .single()
 
       setProvider({
         ...profile,
