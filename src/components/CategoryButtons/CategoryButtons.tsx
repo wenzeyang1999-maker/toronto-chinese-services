@@ -184,9 +184,10 @@ export default function CategoryButtons() {
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.92, y: 16 }}
               transition={{ type: 'spring', stiffness: 380, damping: 30 }}
-              className="fixed inset-x-4 top-[38%] -translate-y-1/2 z-50
+              className="fixed inset-x-4 top-20 z-50
                          bg-white/80 backdrop-blur-xl rounded-3xl shadow-2xl
-                         border border-white/60 max-w-sm mx-auto"
+                         border border-white/60 max-w-sm mx-auto
+                         max-h-[calc(100vh-9rem)] overflow-y-auto"
             >
               {/* Header — no gradient, just a subtle accent strip */}
               <div className="flex items-center justify-between px-5 pt-4 pb-3

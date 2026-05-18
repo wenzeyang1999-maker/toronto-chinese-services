@@ -53,6 +53,7 @@ const CommunityDetail = lazy(() => import('./pages/Community/CommunityDetail'))
 const PostCommunity   = lazy(() => import('./pages/Community/PostCommunity'))
 const PostRequest     = lazy(() => import('./pages/PostRequest/PostRequest'))
 const RequestDetail   = lazy(() => import('./pages/RequestDetail/RequestDetail'))
+const MapPage         = lazy(() => import('./pages/MapPage/MapPage'))
 import { useAppStore } from './store/appStore'
 import { useAuthStore } from './store/authStore'
 import { supabase } from './lib/supabase'
@@ -171,6 +172,7 @@ export default function App() {
           <Route path="/community/:id" element={<CommunityDetail />} />
           <Route path="/requests/post" element={<PostRequest />} />
           <Route path="/requests/:id" element={<RequestDetail />} />
+          <Route path="/map" element={<MapPage />} />
         </Routes>
         </div>
         </Suspense>

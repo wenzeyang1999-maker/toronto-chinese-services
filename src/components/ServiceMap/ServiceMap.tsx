@@ -2,7 +2,7 @@
 // Renders a Google map with service markers and the user's current location.
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Navigation } from 'lucide-react'
+import { Navigation, Maximize2 } from 'lucide-react'
 import type { Service, ServiceRequest } from '../../types'
 import { useAppStore } from '../../store/appStore'
 import { useGeolocation } from '../../hooks/useGeolocation'
@@ -242,6 +242,16 @@ export default function ServiceMap({ services, requests = [], count }: Props) {
                      : 'bg-primary-600 hover:bg-primary-700'}`}
       >
         <Navigation size={18} className="text-white" fill="white" />
+      </button>
+
+      {/* Fullscreen button — opens dedicated /map page */}
+      <button
+        onClick={() => navigate('/map')}
+        title="全屏地图"
+        className="absolute top-3 right-14 z-[400] w-10 h-10 rounded-full shadow-md bg-white hover:bg-gray-50
+                   flex items-center justify-center active:scale-95 transition-all"
+      >
+        <Maximize2 size={16} className="text-gray-700" />
       </button>
 
       <div className="absolute bottom-3 left-3 z-[400] bg-white/90 backdrop-blur-sm rounded-xl px-3 py-1.5

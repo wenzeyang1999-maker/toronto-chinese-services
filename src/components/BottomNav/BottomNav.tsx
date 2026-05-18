@@ -11,7 +11,7 @@ export default function BottomNav() {
   const [unread, setUnread] = useState(0)
 
   const hidden =
-    /^\/(login|register|forgot-password|reset-password)$/.test(pathname) ||
+    /^\/(login|register|forgot-password|reset-password|map)$/.test(pathname) ||
     pathname.endsWith('/post') ||
     pathname === '/post' ||
     pathname.startsWith('/conversation/') ||

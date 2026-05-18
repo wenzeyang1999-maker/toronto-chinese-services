@@ -6,7 +6,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import {
   ChevronLeft, ChevronRight, Camera, LogOut,
-  ShieldCheck, Clock, MessageSquare, BadgeCheck, Crown, Heart, UserCheck, Gift, LayoutDashboard, ClipboardList, Bell,
+  ShieldCheck, Clock, MessageSquare, BadgeCheck, Crown, Heart, UserCheck, Gift, LayoutDashboard, ClipboardList, Bell, Store, User as UserIcon,
 } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { useAuthStore } from '../../store/authStore'
@@ -30,18 +30,20 @@ import InquiriesSection      from './sections/InquiriesSection'
 import NotificationsSection  from './sections/NotificationsSection'
 import { toast } from '../../lib/toast'
 
-const MENU: { key: Section; icon: React.ReactNode; label: string; sub: string }[] = [
-  { key: 'homepage',     icon: <LayoutDashboard size={18} />, label: '我的主页',         sub: '封面 · 简介 · 标签装修' },
-  { key: 'account',      icon: <ShieldCheck   size={18} />, label: '帐号和安全',        sub: '个人信息、密码修改' },
-  { key: 'verification', icon: <BadgeCheck    size={18} />, label: '联系方式与资质验证', sub: '社交媒体、手机验证、商户认证' },
-  { key: 'membership',   icon: <Crown         size={18} />, label: '会员等级',           sub: '查看商家会员权益' },
-  { key: 'saves',        icon: <Heart         size={18} />, label: '我的收藏',           sub: '已收藏的服务、招聘、房源等' },
-  { key: 'follows',      icon: <UserCheck     size={18} />, label: '我的关注',           sub: '已关注的服务商' },
-  { key: 'messages',     icon: <MessageSquare  size={18} />, label: '我的消息',     sub: '与商家的对话记录' },
-  { key: 'inquiries',   icon: <ClipboardList  size={18} />, label: '我的报价请求', sub: '已提交的需求和匹配结果' },
-  { key: 'browse',       icon: <Clock         size={18} />, label: '浏览记录',     sub: '最近查看的服务' },
-  { key: 'referral',       icon: <Gift          size={18} />, label: '邀请好友',    sub: '我的分享码 · 已邀请人数' },
-  { key: 'notifications',  icon: <Bell          size={18} />, label: '通知设置',    sub: '管理推送通知偏好' },
+type MenuItem = { key: Section; icon: React.ReactNode; label: string; sub: string; modes: ('client' | 'provider')[] }
+
+const MENU: MenuItem[] = [
+  { key: 'homepage',     icon: <LayoutDashboard size={18} />, label: '我的主页',         sub: '封面 · 简介 · 标签装修', modes: ['provider'] },
+  { key: 'verification', icon: <BadgeCheck    size={18} />, label: '联系方式与资质验证', sub: '社交媒体、手机验证、商户认证', modes: ['provider'] },
+  { key: 'inquiries',   icon: <ClipboardList  size={18} />, label: '我的报价请求', sub: '已提交的需求和匹配结果', modes: ['client'] },
+  { key: 'saves',        icon: <Heart         size={18} />, label: '我的收藏',           sub: '已收藏的服务、招聘、房源等', modes: ['client'] },
+  { key: 'follows',      icon: <UserCheck     size={18} />, label: '我的关注',           sub: '已关注的服务商', modes: ['client'] },
+  { key: 'browse',       icon: <Clock         size={18} />, label: '浏览记录',     sub: '最近查看的服务', modes: ['client'] },
+  { key: 'account',      icon: <ShieldCheck   size={18} />, label: '帐号和安全',        sub: '个人信息、密码修改', modes: ['client', 'provider'] },
+  { key: 'messages',     icon: <MessageSquare  size={18} />, label: '我的消息',     sub: '与商家的对话记录', modes: ['client', 'provider'] },
+  { key: 'membership',   icon: <Crown         size={18} />, label: '会员等级',           sub: '查看商家会员权益', modes: ['client', 'provider'] },
+  { key: 'referral',       icon: <Gift          size={18} />, label: '邀请好友',    sub: '我的分享码 · 已邀请人数', modes: ['client', 'provider'] },
+  { key: 'notifications',  icon: <Bell          size={18} />, label: '通知设置',    sub: '管理推送通知偏好', modes: ['client', 'provider'] },
 ]
 
 export default function Profile() {
@@ -74,6 +76,19 @@ export default function Profile() {
   const fileRef = useRef<HTMLInputElement>(null)
 
   const [browse, setBrowse] = useState<BrowseEntry[]>([])
+  const [hasServices, setHasServices] = useState(false)
+  const [mode, setMode] = useState<'client' | 'provider'>(() => {
+    const saved = localStorage.getItem('tcs_profile_mode')
+    return saved === 'provider' || saved === 'client' ? saved : 'client'
+  })
+
+  function switchMode(next: 'client' | 'provider') {
+    setMode(next)
+    localStorage.setItem('tcs_profile_mode', next)
+    // If currently viewing a section not in the new mode, clear it
+    const item = MENU.find((m) => m.key === section)
+    if (item && !item.modes.includes(next)) setSection(null)
+  }
 
   useEffect(() => { if (!user) navigate('/login') }, [user, navigate])
 
@@ -93,6 +108,18 @@ export default function Profile() {
         setMemberExpiresAt(data.membership_expires_at ?? null)
       })
     try { setBrowse(JSON.parse(localStorage.getItem('tcs_browse_history') ?? '[]')) } catch { /* */ }
+
+    // Auto-detect provider role (has at least one published service)
+    supabase.from('services').select('id', { head: true, count: 'exact' })
+      .eq('provider_id', user.id).eq('is_available', true).limit(1)
+      .then(({ count }) => {
+        const isProv = (count ?? 0) > 0
+        setHasServices(isProv)
+        // First-time visit: default to provider if user has services
+        if (!localStorage.getItem('tcs_profile_mode') && isProv) {
+          setMode('provider')
+        }
+      })
   }, [user])
 
   if (!user) return null
@@ -144,9 +171,36 @@ export default function Profile() {
         </div>
       </div>
 
+      {/* Mode toggle */}
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-1 flex gap-1">
+        <button
+          onClick={() => switchMode('client')}
+          className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-sm font-semibold transition-all
+            ${mode === 'client'
+              ? 'bg-primary-600 text-white shadow-sm'
+              : 'text-gray-500 hover:text-gray-700'}`}
+        >
+          <UserIcon size={15} />
+          用户模式
+        </button>
+        <button
+          onClick={() => switchMode('provider')}
+          className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-sm font-semibold transition-all relative
+            ${mode === 'provider'
+              ? 'bg-primary-600 text-white shadow-sm'
+              : 'text-gray-500 hover:text-gray-700'}`}
+        >
+          <Store size={15} />
+          服务商模式
+          {!hasServices && mode !== 'provider' && (
+            <span className="absolute -top-1 -right-1 w-2 h-2 bg-orange-400 rounded-full" />
+          )}
+        </button>
+      </div>
+
       {/* Menu items */}
       <div className="bg-white rounded-3xl border border-gray-100 shadow-sm divide-y divide-gray-100 overflow-hidden">
-        {MENU.map(item => {
+        {MENU.filter(item => item.modes.includes(mode)).map(item => {
           const active = section === item.key
           return (
             <button key={item.key} onClick={() => setSection(item.key)}
