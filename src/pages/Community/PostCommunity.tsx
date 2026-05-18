@@ -10,6 +10,7 @@ import { compressImage, validateImageFile } from '../../lib/compressImage'
 import { POST_TYPE_CONFIG, AREA_CONFIG } from './config'
 import { toast } from '../../lib/toast'
 import { moderateContent } from '../../hooks/useContentModeration'
+import { notifyFollowerNewCommunityPost } from '../../lib/notify'
 
 const MAX_IMAGES = 4
 
@@ -151,6 +152,35 @@ export default function PostCommunity() {
 
       setSubmitting(false)
       if (err || !data) { setError('发布失败，请重试'); return }
+
+      // Notify followers — fire-and-forget, don't block navigation
+      ;(async () => {
+        const { data: followers } = await supabase
+          .from('follows')
+          .select('follower_id')
+          .eq('provider_id', user!.id)
+        if (!followers?.length) return
+
+        const { data: authorRow } = await supabase
+          .from('users')
+          .select('name')
+          .eq('id', user!.id)
+          .single()
+        const authorName = authorRow?.name ?? '社区用户'
+
+        await Promise.allSettled(
+          followers.map((row: { follower_id: string }) =>
+            notifyFollowerNewCommunityPost({
+              recipientUserId: row.follower_id,
+              authorName,
+              postTitle: title.trim(),
+              postId: data.id,
+              preview: content.trim(),
+            })
+          )
+        )
+      })()
+
       navigate(`/community/${data.id}`)
     }
   }

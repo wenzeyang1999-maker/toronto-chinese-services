@@ -135,6 +135,21 @@ export async function notifyFollowerNewService(opts: {
   })
 }
 
+export async function notifyFollowerNewCommunityPost(opts: {
+  recipientUserId: string
+  authorName: string
+  postTitle: string
+  postId: string
+  preview: string
+}) {
+  await notify('new_community_post', opts.recipientUserId, {
+    authorName: opts.authorName,
+    postTitle: opts.postTitle,
+    postId: opts.postId,
+    preview: opts.preview.slice(0, 120),
+  })
+}
+
 export async function notifyAdminPromoRequest(opts: {
   serviceName:   string
   serviceId:     string

@@ -149,6 +149,23 @@ function buildEmail(type: string, recipientName: string, data: Record<string, st
         ),
       }
 
+    case 'new_community_post':
+      return {
+        subject: `📝 ${h(data.authorName)} 在多村论坛发了新帖`,
+        html: template(
+          `您关注的人发布了新帖子`,
+          `<p>您好 <strong>${h(recipientName)}</strong>，</p>
+           <p>您关注的 <strong>${h(data.authorName)}</strong> 刚刚在社区圈子发布了一篇新帖子：</p>
+           <p style="background:#f9fafb;border-left:3px solid #6366f1;padding:12px 16px;border-radius:0 8px 8px 0;color:#374151;">
+             <strong>${h(data.postTitle)}</strong>
+             ${data.preview ? `<br><span style="color:#6b7280;font-size:13px;">${h(data.preview)}</span>` : ''}
+           </p>
+           <p>来看看 TA 在分享什么。</p>`,
+          '查看帖子',
+          `${SITE}/community/${h(data.postId)}`
+        ),
+      }
+
     case 'provider_inquiry':
       return {
         subject: `🔔 有客户正在寻找「${h(data.categoryLabel)}」服务`,
@@ -328,12 +345,16 @@ async function createInAppNotification(recipientUserId: string, type: string, da
     ? `新的社区${data.reportType === 'comment' ? '评论' : '帖子'}举报`
     : type === 'new_service_post'
       ? `${data.providerName} 发布了新服务`
-      : '新通知'
+      : type === 'new_community_post'
+        ? `${data.authorName} 发布了新帖`
+        : '新通知'
   const body = type === 'admin_community_report'
     ? `${data.reporterName} 举报了「${data.postTitle}」，原因：${data.reasonLabel}`
     : type === 'new_service_post'
       ? `新服务：${data.serviceTitle}`
-      : ''
+      : type === 'new_community_post'
+        ? `新帖：${data.postTitle}`
+        : ''
 
   const { error } = await admin.from('notifications').insert({
     recipient_id: recipientUserId,
@@ -342,7 +363,9 @@ async function createInAppNotification(recipientUserId: string, type: string, da
     body,
     link_url: type === 'new_service_post'
       ? `/service/${data.serviceId}`
-      : data.postId ? `/community/${data.postId}` : '/admin',
+      : type === 'new_community_post'
+        ? `/community/${data.postId}`
+        : data.postId ? `/community/${data.postId}` : '/admin',
     metadata: data,
   })
 
@@ -381,7 +404,7 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS })
 
   // Types that a regular authenticated user may trigger (directed at a specific recipient).
-  const USER_ALLOWED_TYPES = new Set(['new_message', 'new_follower', 'new_review', 'new_question', 'new_service_post'])
+  const USER_ALLOWED_TYPES = new Set(['new_message', 'new_follower', 'new_review', 'new_question', 'new_service_post', 'new_community_post'])
   // Types that may be broadcast to a role. Keep this list narrow to prevent
   // authenticated users from spamming whole roles through the Edge Function.
   const ROLE_BROADCAST_RULES: Record<string, string> = {
