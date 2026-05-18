@@ -15,6 +15,16 @@ export interface Location {
   area?: string
 }
 
+// Online provider broadcasting live location (shown as green pin on map)
+export interface OnlineProvider {
+  id: string
+  name: string
+  avatar_url: string | null
+  online_lat: number
+  online_lng: number
+  skill_tags: string[]
+}
+
 export interface ServiceProvider {
   id: string
   name: string

@@ -439,23 +439,30 @@ async function sendEmail(recipient: { email: string; name?: string | null }, typ
   return result
 }
 
-// ── Per-actor rate limit (in-memory, resets on cold start) ───────────────────
-// Defence against an authenticated user spamming notifications to arbitrary
-// recipients. 30 per minute is far above any legitimate post flow even with
-// large follower counts (those are parallel from a single user action).
-const rateLimit = new Map<string, { count: number; resetAt: number }>()
-const MAX_PER_MINUTE = 30
-
-function checkRateLimit(actorId: string): boolean {
-  const now = Date.now()
-  const entry = rateLimit.get(actorId)
-  if (!entry || entry.resetAt < now) {
-    rateLimit.set(actorId, { count: 1, resetAt: now + 60_000 })
-    return true
+// ── Combined rate limit + relationship check (DB-backed) ─────────────────────
+// Calls the check_notification_allowed RPC which atomically increments a
+// per-actor sliding-window counter AND verifies the actor has a legitimate
+// relationship with the recipient for the requested notification type.
+// Returns false if either check fails.
+async function checkNotificationAllowed(
+  actorId: string,
+  recipientUserId: string,
+  type: string,
+  context: Record<string, string>,
+): Promise<boolean> {
+  const admin = await getAdminClient()
+  const { data, error } = await admin.rpc('check_notification_allowed', {
+    p_actor_id:     actorId,
+    p_recipient_id: recipientUserId,
+    p_type:         type,
+    p_context:      context,
+    p_max_per_min:  30,
+  })
+  if (error) {
+    console.warn('checkNotificationAllowed RPC failed:', error.message)
+    return false  // fail closed
   }
-  if (entry.count >= MAX_PER_MINUTE) return false
-  entry.count++
-  return true
+  return data === true
 }
 
 // ── Handler ───────────────────────────────────────────────────────────────────
@@ -474,11 +481,6 @@ Deno.serve(async (req: Request) => {
 
   try {
     const actor = await getActor(req)
-    if (!checkRateLimit(actor.id)) {
-      return new Response(JSON.stringify({ error: 'rate limit exceeded' }), {
-        status: 429, headers: { ...CORS, 'Content-Type': 'application/json' },
-      })
-    }
     const { type, recipientUserId, recipientRole, data } = await req.json()
 
     if (!type || (!recipientUserId && !recipientRole)) {
@@ -502,6 +504,18 @@ Deno.serve(async (req: Request) => {
       return new Response(JSON.stringify({ error: 'forbidden type' }), {
         status: 403, headers: { ...CORS, 'Content-Type': 'application/json' },
       })
+    }
+
+    // Per-user notifications: combined rate-limit + relationship check via RPC.
+    // Role broadcasts are admin-only types triggered from trusted UI; we skip
+    // the relationship check (admin recipients have no per-user edge).
+    if (recipientUserId) {
+      const allowed = await checkNotificationAllowed(actor.id, recipientUserId, type, data ?? {})
+      if (!allowed) {
+        return new Response(JSON.stringify({ error: 'rate limit exceeded or relationship not verified' }), {
+          status: 429, headers: { ...CORS, 'Content-Type': 'application/json' },
+        })
+      }
     }
 
     if (recipientRole) {
