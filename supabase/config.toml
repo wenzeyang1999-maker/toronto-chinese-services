@@ -1,0 +1,26 @@
+# ─── Supabase project config ─────────────────────────────────────────────────
+# Persists per-function JWT verification settings so `supabase functions deploy`
+# uses the right flag without needing --no-verify-jwt on the command line.
+
+project_id = "toronto-chinese-services"
+
+# Public — no auth needed, called from anonymous visitors too.
+[functions.ai-chat]
+verify_jwt = false
+
+[functions.moderate-content]
+verify_jwt = false
+
+# Auth required — gateway enforces JWT (real user session token).
+# Listed for documentation; defaults to verify_jwt = true.
+[functions.send-notification]
+verify_jwt = true
+
+[functions.send-web-push]
+verify_jwt = true
+
+[functions.match-inquiry-providers]
+verify_jwt = true
+
+[functions.ai-service-tools]
+verify_jwt = true
