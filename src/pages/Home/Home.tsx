@@ -34,6 +34,9 @@ export default function Home() {
   const serviceRequests  = useAppStore((s) => s.serviceRequests)
   const setSearchFilters = useAppStore((s) => s.setSearchFilters)
   const userLocation     = useAppStore((s) => s.userLocation)
+  const servicesHasMore  = useAppStore((s) => s.servicesHasMore)
+  const servicesLoadingMore = useAppStore((s) => s.servicesLoadingMore)
+  const fetchServices    = useAppStore((s) => s.fetchServices)
   const navigate         = useNavigate()
   const user             = useAuthStore((s) => s.user)
   const [searchParams]   = useSearchParams()
@@ -223,6 +226,19 @@ export default function Home() {
                 />
               )}
             />
+            {viewMode === 'list' && servicesHasMore && (
+              <div className="flex justify-center mb-6">
+                <button
+                  onClick={() => fetchServices(true)}
+                  disabled={servicesLoadingMore}
+                  className="px-6 py-2.5 bg-white border border-gray-200 rounded-full text-sm font-semibold
+                             text-gray-700 hover:bg-gray-50 active:scale-95 transition-all
+                             disabled:opacity-60 disabled:cursor-wait shadow-sm"
+                >
+                  {servicesLoadingMore ? '加载中…' : '加载更多服务'}
+                </button>
+              </div>
+            )}
             <RecommendedServices />
           </>
         )}

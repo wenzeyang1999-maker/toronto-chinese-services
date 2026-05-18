@@ -42,18 +42,22 @@ interface AppState {
   userLocation: { lat: number; lng: number } | null
   searchFilters: SearchFilters
   isLoadingDone: boolean
+  servicesHasMore: boolean
+  servicesLoadingMore: boolean
 
   setLoadingDone: () => void
   setUserLocation: (loc: { lat: number; lng: number } | null) => void
   setSearchFilters: (filters: Partial<SearchFilters>) => void
   addService: (service: Service) => void
-  fetchServices: () => Promise<void>
+  fetchServices: (append?: boolean) => Promise<void>
   fetchServicesByKeyword: (keyword: string) => Promise<Service[]>
   getFilteredServices: () => Service[]
   getServicesByCategory: (category: ServiceCategory) => Service[]
   fetchServiceRequests: () => Promise<void>
   addServiceRequest: (req: ServiceRequest) => void
 }
+
+const SERVICES_PAGE_SIZE = 40
 
 // Haversine formula — returns distance in km between two lat/lng points
 function calcDistance(
@@ -145,6 +149,8 @@ export const useAppStore = create<AppState>((set, get) => ({
   userLocation: null,
   searchFilters: { sortBy: 'rating' },
   isLoadingDone: false,
+  servicesHasMore: true,
+  servicesLoadingMore: false,
 
   setLoadingDone: () => set({ isLoadingDone: true }),
 
@@ -173,15 +179,28 @@ export const useAppStore = create<AppState>((set, get) => ({
     }
   },
 
-  fetchServices: async () => {
+  fetchServices: async (append = false) => {
+    const current = get().services
+    const offset  = append ? current.length : 0
+    if (append) set({ servicesLoadingMore: true })
+
     const { data, error } = await supabase
       .from('services')
       .select('*, provider:users(id, name, phone, wechat, avatar_url, last_seen_at), reviews(rating)')
       .eq('is_available', true)
       .order('created_at', { ascending: false })
-    if (!error && data) {
-      set({ services: (data as ServiceRow[]).map(mapRow) })
+      .range(offset, offset + SERVICES_PAGE_SIZE - 1)
+
+    if (error || !data) {
+      set({ servicesLoadingMore: false })
+      return
     }
+    const mapped = (data as ServiceRow[]).map(mapRow)
+    set({
+      services: append ? [...current, ...mapped] : mapped,
+      servicesHasMore: data.length === SERVICES_PAGE_SIZE,
+      servicesLoadingMore: false,
+    })
   },
 
   fetchServicesByKeyword: async (keyword: string) => {
