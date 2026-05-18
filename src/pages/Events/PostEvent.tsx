@@ -11,6 +11,7 @@ import { compressImage, validateImageFile } from '../../lib/compressImage'
 import { EVENT_TYPE_CONFIG, type EventType, type Event } from './types'
 import { toast } from '../../lib/toast'
 import { moderateContent } from '../../hooks/useContentModeration'
+import { notifyFollowerNewListing } from '../../lib/notify'
 
 const GTA_AREAS = [
   '多伦多市区', '北约克', '士嘉堡', '密西沙加', '万锦',
@@ -194,6 +195,27 @@ export default function PostEvent() {
         images: data.images ?? [],
         poster: Array.isArray(data.poster) ? (data.poster[0] ?? null) : (data.poster ?? null),
       } as Event)
+
+      // Notify followers (fire-and-forget)
+      ;(async () => {
+        const { data: followers } = await supabase
+          .from('follows').select('follower_id').eq('provider_id', user!.id)
+        if (!followers?.length) return
+        const authorName = form.contact_name.trim() || '用户'
+        const results = await Promise.allSettled(
+          followers.map((row: { follower_id: string }) =>
+            notifyFollowerNewListing({
+              recipientUserId: row.follower_id,
+              authorName,
+              contentType: 'event',
+              title: form.title.trim(),
+              contentId: data.id,
+            })
+          )
+        )
+        const failed = results.filter(r => r.status === 'rejected').length
+        if (failed > 0) console.warn(`[notify] ${failed}/${followers.length} event notifications failed`)
+      })()
     }
     setDone(true)
   }

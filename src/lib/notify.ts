@@ -150,6 +150,21 @@ export async function notifyFollowerNewCommunityPost(opts: {
   })
 }
 
+export async function notifyFollowerNewListing(opts: {
+  recipientUserId: string
+  authorName: string
+  contentType: 'job' | 'property' | 'event' | 'secondhand'
+  title: string
+  contentId: string
+}) {
+  await notify('new_listing_post', opts.recipientUserId, {
+    authorName:  opts.authorName,
+    contentType: opts.contentType,
+    title:       opts.title,
+    contentId:   opts.contentId,
+  })
+}
+
 export async function notifyAdminPromoRequest(opts: {
   serviceName:   string
   serviceId:     string

@@ -15,6 +15,7 @@ import {
 } from './types'
 import { toast } from '../../lib/toast'
 import { moderateContent } from '../../hooks/useContentModeration'
+import { notifyFollowerNewListing } from '../../lib/notify'
 
 const GTA_AREAS = [
   '多伦多市区', '北约克', '士嘉堡', '密西沙加', '万锦',
@@ -151,6 +152,27 @@ export default function PostJob() {
 
     if (data) {
       addJob({ ...data, poster: Array.isArray(data.poster) ? (data.poster[0] ?? null) : (data.poster ?? null) } as Job)
+
+      // Notify followers (fire-and-forget)
+      ;(async () => {
+        const { data: followers } = await supabase
+          .from('follows').select('follower_id').eq('provider_id', user!.id)
+        if (!followers?.length) return
+        const authorName = form.contact_name.trim() || '用户'
+        const results = await Promise.allSettled(
+          followers.map((row: { follower_id: string }) =>
+            notifyFollowerNewListing({
+              recipientUserId: row.follower_id,
+              authorName,
+              contentType: 'job',
+              title: form.title.trim(),
+              contentId: data.id,
+            })
+          )
+        )
+        const failed = results.filter(r => r.status === 'rejected').length
+        if (failed > 0) console.warn(`[notify] ${failed}/${followers.length} job notifications failed`)
+      })()
     }
     setDone(true)
   }

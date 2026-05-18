@@ -149,6 +149,35 @@ function buildEmail(type: string, recipientName: string, data: Record<string, st
         ),
       }
 
+    case 'new_listing_post': {
+      const labels: Record<string, string> = {
+        job: '招聘', property: '房源', event: '活动', secondhand: '闲置物品',
+      }
+      const urls: Record<string, string> = {
+        job: '/jobs', property: '/realestate', event: '/events', secondhand: '/secondhand',
+      }
+      const emojis: Record<string, string> = {
+        job: '💼', property: '🏠', event: '🎉', secondhand: '🛒',
+      }
+      const label = labels[data.contentType] ?? '新内容'
+      const url   = `${SITE}${urls[data.contentType] ?? ''}/${h(data.contentId)}`
+      const emoji = emojis[data.contentType] ?? '📢'
+      return {
+        subject: `${emoji} ${h(data.authorName)} 发布了新${label}`,
+        html: template(
+          `您关注的人发布了新${label}`,
+          `<p>您好 <strong>${h(recipientName)}</strong>，</p>
+           <p>您关注的 <strong>${h(data.authorName)}</strong> 刚刚发布了一个新${label}：</p>
+           <p style="background:#f9fafb;border-left:3px solid #10b981;padding:12px 16px;border-radius:0 8px 8px 0;color:#374151;">
+             <strong>${h(data.title)}</strong>
+           </p>
+           <p>现在去看看，可能正好适合您。</p>`,
+          `查看${label}`,
+          url
+        ),
+      }
+    }
+
     case 'new_community_post':
       return {
         subject: `📝 ${h(data.authorName)} 在多村论坛发了新帖`,
@@ -341,20 +370,30 @@ async function getRecipientsByRole(role: string) {
 
 async function createInAppNotification(recipientUserId: string, type: string, data: Record<string, string>) {
   const admin = await getAdminClient()
+  const listingLabels: Record<string, string> = {
+    job: '招聘', property: '房源', event: '活动', secondhand: '闲置物品',
+  }
+  const listingUrls: Record<string, string> = {
+    job: '/jobs', property: '/realestate', event: '/events', secondhand: '/secondhand',
+  }
   const title = type === 'admin_community_report'
     ? `新的社区${data.reportType === 'comment' ? '评论' : '帖子'}举报`
     : type === 'new_service_post'
       ? `${data.providerName} 发布了新服务`
       : type === 'new_community_post'
         ? `${data.authorName} 发布了新帖`
-        : '新通知'
+        : type === 'new_listing_post'
+          ? `${data.authorName} 发布了新${listingLabels[data.contentType] ?? '内容'}`
+          : '新通知'
   const body = type === 'admin_community_report'
     ? `${data.reporterName} 举报了「${data.postTitle}」，原因：${data.reasonLabel}`
     : type === 'new_service_post'
       ? `新服务：${data.serviceTitle}`
       : type === 'new_community_post'
         ? `新帖：${data.postTitle}`
-        : ''
+        : type === 'new_listing_post'
+          ? `新${listingLabels[data.contentType] ?? '内容'}：${data.title}`
+          : ''
 
   const { error } = await admin.from('notifications').insert({
     recipient_id: recipientUserId,
@@ -365,7 +404,9 @@ async function createInAppNotification(recipientUserId: string, type: string, da
       ? `/service/${data.serviceId}`
       : type === 'new_community_post'
         ? `/community/${data.postId}`
-        : data.postId ? `/community/${data.postId}` : '/admin',
+        : type === 'new_listing_post'
+          ? `${listingUrls[data.contentType] ?? ''}/${data.contentId}`
+          : data.postId ? `/community/${data.postId}` : '/admin',
     metadata: data,
   })
 
@@ -404,7 +445,7 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS })
 
   // Types that a regular authenticated user may trigger (directed at a specific recipient).
-  const USER_ALLOWED_TYPES = new Set(['new_message', 'new_follower', 'new_review', 'new_question', 'new_service_post', 'new_community_post'])
+  const USER_ALLOWED_TYPES = new Set(['new_message', 'new_follower', 'new_review', 'new_question', 'new_service_post', 'new_community_post', 'new_listing_post'])
   // Types that may be broadcast to a role. Keep this list narrow to prevent
   // authenticated users from spamming whole roles through the Edge Function.
   const ROLE_BROADCAST_RULES: Record<string, string> = {
