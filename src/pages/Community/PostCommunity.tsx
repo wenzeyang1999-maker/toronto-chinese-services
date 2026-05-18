@@ -168,7 +168,7 @@ export default function PostCommunity() {
           .single()
         const authorName = authorRow?.name ?? '社区用户'
 
-        await Promise.allSettled(
+        const results = await Promise.allSettled(
           followers.map((row: { follower_id: string }) =>
             notifyFollowerNewCommunityPost({
               recipientUserId: row.follower_id,
@@ -179,6 +179,10 @@ export default function PostCommunity() {
             })
           )
         )
+        const failed = results.filter((r) => r.status === 'rejected').length
+        if (failed > 0) {
+          console.warn(`[notify] ${failed}/${followers.length} community post notifications failed`)
+        }
       })()
 
       navigate(`/community/${data.id}`)

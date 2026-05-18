@@ -60,14 +60,6 @@ export default function Profile() {
     return typeof window !== 'undefined' && window.innerWidth >= 1024 ? 'homepage' : null
   })
 
-  // React to URL param changes while Profile is already mounted
-  // (e.g. clicking the floating Messages button when already on /profile)
-  useEffect(() => {
-    const param = searchParams.get('section') as Section | null
-    if (param && VALID_SECTIONS.includes(param)) {
-      setSection(param)
-    }
-  }, [searchParams])
   const [name,            setName]            = useState('')
   const [phone,           setPhone]           = useState('')
   const [avatarUrl,       setAvatarUrl]       = useState<string | null>(null)
@@ -77,11 +69,30 @@ export default function Profile() {
   const fileRef = useRef<HTMLInputElement>(null)
 
   const [browse, setBrowse] = useState<BrowseEntry[]>([])
-  const [hasServices, setHasServices] = useState(false)
+  const [hasServices, setHasServices] = useState(
+    () => localStorage.getItem('tcs_has_services') === 'true',
+  )
   const [mode, setMode] = useState<'client' | 'provider'>(() => {
     const saved = localStorage.getItem('tcs_profile_mode')
-    return saved === 'provider' || saved === 'client' ? saved : 'client'
+    if (saved === 'provider' || saved === 'client') return saved
+    // First visit: fall back to cached provider detection to avoid flicker
+    return localStorage.getItem('tcs_has_services') === 'true' ? 'provider' : 'client'
   })
+
+  // React to URL param changes while Profile is already mounted
+  // (e.g. clicking the floating Messages button when already on /profile)
+  useEffect(() => {
+    const param = searchParams.get('section') as Section | null
+    if (!param || !VALID_SECTIONS.includes(param)) return
+    // Auto-switch mode if section belongs to the other mode
+    const item = MENU.find((m) => m.key === param)
+    if (item && !item.modes.includes(mode)) {
+      const targetMode = item.modes[0]
+      setMode(targetMode)
+      localStorage.setItem('tcs_profile_mode', targetMode)
+    }
+    setSection(param)
+  }, [searchParams, mode])
 
   function switchMode(next: 'client' | 'provider') {
     setMode(next)
@@ -116,6 +127,8 @@ export default function Profile() {
       .then(({ count }) => {
         const isProv = (count ?? 0) > 0
         setHasServices(isProv)
+        // Cache for next visit so initial render won't flicker
+        localStorage.setItem('tcs_has_services', isProv ? 'true' : 'false')
         // First-time visit: default to provider if user has services
         if (!localStorage.getItem('tcs_profile_mode') && isProv) {
           setMode('provider')

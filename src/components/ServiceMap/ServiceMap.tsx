@@ -30,6 +30,47 @@ function hasCoordinates(service: Service): service is Service & {
   return service.location.lat != null && service.location.lng != null
 }
 
+// ── Safe DOM builders (textContent only — no XSS) ────────────────────────────
+function div(text: string, cssText: string): HTMLDivElement {
+  const el = document.createElement('div')
+  el.style.cssText = cssText
+  el.textContent = text
+  return el
+}
+
+function buildDemandInfo(r: ServiceRequest, onClick: () => void): HTMLElement {
+  const wrapper = document.createElement('div')
+  wrapper.style.cssText = 'padding:10px 14px;min-width:180px'
+  wrapper.appendChild(div('🔍 求服务', 'font-size:11px;font-weight:700;color:#ea580c;margin-bottom:4px'))
+  wrapper.appendChild(div(r.title, 'font-size:13px;font-weight:600;color:#111;margin-bottom:6px'))
+  if (r.budget) wrapper.appendChild(div(`💰 ${r.budget}`, 'font-size:11px;color:#16a34a;margin-bottom:4px'))
+  wrapper.appendChild(div(`还剩 ${r.daysLeft} 天`, 'font-size:11px;color:#888'))
+  const btn = document.createElement('button')
+  btn.type = 'button'
+  btn.style.cssText = 'margin-top:8px;width:100%;background:#ea580c;color:#fff;border:none;border-radius:8px;padding:6px 0;font-size:12px;font-weight:600;cursor:pointer'
+  btn.textContent = '查看详情'
+  btn.onclick = onClick
+  wrapper.appendChild(btn)
+  return wrapper
+}
+
+function buildOnlineProviderInfo(p: OnlineProvider, onClick: () => void): HTMLElement {
+  const wrapper = document.createElement('div')
+  wrapper.style.cssText = 'padding:10px 14px;min-width:160px'
+  wrapper.appendChild(div('🟢 在线接单', 'font-size:11px;font-weight:700;color:#16a34a;margin-bottom:4px'))
+  wrapper.appendChild(div(p.name, 'font-size:13px;font-weight:600;color:#111;margin-bottom:4px'))
+  if (p.skill_tags.length > 0) {
+    wrapper.appendChild(div(p.skill_tags.slice(0, 3).join(' · '), 'font-size:11px;color:#6b7280;margin-bottom:6px'))
+  }
+  const btn = document.createElement('button')
+  btn.type = 'button'
+  btn.style.cssText = 'width:100%;background:#16a34a;color:#fff;border:none;border-radius:8px;padding:6px 0;font-size:12px;font-weight:600;cursor:pointer'
+  btn.textContent = '查看主页'
+  btn.onclick = onClick
+  wrapper.appendChild(btn)
+  return wrapper
+}
+
 function createServiceInfoContent(service: Service): HTMLElement {
   const wrapper = document.createElement('div')
   wrapper.className = 'min-w-[190px] max-w-[220px] p-1'
@@ -152,63 +193,28 @@ export default function ServiceMap({ services, requests = [], count }: Props) {
   const requestPoints = useMemo<GoogleMapPoint[]>(() =>
     requests
       .filter((r) => r.lat != null && r.lng != null)
-      .map((r) => {
-        const el = document.createElement('div')
-        el.innerHTML = `
-          <div style="padding:10px 14px;min-width:180px">
-            <div style="font-size:11px;font-weight:700;color:#ea580c;margin-bottom:4px">🔍 求服务</div>
-            <div style="font-size:13px;font-weight:600;color:#111;margin-bottom:6px">${r.title}</div>
-            ${r.budget ? `<div style="font-size:11px;color:#16a34a;margin-bottom:4px">💰 ${r.budget}</div>` : ''}
-            <div style="font-size:11px;color:#888">还剩 ${r.daysLeft} 天</div>
-            <button data-req-id="${r.id}"
-              style="margin-top:8px;width:100%;background:#ea580c;color:#fff;border:none;border-radius:8px;padding:6px 0;font-size:12px;font-weight:600;cursor:pointer">
-              查看详情
-            </button>
-          </div>`
-        return {
-          id: `req-${r.id}`,
-          lat: r.lat!,
-          lng: r.lng!,
-          title: r.title,
-          promoted: false,
-          demandPin: true,
-          infoContent: el,
-          onInfoReady: (content) => {
-            const btn = content.querySelector<HTMLButtonElement>('[data-req-id]')
-            if (btn) btn.onclick = () => navigate(`/requests/${r.id}`)
-          },
-        } as GoogleMapPoint & { demandPin?: boolean }
-      })
+      .map((r) => ({
+        id: `req-${r.id}`,
+        lat: r.lat!,
+        lng: r.lng!,
+        title: r.title,
+        promoted: false,
+        demandPin: true,
+        infoContent: buildDemandInfo(r, () => navigate(`/requests/${r.id}`)),
+      } as GoogleMapPoint & { demandPin?: boolean }))
   , [requests, navigate])
 
   // Online provider pins (green) — broadcast real-time locations
   const onlinePoints = useMemo<GoogleMapPoint[]>(() =>
-    onlineProviders.map((p) => {
-      const el = document.createElement('div')
-      el.innerHTML = `
-        <div style="padding:10px 14px;min-width:160px">
-          <div style="font-size:11px;font-weight:700;color:#16a34a;margin-bottom:4px">🟢 在线接单</div>
-          <div style="font-size:13px;font-weight:600;color:#111;margin-bottom:4px">${p.name}</div>
-          ${p.skill_tags.length > 0 ? `<div style="font-size:11px;color:#6b7280;margin-bottom:6px">${p.skill_tags.slice(0, 3).join(' · ')}</div>` : ''}
-          <button data-provider-id="${p.id}"
-            style="width:100%;background:#16a34a;color:#fff;border:none;border-radius:8px;padding:6px 0;font-size:12px;font-weight:600;cursor:pointer">
-            查看主页
-          </button>
-        </div>`
-      return {
-        id: `online-${p.id}`,
-        lat: p.online_lat,
-        lng: p.online_lng,
-        title: p.name,
-        promoted: false,
-        onlineProv: true,
-        infoContent: el,
-        onInfoReady: (content) => {
-          const btn = content.querySelector<HTMLButtonElement>('[data-provider-id]')
-          if (btn) btn.onclick = () => navigate(`/provider/${p.id}`)
-        },
-      } as GoogleMapPoint & { onlineProv?: boolean }
-    })
+    onlineProviders.map((p) => ({
+      id: `online-${p.id}`,
+      lat: p.online_lat,
+      lng: p.online_lng,
+      title: p.name,
+      promoted: false,
+      onlineProv: true,
+      infoContent: buildOnlineProviderInfo(p, () => navigate(`/provider/${p.id}`)),
+    } as GoogleMapPoint & { onlineProv?: boolean }))
   , [onlineProviders, navigate])
 
   const points = useMemo(() => [...servicePoints, ...requestPoints, ...onlinePoints], [servicePoints, requestPoints, onlinePoints])

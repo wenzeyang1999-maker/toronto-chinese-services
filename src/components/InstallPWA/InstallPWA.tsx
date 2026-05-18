@@ -6,33 +6,19 @@
 import { useEffect, useState } from 'react'
 import { Download, X, Share } from 'lucide-react'
 import { isIos, isStandalone } from '../../lib/pwa'
+import { useInstallState, triggerInstall } from '../../lib/pwaInstall'
 
 const DISMISSED_KEY = 'tcs_pwa_install_dismissed'
 
-interface BeforeInstallPromptEvent extends Event {
-  prompt: () => Promise<void>
-  userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>
-}
-
 export default function InstallPWA() {
-  const [deferred, setDeferred] = useState<BeforeInstallPromptEvent | null>(null)
-  const [iosOpen,  setIosOpen]  = useState(false)
-  const [hidden,   setHidden]   = useState(true)
+  const { canInstall, installed } = useInstallState()
+  const [iosOpen, setIosOpen] = useState(false)
+  const [hidden,  setHidden]  = useState(true)
 
   useEffect(() => {
     if (isStandalone()) return
     if (localStorage.getItem(DISMISSED_KEY)) return
-
     setHidden(false)
-
-    if (isIos()) return // iOS path uses static instructions
-
-    const onPrompt = (e: Event) => {
-      e.preventDefault()
-      setDeferred(e as BeforeInstallPromptEvent)
-    }
-    window.addEventListener('beforeinstallprompt', onPrompt)
-    return () => window.removeEventListener('beforeinstallprompt', onPrompt)
   }, [])
 
   function dismiss() {
@@ -42,18 +28,17 @@ export default function InstallPWA() {
   }
 
   async function install() {
-    if (deferred) {
-      await deferred.prompt()
-      const { outcome } = await deferred.userChoice
+    if (canInstall) {
+      const outcome = await triggerInstall()
       if (outcome === 'accepted' || outcome === 'dismissed') dismiss()
-      setDeferred(null)
     } else if (isIos()) {
       setIosOpen(true)
     }
   }
 
   if (hidden) return null
-  if (!deferred && !isIos()) return null // No install path available
+  if (installed) return null
+  if (!canInstall && !isIos()) return null // No install path available
 
   return (
     <>

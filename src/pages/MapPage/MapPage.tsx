@@ -8,7 +8,53 @@ import { useAuthStore } from '../../store/authStore'
 import { useGeolocation } from '../../hooks/useGeolocation'
 import { supabase } from '../../lib/supabase'
 import GoogleMapCanvas, { type GoogleMapCanvasHandle, type GoogleMapPoint } from '../../components/ServiceMap/GoogleMapCanvas'
-import type { Service } from '../../types'
+import type { Service, ServiceRequest } from '../../types'
+
+// ── Safe DOM builders (textContent only — no XSS) ────────────────────────────
+function div(text: string, cssText: string): HTMLDivElement {
+  const el = document.createElement('div')
+  el.style.cssText = cssText
+  el.textContent = text
+  return el
+}
+
+function buildDemandInfo(r: ServiceRequest, onClick: () => void): HTMLElement {
+  const wrapper = document.createElement('div')
+  wrapper.style.cssText = 'padding:10px 14px;min-width:180px'
+  wrapper.appendChild(div('🔍 求服务', 'font-size:11px;font-weight:700;color:#ea580c;margin-bottom:4px'))
+  wrapper.appendChild(div(r.title, 'font-size:13px;font-weight:600;color:#111;margin-bottom:6px'))
+  if (r.budget) wrapper.appendChild(div(`💰 ${r.budget}`, 'font-size:11px;color:#16a34a;margin-bottom:4px'))
+  wrapper.appendChild(div(`还剩 ${r.daysLeft} 天`, 'font-size:11px;color:#888'))
+  const btn = document.createElement('button')
+  btn.type = 'button'
+  btn.style.cssText = 'margin-top:8px;width:100%;background:#ea580c;color:#fff;border:none;border-radius:8px;padding:6px 0;font-size:12px;font-weight:600;cursor:pointer'
+  btn.textContent = '查看详情'
+  btn.onclick = onClick
+  wrapper.appendChild(btn)
+  return wrapper
+}
+
+interface OnlineProviderInfo {
+  name: string
+  skill_tags: string[]
+}
+
+function buildOnlineProviderInfo(p: OnlineProviderInfo, onClick: () => void): HTMLElement {
+  const wrapper = document.createElement('div')
+  wrapper.style.cssText = 'padding:10px 14px;min-width:160px'
+  wrapper.appendChild(div('🟢 在线接单', 'font-size:11px;font-weight:700;color:#16a34a;margin-bottom:4px'))
+  wrapper.appendChild(div(p.name, 'font-size:13px;font-weight:600;color:#111;margin-bottom:4px'))
+  if (p.skill_tags.length > 0) {
+    wrapper.appendChild(div(p.skill_tags.slice(0, 3).join(' · '), 'font-size:11px;color:#6b7280;margin-bottom:6px'))
+  }
+  const btn = document.createElement('button')
+  btn.type = 'button'
+  btn.style.cssText = 'width:100%;background:#16a34a;color:#fff;border:none;border-radius:8px;padding:6px 0;font-size:12px;font-weight:600;cursor:pointer'
+  btn.textContent = '查看主页'
+  btn.onclick = onClick
+  wrapper.appendChild(btn)
+  return wrapper
+}
 
 interface OnlineProvider {
   id: string
@@ -129,64 +175,29 @@ export default function MapPage() {
     return serviceRequests
       .filter((r) => r.lat != null && r.lng != null)
       .filter((r) => matches(r.title) || matches(r.description) || matches(r.area))
-      .map((r) => {
-        const el = document.createElement('div')
-        el.innerHTML = `
-          <div style="padding:10px 14px;min-width:180px">
-            <div style="font-size:11px;font-weight:700;color:#ea580c;margin-bottom:4px">🔍 求服务</div>
-            <div style="font-size:13px;font-weight:600;color:#111;margin-bottom:6px">${r.title}</div>
-            ${r.budget ? `<div style="font-size:11px;color:#16a34a;margin-bottom:4px">💰 ${r.budget}</div>` : ''}
-            <div style="font-size:11px;color:#888">还剩 ${r.daysLeft} 天</div>
-            <button data-req-id="${r.id}"
-              style="margin-top:8px;width:100%;background:#ea580c;color:#fff;border:none;border-radius:8px;padding:6px 0;font-size:12px;font-weight:600;cursor:pointer">
-              查看详情
-            </button>
-          </div>`
-        return {
-          id: `req-${r.id}`,
-          lat: r.lat!,
-          lng: r.lng!,
-          title: r.title,
-          promoted: false,
-          demandPin: true,
-          infoContent: el,
-          onInfoReady: (content) => {
-            const btn = content.querySelector<HTMLButtonElement>('[data-req-id]')
-            if (btn) btn.onclick = () => navigate(`/requests/${r.id}`)
-          },
-        } as GoogleMapPoint
-      })
+      .map((r) => ({
+        id: `req-${r.id}`,
+        lat: r.lat!,
+        lng: r.lng!,
+        title: r.title,
+        promoted: false,
+        demandPin: true,
+        infoContent: buildDemandInfo(r, () => navigate(`/requests/${r.id}`)),
+      } as GoogleMapPoint))
   }, [serviceRequests, isProvider, navigate, kw])
 
   const onlinePoints = useMemo<GoogleMapPoint[]>(() =>
     onlineProviders
       .filter((p) => matches(p.name) || p.skill_tags.some(t => matches(t)))
-      .map((p) => {
-        const el = document.createElement('div')
-        el.innerHTML = `
-          <div style="padding:10px 14px;min-width:160px">
-            <div style="font-size:11px;font-weight:700;color:#16a34a;margin-bottom:4px">🟢 在线接单</div>
-            <div style="font-size:13px;font-weight:600;color:#111;margin-bottom:4px">${p.name}</div>
-            ${p.skill_tags.length > 0 ? `<div style="font-size:11px;color:#6b7280;margin-bottom:6px">${p.skill_tags.slice(0, 3).join(' · ')}</div>` : ''}
-            <button data-provider-id="${p.id}"
-              style="width:100%;background:#16a34a;color:#fff;border:none;border-radius:8px;padding:6px 0;font-size:12px;font-weight:600;cursor:pointer">
-              查看主页
-            </button>
-          </div>`
-        return {
-          id: `online-${p.id}`,
-          lat: p.online_lat,
-          lng: p.online_lng,
-          title: p.name,
-          promoted: false,
-          onlineProv: true,
-          infoContent: el,
-          onInfoReady: (content) => {
-            const btn = content.querySelector<HTMLButtonElement>('[data-provider-id]')
-            if (btn) btn.onclick = () => navigate(`/provider/${p.id}`)
-          },
-        } as GoogleMapPoint
-      })
+      .map((p) => ({
+        id: `online-${p.id}`,
+        lat: p.online_lat,
+        lng: p.online_lng,
+        title: p.name,
+        promoted: false,
+        onlineProv: true,
+        infoContent: buildOnlineProviderInfo(p, () => navigate(`/provider/${p.id}`)),
+      } as GoogleMapPoint))
   , [onlineProviders, navigate, kw])
 
   const points = useMemo(
