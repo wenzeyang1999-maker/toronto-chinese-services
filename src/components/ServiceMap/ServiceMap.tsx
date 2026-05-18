@@ -132,12 +132,14 @@ function createServiceInfoContent(service: Service): HTMLElement {
   return wrapper
 }
 
-function mapHeight(count: number): number {
-  if (count === 0)        return 320
-  if (count <= 5)         return 380
-  if (count <= 15)        return 480
-  if (count <= 30)        return 560
-  return 640
+// Returns a CSS height string keyed to dvh (dynamic viewport) so iOS
+// keyboard / URL-bar transitions don't visibly resize the map.
+function mapHeight(count: number): string {
+  if (count === 0)        return 'min(320px, 45dvh)'
+  if (count <= 5)         return 'min(380px, 50dvh)'
+  if (count <= 15)        return 'min(480px, 55dvh)'
+  if (count <= 30)        return 'min(560px, 60dvh)'
+  return 'min(640px, 65dvh)'
 }
 
 export default function ServiceMap({ services, requests = [], count }: Props) {
@@ -220,7 +222,7 @@ export default function ServiceMap({ services, requests = [], count }: Props) {
   const points = useMemo(() => [...servicePoints, ...requestPoints, ...onlinePoints], [servicePoints, requestPoints, onlinePoints])
 
   return (
-    <div className="relative w-full rounded-2xl overflow-hidden border border-gray-200 shadow-sm transition-all duration-500" style={{ height, minHeight: 320 }}>
+    <div className="relative w-full rounded-2xl overflow-hidden border border-gray-200 shadow-sm transition-all duration-500" style={{ height, minHeight: '320px' }}>
       {mapped.length === 0 && (
         <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-gray-50 text-gray-400">
           <span className="text-4xl mb-2">📍</span>

@@ -61,7 +61,7 @@ export default function ServiceCard({ service, layout = 'list' }: Props) {
             {service.provider.verified && (
               <span className="inline-flex items-center gap-1 rounded-full border border-blue-200 bg-blue-50 px-2 py-0.5 text-[10px] font-semibold text-blue-700">
                 <ShieldCheck size={9} />
-                已认证
+                平台审核
               </span>
             )}
             {isRecentlyActive && (

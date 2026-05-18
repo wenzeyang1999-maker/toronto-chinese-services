@@ -213,6 +213,12 @@ export default function AdminPage() {
   const [editDescription, setEditDescription] = useState('')
   const [editPrice,      setEditPrice]      = useState('')
   const [trendStats,        setTrendStats]        = useState<Record<string, number> | null>(null)
+  const [topConsumers,      setTopConsumers]      = useState<{
+    messages: Array<{ id: string; name: string; email: string; cnt: number }>
+    requests: Array<{ id: string; name: string; email: string; cnt: number }>
+    posts:    Array<{ id: string; name: string; email: string; cnt: number }>
+  } | null>(null)
+  const [topConsumersDays,  setTopConsumersDays]  = useState(1)
   const [svcStatusFilter,   setSvcStatusFilter]   = useState<'all' | 'online' | 'offline'>('all')
   const [svcCategoryFilter, setSvcCategoryFilter] = useState('all')
   const [showVerifHistory,  setShowVerifHistory]  = useState(false)
@@ -673,6 +679,11 @@ export default function AdminPage() {
     setServicesHasMore((data ?? []).length === PAGE)
   }
 
+  async function loadTopConsumers(days = topConsumersDays) {
+    const { data, error } = await supabase.rpc('admin_top_consumers', { p_days: days })
+    if (!error && data) setTopConsumers(data as never)
+  }
+
   async function loadTrendStats() {
     const { data, error } = await supabase.rpc('admin_stats_trend')
     if (!error && data) setTrendStats(data as Record<string, number>)
@@ -1050,6 +1061,67 @@ export default function AdminPage() {
                 加载增长趋势数据
               </button>
             )}
+
+            {/* Top consumers / abuse monitor */}
+            <div className="mt-6 bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
+              <div className="flex items-center justify-between mb-3">
+                <div>
+                  <h3 className="text-sm font-bold text-gray-800">高活跃用户监控</h3>
+                  <p className="text-[11px] text-gray-400 mt-0.5">突然飙升的活跃度可能是滥用信号</p>
+                </div>
+                <div className="flex gap-1">
+                  {[1, 7, 30].map(d => (
+                    <button key={d}
+                      onClick={() => { setTopConsumersDays(d); loadTopConsumers(d) }}
+                      className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-all ${
+                        topConsumersDays === d ? 'bg-primary-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                      }`}>
+                      {d === 1 ? '24小时' : `${d}天`}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {!topConsumers ? (
+                <button onClick={() => loadTopConsumers()}
+                  className="w-full py-2 text-xs text-primary-600 border border-primary-200 rounded-xl hover:bg-primary-50 transition-colors">
+                  加载活跃用户排行
+                </button>
+              ) : (
+                <div className="grid md:grid-cols-3 gap-3">
+                  {[
+                    { key: 'messages' as const, label: '💬 消息', empty: '24h 内无消息' },
+                    { key: 'requests' as const, label: '🔍 需求', empty: '无新需求' },
+                    { key: 'posts' as const,    label: '📝 社区帖',  empty: '无新帖' },
+                  ].map(({ key, label, empty }) => {
+                    const rows = topConsumers[key] ?? []
+                    return (
+                      <div key={key} className="bg-gray-50 rounded-xl p-3">
+                        <p className="text-xs font-semibold text-gray-700 mb-2">{label}</p>
+                        {rows.length === 0 ? (
+                          <p className="text-[11px] text-gray-400">{empty}</p>
+                        ) : (
+                          <ul className="space-y-1.5">
+                            {rows.map(r => (
+                              <li key={r.id} className="flex items-center justify-between text-[11px]">
+                                <span className="truncate text-gray-700 flex-1">{r.name || r.email}</span>
+                                <span className={`ml-2 px-1.5 py-0.5 rounded-full font-bold ${
+                                  r.cnt >= 50 ? 'bg-red-100 text-red-600' :
+                                  r.cnt >= 20 ? 'bg-amber-100 text-amber-600' :
+                                                'bg-gray-100 text-gray-500'
+                                }`}>
+                                  {r.cnt}
+                                </span>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
           </motion.div>
         ) : tab === 'promoted' ? (
           <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-3">

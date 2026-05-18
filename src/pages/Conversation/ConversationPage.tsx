@@ -4,7 +4,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { ChevronLeft, Send, Phone, MessageCircle, Copy, RotateCcw, Flag } from 'lucide-react'
+import { ChevronLeft, Send, Phone, MessageCircle, Copy, RotateCcw, Flag, Ban } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { useAuthStore } from '../../store/authStore'
 import { notifyNewMessage } from '../../lib/notify'
@@ -39,6 +39,8 @@ export default function ConversationPage() {
   const [reportOpen,   setReportOpen]  = useState(false)
   const [reportReason, setReportReason] = useState('')
   const [reportSent,   setReportSent]  = useState(false)
+  const [blockOpen,    setBlockOpen]   = useState(false)
+  const [blockBusy,    setBlockBusy]   = useState(false)
   const bottomRef = useRef<HTMLDivElement>(null)
   const inputRef  = useRef<HTMLTextAreaElement>(null)
 
@@ -181,6 +183,24 @@ export default function ConversationPage() {
     setSending(false)
   }
 
+  async function submitBlock() {
+    if (!conv || !user) return
+    const otherId = conv.client_id === user.id ? conv.provider_id : conv.client_id
+    setBlockBusy(true)
+    const { error } = await supabase.from('blocked_users').insert({
+      blocker_id: user.id,
+      blocked_id: otherId,
+    })
+    setBlockBusy(false)
+    if (error && error.code !== '23505') {
+      toast('拉黑失败，请稍后再试', 'error')
+      return
+    }
+    toast('已拉黑，对方将无法再给你发消息', 'success')
+    setBlockOpen(false)
+    navigate('/profile?section=messages')
+  }
+
   async function submitReport() {
     if (!conv || !user || !reportReason.trim()) return
     const otherId = conv.client_id === user.id ? conv.provider_id : conv.client_id
@@ -248,11 +268,18 @@ export default function ConversationPage() {
           </button>
         )}
         {conv && conv.client_id !== conv.provider_id && (
-          <button onClick={() => setReportOpen(true)}
-            className="w-9 h-9 rounded-full bg-gray-50 flex items-center justify-center hover:bg-red-50 transition-colors"
-            title="举报用户">
-            <Flag size={15} className="text-gray-400 hover:text-red-500" />
-          </button>
+          <>
+            <button onClick={() => setReportOpen(true)}
+              className="w-9 h-9 rounded-full bg-gray-50 flex items-center justify-center hover:bg-red-50 transition-colors"
+              title="举报用户">
+              <Flag size={15} className="text-gray-400 hover:text-red-500" />
+            </button>
+            <button onClick={() => setBlockOpen(true)}
+              className="w-9 h-9 rounded-full bg-gray-50 flex items-center justify-center hover:bg-red-50 transition-colors"
+              title="拉黑用户">
+              <Ban size={15} className="text-gray-400 hover:text-red-500" />
+            </button>
+          </>
         )}
       </div>
 
@@ -393,6 +420,32 @@ export default function ConversationPage() {
               </div>
             </>
           )}
+        </motion.div>
+      </div>
+    )}
+
+    {/* Block confirmation modal */}
+    {blockOpen && (
+      <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 px-4 pb-8 sm:pb-0">
+        <motion.div
+          initial={{ opacity: 0, y: 40 }} animate={{ opacity: 1, y: 0 }}
+          className="bg-white w-full max-w-sm rounded-3xl p-6 shadow-xl"
+        >
+          <h3 className="font-semibold text-gray-900 mb-1">拉黑这个用户？</h3>
+          <p className="text-sm text-gray-500 mb-4">
+            拉黑后，{conv?.other?.name ?? '对方'} 将无法再给你发消息。可以在"我的关注"里随时取消拉黑。
+          </p>
+          <div className="flex gap-2">
+            <button onClick={() => setBlockOpen(false)}
+              className="flex-1 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-600">
+              取消
+            </button>
+            <button onClick={submitBlock} disabled={blockBusy}
+              className="flex-1 py-2.5 rounded-xl bg-red-500 text-white text-sm font-semibold
+                         disabled:bg-gray-200 transition-colors">
+              {blockBusy ? '处理中…' : '确认拉黑'}
+            </button>
+          </div>
         </motion.div>
       </div>
     )}
