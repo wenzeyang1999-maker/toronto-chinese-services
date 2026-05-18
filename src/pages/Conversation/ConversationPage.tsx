@@ -150,14 +150,21 @@ export default function ConversationPage() {
           const elapsedHours =
             (Date.now() - new Date(firstClientMsg.created_at).getTime()) / 3_600_000
           // Rolling average: fetch current value and blend (weight 0.3 new, 0.7 old)
-          supabase.from('users').select('avg_reply_hours').eq('id', user.id).single()
-            .then(({ data }) => {
-              const prev = data?.avg_reply_hours
-              const next = prev != null
-                ? Math.round((prev * 0.7 + elapsedHours * 0.3) * 10) / 10
-                : Math.round(elapsedHours * 10) / 10
-              supabase.from('users').update({ avg_reply_hours: next }).eq('id', user.id).then()
-            })
+          ;(async () => {
+            const { data, error: fetchErr } = await supabase
+              .from('users').select('avg_reply_hours').eq('id', user.id).single()
+            if (fetchErr) {
+              console.warn('[avg_reply_hours] fetch failed:', fetchErr.message)
+              return
+            }
+            const prev = data?.avg_reply_hours
+            const next = prev != null
+              ? Math.round((prev * 0.7 + elapsedHours * 0.3) * 10) / 10
+              : Math.round(elapsedHours * 10) / 10
+            const { error: updateErr } = await supabase
+              .from('users').update({ avg_reply_hours: next }).eq('id', user.id)
+            if (updateErr) console.warn('[avg_reply_hours] update failed:', updateErr.message)
+          })()
         }
       }
       await supabase.from('conversations').update({

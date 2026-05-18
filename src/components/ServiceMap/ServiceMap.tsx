@@ -151,6 +151,7 @@ export default function ServiceMap({ services, requests = [], count }: Props) {
   const [onlineProviders, setOnlineProviders] = useState<OnlineProvider[]>([])
 
   useEffect(() => {
+    let cancelled = false
     supabase
       .from('users')
       .select('id, name, avatar_url, online_lat, online_lng, skill_tags')
@@ -158,7 +159,12 @@ export default function ServiceMap({ services, requests = [], count }: Props) {
       .not('online_lat', 'is', null)
       .not('online_lng', 'is', null)
       .limit(50)
-      .then(({ data }) => { if (data) setOnlineProviders(data as OnlineProvider[]) })
+      .then(({ data, error }) => {
+        if (cancelled) return
+        if (error) { console.warn('[ServiceMap] online providers fetch failed:', error.message); return }
+        if (data) setOnlineProviders(data as OnlineProvider[])
+      })
+    return () => { cancelled = true }
   }, [])
 
   function handleLocate() {

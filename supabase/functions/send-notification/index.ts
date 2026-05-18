@@ -439,9 +439,28 @@ async function sendEmail(recipient: { email: string; name?: string | null }, typ
   return result
 }
 
+// ── Per-actor rate limit (in-memory, resets on cold start) ───────────────────
+// Defence against an authenticated user spamming notifications to arbitrary
+// recipients. 30 per minute is far above any legitimate post flow even with
+// large follower counts (those are parallel from a single user action).
+const rateLimit = new Map<string, { count: number; resetAt: number }>()
+const MAX_PER_MINUTE = 30
+
+function checkRateLimit(actorId: string): boolean {
+  const now = Date.now()
+  const entry = rateLimit.get(actorId)
+  if (!entry || entry.resetAt < now) {
+    rateLimit.set(actorId, { count: 1, resetAt: now + 60_000 })
+    return true
+  }
+  if (entry.count >= MAX_PER_MINUTE) return false
+  entry.count++
+  return true
+}
+
 // ── Handler ───────────────────────────────────────────────────────────────────
 
-Deno.serve(async (req) => {
+Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS })
 
   // Types that a regular authenticated user may trigger (directed at a specific recipient).
@@ -454,7 +473,12 @@ Deno.serve(async (req) => {
   }
 
   try {
-    await getActor(req)
+    const actor = await getActor(req)
+    if (!checkRateLimit(actor.id)) {
+      return new Response(JSON.stringify({ error: 'rate limit exceeded' }), {
+        status: 429, headers: { ...CORS, 'Content-Type': 'application/json' },
+      })
+    }
     const { type, recipientUserId, recipientRole, data } = await req.json()
 
     if (!type || (!recipientUserId && !recipientRole)) {

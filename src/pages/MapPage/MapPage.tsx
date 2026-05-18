@@ -133,13 +133,19 @@ export default function MapPage() {
   }, [])
 
   useEffect(() => {
+    let cancelled = false
     supabase.from('users')
       .select('id, name, avatar_url, online_lat, online_lng, skill_tags')
       .eq('is_online', true)
       .not('online_lat', 'is', null)
       .not('online_lng', 'is', null)
       .limit(50)
-      .then(({ data }) => { if (data) setOnlineProviders(data as OnlineProvider[]) })
+      .then(({ data, error }) => {
+        if (cancelled) return
+        if (error) { console.warn('[MapPage] online providers fetch failed:', error.message); return }
+        if (data) setOnlineProviders(data as OnlineProvider[])
+      })
+    return () => { cancelled = true }
   }, [])
 
   // Provider mode: also show service requests as orange pins
