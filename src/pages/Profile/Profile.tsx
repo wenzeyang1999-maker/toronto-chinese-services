@@ -29,6 +29,7 @@ import HomepageSection    from './sections/HomepageSection'
 import InquiriesSection      from './sections/InquiriesSection'
 import NotificationsSection  from './sections/NotificationsSection'
 import { toast } from '../../lib/toast'
+import InstallAppButton from '../../components/InstallAppButton/InstallAppButton'
 
 type MenuItem = { key: Section; icon: React.ReactNode; label: string; sub: string; modes: ('client' | 'provider')[] }
 
@@ -223,6 +224,9 @@ export default function Profile() {
           )
         })}
       </div>
+
+      {/* Install as App */}
+      <InstallAppButton />
 
       {/* Logout */}
       <button onClick={async () => { await supabase.auth.signOut(); navigate('/') }}
