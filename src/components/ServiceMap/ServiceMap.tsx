@@ -14,6 +14,8 @@ interface Props {
   services: Service[]
   requests?: ServiceRequest[]  // optional demand pins
   count?: number
+  /** Hide service pins + online providers, only show orange request pins. */
+  requestsOnly?: boolean
 }
 
 function hasCoordinates(service: Service): service is Service & {
@@ -32,7 +34,7 @@ function mapHeight(count: number): string {
   return 'min(640px, 65dvh)'
 }
 
-export default function ServiceMap({ services, requests = [], count }: Props) {
+export default function ServiceMap({ services, requests = [], count, requestsOnly = false }: Props) {
   const navigate = useNavigate()
   const userLocation = useAppStore((s) => s.userLocation)
   const requestLocation = useGeolocation()
@@ -41,6 +43,7 @@ export default function ServiceMap({ services, requests = [], count }: Props) {
   const [onlineProviders, setOnlineProviders] = useState<OnlineProvider[]>([])
 
   useEffect(() => {
+    if (requestsOnly) return  // Skip online providers fetch when only showing demand pins
     let cancelled = false
     supabase
       .from('users')
@@ -55,7 +58,7 @@ export default function ServiceMap({ services, requests = [], count }: Props) {
         if (data) setOnlineProviders(data as OnlineProvider[])
       })
     return () => { cancelled = true }
-  }, [])
+  }, [requestsOnly])
 
   function handleLocate() {
     if (userLocation) {
@@ -71,19 +74,22 @@ export default function ServiceMap({ services, requests = [], count }: Props) {
 
   const height = mapHeight(count ?? mapped.length)
 
-  // Service pins (blue/red for promoted)
-  const servicePoints = useMemo<GoogleMapPoint[]>(() => mapped.map((service) => ({
-    id: service.id,
-    lat: service.location.lat,
-    lng: service.location.lng,
-    title: service.title,
-    promoted: service.isPromoted,
-    infoContent: buildServiceInfo(
-      service,
-      () => navigate(`/service/${service.id}`),
-      () => navigate(`/provider/${service.provider.id}`),
-    ),
-  })), [mapped, navigate])
+  // Service pins (blue/red for promoted) — skipped in requests-only mode
+  const servicePoints = useMemo<GoogleMapPoint[]>(() => {
+    if (requestsOnly) return []
+    return mapped.map((service) => ({
+      id: service.id,
+      lat: service.location.lat,
+      lng: service.location.lng,
+      title: service.title,
+      promoted: service.isPromoted,
+      infoContent: buildServiceInfo(
+        service,
+        () => navigate(`/service/${service.id}`),
+        () => navigate(`/provider/${service.provider.id}`),
+      ),
+    }))
+  }, [mapped, navigate, requestsOnly])
 
   // Demand pins (orange) from service requests with coordinates
   const requestPoints = useMemo<GoogleMapPoint[]>(() =>
@@ -117,11 +123,11 @@ export default function ServiceMap({ services, requests = [], count }: Props) {
 
   return (
     <div className="relative w-full rounded-2xl overflow-hidden border border-gray-200 shadow-sm transition-all duration-500" style={{ height, minHeight: '320px' }}>
-      {mapped.length === 0 && (
+      {points.length === 0 && (
         <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-gray-50 text-gray-400">
           <span className="text-4xl mb-2">📍</span>
-          <p className="text-sm">暂无商家填写位置信息</p>
-          <p className="text-xs mt-1">发布服务时填写位置后即可显示在地图上</p>
+          <p className="text-sm">{requestsOnly ? '附近暂无标记位置的需求' : '暂无商家填写位置信息'}</p>
+          <p className="text-xs mt-1">{requestsOnly ? '客户发布需求时勾选位置即可显示' : '发布服务时填写位置后即可显示在地图上'}</p>
         </div>
       )}
 
@@ -164,8 +170,11 @@ export default function ServiceMap({ services, requests = [], count }: Props) {
             我的位置
           </span>
         )}
-        {mapped.length > 0 && (
+        {!requestsOnly && mapped.length > 0 && (
           <span>共 <strong>{mapped.length}</strong> 项服务</span>
+        )}
+        {requestsOnly && requestPoints.length > 0 && (
+          <span>共 <strong>{requestPoints.length}</strong> 条需求</span>
         )}
         {mapped.some((s) => s.isPromoted) && (
           <span className="flex items-center gap-1">

@@ -256,10 +256,29 @@ export default function Home() {
             : serviceRequests
           return (
             <section className="mb-6">
-              <div className="flex items-center justify-between mb-3">
-                <div>
+              <div className="flex items-center justify-between mb-3 gap-3">
+                <div className="min-w-0">
                   <h3 className="text-sm font-semibold text-gray-800">附近求服务</h3>
                   <p className="text-xs text-gray-400 mt-0.5">客户发布的服务需求，主动出击接单</p>
+                </div>
+                {/* List / Map toggle */}
+                <div className="flex bg-gray-100 rounded-full p-0.5 flex-shrink-0">
+                  <button
+                    onClick={() => handleViewMode('list')}
+                    className={`px-3 py-1 rounded-full text-xs font-semibold transition-all ${
+                      viewMode === 'list' ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-500'
+                    }`}
+                  >
+                    列表
+                  </button>
+                  <button
+                    onClick={() => handleViewMode('map')}
+                    className={`px-3 py-1 rounded-full text-xs font-semibold transition-all ${
+                      viewMode === 'map' ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-500'
+                    }`}
+                  >
+                    地图
+                  </button>
                 </div>
               </div>
 
@@ -277,31 +296,44 @@ export default function Home() {
                 )}
               </div>
 
-              {filtered.length === 0 ? (
-                <div className="card p-10 flex flex-col items-center gap-3 text-center">
-                  <span className="text-4xl">{kw ? '🔍' : '📭'}</span>
-                  <p className="text-sm font-semibold text-gray-600">
-                    {kw ? `没有找到"${requestSearch}"相关需求` : '暂无客户需求'}
-                  </p>
-                  <p className="text-xs text-gray-400">
-                    {kw ? '换个关键词试试' : '告诉身边的客户来这里发布需求吧'}
-                  </p>
-                </div>
+              {/* Map view */}
+              {viewMode === 'map' ? (
+                <Suspense fallback={<div className="h-80 rounded-2xl bg-gray-100 animate-pulse" />}>
+                  <ServiceMap
+                    services={[]}
+                    requests={filtered}
+                    count={filtered.length}
+                    requestsOnly
+                  />
+                </Suspense>
               ) : (
-                <>
-                  {kw && (
-                    <p className="text-xs text-gray-400 mb-2">
-                      找到 <strong className="text-gray-700">{filtered.length}</strong> 条相关需求
+                /* List view */
+                filtered.length === 0 ? (
+                  <div className="card p-10 flex flex-col items-center gap-3 text-center">
+                    <span className="text-4xl">{kw ? '🔍' : '📭'}</span>
+                    <p className="text-sm font-semibold text-gray-600">
+                      {kw ? `没有找到"${requestSearch}"相关需求` : '暂无客户需求'}
                     </p>
-                  )}
-                  <div className="columns-2 md:columns-3 lg:columns-4 xl:columns-5 gap-3">
-                    {filtered.map((req) => (
-                      <div key={req.id} className="break-inside-avoid mb-3">
-                        <ServiceRequestCard request={req} layout="masonry" />
-                      </div>
-                    ))}
+                    <p className="text-xs text-gray-400">
+                      {kw ? '换个关键词试试' : '告诉身边的客户来这里发布需求吧'}
+                    </p>
                   </div>
-                </>
+                ) : (
+                  <>
+                    {kw && (
+                      <p className="text-xs text-gray-400 mb-2">
+                        找到 <strong className="text-gray-700">{filtered.length}</strong> 条相关需求
+                      </p>
+                    )}
+                    <div className="columns-2 md:columns-3 lg:columns-4 xl:columns-5 gap-3">
+                      {filtered.map((req) => (
+                        <div key={req.id} className="break-inside-avoid mb-3">
+                          <ServiceRequestCard request={req} layout="masonry" />
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                )
               )}
             </section>
           )
