@@ -185,29 +185,24 @@ export default function Profile() {
         </div>
       </div>
 
-      {/* Mode toggle */}
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-1 flex gap-1">
+      {/* Mode toggle — single CTA button + current-mode label */}
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 flex items-center justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-xs text-gray-400 mb-0.5">当前模式</p>
+          <p className="text-base font-bold text-gray-900 flex items-center gap-1.5">
+            {mode === 'client'
+              ? <><UserIcon size={16} className="text-green-600" /> 用户模式</>
+              : <><Store size={16} className="text-blue-600" /> 服务商模式</>}
+          </p>
+        </div>
         <button
-          onClick={() => switchMode('client')}
-          className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-sm font-semibold transition-all
-            ${mode === 'client'
-              ? 'bg-primary-600 text-white shadow-sm'
-              : 'text-gray-500 hover:text-gray-700'}`}
+          onClick={() => switchMode(mode === 'client' ? 'provider' : 'client')}
+          className={`px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors flex-shrink-0 text-white shadow-sm relative
+            ${mode === 'client' ? 'bg-blue-600 hover:bg-blue-700' : 'bg-green-600 hover:bg-green-700'}`}
         >
-          <UserIcon size={15} />
-          用户模式
-        </button>
-        <button
-          onClick={() => switchMode('provider')}
-          className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-sm font-semibold transition-all relative
-            ${mode === 'provider'
-              ? 'bg-primary-600 text-white shadow-sm'
-              : 'text-gray-500 hover:text-gray-700'}`}
-        >
-          <Store size={15} />
-          服务商模式
-          {!hasServices && mode !== 'provider' && (
-            <span className="absolute -top-1 -right-1 w-2 h-2 bg-orange-400 rounded-full" />
+          切换为{mode === 'client' ? '服务商' : '用户'}模式
+          {mode === 'client' && !hasServices && (
+            <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-orange-400 rounded-full border-2 border-white" />
           )}
         </button>
       </div>
@@ -274,7 +269,9 @@ export default function Profile() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
+    <div className={`min-h-screen flex flex-col transition-colors duration-300 ${
+      mode === 'provider' ? 'bg-blue-50' : 'bg-green-50'
+    }`}>
 
       {/* ── Top bar ─────────────────────────────────────────────────────────── */}
       <div className="w-full bg-white border-b-2 border-gray-200 px-4 h-14 flex items-center gap-3 sticky top-0 z-20">

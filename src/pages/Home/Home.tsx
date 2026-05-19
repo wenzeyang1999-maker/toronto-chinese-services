@@ -13,6 +13,8 @@ import { useAuthStore } from '../../store/authStore'
 import HomeActionHero from './components/HomeActionHero'
 import HomeServiceShelf from './components/HomeServiceShelf'
 import { PlusCircle, Search as SearchIcon } from 'lucide-react'
+import { supabase } from '../../lib/supabase'
+import { getCategoryById } from '../../data/categories'
 
 const ServiceMap = lazy(() => import('../../components/ServiceMap/ServiceMap'))
 
@@ -66,6 +68,29 @@ export default function Home() {
       setFeedMode(isProvider ? 'requests' : 'services')
     }
   }, [isProvider])
+
+  // Provider's own skill tags — used to fuzzy-match request title/description
+  const [mySkillTags, setMySkillTags] = useState<string[]>([])
+  useEffect(() => {
+    if (!user) { setMySkillTags([]); return }
+    let cancelled = false
+    supabase.from('users').select('skill_tags').eq('id', user.id).single()
+      .then(({ data, error }) => {
+        if (cancelled || error) return
+        setMySkillTags((data?.skill_tags as string[]) ?? [])
+      })
+    return () => { cancelled = true }
+  }, [user])
+
+  // Map radius (km) for the "发现客户" map view — persisted to localStorage
+  const [mapRadiusKm, setMapRadiusKm] = useState<number>(() => {
+    const saved = Number(localStorage.getItem('tcs_map_radius_km'))
+    return saved === 3 || saved === 5 || saved === 10 ? saved : 5
+  })
+  const handleMapRadius = (km: number) => {
+    setMapRadiusKm(km)
+    localStorage.setItem('tcs_map_radius_km', String(km))
+  }
 
   const handleSetFeedMode = (mode: 'services' | 'requests') => {
     setFeedMode(mode)
@@ -184,7 +209,7 @@ export default function Home() {
                   ? 'bg-white text-orange-600 shadow-sm'
                   : 'text-gray-500 hover:text-gray-700'}`}
             >
-              找客户
+              发现客户
               {serviceRequests.length > 0 && (
                 <span className="ml-1.5 text-[10px] font-bold bg-orange-500 text-white px-1.5 py-0.5 rounded-full">
                   {serviceRequests.length}
@@ -246,7 +271,9 @@ export default function Home() {
         {/* ── Requests feed ────────────────────────────────────────────────── */}
         {feedMode === 'requests' && (() => {
           const kw = requestSearch.trim().toLowerCase()
-          const filtered = kw
+
+          // Step 1: search keyword filter (works in both list + map view)
+          let filtered = kw
             ? serviceRequests.filter(r =>
                 r.title.toLowerCase().includes(kw) ||
                 (r.description ?? '').toLowerCase().includes(kw) ||
@@ -254,6 +281,35 @@ export default function Home() {
                 (r.area ?? '').toLowerCase().includes(kw)
               )
             : serviceRequests
+
+          // Step 2 (map view only): fuzzy-match against the provider's own skill_tags.
+          // If the user hasn't set any tags, show everything. If tags exist, keep only
+          // requests whose title / description / category-label contains at least one tag.
+          const tagFiltered = (viewMode === 'map' && mySkillTags.length > 0)
+            ? filtered.filter(r => {
+                const cat = getCategoryById(r.category)
+                const haystack = (
+                  r.title + ' ' +
+                  (r.description ?? '') + ' ' +
+                  (cat?.label ?? '') + ' ' +
+                  (cat?.searchTags ?? []).join(' ')
+                ).toLowerCase()
+                return mySkillTags.some(tag => tag && haystack.includes(tag.toLowerCase()))
+              })
+            : filtered
+
+          // Step 3 (map view only): radius filter — drop requests further than mapRadiusKm
+          const radiusFiltered = (viewMode === 'map' && userLocation)
+            ? tagFiltered.filter(r => {
+                if (r.lat == null || r.lng == null) return true  // keep unlocated reqs
+                return calcDistance(userLocation.lat, userLocation.lng, r.lat, r.lng) <= mapRadiusKm
+              })
+            : tagFiltered
+
+          // What actually goes to the map vs the list
+          const forMap  = radiusFiltered
+          const forList = filtered
+
           return (
             <section className="mb-6">
               <div className="flex items-center justify-between mb-3 gap-3">
@@ -298,17 +354,47 @@ export default function Home() {
 
               {/* Map view */}
               {viewMode === 'map' ? (
-                <Suspense fallback={<div className="h-80 rounded-2xl bg-gray-100 animate-pulse" />}>
-                  <ServiceMap
-                    services={[]}
-                    requests={filtered}
-                    count={filtered.length}
-                    requestsOnly
-                  />
-                </Suspense>
+                <>
+                  {/* Radius slider + skill-tag filter status */}
+                  <div className="bg-white border border-gray-200 rounded-xl px-3 py-2.5 mb-3 shadow-sm flex items-center gap-3 flex-wrap">
+                    <span className="text-xs text-gray-500 flex-shrink-0">距离范围</span>
+                    <div className="flex gap-1 flex-shrink-0">
+                      {[3, 5, 10].map(km => (
+                        <button key={km}
+                          onClick={() => handleMapRadius(km)}
+                          className={`px-3 py-1 rounded-full text-xs font-semibold transition-all ${
+                            mapRadiusKm === km
+                              ? 'bg-primary-600 text-white shadow-sm'
+                              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                          }`}
+                        >
+                          {km} km
+                        </button>
+                      ))}
+                    </div>
+                    {mySkillTags.length > 0 && (
+                      <span className="text-[11px] text-gray-400 flex-1 truncate">
+                        已按你的标签过滤：{mySkillTags.slice(0, 3).join('、')}{mySkillTags.length > 3 ? '…' : ''}
+                      </span>
+                    )}
+                  </div>
+                  <Suspense fallback={<div className="h-80 rounded-2xl bg-gray-100 animate-pulse" />}>
+                    <ServiceMap
+                      services={[]}
+                      requests={forMap}
+                      count={forMap.length}
+                      requestsOnly
+                    />
+                  </Suspense>
+                  {mySkillTags.length === 0 && (
+                    <p className="text-xs text-gray-400 mt-2 text-center">
+                      💡 在「我的主页 → 业务标签」里设置标签，地图就会按你能接的单类型自动过滤
+                    </p>
+                  )}
+                </>
               ) : (
                 /* List view */
-                filtered.length === 0 ? (
+                forList.length === 0 ? (
                   <div className="card p-10 flex flex-col items-center gap-3 text-center">
                     <span className="text-4xl">{kw ? '🔍' : '📭'}</span>
                     <p className="text-sm font-semibold text-gray-600">
@@ -322,11 +408,11 @@ export default function Home() {
                   <>
                     {kw && (
                       <p className="text-xs text-gray-400 mb-2">
-                        找到 <strong className="text-gray-700">{filtered.length}</strong> 条相关需求
+                        找到 <strong className="text-gray-700">{forList.length}</strong> 条相关需求
                       </p>
                     )}
                     <div className="columns-2 md:columns-3 lg:columns-4 xl:columns-5 gap-3">
-                      {filtered.map((req) => (
+                      {forList.map((req) => (
                         <div key={req.id} className="break-inside-avoid mb-3">
                           <ServiceRequestCard request={req} layout="masonry" />
                         </div>
