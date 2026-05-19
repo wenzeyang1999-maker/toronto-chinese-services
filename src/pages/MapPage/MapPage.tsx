@@ -1,7 +1,7 @@
 // ─── Fullscreen Map Page ──────────────────────────────────────────────────────
 // Route: /map  — Google Maps-style fullscreen experience with top search bar
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { ArrowLeft, Search, Navigation, X } from 'lucide-react'
 import { useAppStore } from '../../store/appStore'
 import { useAuthStore } from '../../store/authStore'
@@ -19,6 +19,8 @@ function hasCoordinates(service: Service): service is Service & {
 
 export default function MapPage() {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const requestsOnly = searchParams.get('type') === 'requests'
   const services = useAppStore((s) => s.services)
   const serviceRequests = useAppStore((s) => s.serviceRequests)
   const userLocation = useAppStore((s) => s.userLocation)
@@ -35,6 +37,7 @@ export default function MapPage() {
   }, [])
 
   useEffect(() => {
+    if (requestsOnly) return
     let cancelled = false
     supabase.from('users')
       .select('id, name, avatar_url, online_lat, online_lng, skill_tags')
@@ -48,7 +51,7 @@ export default function MapPage() {
         if (data) setOnlineProviders(data as OnlineProvider[])
       })
     return () => { cancelled = true }
-  }, [])
+  }, [requestsOnly])
 
   // Provider mode: also show service requests as orange pins
   const isProvider = !!user && services.some((s) => s.provider.id === user.id)
@@ -63,21 +66,25 @@ export default function MapPage() {
     [services, kw]
   )
 
-  const servicePoints = useMemo<GoogleMapPoint[]>(() => mapped.map((service) => ({
-    id: service.id,
-    lat: service.location.lat!,
-    lng: service.location.lng!,
-    title: service.title,
-    promoted: service.isPromoted,
-    infoContent: buildServiceInfo(
-      service,
-      () => navigate(`/service/${service.id}`),
-      () => navigate(`/provider/${service.provider.id}`),
-    ),
-  })), [mapped, navigate])
+  const servicePoints = useMemo<GoogleMapPoint[]>(() => {
+    if (requestsOnly) return []
+    return mapped.map((service) => ({
+      id: service.id,
+      lat: service.location.lat!,
+      lng: service.location.lng!,
+      title: service.title,
+      promoted: service.isPromoted,
+      infoContent: buildServiceInfo(
+        service,
+        () => navigate(`/service/${service.id}`),
+        () => navigate(`/provider/${service.provider.id}`),
+      ),
+    }))
+  }, [mapped, navigate, requestsOnly])
 
   const requestPoints = useMemo<GoogleMapPoint[]>(() => {
-    if (!isProvider) return []
+    // In requestsOnly mode, show all customer requests (don't gate by isProvider)
+    if (!requestsOnly && !isProvider) return []
     return serviceRequests
       .filter((r) => r.lat != null && r.lng != null)
       .filter((r) => matches(r.title) || matches(r.description) || matches(r.area))
@@ -90,7 +97,7 @@ export default function MapPage() {
         demandPin: true,
         infoContent: buildDemandInfo(r, () => navigate(`/requests/${r.id}`)),
       } as GoogleMapPoint))
-  }, [serviceRequests, isProvider, navigate, kw])
+  }, [serviceRequests, isProvider, navigate, kw, requestsOnly])
 
   const onlinePoints = useMemo<GoogleMapPoint[]>(() =>
     onlineProviders
@@ -136,7 +143,7 @@ export default function MapPage() {
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="搜索服务、商家、地点…"
+              placeholder={requestsOnly ? '搜索需求、关键词、地点…' : '搜索服务、商家、地点…'}
               className="flex-1 bg-transparent outline-none text-sm text-gray-800 placeholder-gray-400 min-w-0"
             />
             {search && (
@@ -174,7 +181,7 @@ export default function MapPage() {
 
         {/* Result count + legend */}
         <div className="absolute top-3 left-3 bg-white/95 backdrop-blur rounded-full px-3 py-1.5 shadow-md text-xs font-semibold text-gray-700">
-          {kw ? `找到 ${points.length} 项` : `${points.length} 项服务`}
+          {kw ? `找到 ${points.length} 项` : `${points.length} ${requestsOnly ? '条需求' : '项服务'}`}
         </div>
 
         {/* No results state */}

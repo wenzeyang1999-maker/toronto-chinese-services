@@ -154,7 +154,7 @@ export default function ServiceMap({ services, requests = [], count, requestsOnl
 
       {/* Fullscreen button — opens dedicated /map page */}
       <button
-        onClick={() => navigate('/map')}
+        onClick={() => navigate(requestsOnly ? '/map?type=requests' : '/map')}
         title="全屏地图"
         className="absolute top-3 right-14 z-[400] w-10 h-10 rounded-full shadow-md bg-white hover:bg-gray-50
                    flex items-center justify-center active:scale-95 transition-all"
