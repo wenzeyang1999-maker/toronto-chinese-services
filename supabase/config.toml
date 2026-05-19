@@ -17,7 +17,12 @@ verify_jwt = false
 verify_jwt = true
 
 [functions.send-web-push]
-verify_jwt = true
+# Gateway JWT verification is disabled so the function can be called by:
+#   (a) authenticated frontend users with their session JWT (legacy "conversation" mode), and
+#   (b) the DB trigger using the service-role key (which may be the legacy
+#       eyJ... JWT or the new sb_secret_* format depending on the project).
+# The function does its own auth checks internally for each mode.
+verify_jwt = false
 
 [functions.match-inquiry-providers]
 verify_jwt = true
