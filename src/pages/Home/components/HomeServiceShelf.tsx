@@ -13,7 +13,7 @@ interface Props {
   services: Service[]              // list view (nearby/recent subset)
   allServices: Service[]           // full pool for keyword search
   defaultMapServices: Service[]    // nearby-only default for map (no search)
-  mapContent: (filtered: Service[]) => React.ReactNode
+  mapContent: (filtered: Service[], keyword: string) => React.ReactNode
 }
 
 export default function HomeServiceShelf({
@@ -121,7 +121,7 @@ export default function HomeServiceShelf({
         <Suspense
           fallback={<div className="w-full rounded-2xl bg-gray-100 animate-pulse" style={{ height: '60vh', minHeight: 320 }} />}
         >
-          {mapContent(filteredMap)}
+          {mapContent(filteredMap, q)}
         </Suspense>
       )}
     </motion.section>

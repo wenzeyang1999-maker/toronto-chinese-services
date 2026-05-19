@@ -92,6 +92,40 @@ export default function Home() {
     localStorage.setItem('tcs_map_radius_km', String(km))
   }
 
+  // "发现客户" unread badge — counts requests created after the provider last
+  // visited the tab, that also match their skill_tags (if any).
+  const requestsSeenKey = user ? `tcs_requests_last_seen_${user.id}` : ''
+  const [requestsSeenAt, setRequestsSeenAt] = useState<number>(() => {
+    if (!user) return Date.now()
+    return Number(localStorage.getItem(`tcs_requests_last_seen_${user.id}`)) || 0
+  })
+  useEffect(() => {
+    if (!user) return
+    setRequestsSeenAt(Number(localStorage.getItem(`tcs_requests_last_seen_${user.id}`)) || 0)
+  }, [user])
+
+  const unreadRequestCount = useMemo(() => {
+    if (!user) return 0
+    return serviceRequests.filter(r => {
+      if (new Date(r.createdAt).getTime() <= requestsSeenAt) return false
+      if (mySkillTags.length === 0) return true
+      const cat = getCategoryById(r.category)
+      const haystack = (
+        r.title + ' ' + (r.description ?? '') + ' ' +
+        (cat?.label ?? '') + ' ' + (cat?.searchTags ?? []).join(' ')
+      ).toLowerCase()
+      return mySkillTags.some(tag => tag && haystack.includes(tag.toLowerCase()))
+    }).length
+  }, [serviceRequests, requestsSeenAt, mySkillTags, user])
+
+  // Mark all current requests as seen when the user lands on the requests feed
+  useEffect(() => {
+    if (feedMode !== 'requests' || !user || !requestsSeenKey) return
+    const now = Date.now()
+    localStorage.setItem(requestsSeenKey, String(now))
+    setRequestsSeenAt(now)
+  }, [feedMode, user, requestsSeenKey])
+
   const handleSetFeedMode = (mode: 'services' | 'requests') => {
     setFeedMode(mode)
     localStorage.setItem('tcs_feed_mode', mode)
@@ -210,9 +244,9 @@ export default function Home() {
                   : 'text-gray-500 hover:text-gray-700'}`}
             >
               发现客户
-              {serviceRequests.length > 0 && (
-                <span className="ml-1.5 text-[10px] font-bold bg-orange-500 text-white px-1.5 py-0.5 rounded-full">
-                  {serviceRequests.length}
+              {unreadRequestCount > 0 && (
+                <span className="ml-1.5 text-[10px] font-bold bg-red-500 text-white px-1.5 py-0.5 rounded-full">
+                  {unreadRequestCount > 99 ? '99+' : unreadRequestCount}
                 </span>
               )}
             </button>
@@ -243,11 +277,12 @@ export default function Home() {
               services={recent}
               allServices={services.filter((s) => s.available)}
               defaultMapServices={nearbyForMap}
-              mapContent={(filtered) => (
+              mapContent={(filtered, mapKeyword) => (
                 <ServiceMap
                   services={filtered}
                   requests={isProvider ? serviceRequests : []}
                   count={nearbyForMap.length}
+                  keyword={mapKeyword}
                 />
               )}
             />

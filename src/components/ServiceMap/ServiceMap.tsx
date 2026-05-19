@@ -16,6 +16,8 @@ interface Props {
   count?: number
   /** Hide service pins + online providers, only show orange request pins. */
   requestsOnly?: boolean
+  /** Free-text keyword. When set, filters online-provider pins by name + skill_tags. */
+  keyword?: string
 }
 
 function hasCoordinates(service: Service): service is Service & {
@@ -34,7 +36,7 @@ function mapHeight(count: number): string {
   return 'min(640px, 65dvh)'
 }
 
-export default function ServiceMap({ services, requests = [], count, requestsOnly = false }: Props) {
+export default function ServiceMap({ services, requests = [], count, requestsOnly = false, keyword = '' }: Props) {
   const navigate = useNavigate()
   const userLocation = useAppStore((s) => s.userLocation)
   const requestLocation = useGeolocation()
@@ -107,8 +109,14 @@ export default function ServiceMap({ services, requests = [], count, requestsOnl
   , [requests, navigate])
 
   // Online provider pins (green) — broadcast real-time locations
-  const onlinePoints = useMemo<GoogleMapPoint[]>(() =>
-    onlineProviders.map((p) => ({
+  const onlinePoints = useMemo<GoogleMapPoint[]>(() => {
+    const kw = keyword.trim().toLowerCase()
+    const matches = (p: OnlineProvider) => {
+      if (!kw) return true
+      if (p.name.toLowerCase().includes(kw)) return true
+      return p.skill_tags.some(t => t.toLowerCase().includes(kw))
+    }
+    return onlineProviders.filter(matches).map((p) => ({
       id: `online-${p.id}`,
       lat: p.online_lat,
       lng: p.online_lng,
@@ -117,7 +125,7 @@ export default function ServiceMap({ services, requests = [], count, requestsOnl
       onlineProv: true,
       infoContent: buildOnlineProviderInfo(p, () => navigate(`/provider/${p.id}`)),
     } as GoogleMapPoint & { onlineProv?: boolean }))
-  , [onlineProviders, navigate])
+  }, [onlineProviders, navigate, keyword])
 
   const points = useMemo(() => [...servicePoints, ...requestPoints, ...onlinePoints], [servicePoints, requestPoints, onlinePoints])
 
