@@ -58,8 +58,10 @@ import { useAppStore } from './store/appStore'
 import { useAuthStore } from './store/authStore'
 import { supabase } from './lib/supabase'
 import { unsubscribeFromWebPush } from './lib/webPush'
+import { useRequestMatchAlerts } from './hooks/useRequestMatchAlerts'
 
 export default function App() {
+  useRequestMatchAlerts()
   const isLoadingDone = useAppStore((s) => s.isLoadingDone)
   const setLoadingDone = useAppStore((s) => s.setLoadingDone)
   const fetchServices = useAppStore((s) => s.fetchServices)

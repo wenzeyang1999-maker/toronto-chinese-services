@@ -47,6 +47,16 @@ interface PushBody {
   icon?:           string
 }
 
+interface BroadcastBody {
+  mode:             'broadcast_match'
+  recipientUserIds: string[]
+  title:            string
+  body:             string
+  url?:             string
+  tag?:             string
+  icon?:            string
+}
+
 const VAPID_PUBLIC  = Deno.env.get('VAPID_PUBLIC_KEY')  ?? ''
 const VAPID_PRIVATE = Deno.env.get('VAPID_PRIVATE_KEY') ?? ''
 const VAPID_SUBJECT = Deno.env.get('VAPID_SUBJECT')     ?? 'mailto:noreply@huarenq.com'
@@ -76,56 +86,80 @@ Deno.serve(async (req) => {
     return json({ error: 'VAPID keys not configured' }, 500)
   }
 
-  // ── Verify caller's JWT ────────────────────────────────────────────────────
+  // ── Parse body first to detect mode ────────────────────────────────────────
+  let raw: PushBody | BroadcastBody
+  try { raw = await req.json() }
+  catch { return json({ error: 'Invalid JSON' }, 400) }
+
+  // ── Auth: broadcast_match needs service_role JWT (called from DB trigger).
+  //         The conversation mode keeps existing user-JWT + participant check. ──
   const authHeader = req.headers.get('Authorization') ?? ''
   const jwt = authHeader.replace(/^Bearer\s+/i, '').trim()
   if (!jwt) return json({ error: 'Missing Authorization' }, 401)
 
-  const { data: userData, error: userErr } = await sb.auth.getUser(jwt)
-  if (userErr || !userData?.user) return json({ error: 'Invalid token' }, 401)
-  const callerId = userData.user.id
+  let recipientUserIds: string[] = []
+  let title = ''
+  let body  = ''
+  let url:  string | undefined
+  let tag:  string | undefined
+  let icon: string | undefined
 
-  // ── Parse and validate body ────────────────────────────────────────────────
-  let payload: PushBody
-  try { payload = await req.json() }
-  catch { return json({ error: 'Invalid JSON' }, 400) }
+  if ('mode' in raw && raw.mode === 'broadcast_match') {
+    // Service-role only — verify the JWT matches the service_role key
+    if (jwt !== Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')) {
+      return json({ error: 'broadcast_match requires service role' }, 403)
+    }
+    if (!Array.isArray(raw.recipientUserIds) || raw.recipientUserIds.length === 0
+        || !raw.title || !raw.body) {
+      return json({ error: 'Missing required fields' }, 400)
+    }
+    recipientUserIds = raw.recipientUserIds
+    title = raw.title; body = raw.body; url = raw.url; tag = raw.tag; icon = raw.icon
+  } else {
+    // Conversation mode — existing flow
+    const { data: userData, error: userErr } = await sb.auth.getUser(jwt)
+    if (userErr || !userData?.user) return json({ error: 'Invalid token' }, 401)
+    const callerId = userData.user.id
+    const payload = raw as PushBody
 
-  if (!payload.conversationId || !payload.recipientUserId || !payload.title || !payload.body) {
-    return json({ error: 'Missing required fields' }, 400)
+    if (!payload.conversationId || !payload.recipientUserId || !payload.title || !payload.body) {
+      return json({ error: 'Missing required fields' }, 400)
+    }
+    if (payload.recipientUserId === callerId) {
+      return json({ error: 'Cannot push to self' }, 400)
+    }
+
+    const { data: convo, error: convoErr } = await sb
+      .from('conversations')
+      .select('client_id, provider_id')
+      .eq('id', payload.conversationId)
+      .single()
+
+    if (convoErr || !convo) return json({ error: 'Conversation not found' }, 404)
+
+    const parties = new Set([convo.client_id, convo.provider_id])
+    if (!parties.has(callerId) || !parties.has(payload.recipientUserId)) {
+      return json({ error: 'Not a participant of this conversation' }, 403)
+    }
+    recipientUserIds = [payload.recipientUserId]
+    title = payload.title; body = payload.body; url = payload.url; tag = payload.tag; icon = payload.icon
   }
-  if (payload.recipientUserId === callerId) {
-    return json({ error: 'Cannot push to self' }, 400)
-  }
 
-  // ── Authorize: caller and recipient must be the two parties of this convo ──
-  const { data: convo, error: convoErr } = await sb
-    .from('conversations')
-    .select('client_id, provider_id')
-    .eq('id', payload.conversationId)
-    .single()
-
-  if (convoErr || !convo) return json({ error: 'Conversation not found' }, 404)
-
-  const parties = new Set([convo.client_id, convo.provider_id])
-  if (!parties.has(callerId) || !parties.has(payload.recipientUserId)) {
-    return json({ error: 'Not a participant of this conversation' }, 403)
-  }
-
-  // ── Look up recipient's devices and dispatch ───────────────────────────────
+  // ── Look up recipients' devices and dispatch ───────────────────────────────
   const { data: subs, error } = await sb
     .from('push_subscriptions')
     .select('id, endpoint, p256dh, auth')
-    .eq('user_id', payload.recipientUserId)
+    .in('user_id', recipientUserIds)
 
   if (error) return json({ error: error.message }, 500)
   if (!subs || subs.length === 0) return json({ ok: true, sent: 0, skipped: 'no subscriptions' })
 
   const messageJson = JSON.stringify({
-    title: payload.title,
-    body:  payload.body,
-    url:   payload.url ?? '/',
-    tag:   payload.tag,
-    icon:  payload.icon,
+    title,
+    body,
+    url:  url ?? '/',
+    tag,
+    icon,
   })
 
   const results = await Promise.allSettled(subs.map(async (sub: { id: string; endpoint: string; p256dh: string; auth: string }) => {
