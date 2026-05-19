@@ -105,8 +105,15 @@ Deno.serve(async (req) => {
   let icon: string | undefined
 
   if ('mode' in raw && raw.mode === 'broadcast_match') {
-    // Service-role only — verify the JWT matches the service_role key
-    if (jwt !== Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')) {
+    // Internal-only — accept either:
+    //   1. our custom shared secret stored in env (TCS_TRIGGER_SECRET) — preferred,
+    //      decoupled from Supabase's auto-rotated keys
+    //   2. the auto-injected service_role key (legacy / new format) as a fallback
+    const customSecret = Deno.env.get('TCS_TRIGGER_SECRET') ?? ''
+    const serviceKey   = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    const accepted = (customSecret && jwt === customSecret) ||
+                     (serviceKey   && jwt === serviceKey)
+    if (!accepted) {
       return json({ error: 'broadcast_match requires service role' }, 403)
     }
     if (!Array.isArray(raw.recipientUserIds) || raw.recipientUserIds.length === 0
