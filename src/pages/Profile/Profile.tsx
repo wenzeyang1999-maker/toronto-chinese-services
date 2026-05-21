@@ -48,6 +48,13 @@ const MENU: MenuItem[] = [
   { key: 'notifications',  icon: <Bell          size={18} />, label: '通知设置',    sub: '管理推送通知偏好', modes: ['client', 'provider'] },
 ]
 
+// ── Feature flag ──────────────────────────────────────────────────────────────
+// Mode switching (用户模式 / 服务商模式 + green/blue background) is hidden for
+// now — the boss decided users navigate freely via the home tabs + map, so a
+// separate Profile mode toggle isn't needed. All the code is kept intact;
+// flip this to true to bring the feature back.
+const SHOW_MODE_TOGGLE = false
+
 export default function Profile() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
@@ -201,31 +208,34 @@ export default function Profile() {
         </div>
       </div>
 
-      {/* Mode toggle — single CTA button + current-mode label */}
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 flex items-center justify-between gap-3">
-        <div className="min-w-0">
-          <p className="text-xs text-gray-400 mb-0.5">当前模式</p>
-          <p className="text-base font-bold text-gray-900 flex items-center gap-1.5">
-            {mode === 'client'
-              ? <><UserIcon size={16} className="text-green-600" /> 用户模式</>
-              : <><Store size={16} className="text-blue-600" /> 服务商模式</>}
-          </p>
+      {/* Mode toggle — single CTA button + current-mode label.
+          Hidden via SHOW_MODE_TOGGLE; kept for possible future use. */}
+      {SHOW_MODE_TOGGLE && (
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-xs text-gray-400 mb-0.5">当前模式</p>
+            <p className="text-base font-bold text-gray-900 flex items-center gap-1.5">
+              {mode === 'client'
+                ? <><UserIcon size={16} className="text-green-600" /> 用户模式</>
+                : <><Store size={16} className="text-blue-600" /> 服务商模式</>}
+            </p>
+          </div>
+          <button
+            onClick={() => switchMode(mode === 'client' ? 'provider' : 'client')}
+            className={`px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors flex-shrink-0 text-white shadow-sm relative
+              ${mode === 'client' ? 'bg-blue-600 hover:bg-blue-700' : 'bg-green-600 hover:bg-green-700'}`}
+          >
+            切换为{mode === 'client' ? '服务商' : '用户'}模式
+            {mode === 'client' && !hasServices && (
+              <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-orange-400 rounded-full border-2 border-white" />
+            )}
+          </button>
         </div>
-        <button
-          onClick={() => switchMode(mode === 'client' ? 'provider' : 'client')}
-          className={`px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors flex-shrink-0 text-white shadow-sm relative
-            ${mode === 'client' ? 'bg-blue-600 hover:bg-blue-700' : 'bg-green-600 hover:bg-green-700'}`}
-        >
-          切换为{mode === 'client' ? '服务商' : '用户'}模式
-          {mode === 'client' && !hasServices && (
-            <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-orange-400 rounded-full border-2 border-white" />
-          )}
-        </button>
-      </div>
+      )}
 
       {/* Menu items */}
       <div className="bg-white rounded-3xl border border-gray-100 shadow-sm divide-y divide-gray-100 overflow-hidden">
-        {MENU.filter(item => item.modes.includes(mode)).map(item => {
+        {(SHOW_MODE_TOGGLE ? MENU.filter(item => item.modes.includes(mode)) : MENU).map(item => {
           const active = section === item.key
           return (
             <button key={item.key} onClick={() => setSection(item.key)}
@@ -286,7 +296,7 @@ export default function Profile() {
 
   return (
     <div className={`min-h-screen flex flex-col transition-colors duration-300 ${
-      mode === 'provider' ? 'bg-blue-50' : 'bg-green-50'
+      !SHOW_MODE_TOGGLE ? 'bg-gray-50' : mode === 'provider' ? 'bg-blue-50' : 'bg-green-50'
     }`}>
 
       {/* ── Top bar ─────────────────────────────────────────────────────────── */}
