@@ -3,9 +3,9 @@ import { motion } from 'framer-motion'
 import {
   Camera, Check, ExternalLink, Pencil, Share2, Tag, X,
   AlignLeft, Wifi, WifiOff, Briefcase, Building2, User,
-  Award, Plus, Trash2,
+  Award, Plus, Trash2, ImagePlus, ShieldCheck,
 } from 'lucide-react'
-import { cropAndCompressImage } from '../../../lib/compressImage'
+import { cropAndCompressImage, compressImage, validateImageFile } from '../../../lib/compressImage'
 import { supabase } from '../../../lib/supabase'
 import { useAuthStore } from '../../../store/authStore'
 import { useNavigate } from 'react-router-dom'
@@ -38,9 +38,12 @@ interface Profile {
   business_type: 'individual' | 'business'
   skill_tags: string[]
   certifications: Certification[]
+  qualification_images: string[]
   membership_level: MemberLevel
   is_online: boolean
 }
+
+const MAX_QUAL_IMAGES = 8
 
 function getCurrentPosition(): Promise<GeolocationPosition> {
   return new Promise((resolve, reject) =>
@@ -72,12 +75,16 @@ export default function HomepageSection() {
   const [editingCerts, setEditingCerts] = useState(false)
   const [draftCerts,   setDraftCerts]   = useState<Certification[]>([])
 
+  // Qualification & equipment photos
+  const [uploadingQual, setUploadingQual] = useState(false)
+
   const coverRef = useRef<HTMLInputElement>(null)
+  const qualRef  = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     if (!user) return
     supabase.from('users')
-      .select('name, avatar_url, bio, social_links, membership_level, membership_expires_at, is_online, business_type, skill_tags, certifications')
+      .select('name, avatar_url, bio, social_links, membership_level, membership_expires_at, is_online, business_type, skill_tags, certifications, qualification_images')
       .eq('id', user.id).single()
       .then(({ data }) => {
         if (!data) return
@@ -92,6 +99,7 @@ export default function HomepageSection() {
           business_type:  (data.business_type ?? 'individual') as 'individual' | 'business',
           skill_tags:     data.skill_tags ?? [],
           certifications: (data.certifications ?? []) as Certification[],
+          qualification_images: (data.qualification_images ?? []) as string[],
           membership_level: isActive ? (data.membership_level as MemberLevel) ?? 'L1' : 'L1',
           is_online:      data.is_online ?? false,
         })
@@ -162,6 +170,46 @@ export default function HomepageSection() {
     setProfile(p => p ? { ...p, certifications: cleaned } : p)
     setEditingCerts(false)
     setSaving(false)
+  }
+
+  async function handleQualUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(e.target.files ?? [])
+    e.target.value = ''
+    if (!files.length || !profile) return
+
+    const remaining = MAX_QUAL_IMAGES - profile.qualification_images.length
+    const toProcess = files.slice(0, remaining)
+    for (const f of toProcess) {
+      const err = validateImageFile(f)
+      if (err) { toast(err, 'error'); return }
+    }
+
+    setUploadingQual(true)
+    try {
+      const uploaded: string[] = []
+      for (const file of toProcess) {
+        const compressed = await compressImage(file)
+        const path = `qualifications/${user!.id}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.jpg`
+        const { error } = await supabase.storage.from('service-images').upload(path, compressed, { upsert: true })
+        if (error) throw error
+        const { data: { publicUrl } } = supabase.storage.from('service-images').getPublicUrl(path)
+        uploaded.push(publicUrl)
+      }
+      const next = [...profile.qualification_images, ...uploaded]
+      await supabase.from('users').update({ qualification_images: next }).eq('id', user!.id)
+      setProfile(p => p ? { ...p, qualification_images: next } : p)
+    } catch (err) {
+      toast('图片上传失败：' + (err instanceof Error ? err.message : '请重试'), 'error')
+    } finally {
+      setUploadingQual(false)
+    }
+  }
+
+  async function removeQualImage(idx: number) {
+    if (!profile) return
+    const next = profile.qualification_images.filter((_, i) => i !== idx)
+    await supabase.from('users').update({ qualification_images: next }).eq('id', user!.id)
+    setProfile(p => p ? { ...p, qualification_images: next } : p)
   }
 
   async function share() {
@@ -519,6 +567,47 @@ export default function HomepageSection() {
                   }
                 </div>
               )}
+            </div>
+
+            {/* ⑥ 资质与设备（图片）*/}
+            <div className="px-5 py-4 border-t border-gray-100">
+              <div className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-1">
+                <ShieldCheck size={15} className="text-emerald-500" />
+                资质与设备
+              </div>
+              <p className="text-xs text-gray-400 mb-3">
+                上传营业执照、资质证书、车队/设备照片等，客户能在你的主页直接看到（最多 {MAX_QUAL_IMAGES} 张）
+              </p>
+              <div className="grid grid-cols-3 gap-2">
+                {profile.qualification_images.map((url, i) => (
+                  <div key={i} className="relative aspect-square rounded-xl overflow-hidden border border-gray-200 bg-gray-50">
+                    <img src={url} alt={`资质 ${i + 1}`} className="w-full h-full object-cover" />
+                    <button
+                      onClick={() => removeQualImage(i)}
+                      className="absolute top-1 right-1 w-6 h-6 bg-black/55 rounded-full flex items-center justify-center
+                                 text-white hover:bg-red-500 transition-colors"
+                      aria-label="删除"
+                    >
+                      <X size={12} />
+                    </button>
+                  </div>
+                ))}
+                {profile.qualification_images.length < MAX_QUAL_IMAGES && (
+                  <button
+                    onClick={() => qualRef.current?.click()}
+                    disabled={uploadingQual}
+                    className="aspect-square rounded-xl border-2 border-dashed border-gray-300 bg-gray-50
+                               flex flex-col items-center justify-center gap-1
+                               text-gray-400 hover:border-emerald-400 hover:text-emerald-500
+                               transition-colors disabled:opacity-50"
+                  >
+                    <ImagePlus size={20} />
+                    <span className="text-[10px]">{uploadingQual ? '上传中…' : '添加图片'}</span>
+                  </button>
+                )}
+              </div>
+              <input ref={qualRef} type="file" accept="image/*" multiple className="hidden"
+                onChange={handleQualUpload} />
             </div>
           </div>
 

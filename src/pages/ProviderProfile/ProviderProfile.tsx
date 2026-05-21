@@ -50,6 +50,7 @@ interface ProviderUser {
   business_type: 'individual' | 'business'
   skill_tags: string[]
   certifications: Certification[]
+  qualification_images: string[]
 }
 
 interface ProviderReview {
@@ -125,7 +126,7 @@ export default function ProviderProfile() {
         supabase.from('follows')
           .select('id', { count: 'exact', head: true }).eq('provider_id', id),
         supabase.from('users')
-          .select('is_online, business_type, skill_tags, certifications')
+          .select('is_online, business_type, skill_tags, certifications, qualification_images')
           .eq('id', id!).single(),
       ])
 
@@ -145,6 +146,7 @@ export default function ProviderProfile() {
         business_type: (ext?.business_type as 'individual' | 'business') ?? 'individual',
         skill_tags: (ext?.skill_tags as string[]) ?? [],
         certifications: (ext?.certifications as Certification[]) ?? [],
+        qualification_images: (ext?.qualification_images as string[]) ?? [],
       })
 
       if (svcsData) {
@@ -381,6 +383,26 @@ export default function ProviderProfile() {
                       )}
                     </div>
                   </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Qualification & equipment photos */}
+          {provider.qualification_images.length > 0 && (
+            <div className="mt-4">
+              <p className="text-xs font-semibold text-gray-400 mb-2">资质与设备</p>
+              <div className="grid grid-cols-3 gap-2">
+                {provider.qualification_images.map((url, i) => (
+                  <a
+                    key={i}
+                    href={url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="relative aspect-square rounded-xl overflow-hidden border border-gray-200 bg-gray-50 hover:opacity-90 transition-opacity"
+                  >
+                    <img src={url} alt={`资质与设备 ${i + 1}`} loading="lazy" className="w-full h-full object-cover" />
+                  </a>
                 ))}
               </div>
             </div>
