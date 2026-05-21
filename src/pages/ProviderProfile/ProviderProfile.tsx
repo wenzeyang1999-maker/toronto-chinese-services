@@ -346,13 +346,13 @@ export default function ProviderProfile() {
 
           {/* Skill tags */}
           {provider.skill_tags.length > 0 && (
-            <div className="mt-4">
-              <p className="text-xs font-semibold text-gray-400 mb-2">技能标签</p>
-              <div className="flex flex-wrap gap-1.5">
+            <div className="mt-5">
+              <p className="text-sm font-bold text-gray-700 mb-2.5">业务范围</p>
+              <div className="flex flex-wrap gap-2">
                 {provider.skill_tags.map((tag) => (
                   <span key={tag}
-                    className="text-xs px-2.5 py-1 rounded-full bg-primary-50 text-primary-700 border border-primary-100 font-medium">
-                    {tag}
+                    className="text-sm px-4 py-2 rounded-xl bg-primary-100 text-primary-700 border border-primary-200 font-semibold">
+                    # {tag}
                   </span>
                 ))}
               </div>

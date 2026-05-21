@@ -312,9 +312,9 @@ export default function HomepageSection() {
               : <p className="text-sm text-gray-400 italic">还没有简介，点击「编辑主页」填写吧</p>
             }
             {profile.skill_tags.length > 0 && (
-              <div className="flex flex-wrap gap-1.5 mt-3">
+              <div className="flex flex-wrap gap-2 mt-3">
                 {profile.skill_tags.map(t => (
-                  <span key={t} className="text-xs bg-primary-50 text-primary-600 px-2.5 py-1 rounded-full font-medium">
+                  <span key={t} className="text-sm bg-primary-100 text-primary-700 px-3.5 py-1.5 rounded-full font-semibold">
                     # {t}
                   </span>
                 ))}
