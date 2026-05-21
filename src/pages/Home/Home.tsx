@@ -277,13 +277,46 @@ export default function Home() {
               services={recent}
               allServices={services.filter((s) => s.available)}
               defaultMapServices={nearbyForMap}
-              mapContent={(filtered, mapKeyword) => (
-                <ServiceMap
-                  services={filtered}
-                  count={nearbyForMap.length}
-                  keyword={mapKeyword}
-                />
-              )}
+              mapContent={(filtered, mapKeyword) => {
+                // Distance filter — keep services within mapRadiusKm of the user
+                const radiusFiltered = userLocation
+                  ? filtered.filter(s => {
+                      if (s.location.lat == null || s.location.lng == null) return true
+                      return calcDistance(userLocation.lat, userLocation.lng, s.location.lat, s.location.lng) <= mapRadiusKm
+                    })
+                  : filtered
+                return (
+                  <>
+                    <div className="bg-white border border-gray-200 rounded-xl px-3 py-2.5 mb-3 shadow-sm flex items-center gap-3">
+                      <span className="text-xs text-gray-500 flex-shrink-0">距离范围</span>
+                      <div className="flex gap-1">
+                        {[3, 5, 10].map(km => (
+                          <button key={km}
+                            onClick={() => handleMapRadius(km)}
+                            className={`px-3 py-1 rounded-full text-xs font-semibold transition-all ${
+                              mapRadiusKm === km
+                                ? 'bg-primary-600 text-white shadow-sm'
+                                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                            }`}
+                          >
+                            {km} km
+                          </button>
+                        ))}
+                      </div>
+                      {!userLocation && (
+                        <span className="text-[11px] text-gray-400 flex-1 truncate">
+                          开启定位后按距离筛选
+                        </span>
+                      )}
+                    </div>
+                    <ServiceMap
+                      services={radiusFiltered}
+                      count={radiusFiltered.length}
+                      keyword={mapKeyword}
+                    />
+                  </>
+                )
+              }}
             />
             {viewMode === 'list' && servicesHasMore && (
               <div className="flex justify-center mb-6">
