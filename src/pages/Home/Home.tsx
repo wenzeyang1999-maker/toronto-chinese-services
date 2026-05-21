@@ -217,7 +217,7 @@ export default function Home() {
 
         {/* Category buttons */}
         <section className="card p-4 mb-4">
-          <h3 className="text-base font-semibold text-gray-800 mb-1">探索服务</h3>
+          <h3 className="text-base font-semibold text-gray-800 mb-1">热门服务</h3>
           <p className="text-xs text-gray-400 mb-3">选择你需要的板块，找服务·看房·论坛·二手一站搞定。</p>
           <CategoryButtons />
         </section>
