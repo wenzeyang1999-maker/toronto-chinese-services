@@ -280,7 +280,6 @@ export default function Home() {
               mapContent={(filtered, mapKeyword) => (
                 <ServiceMap
                   services={filtered}
-                  requests={isProvider ? serviceRequests : []}
                   count={nearbyForMap.length}
                   keyword={mapKeyword}
                 />
