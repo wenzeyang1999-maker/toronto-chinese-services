@@ -30,6 +30,7 @@ import InquiriesSection      from './sections/InquiriesSection'
 import NotificationsSection  from './sections/NotificationsSection'
 import { toast } from '../../lib/toast'
 import InstallAppButton from '../../components/InstallAppButton/InstallAppButton'
+import CreditStars from '../../components/CreditStars/CreditStars'
 
 type MenuItem = { key: Section; icon: React.ReactNode; label: string; sub: string; modes: ('client' | 'provider')[] }
 
@@ -72,6 +73,7 @@ export default function Profile() {
   const [hasServices, setHasServices] = useState(
     () => localStorage.getItem('tcs_has_services') === 'true',
   )
+  const [verify, setVerify] = useState({ email: false, phone: false, idOrBiz: false })
   const [mode, setMode] = useState<'client' | 'provider'>(() => {
     const saved = localStorage.getItem('tcs_profile_mode')
     if (saved === 'provider' || saved === 'client') return saved
@@ -107,7 +109,7 @@ export default function Profile() {
   useEffect(() => {
     if (!user) return
     supabase.from('users')
-      .select('name, phone, avatar_url, membership_level, membership_expires_at')
+      .select('name, phone, avatar_url, membership_level, membership_expires_at, is_email_verified, phone_verified, id_verified, business_verified')
       .eq('id', user.id).single()
       .then(({ data }) => {
         if (!data) return
@@ -118,6 +120,11 @@ export default function Profile() {
         const isActive = !!(expiry && expiry > new Date())
         setMemberLevel(isActive ? (data.membership_level as MemberLevel) ?? 'L1' : 'L1')
         setMemberExpiresAt(data.membership_expires_at ?? null)
+        setVerify({
+          email:   data.is_email_verified ?? false,
+          phone:   data.phone_verified ?? false,
+          idOrBiz: (data.id_verified ?? false) || (data.business_verified ?? false),
+        })
       })
     try { setBrowse(JSON.parse(localStorage.getItem('tcs_browse_history') ?? '[]')) } catch { /* */ }
 
@@ -182,6 +189,15 @@ export default function Profile() {
             <MembershipBadge level={memberLevel} size="sm" />
           </div>
           <p className="text-xs text-gray-400 mt-0.5 truncate">{user.email}</p>
+          <div className="mt-1">
+            <CreditStars
+              input={{
+                emailVerified:        verify.email,
+                phoneVerified:        verify.phone,
+                idOrBusinessVerified: verify.idOrBiz,
+              }}
+            />
+          </div>
         </div>
       </div>
 

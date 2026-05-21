@@ -10,6 +10,7 @@ import { supabase } from '../../lib/supabase'
 import { useAuthStore } from '../../store/authStore'
 import { getCategoryById } from '../../data/categories'
 import MembershipBadge, { type MemberLevel } from '../../components/MembershipBadge/MembershipBadge'
+import CreditStars from '../../components/CreditStars/CreditStars'
 import FollowButton from '../../components/FollowButton/FollowButton'
 import ReplyTimeBadge from '../../components/ReplyTimeBadge/ReplyTimeBadge'
 import { JOB_CATEGORY_CONFIG, JOB_TYPE_CONFIG, SALARY_TYPE_LABEL, getCategoryLabel } from '../Jobs/types'
@@ -272,6 +273,15 @@ export default function ProviderProfile() {
               <div className="flex items-center gap-2 flex-wrap">
                 <h1 className="text-xl font-bold text-gray-900 truncate">{provider.name}</h1>
                 <MembershipBadge level={provider.membership_level} size="md" />
+              </div>
+              <div className="mt-1">
+                <CreditStars
+                  input={{
+                    emailVerified:        provider.is_email_verified,
+                    phoneVerified:        provider.phone_verified,
+                    idOrBusinessVerified: provider.business_verified,
+                  }}
+                />
               </div>
               <div className="flex items-center gap-1.5 mt-1 text-xs text-gray-400">
                 <Clock size={12} />
