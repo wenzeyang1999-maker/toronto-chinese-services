@@ -24,12 +24,6 @@ import type { Event } from '../Events/types'
 import { SOCIAL_PLATFORMS } from '../../lib/socialPlatforms'
 import { ProviderProfileSkeleton } from '../../components/Skeleton/Skeleton'
 
-interface Certification {
-  name: string
-  issuer?: string
-  year?: string
-}
-
 interface ProviderUser {
   id: string
   name: string
@@ -49,7 +43,7 @@ interface ProviderUser {
   is_online: boolean
   business_type: 'individual' | 'business'
   skill_tags: string[]
-  certifications: Certification[]
+  qualification_note: string
   qualification_images: string[]
 }
 
@@ -126,7 +120,7 @@ export default function ProviderProfile() {
         supabase.from('follows')
           .select('id', { count: 'exact', head: true }).eq('provider_id', id),
         supabase.from('users')
-          .select('is_online, business_type, skill_tags, certifications, qualification_images')
+          .select('is_online, business_type, skill_tags, qualification_note, qualification_images')
           .eq('id', id!).single(),
       ])
 
@@ -145,7 +139,7 @@ export default function ProviderProfile() {
         is_online: ext?.is_online ?? false,
         business_type: (ext?.business_type as 'individual' | 'business') ?? 'individual',
         skill_tags: (ext?.skill_tags as string[]) ?? [],
-        certifications: (ext?.certifications as Certification[]) ?? [],
+        qualification_note: (ext?.qualification_note as string) ?? '',
         qualification_images: (ext?.qualification_images as string[]) ?? [],
       })
 
@@ -365,46 +359,30 @@ export default function ProviderProfile() {
             </div>
           )}
 
-          {/* Certifications */}
-          {provider.certifications.length > 0 && (
-            <div className="mt-4">
-              <p className="text-xs font-semibold text-gray-400 mb-2">资质 / 证书 / 牌照</p>
-              <div className="flex flex-wrap gap-2">
-                {provider.certifications.map((cert, i) => (
-                  <div key={i}
-                    className="flex items-center gap-1.5 bg-amber-50 border border-amber-100 rounded-xl px-3 py-1.5">
-                    <BadgeCheck size={13} className="text-amber-500 flex-shrink-0" />
-                    <div className="min-w-0">
-                      <p className="text-xs font-semibold text-amber-800 leading-tight">{cert.name}</p>
-                      {(cert.issuer || cert.year) && (
-                        <p className="text-[10px] text-amber-600 leading-tight">
-                          {[cert.issuer, cert.year].filter(Boolean).join(' · ')}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Qualification & equipment photos */}
-          {provider.qualification_images.length > 0 && (
+          {/* Qualification & equipment — note + photos */}
+          {(provider.qualification_note.trim() || provider.qualification_images.length > 0) && (
             <div className="mt-4">
               <p className="text-xs font-semibold text-gray-400 mb-2">资质与设备</p>
-              <div className="grid grid-cols-3 gap-2">
-                {provider.qualification_images.map((url, i) => (
-                  <a
-                    key={i}
-                    href={url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="relative aspect-square rounded-xl overflow-hidden border border-gray-200 bg-gray-50 hover:opacity-90 transition-opacity"
-                  >
-                    <img src={url} alt={`资质与设备 ${i + 1}`} loading="lazy" className="w-full h-full object-cover" />
-                  </a>
-                ))}
-              </div>
+              {provider.qualification_note.trim() && (
+                <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap mb-2">
+                  {provider.qualification_note}
+                </p>
+              )}
+              {provider.qualification_images.length > 0 && (
+                <div className="grid grid-cols-3 gap-2">
+                  {provider.qualification_images.map((url, i) => (
+                    <a
+                      key={i}
+                      href={url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="relative aspect-square rounded-xl overflow-hidden border border-gray-200 bg-gray-50 hover:opacity-90 transition-opacity"
+                    >
+                      <img src={url} alt={`资质与设备 ${i + 1}`} loading="lazy" className="w-full h-full object-cover" />
+                    </a>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 

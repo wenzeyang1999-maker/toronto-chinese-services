@@ -3,7 +3,7 @@ import { motion } from 'framer-motion'
 import {
   Camera, Check, ExternalLink, Pencil, Share2, Tag, X,
   AlignLeft, Wifi, WifiOff, Briefcase, Building2, User,
-  Award, Plus, Trash2, ImagePlus, ShieldCheck,
+  Plus, ImagePlus, ShieldCheck,
 } from 'lucide-react'
 import { cropAndCompressImage, compressImage, validateImageFile } from '../../../lib/compressImage'
 import { supabase } from '../../../lib/supabase'
@@ -24,12 +24,6 @@ const TABS: { key: Tab; label: string }[] = [
   { key: 'stats',     label: '📊 数据面板' },
 ]
 
-interface Certification {
-  name: string
-  issuer?: string
-  year?: string
-}
-
 interface Profile {
   name: string
   avatar_url: string | null
@@ -37,7 +31,7 @@ interface Profile {
   bio: string | null
   business_type: 'individual' | 'business'
   skill_tags: string[]
-  certifications: Certification[]
+  qualification_note: string
   qualification_images: string[]
   membership_level: MemberLevel
   is_online: boolean
@@ -71,12 +65,10 @@ export default function HomepageSection() {
   const [tagInput,    setTagInput]    = useState('')  // current chip being typed
   const [draftTags,   setDraftTags]   = useState<string[]>([])
 
-  // Certifications
-  const [editingCerts, setEditingCerts] = useState(false)
-  const [draftCerts,   setDraftCerts]   = useState<Certification[]>([])
-
-  // Qualification & equipment photos
-  const [uploadingQual, setUploadingQual] = useState(false)
+  // Qualification & equipment (merged: free-text note + photo gallery)
+  const [editingQualNote, setEditingQualNote] = useState(false)
+  const [qualNoteInput,   setQualNoteInput]   = useState('')
+  const [uploadingQual,   setUploadingQual]   = useState(false)
 
   const coverRef = useRef<HTMLInputElement>(null)
   const qualRef  = useRef<HTMLInputElement>(null)
@@ -84,7 +76,7 @@ export default function HomepageSection() {
   useEffect(() => {
     if (!user) return
     supabase.from('users')
-      .select('name, avatar_url, bio, social_links, membership_level, membership_expires_at, is_online, business_type, skill_tags, certifications, qualification_images')
+      .select('name, avatar_url, bio, social_links, membership_level, membership_expires_at, is_online, business_type, skill_tags, qualification_note, qualification_images')
       .eq('id', user.id).single()
       .then(({ data }) => {
         if (!data) return
@@ -98,7 +90,7 @@ export default function HomepageSection() {
           bio:            data.bio ?? null,
           business_type:  (data.business_type ?? 'individual') as 'individual' | 'business',
           skill_tags:     data.skill_tags ?? [],
-          certifications: (data.certifications ?? []) as Certification[],
+          qualification_note:   data.qualification_note ?? '',
           qualification_images: (data.qualification_images ?? []) as string[],
           membership_level: isActive ? (data.membership_level as MemberLevel) ?? 'L1' : 'L1',
           is_online:      data.is_online ?? false,
@@ -163,12 +155,12 @@ export default function HomepageSection() {
     setSaving(false)
   }
 
-  async function saveCerts() {
+  async function saveQualNote() {
     setSaving(true)
-    const cleaned = draftCerts.filter(c => c.name.trim())
-    await supabase.from('users').update({ certifications: cleaned }).eq('id', user!.id)
-    setProfile(p => p ? { ...p, certifications: cleaned } : p)
-    setEditingCerts(false)
+    const note = qualNoteInput.trim()
+    await supabase.from('users').update({ qualification_note: note }).eq('id', user!.id)
+    setProfile(p => p ? { ...p, qualification_note: note } : p)
+    setEditingQualNote(false)
     setSaving(false)
   }
 
@@ -328,13 +320,11 @@ export default function HomepageSection() {
                 ))}
               </div>
             )}
-            {profile.certifications.length > 0 && (
-              <div className="flex flex-wrap gap-1.5 mt-2">
-                {profile.certifications.map((c, i) => (
-                  <span key={i} className="text-xs bg-amber-50 text-amber-700 border border-amber-200 px-2.5 py-1 rounded-full font-medium flex items-center gap-1">
-                    <Award size={10} /> {c.name}
-                  </span>
-                ))}
+            {profile.qualification_images.length > 0 && (
+              <div className="mt-2">
+                <span className="text-xs bg-emerald-50 text-emerald-700 border border-emerald-200 px-2.5 py-1 rounded-full font-medium inline-flex items-center gap-1">
+                  <ShieldCheck size={10} /> {profile.qualification_images.length} 张资质图
+                </span>
               </div>
             )}
           </div>
@@ -507,77 +497,52 @@ export default function HomepageSection() {
               )}
             </div>
 
-            {/* ⑤ 资质/证书/牌照 */}
+            {/* ⑤ 资质与设备 — 文字说明 + 图片（合并）*/}
             <div className="px-5 py-4">
-              <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center justify-between mb-1">
                 <div className="flex items-center gap-2 text-sm font-semibold text-gray-700">
-                  <Award size={15} className="text-amber-500" />
-                  资质 / 证书 / 牌照
+                  <ShieldCheck size={15} className="text-emerald-500" />
+                  资质与设备
                 </div>
-                {!editingCerts && (
-                  <button onClick={() => { setDraftCerts(profile.certifications); setEditingCerts(true) }}
+                {!editingQualNote && (
+                  <button onClick={() => { setQualNoteInput(profile.qualification_note); setEditingQualNote(true) }}
                     className="text-gray-400 hover:text-primary-600"><Pencil size={14} /></button>
                 )}
               </div>
-              {editingCerts ? (
-                <div className="space-y-2">
-                  {draftCerts.map((cert, i) => (
-                    <div key={i} className="flex gap-2 items-start">
-                      <div className="flex-1 grid grid-cols-3 gap-1.5">
-                        <input value={cert.name} onChange={e => setDraftCerts(prev => prev.map((c, j) => j === i ? { ...c, name: e.target.value } : c))}
-                          placeholder="证书名称 *"
-                          className="col-span-3 text-sm border border-gray-200 rounded-lg px-2.5 py-1.5 outline-none focus:ring-1 focus:ring-primary-300" />
-                        <input value={cert.issuer ?? ''} onChange={e => setDraftCerts(prev => prev.map((c, j) => j === i ? { ...c, issuer: e.target.value } : c))}
-                          placeholder="颁发机构"
-                          className="col-span-2 text-sm border border-gray-200 rounded-lg px-2.5 py-1.5 outline-none focus:ring-1 focus:ring-primary-300" />
-                        <input value={cert.year ?? ''} onChange={e => setDraftCerts(prev => prev.map((c, j) => j === i ? { ...c, year: e.target.value } : c))}
-                          placeholder="年份"
-                          className="text-sm border border-gray-200 rounded-lg px-2.5 py-1.5 outline-none focus:ring-1 focus:ring-primary-300" />
-                      </div>
-                      <button onClick={() => setDraftCerts(prev => prev.filter((_, j) => j !== i))}
-                        className="text-red-400 hover:text-red-600 mt-1.5"><Trash2 size={14} /></button>
-                    </div>
-                  ))}
-                  <button onClick={() => setDraftCerts(prev => [...prev, { name: '', issuer: '', year: '' }])}
-                    className="flex items-center gap-1.5 text-xs text-primary-600 font-semibold py-1">
-                    <Plus size={13} /> 添加证书
-                  </button>
-                  <div className="flex gap-2 mt-1">
-                    <button onClick={saveCerts} disabled={saving}
+              <p className="text-xs text-gray-400 mb-3">
+                写一句资质说明，并上传营业执照、证书、车队/设备照片，客户能在你主页直接看到（最多 {MAX_QUAL_IMAGES} 张）
+              </p>
+
+              {/* Text note */}
+              {editingQualNote ? (
+                <div className="mb-3">
+                  <textarea
+                    value={qualNoteInput}
+                    onChange={e => setQualNoteInput(e.target.value)}
+                    rows={3}
+                    maxLength={300}
+                    placeholder="例：持有 XX 牌照、XX 保险，从业 8 年；货车 2 辆、专业打包工具齐全"
+                    className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 outline-none resize-none focus:ring-1 focus:ring-primary-300"
+                  />
+                  <div className="flex gap-2 mt-1.5">
+                    <button onClick={saveQualNote} disabled={saving}
                       className="flex items-center gap-1 text-xs text-white bg-primary-600 px-3 py-1.5 rounded-lg">
                       <Check size={12} /> 保存
                     </button>
-                    <button onClick={() => setEditingCerts(false)} className="flex items-center gap-1 text-xs text-gray-400">
+                    <button onClick={() => setEditingQualNote(false)} className="flex items-center gap-1 text-xs text-gray-400">
                       <X size={12} /> 取消
                     </button>
                   </div>
                 </div>
               ) : (
-                <div className="space-y-1.5">
-                  {profile.certifications.length > 0
-                    ? profile.certifications.map((c, i) => (
-                        <div key={i} className="flex items-center gap-2 text-sm text-gray-700">
-                          <Award size={13} className="text-amber-500 flex-shrink-0" />
-                          <span className="font-medium">{c.name}</span>
-                          {c.issuer && <span className="text-gray-400 text-xs">· {c.issuer}</span>}
-                          {c.year  && <span className="text-gray-400 text-xs">· {c.year}</span>}
-                        </div>
-                      ))
-                    : <span className="text-sm text-gray-400 italic">未填写，有证书可提高客户信任度</span>
-                  }
-                </div>
+                <p className="text-sm mb-3 whitespace-pre-wrap">
+                  {profile.qualification_note.trim()
+                    ? <span className="text-gray-700">{profile.qualification_note}</span>
+                    : <span className="text-gray-400 italic">未填写资质说明，填写可提高客户信任度</span>}
+                </p>
               )}
-            </div>
 
-            {/* ⑥ 资质与设备（图片）*/}
-            <div className="px-5 py-4 border-t border-gray-100">
-              <div className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-1">
-                <ShieldCheck size={15} className="text-emerald-500" />
-                资质与设备
-              </div>
-              <p className="text-xs text-gray-400 mb-3">
-                上传营业执照、资质证书、车队/设备照片等，客户能在你的主页直接看到（最多 {MAX_QUAL_IMAGES} 张）
-              </p>
+              {/* Image grid */}
               <div className="grid grid-cols-3 gap-2">
                 {profile.qualification_images.map((url, i) => (
                   <div key={i} className="relative aspect-square rounded-xl overflow-hidden border border-gray-200 bg-gray-50">
