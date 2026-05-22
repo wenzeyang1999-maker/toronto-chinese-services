@@ -12,7 +12,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuthStore } from '../../store/authStore'
 import HomeActionHero from './components/HomeActionHero'
 import HomeServiceShelf from './components/HomeServiceShelf'
-import RadiusSlider, { RADIUS_MIN_KM, RADIUS_MAX_KM } from '../../components/RadiusSlider/RadiusSlider'
+import { RADIUS_MIN_KM, RADIUS_MAX_KM } from '../../components/RadiusSlider/RadiusSlider'
 import { PlusCircle, Search as SearchIcon, ChevronRight } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { getCategoryById } from '../../data/categories'
@@ -298,20 +298,13 @@ export default function Home() {
                     })
                   : filtered
                 return (
-                  <>
-                    <RadiusSlider
-                      value={mapRadiusKm}
-                      onChange={handleMapRadius}
-                      disabled={!userLocation}
-                      hint={userLocation ? '拖动滑块，地图自动缩放到对应范围' : '开启定位后按距离筛选'}
-                    />
-                    <ServiceMap
-                      services={radiusFiltered}
-                      count={radiusFiltered.length}
-                      keyword={mapKeyword}
-                      radiusKm={mapRadiusKm}
-                    />
-                  </>
+                  <ServiceMap
+                    services={radiusFiltered}
+                    count={radiusFiltered.length}
+                    keyword={mapKeyword}
+                    radiusKm={mapRadiusKm}
+                    onRadiusChange={handleMapRadius}
+                  />
                 )
               }}
             />
@@ -419,19 +412,6 @@ export default function Home() {
               {/* Map view */}
               {viewMode === 'map' ? (
                 <>
-                  {/* Radius slider + skill-tag filter status */}
-                  <RadiusSlider
-                    value={mapRadiusKm}
-                    onChange={handleMapRadius}
-                    disabled={!userLocation}
-                    hint={
-                      !userLocation
-                        ? '开启定位后按距离筛选'
-                        : mySkillTags.length > 0
-                          ? `已按你的标签过滤：${mySkillTags.slice(0, 3).join('、')}${mySkillTags.length > 3 ? '…' : ''}`
-                          : '拖动滑块，地图自动缩放到对应范围'
-                    }
-                  />
                   <Suspense fallback={<div className="h-80 rounded-2xl bg-gray-100 animate-pulse" />}>
                     <ServiceMap
                       services={[]}
@@ -439,9 +419,14 @@ export default function Home() {
                       count={forMap.length}
                       requestsOnly
                       radiusKm={mapRadiusKm}
+                      onRadiusChange={handleMapRadius}
                     />
                   </Suspense>
-                  {mySkillTags.length === 0 && (
+                  {mySkillTags.length > 0 ? (
+                    <p className="text-xs text-gray-400 mt-2 text-center truncate">
+                      已按你的标签过滤：{mySkillTags.slice(0, 3).join('、')}{mySkillTags.length > 3 ? '…' : ''}
+                    </p>
+                  ) : (
                     <p className="text-xs text-gray-400 mt-2 text-center">
                       💡 在「我的主页 → 业务标签」里设置标签，地图就会按你能接的单类型自动过滤
                     </p>

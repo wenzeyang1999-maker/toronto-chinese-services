@@ -2,12 +2,13 @@
 // Renders a Google map with service markers and the user's current location.
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Navigation, Maximize2 } from 'lucide-react'
+import { Navigation, Maximize2, MapPin } from 'lucide-react'
 import type { Service, ServiceRequest, OnlineProvider } from '../../types'
 import { useAppStore } from '../../store/appStore'
 import { useGeolocation } from '../../hooks/useGeolocation'
 import { supabase } from '../../lib/supabase'
 import GoogleMapCanvas, { type GoogleMapCanvasHandle, type GoogleMapPoint } from './GoogleMapCanvas'
+import RadiusSlider from '../RadiusSlider/RadiusSlider'
 import { buildServiceInfo, buildDemandInfo, buildOnlineProviderInfo } from '../../lib/mapInfoWindows'
 
 interface Props {
@@ -20,6 +21,8 @@ interface Props {
   keyword?: string
   /** Search radius in km — draws a circle around the user + fits the map to it. */
   radiusKm?: number
+  /** When provided, shows a floating distance slider on the map. */
+  onRadiusChange?: (km: number) => void
 }
 
 function hasCoordinates(service: Service): service is Service & {
@@ -38,7 +41,7 @@ function mapHeight(count: number): string {
   return 'min(640px, 65dvh)'
 }
 
-export default function ServiceMap({ services, requests = [], count, requestsOnly = false, keyword = '', radiusKm }: Props) {
+export default function ServiceMap({ services, requests = [], count, requestsOnly = false, keyword = '', radiusKm, onRadiusChange }: Props) {
   const navigate = useNavigate()
   const userLocation = useAppStore((s) => s.userLocation)
   const requestLocation = useGeolocation()
@@ -149,6 +152,25 @@ export default function ServiceMap({ services, requests = [], count, requestsOnl
         userLocation={userLocation}
         radiusKm={radiusKm}
       />
+
+      {/* Distance slider — floats on the map (Google Maps style) */}
+      {onRadiusChange && (
+        <div className="absolute top-3 left-3 z-[400]">
+          {userLocation ? (
+            <RadiusSlider value={radiusKm ?? 5} onChange={onRadiusChange} />
+          ) : (
+            <button
+              onClick={() => requestLocation()}
+              className="flex items-center gap-1.5 bg-white/95 backdrop-blur-sm rounded-xl shadow-md
+                         border border-gray-200 px-3 py-2 text-xs font-semibold text-primary-600
+                         active:scale-95 transition-all"
+            >
+              <MapPin size={13} />
+              开启定位筛选距离
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Locate-me button — Google Maps style */}
       <button
