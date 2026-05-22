@@ -38,7 +38,7 @@ interface VerificationRow {
   id: string
   name: string
   email: string
-  verification_doc_url: string | null
+  qualification_images: string[]
   verification_status: string
   created_at: string
 }
@@ -299,7 +299,7 @@ export default function AdminPage() {
   async function loadVerifications() {
     const { data, error } = await supabase
       .from('users')
-      .select('id, name, email, verification_doc_url, verification_status, created_at')
+      .select('id, name, email, qualification_images, verification_status, created_at')
       .eq('verification_status', 'pending')
       .order('created_at', { ascending: false })
     if (error) {
@@ -692,7 +692,7 @@ export default function AdminPage() {
   async function loadVerifHistory() {
     const { data } = await supabase
       .from('users')
-      .select('id, name, email, verification_doc_url, verification_status, created_at')
+      .select('id, name, email, qualification_images, verification_status, created_at')
       .in('verification_status', ['approved', 'rejected'])
       .order('created_at', { ascending: false })
       .limit(50)
@@ -1443,23 +1443,18 @@ export default function AdminPage() {
                     </button>
                   </div>
 
-                  {/* Doc preview */}
-                  {v.verification_doc_url ? (
-                    <a href={v.verification_doc_url} target="_blank" rel="noopener noreferrer"
-                      className="block mb-3">
-                      {v.verification_doc_url.match(/\.(jpg|jpeg|png)$/i) ? (
-                        <img src={v.verification_doc_url} alt="认证文件"
-                          className="w-full max-h-48 object-contain rounded-xl border border-gray-100 bg-gray-50" />
-                      ) : (
-                        <div className="flex items-center gap-2 bg-blue-50 border border-blue-100 rounded-xl px-4 py-3">
-                          <BadgeCheck size={16} className="text-blue-500" />
-                          <span className="text-sm text-blue-600">查看上传文件（PDF）</span>
-                          <ExternalLink size={12} className="text-blue-400 ml-auto" />
-                        </div>
-                      )}
-                    </a>
+                  {/* Qualification images preview */}
+                  {v.qualification_images && v.qualification_images.length > 0 ? (
+                    <div className="grid grid-cols-3 gap-2 mb-3">
+                      {v.qualification_images.map((url, i) => (
+                        <a key={i} href={url} target="_blank" rel="noopener noreferrer"
+                          className="block aspect-square rounded-xl overflow-hidden border border-gray-100 bg-gray-50 hover:opacity-90 transition-opacity">
+                          <img src={url} alt={`资质 ${i + 1}`} className="w-full h-full object-cover" />
+                        </a>
+                      ))}
+                    </div>
                   ) : (
-                    <p className="text-xs text-gray-400 mb-3">未上传文件</p>
+                    <p className="text-xs text-gray-400 mb-3">未上传资质图片</p>
                   )}
 
                   <p className="text-xs text-gray-400 mb-3">申请时间：{v.created_at.slice(0, 10)}</p>

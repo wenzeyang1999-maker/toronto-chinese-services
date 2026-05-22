@@ -4,13 +4,13 @@
 //             telegram / website  — stored in users.social_links JSONB
 // • 商户资质 : upload docs to avatars/{uid}/verify-doc.*
 import { useRef, useState, useEffect, useCallback } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
-  Mail, Phone, ShieldCheck, Upload, FileCheck,
+  Mail, Phone, ShieldCheck, ImagePlus, BadgeCheck, Clock3,
   AlertCircle, CheckCircle2, Send, RefreshCw, Pencil, Check, X,
 } from 'lucide-react'
 import { supabase } from '../../../lib/supabase'
-import { compressImage } from '../../../lib/compressImage'
 import type { User as SupabaseUser } from '@supabase/supabase-js'
 
 interface Props { user: SupabaseUser }
@@ -75,17 +75,21 @@ export default function VerificationSection({ user }: Props) {
   const [savingLinks,  setSavingLinks]  = useState(false)
   const [linksMsg,     setLinksMsg]     = useState<{ ok: boolean; text: string } | null>(null)
 
-  // ── doc upload state ──────────────────────────────────────────────────────
-  const fileRef = useRef<HTMLInputElement>(null)
-  const [uploading,  setUploading]  = useState(false)
-  const [docUrl,     setDocUrl]     = useState<string | null>(null)
-  const [uploadMsg,  setUploadMsg]  = useState<{ ok: boolean; text: string } | null>(null)
+  // ── merchant verification state (now driven by 资质与设备 photos) ──────────
+  const navigate = useNavigate()
+  const [verifStatus,     setVerifStatus]     = useState<'none' | 'pending' | 'approved' | 'rejected'>('none')
+  const [businessVerified, setBusinessVerified] = useState(false)
+  const [qualCount,       setQualCount]       = useState(0)
+  const [submitting,      setSubmitting]      = useState(false)
+  const [verifMsg,        setVerifMsg]        = useState<{ ok: boolean; text: string } | null>(null)
 
   const emailVerified = !!user.email_confirmed_at
 
   // ── load data on mount ────────────────────────────────────────────────────
   useEffect(() => {
-    supabase.from('users').select('phone, phone_verified, wechat, social_links').eq('id', user.id).single()
+    supabase.from('users')
+      .select('phone, phone_verified, wechat, social_links, verification_status, business_verified, qualification_images')
+      .eq('id', user.id).single()
       .then(({ data }) => {
         if (!data) return
         setDbPhone(data.phone ?? null)
@@ -104,14 +108,27 @@ export default function VerificationSection({ user }: Props) {
         }
         setSocials(loaded)
         setEditSocials(loaded)
+        const st = data.verification_status
+        setVerifStatus(st === 'pending' || st === 'approved' || st === 'rejected' ? st : 'none')
+        setBusinessVerified(data.business_verified ?? false)
+        setQualCount(((data.qualification_images as string[] | null) ?? []).length)
       })
-
-    const { data: { publicUrl } } = supabase.storage
-      .from('avatars').getPublicUrl(`${user.id}/verify-doc`)
-    fetch(publicUrl, { method: 'HEAD' })
-      .then(r => { if (r.ok) setDocUrl(publicUrl) })
-      .catch(() => {})
   }, [user.id])
+
+  // ── submit merchant verification (reviews the 资质与设备 photos) ────────────
+  async function submitForReview() {
+    setSubmitting(true); setVerifMsg(null)
+    const { error } = await supabase.from('users')
+      .update({ verification_status: 'pending' })
+      .eq('id', user.id)
+    setSubmitting(false)
+    if (error) {
+      setVerifMsg({ ok: false, text: '提交失败，请稍后重试' })
+      return
+    }
+    setVerifStatus('pending')
+    setVerifMsg({ ok: true, text: '已提交，我们将在 1-3 个工作日内审核你的资质图片' })
+  }
 
   // ── countdown timer ───────────────────────────────────────────────────────
   const startCountdown = useCallback(() => {
@@ -170,31 +187,6 @@ export default function VerificationSection({ user }: Props) {
     setEditingLinks(false)
     setLinksMsg({ ok: true, text: '联系方式已保存' })
     setTimeout(() => setLinksMsg(null), 3000)
-  }
-
-  // ── doc upload ────────────────────────────────────────────────────────────
-  async function handleDocUpload(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0]; if (!file) return
-    if (file.size > 5 * 1024 * 1024) { setUploadMsg({ ok: false, text: '文件不能超过 5MB' }); return }
-    setUploading(true); setUploadMsg(null)
-    try {
-      const compressed = await compressImage(file)
-      const path = `${user.id}/verify-doc.jpg`
-      const { error } = await supabase.storage.from('avatars').upload(path, compressed, { upsert: true })
-      if (error) throw error
-      const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(path)
-      await supabase.from('users').update({
-        verification_doc_url: publicUrl,
-        verification_status:  'pending',
-      }).eq('id', user.id)
-      setDocUrl(publicUrl)
-      setUploadMsg({ ok: true, text: '上传成功，我们将在 1-3 个工作日内完成审核' })
-    } catch (err) {
-      setUploadMsg({ ok: false, text: '上传失败：' + (err instanceof Error ? err.message : '请重试') })
-    } finally {
-      setUploading(false)
-      if (fileRef.current) fileRef.current.value = ''
-    }
   }
 
   // count filled platforms for summary
@@ -396,41 +388,77 @@ export default function VerificationSection({ user }: Props) {
         <div className="px-5 pt-5 pb-3">
           <h3 className="text-sm font-semibold text-gray-700">商户资质认证</h3>
           <p className="text-xs text-gray-400 mt-0.5">
-            上传营业执照、资格证书等材料，通过后服务将显示
+            审核基于你在「我的主页 → 资质与设备」上传的图片，通过后服务将显示
             <span className="text-blue-600 font-medium"> ✓ 已认证</span> 标志
           </p>
         </div>
-        <div className="px-5 pb-4 border-t border-gray-100">
-          <p className="text-xs text-gray-500 mt-3 mb-2">接受以下材料（任选其一）：</p>
-          <ul className="text-xs text-gray-500 space-y-1 list-disc list-inside">
-            <li>营业执照 / Business Registration</li>
-            <li>职业资格证书（驾照、厨师证、建筑证等）</li>
-            <li>专业认证证书（CPA、律师执照等）</li>
-            <li>其他政府颁发的资质证明</li>
-          </ul>
-          <p className="text-xs text-gray-400 mt-2">支持 JPG、PNG、PDF，最大 5MB</p>
-        </div>
-        <div className="px-5 pb-5 border-t border-gray-100">
-          <input ref={fileRef} type="file" accept="image/jpeg,image/png,application/pdf"
-            className="hidden" onChange={handleDocUpload} />
-          {docUrl ? (
-            <div className="mt-3 flex items-center gap-3 bg-green-50 border border-green-200 rounded-2xl p-4">
-              <FileCheck size={20} className="text-green-600 flex-shrink-0" />
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-green-700">文件已上传</p>
-                <p className="text-xs text-green-600 mt-0.5">审核中，预计 1-3 个工作日</p>
+        <div className="px-5 pb-5 border-t border-gray-100 pt-4">
+          {businessVerified || verifStatus === 'approved' ? (
+            // Already verified
+            <div className="flex items-center gap-3 bg-green-50 border border-green-200 rounded-2xl p-4">
+              <BadgeCheck size={22} className="text-green-600 flex-shrink-0" />
+              <div className="flex-1">
+                <p className="text-sm font-semibold text-green-700">已通过商户认证</p>
+                <p className="text-xs text-green-600 mt-0.5">你的服务卡片已显示「已认证」标志</p>
               </div>
-              <button onClick={() => fileRef.current?.click()}
-                className="text-xs text-green-600 underline flex-shrink-0">重新上传</button>
+            </div>
+          ) : verifStatus === 'pending' ? (
+            // Under review
+            <div className="flex items-center gap-3 bg-amber-50 border border-amber-200 rounded-2xl p-4">
+              <Clock3 size={22} className="text-amber-500 flex-shrink-0" />
+              <div className="flex-1">
+                <p className="text-sm font-semibold text-amber-700">审核中</p>
+                <p className="text-xs text-amber-600 mt-0.5">我们正在审核你的资质图片，预计 1-3 个工作日</p>
+              </div>
+            </div>
+          ) : qualCount === 0 ? (
+            // No qualification images yet — guide to homepage
+            <div>
+              <div className="flex items-start gap-3 bg-gray-50 border border-gray-200 rounded-2xl p-4 mb-3">
+                <ImagePlus size={20} className="text-gray-400 flex-shrink-0 mt-0.5" />
+                <p className="text-sm text-gray-600">
+                  你还没上传资质图片。请先到「我的主页 → 资质与设备」上传营业执照、资格证书等
+                  （敏感信息如注册号、地址可自行打码）。
+                </p>
+              </div>
+              <button
+                onClick={() => navigate('/profile?section=homepage')}
+                className="w-full py-3 rounded-2xl bg-primary-600 text-white text-sm font-semibold hover:bg-primary-700 transition-colors"
+              >
+                去我的主页上传资质
+              </button>
             </div>
           ) : (
-            <button onClick={() => fileRef.current?.click()} disabled={uploading}
-              className="mt-3 w-full flex flex-col items-center justify-center gap-2 border-2 border-dashed border-gray-200 rounded-2xl py-8 text-gray-400 hover:border-primary-300 hover:text-primary-500 transition-colors disabled:opacity-60">
-              <Upload size={24} />
-              <span className="text-sm">{uploading ? '上传中…' : '点击上传资质证明'}</span>
-            </button>
+            // Has images, ready to submit (or resubmit after rejection)
+            <div>
+              {verifStatus === 'rejected' && (
+                <div className="flex items-start gap-2 bg-red-50 border border-red-200 rounded-2xl p-3 mb-3">
+                  <AlertCircle size={16} className="text-red-500 flex-shrink-0 mt-0.5" />
+                  <p className="text-xs text-red-600">上次审核未通过。请到「我的主页」更新资质图片后重新提交。</p>
+                </div>
+              )}
+              <div className="flex items-center gap-3 bg-gray-50 border border-gray-200 rounded-2xl p-4 mb-3">
+                <ImagePlus size={20} className="text-emerald-500 flex-shrink-0" />
+                <p className="text-sm text-gray-600 flex-1">
+                  已上传 <strong className="text-gray-800">{qualCount}</strong> 张资质图片
+                </p>
+                <button
+                  onClick={() => navigate('/profile?section=homepage')}
+                  className="text-xs text-primary-600 underline flex-shrink-0"
+                >
+                  管理图片
+                </button>
+              </div>
+              <button
+                onClick={submitForReview}
+                disabled={submitting}
+                className="w-full py-3 rounded-2xl bg-primary-600 text-white text-sm font-semibold hover:bg-primary-700 transition-colors disabled:opacity-60"
+              >
+                {submitting ? '提交中…' : '申请商户认证'}
+              </button>
+            </div>
           )}
-          {uploadMsg && <div className="mt-3"><FeedbackMsg msg={uploadMsg} /></div>}
+          {verifMsg && <div className="mt-3"><FeedbackMsg msg={verifMsg} /></div>}
         </div>
       </div>
 
