@@ -18,6 +18,8 @@ interface Props {
   requestsOnly?: boolean
   /** Free-text keyword. When set, filters online-provider pins by name + skill_tags. */
   keyword?: string
+  /** Search radius in km — draws a circle around the user + fits the map to it. */
+  radiusKm?: number
 }
 
 function hasCoordinates(service: Service): service is Service & {
@@ -36,7 +38,7 @@ function mapHeight(count: number): string {
   return 'min(640px, 65dvh)'
 }
 
-export default function ServiceMap({ services, requests = [], count, requestsOnly = false, keyword = '' }: Props) {
+export default function ServiceMap({ services, requests = [], count, requestsOnly = false, keyword = '', radiusKm }: Props) {
   const navigate = useNavigate()
   const userLocation = useAppStore((s) => s.userLocation)
   const requestLocation = useGeolocation()
@@ -145,6 +147,7 @@ export default function ServiceMap({ services, requests = [], count, requestsOnl
         zoom={userLocation ? 13 : 11}
         points={points}
         userLocation={userLocation}
+        radiusKm={radiusKm}
       />
 
       {/* Locate-me button — Google Maps style */}

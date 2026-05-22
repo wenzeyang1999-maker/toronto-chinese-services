@@ -23,6 +23,8 @@ interface Props {
   zoom: number
   userLocation?: { lat: number; lng: number } | null
   scrollWheel?: boolean
+  /** Search radius in km — draws a circle around the user and fits the map to it. */
+  radiusKm?: number
 }
 
 const GoogleMapCanvas = forwardRef<GoogleMapCanvasHandle, Props>(function GoogleMapCanvas({
@@ -31,6 +33,7 @@ const GoogleMapCanvas = forwardRef<GoogleMapCanvasHandle, Props>(function Google
   zoom,
   userLocation = null,
   scrollWheel = true,
+  radiusKm,
 }, ref) {
   const containerRef = useRef<HTMLDivElement | null>(null)
   const mapRef = useRef<any>(null)
@@ -97,6 +100,7 @@ const GoogleMapCanvas = forwardRef<GoogleMapCanvasHandle, Props>(function Google
 
       const bounds = new maps.LatLngBounds()
       const hasBounds = points.length > 0 || !!userLocation
+      let searchCircle: any = null
 
       if (userLocation) {
         const userMarker = new maps.Marker({
@@ -113,19 +117,35 @@ const GoogleMapCanvas = forwardRef<GoogleMapCanvasHandle, Props>(function Google
           },
           zIndex: 1000,
         })
-        const accuracyCircle = new maps.Circle({
-          map: mapRef.current,
-          center: userLocation,
-          radius: 300,
-          fillColor: '#EF4444',
-          fillOpacity: 0.08,
-          strokeColor: '#EF4444',
-          strokeOpacity: 0.35,
-          strokeWeight: 1,
-        })
         markersRef.current.push(userMarker)
-        overlaysRef.current.push(accuracyCircle)
         bounds.extend(userLocation)
+
+        if (radiusKm && radiusKm > 0) {
+          // Search-radius circle — grows/shrinks with the slider.
+          searchCircle = new maps.Circle({
+            map: mapRef.current,
+            center: userLocation,
+            radius: radiusKm * 1000,
+            fillColor: '#2563eb',
+            fillOpacity: 0.06,
+            strokeColor: '#2563eb',
+            strokeOpacity: 0.4,
+            strokeWeight: 1.5,
+          })
+          overlaysRef.current.push(searchCircle)
+        } else {
+          const accuracyCircle = new maps.Circle({
+            map: mapRef.current,
+            center: userLocation,
+            radius: 300,
+            fillColor: '#EF4444',
+            fillOpacity: 0.08,
+            strokeColor: '#EF4444',
+            strokeOpacity: 0.35,
+            strokeWeight: 1,
+          })
+          overlaysRef.current.push(accuracyCircle)
+        }
       }
 
       for (const point of points) {
@@ -156,7 +176,11 @@ const GoogleMapCanvas = forwardRef<GoogleMapCanvasHandle, Props>(function Google
         bounds.extend(position)
       }
 
-      if (hasBounds && points.length + (userLocation ? 1 : 0) > 1) {
+      if (searchCircle) {
+        // Fit the map to the search-radius circle so it always fills the frame.
+        const circleBounds = searchCircle.getBounds()
+        if (circleBounds) mapRef.current.fitBounds(circleBounds, 24)
+      } else if (hasBounds && points.length + (userLocation ? 1 : 0) > 1) {
         mapRef.current.fitBounds(bounds, 56)
       }
     }).catch((err) => {
@@ -164,7 +188,7 @@ const GoogleMapCanvas = forwardRef<GoogleMapCanvasHandle, Props>(function Google
     })
 
     return () => { active = false }
-  }, [points, userLocation?.lat, userLocation?.lng])
+  }, [points, userLocation?.lat, userLocation?.lng, radiusKm])
 
   return (
     <>

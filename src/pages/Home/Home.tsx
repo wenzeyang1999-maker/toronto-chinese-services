@@ -12,6 +12,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuthStore } from '../../store/authStore'
 import HomeActionHero from './components/HomeActionHero'
 import HomeServiceShelf from './components/HomeServiceShelf'
+import RadiusSlider, { RADIUS_MIN_KM, RADIUS_MAX_KM } from '../../components/RadiusSlider/RadiusSlider'
 import { PlusCircle, Search as SearchIcon, ChevronRight } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { getCategoryById } from '../../data/categories'
@@ -82,10 +83,10 @@ export default function Home() {
     return () => { cancelled = true }
   }, [user])
 
-  // Map radius (km) for the "发现客户" map view — persisted to localStorage
+  // Map radius (km) for the map views — continuous slider, persisted to localStorage
   const [mapRadiusKm, setMapRadiusKm] = useState<number>(() => {
     const saved = Number(localStorage.getItem('tcs_map_radius_km'))
-    return saved === 3 || saved === 5 || saved === 10 ? saved : 5
+    return saved >= RADIUS_MIN_KM && saved <= RADIUS_MAX_KM ? saved : 5
   })
   const handleMapRadius = (km: number) => {
     setMapRadiusKm(km)
@@ -298,32 +299,17 @@ export default function Home() {
                   : filtered
                 return (
                   <>
-                    <div className="bg-white border border-gray-200 rounded-xl px-3 py-2.5 mb-3 shadow-sm flex items-center gap-3">
-                      <span className="text-xs text-gray-500 flex-shrink-0">距离范围</span>
-                      <div className="flex gap-1">
-                        {[3, 5, 10].map(km => (
-                          <button key={km}
-                            onClick={() => handleMapRadius(km)}
-                            className={`px-3 py-1 rounded-full text-xs font-semibold transition-all ${
-                              mapRadiusKm === km
-                                ? 'bg-primary-600 text-white shadow-sm'
-                                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                            }`}
-                          >
-                            {km} km
-                          </button>
-                        ))}
-                      </div>
-                      {!userLocation && (
-                        <span className="text-[11px] text-gray-400 flex-1 truncate">
-                          开启定位后按距离筛选
-                        </span>
-                      )}
-                    </div>
+                    <RadiusSlider
+                      value={mapRadiusKm}
+                      onChange={handleMapRadius}
+                      disabled={!userLocation}
+                      hint={userLocation ? '拖动滑块，地图自动缩放到对应范围' : '开启定位后按距离筛选'}
+                    />
                     <ServiceMap
                       services={radiusFiltered}
                       count={radiusFiltered.length}
                       keyword={mapKeyword}
+                      radiusKm={mapRadiusKm}
                     />
                   </>
                 )
@@ -434,34 +420,25 @@ export default function Home() {
               {viewMode === 'map' ? (
                 <>
                   {/* Radius slider + skill-tag filter status */}
-                  <div className="bg-white border border-gray-200 rounded-xl px-3 py-2.5 mb-3 shadow-sm flex items-center gap-3 flex-wrap">
-                    <span className="text-xs text-gray-500 flex-shrink-0">距离范围</span>
-                    <div className="flex gap-1 flex-shrink-0">
-                      {[3, 5, 10].map(km => (
-                        <button key={km}
-                          onClick={() => handleMapRadius(km)}
-                          className={`px-3 py-1 rounded-full text-xs font-semibold transition-all ${
-                            mapRadiusKm === km
-                              ? 'bg-primary-600 text-white shadow-sm'
-                              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                          }`}
-                        >
-                          {km} km
-                        </button>
-                      ))}
-                    </div>
-                    {mySkillTags.length > 0 && (
-                      <span className="text-[11px] text-gray-400 flex-1 truncate">
-                        已按你的标签过滤：{mySkillTags.slice(0, 3).join('、')}{mySkillTags.length > 3 ? '…' : ''}
-                      </span>
-                    )}
-                  </div>
+                  <RadiusSlider
+                    value={mapRadiusKm}
+                    onChange={handleMapRadius}
+                    disabled={!userLocation}
+                    hint={
+                      !userLocation
+                        ? '开启定位后按距离筛选'
+                        : mySkillTags.length > 0
+                          ? `已按你的标签过滤：${mySkillTags.slice(0, 3).join('、')}${mySkillTags.length > 3 ? '…' : ''}`
+                          : '拖动滑块，地图自动缩放到对应范围'
+                    }
+                  />
                   <Suspense fallback={<div className="h-80 rounded-2xl bg-gray-100 animate-pulse" />}>
                     <ServiceMap
                       services={[]}
                       requests={forMap}
                       count={forMap.length}
                       requestsOnly
+                      radiusKm={mapRadiusKm}
                     />
                   </Suspense>
                   {mySkillTags.length === 0 && (
