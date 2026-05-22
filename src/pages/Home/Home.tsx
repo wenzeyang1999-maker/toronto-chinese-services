@@ -5,7 +5,7 @@ import InquiryModal from '../../components/InquiryModal/InquiryModal'
 import SectionTabs, { type SectionTab } from '../../components/SectionTabs/SectionTabs'
 import { useAppStore } from '../../store/appStore'
 import { useGeolocation } from '../../hooks/useGeolocation'
-import RecentCategories from '../../components/RecentCategories/RecentCategories'
+// import RecentCategories from '../../components/RecentCategories/RecentCategories'  // hidden — see below
 import RecommendedServices from '../../components/RecommendedServices/RecommendedServices'
 import ServiceRequestCard from '../../components/ServiceRequestCard/ServiceRequestCard'
 import { useNavigate, useSearchParams } from 'react-router-dom'
@@ -231,7 +231,9 @@ export default function Home() {
           <CategoryButtons />
         </section>
 
-        <RecentCategories />
+        {/* RecentCategories hidden — redundant with the 热门服务 category grid
+            above. Component kept for possible future reuse (e.g. 猜你喜欢). */}
+        {/* <RecentCategories /> */}
 
         {/* ── Feed mode toggle ─────────────────────────────────────────────── */}
         <div className="flex items-center gap-2 mb-4">
