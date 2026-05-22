@@ -13,15 +13,22 @@ import MembershipBadge, { type MemberLevel } from '../../../components/Membershi
 import ServicesSection from './ServicesSection'
 import CommunitySection from './CommunitySection'
 import StatsSection from './StatsSection'
+import SavesSection from './SavesSection'
+import FollowsSection from './FollowsSection'
+import BrowseSection from './BrowseSection'
+import type { BrowseEntry } from '../types'
 import { toast } from '../../../lib/toast'
 
-type Tab = 'edit' | 'services' | 'community' | 'stats'
+type Tab = 'edit' | 'services' | 'community' | 'stats' | 'saves' | 'follows' | 'browse'
 
 const TABS: { key: Tab; label: string }[] = [
   { key: 'edit',      label: '编辑主页' },
   { key: 'services',  label: '📦 我的发布' },
   { key: 'community', label: '💬 我的帖子' },
   { key: 'stats',     label: '📊 数据面板' },
+  { key: 'saves',     label: '❤️ 我的收藏' },
+  { key: 'follows',   label: '👤 我的关注' },
+  { key: 'browse',    label: '🕐 浏览记录' },
 ]
 
 interface Profile {
@@ -72,6 +79,12 @@ export default function HomepageSection() {
 
   const coverRef = useRef<HTMLInputElement>(null)
   const qualRef  = useRef<HTMLInputElement>(null)
+
+  // Browse history (for the 浏览记录 tab) — read from localStorage
+  const [browse, setBrowse] = useState<BrowseEntry[]>(() => {
+    try { return JSON.parse(localStorage.getItem('tcs_browse_history') ?? '[]') }
+    catch { return [] }
+  })
 
   useEffect(() => {
     if (!user) return
@@ -585,6 +598,16 @@ export default function HomepageSection() {
       {tab === 'services'  && <div className="scroll-mt-28"><ServicesSection /></div>}
       {tab === 'community' && <div className="scroll-mt-28"><CommunitySection /></div>}
       {tab === 'stats'     && <div className="scroll-mt-28"><StatsSection /></div>}
+      {tab === 'saves'     && <div className="scroll-mt-28 px-4 py-4 max-w-md lg:max-w-none mx-auto"><SavesSection /></div>}
+      {tab === 'follows'   && <div className="scroll-mt-28 px-4 py-4 max-w-md lg:max-w-none mx-auto"><FollowsSection /></div>}
+      {tab === 'browse'    && (
+        <div className="scroll-mt-28 px-4 py-4 max-w-md lg:max-w-none mx-auto">
+          <BrowseSection
+            items={browse}
+            onClear={() => { localStorage.removeItem('tcs_browse_history'); setBrowse([]) }}
+          />
+        </div>
+      )}
     </motion.div>
   )
 }
