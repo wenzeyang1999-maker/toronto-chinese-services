@@ -2,12 +2,13 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ClipboardList, ChevronDown, ChevronUp, Sparkles } from 'lucide-react'
+import { ClipboardList, ChevronDown, ChevronUp, ChevronRight, Sparkles } from 'lucide-react'
 import { supabase } from '../../../lib/supabase'
 import { useAuthStore } from '../../../store/authStore'
 import { CATEGORIES } from '../../../data/categories'
 
 interface InquiryMatch {
+  provider_id: string | null
   provider_name: string
   created_at: string
 }
@@ -81,7 +82,7 @@ export default function InquiriesSection() {
           data.map(async (row: any) => {
             const { data: matchData } = await supabase
               .from('inquiry_matches')
-              .select('provider_name, created_at')
+              .select('provider_id, provider_name, created_at')
               .eq('inquiry_id', row.id)
               .order('created_at', { ascending: false })
             return { ...row, matches: matchData ?? [] } as Inquiry
@@ -179,10 +180,24 @@ export default function InquiriesSection() {
                               </p>
                               <div className="space-y-1">
                                 {item.matches.map((m, idx) => (
-                                  <div key={idx} className="flex items-center justify-between text-xs text-gray-600 bg-gray-50 rounded-xl px-3 py-2">
-                                    <span className="font-medium">{m.provider_name}</span>
-                                    <span className="text-gray-400">{m.created_at.slice(0, 10)}</span>
-                                  </div>
+                                  m.provider_id ? (
+                                    <button
+                                      key={idx}
+                                      onClick={() => navigate(`/provider/${m.provider_id}`)}
+                                      className="w-full flex items-center justify-between text-xs bg-gray-50 hover:bg-primary-50 rounded-xl px-3 py-2 transition-colors text-left"
+                                    >
+                                      <span className="font-medium text-primary-600 flex items-center gap-1">
+                                        {m.provider_name}
+                                        <ChevronRight size={12} className="text-primary-400" />
+                                      </span>
+                                      <span className="text-gray-400">{m.created_at.slice(0, 10)}</span>
+                                    </button>
+                                  ) : (
+                                    <div key={idx} className="flex items-center justify-between text-xs text-gray-600 bg-gray-50 rounded-xl px-3 py-2">
+                                      <span className="font-medium">{m.provider_name}</span>
+                                      <span className="text-gray-400">{m.created_at.slice(0, 10)}</span>
+                                    </div>
+                                  )
                                 ))}
                               </div>
                               <p className="text-xs text-gray-400 mt-2">平台已向以上服务商发送您的联系方式，请等待他们主动联系</p>
