@@ -12,7 +12,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuthStore } from '../../store/authStore'
 import HomeActionHero from './components/HomeActionHero'
 import HomeServiceShelf from './components/HomeServiceShelf'
-import { PlusCircle, Search as SearchIcon } from 'lucide-react'
+import { PlusCircle, Search as SearchIcon, ChevronRight } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { getCategoryById } from '../../data/categories'
 
@@ -217,7 +217,16 @@ export default function Home() {
 
         {/* Category buttons */}
         <section className="card p-4 mb-4">
-          <h3 className="text-base font-semibold text-gray-800 mb-1">热门服务</h3>
+          <div className="flex items-start justify-between gap-3 mb-1">
+            <h3 className="text-base font-semibold text-gray-800">热门服务</h3>
+            <button
+              onClick={() => navigate('/search')}
+              className="flex items-center gap-0.5 text-sm font-semibold text-primary-600 hover:text-primary-700 flex-shrink-0 transition-colors"
+            >
+              更多服务
+              <ChevronRight size={16} />
+            </button>
+          </div>
           <p className="text-xs text-gray-400 mb-3">选择你需要的板块，找服务·看房·论坛·二手一站搞定。</p>
           <CategoryButtons />
         </section>
