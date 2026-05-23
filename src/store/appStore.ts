@@ -3,6 +3,22 @@ import { create } from 'zustand'
 import type { Service, SearchFilters, ServiceCategory, ServiceRequest } from '../types'
 import { supabase } from '../lib/supabase'
 
+// Cache user location across page reloads so the map works immediately and the
+// browser doesn't need to re-prompt on every visit.
+const USER_LOCATION_KEY = 'tcs_user_location'
+function readCachedLocation(): { lat: number; lng: number } | null {
+  if (typeof window === 'undefined') return null
+  try {
+    const raw = window.localStorage.getItem(USER_LOCATION_KEY)
+    if (!raw) return null
+    const parsed = JSON.parse(raw)
+    if (typeof parsed?.lat === 'number' && typeof parsed?.lng === 'number') {
+      return { lat: parsed.lat, lng: parsed.lng }
+    }
+  } catch { /* ignore */ }
+  return null
+}
+
 // Shape of a raw row returned from Supabase (services + joined users)
 export interface ServiceRow {
   id: string
@@ -146,7 +162,7 @@ function mapRequestRow(row: any): ServiceRequest {
 export const useAppStore = create<AppState>((set, get) => ({
   services: [],
   serviceRequests: [],
-  userLocation: null,
+  userLocation: readCachedLocation(),
   searchFilters: { sortBy: 'rating' },
   isLoadingDone: false,
   servicesHasMore: true,
@@ -154,7 +170,14 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   setLoadingDone: () => set({ isLoadingDone: true }),
 
-  setUserLocation: (loc) => set({ userLocation: loc }),
+  setUserLocation: (loc) => {
+    set({ userLocation: loc })
+    // Persist only on successful fix — keep last-known coords if a refresh fails.
+    if (loc && typeof window !== 'undefined') {
+      try { window.localStorage.setItem(USER_LOCATION_KEY, JSON.stringify({ lat: loc.lat, lng: loc.lng, ts: Date.now() })) }
+      catch { /* ignore */ }
+    }
+  },
 
   setSearchFilters: (filters) =>
     set((state) => ({

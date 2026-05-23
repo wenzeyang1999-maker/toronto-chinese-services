@@ -31,6 +31,10 @@ function hasCoordinates(service: Service): service is Service & {
   return service.location.lat != null && service.location.lng != null
 }
 
+// Module-level guard so we auto-request location at most once per page load —
+// even if the user toggles between feed modes (which mounts a fresh ServiceMap).
+let geoAutoRequested = false
+
 // Returns a CSS height string keyed to dvh (dynamic viewport) so iOS
 // keyboard / URL-bar transitions don't visibly resize the map.
 function mapHeight(count: number): string {
@@ -48,6 +52,18 @@ export default function ServiceMap({ services, requests = [], count, requestsOnl
   const mapRef = useRef<GoogleMapCanvasHandle>(null)
   const mapped = useMemo(() => services.filter(hasCoordinates), [services])
   const [onlineProviders, setOnlineProviders] = useState<OnlineProvider[]>([])
+
+  // Auto-request location once per session for maps that filter by distance.
+  // After the first grant the coords are cached in localStorage (appStore),
+  // so future visits skip the prompt and the map shows immediately.
+  useEffect(() => {
+    if (!onRadiusChange) return
+    if (userLocation) return
+    if (geoAutoRequested) return
+    geoAutoRequested = true
+    requestLocation()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   useEffect(() => {
     if (requestsOnly) return  // Skip online providers fetch when only showing demand pins
