@@ -13,7 +13,7 @@ import { useAuthStore } from '../../store/authStore'
 import HomeActionHero from './components/HomeActionHero'
 import HomeServiceShelf from './components/HomeServiceShelf'
 import { RADIUS_MIN_KM, RADIUS_MAX_KM } from '../../components/RadiusSlider/RadiusSlider'
-import { PlusCircle, Search as SearchIcon, ChevronRight } from 'lucide-react'
+import { PlusCircle, Search as SearchIcon, ChevronRight, Sparkles } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { getCategoryById } from '../../data/categories'
 
@@ -236,41 +236,72 @@ export default function Home() {
             above. Component kept for possible future reuse (e.g. 猜你喜欢). */}
         {/* <RecentCategories /> */}
 
-        {/* ── Feed mode toggle ─────────────────────────────────────────────── */}
-        <div className="flex items-center gap-2 mb-4">
-          <div className="flex bg-gray-100 rounded-xl p-1 gap-1">
+        {/* ── Feed mode toggle — headline dual-marketplace switcher ──────────── */}
+        <div className="mb-4">
+          <div className="grid grid-cols-2 gap-3">
+            {/* 找服务 card */}
             <button
               onClick={() => handleSetFeedMode('services')}
-              className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all
+              aria-pressed={feedMode === 'services'}
+              className={`relative flex items-center gap-3 p-4 rounded-2xl border-2 text-left transition-all active:scale-[0.98]
                 ${feedMode === 'services'
-                  ? 'bg-white text-primary-600 shadow-sm'
-                  : 'text-gray-500 hover:text-gray-700'}`}
+                  ? 'bg-gradient-to-br from-primary-50 to-primary-100/60 border-primary-500 shadow-md'
+                  : 'bg-white border-gray-200 hover:border-gray-300'}`}
             >
-              找服务
+              <div className={`flex-shrink-0 w-12 h-12 rounded-2xl flex items-center justify-center transition-colors
+                ${feedMode === 'services' ? 'bg-primary-600 text-white shadow-sm' : 'bg-gray-100 text-gray-400'}`}>
+                <SearchIcon size={22} strokeWidth={2.4} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className={`text-base font-bold truncate ${feedMode === 'services' ? 'text-primary-700' : 'text-gray-700'}`}>
+                  找服务
+                </p>
+                <p className="text-[11px] text-gray-500 truncate mt-0.5">附近商家 · 师傅</p>
+              </div>
             </button>
+
+            {/* 发现客户 card — the platform's signature feature */}
             <button
               onClick={() => handleSetFeedMode('requests')}
-              className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all
+              aria-pressed={feedMode === 'requests'}
+              className={`relative flex items-center gap-3 p-4 rounded-2xl border-2 text-left transition-all active:scale-[0.98]
                 ${feedMode === 'requests'
-                  ? 'bg-white text-orange-600 shadow-sm'
-                  : 'text-gray-500 hover:text-gray-700'}`}
+                  ? 'bg-gradient-to-br from-orange-50 to-amber-100/60 border-orange-500 shadow-md'
+                  : 'bg-white border-gray-200 hover:border-gray-300'}`}
             >
-              发现客户
+              <div className={`flex-shrink-0 w-12 h-12 rounded-2xl flex items-center justify-center transition-colors
+                ${feedMode === 'requests' ? 'bg-orange-500 text-white shadow-sm' : 'bg-gray-100 text-gray-400'}`}>
+                <Sparkles size={22} strokeWidth={2.4} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className={`text-base font-bold truncate ${feedMode === 'requests' ? 'text-orange-700' : 'text-gray-700'}`}>
+                  发现客户
+                </p>
+                <p className="text-[11px] text-gray-500 truncate mt-0.5">接附近订单 · 赚钱</p>
+              </div>
               {unreadRequestCount > 0 && (
-                <span className="ml-1.5 text-[10px] font-bold bg-red-500 text-white px-1.5 py-0.5 rounded-full">
+                <span className="absolute top-2 right-2 text-[10px] font-bold bg-red-500 text-white px-1.5 py-0.5 rounded-full shadow-sm">
                   {unreadRequestCount > 99 ? '99+' : unreadRequestCount}
+                </span>
+              )}
+              {feedMode !== 'requests' && unreadRequestCount === 0 && (
+                <span className="absolute top-2 right-2 text-[9px] font-bold text-orange-600 bg-orange-100 px-1.5 py-0.5 rounded-full">
+                  NEW
                 </span>
               )}
             </button>
           </div>
+
           {feedMode === 'requests' && (
-            <button
-              onClick={() => navigate('/requests/post')}
-              className="ml-auto flex items-center gap-1.5 text-xs font-semibold text-orange-600
-                         bg-orange-50 border border-orange-200 px-3 py-2 rounded-xl hover:bg-orange-100 transition-colors"
-            >
-              <PlusCircle size={14} /> 发布需求
-            </button>
+            <div className="flex justify-end mt-3">
+              <button
+                onClick={() => navigate('/requests/post')}
+                className="flex items-center gap-1.5 text-xs font-semibold text-orange-600
+                           bg-orange-50 border border-orange-200 px-3 py-2 rounded-xl hover:bg-orange-100 transition-colors"
+              >
+                <PlusCircle size={14} /> 发布需求
+              </button>
+            </div>
           )}
         </div>
 
