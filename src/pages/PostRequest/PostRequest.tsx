@@ -21,18 +21,19 @@ const TORONTO_AREAS = [
 ]
 
 const EXPIRY_OPTIONS = [
+  { label: '1 天', days: 1 },
+  { label: '3 天', days: 3 },
+  { label: '5 天', days: 5 },
   { label: '7 天', days: 7 },
-  { label: '14 天', days: 14 },
-  { label: '30 天', days: 30 },
 ]
 
 // Quick-tag prefill (drives title prefix + expiry default) — set from the
 // home-page "1分钟发布需求" card.
 const URGENCY_PRESETS: Record<string, { prefix: string; days: number }> = {
-  urgent:   { prefix: '[紧急] ', days: 7  },
-  today:    { prefix: '[今天] ', days: 7  },
-  week:     { prefix: '[本周] ', days: 14 },
-  flexible: { prefix: '',         days: 30 },
+  urgent:   { prefix: '[紧急] ', days: 1 },
+  today:    { prefix: '[今天] ', days: 1 },
+  week:     { prefix: '[本周] ', days: 7 },
+  flexible: { prefix: '',         days: 7 },
 }
 
 export default function PostRequest() {
@@ -49,7 +50,7 @@ export default function PostRequest() {
   const [desc,     setDesc]     = useState('')
   const [area,     setArea]     = useState('')
   const [budget,   setBudget]   = useState('')
-  const [days,     setDays]     = useState(preset?.days ?? 14)
+  const [days,     setDays]     = useState(preset?.days ?? 3)
   const [startAt,  setStartAt]  = useState('')   // datetime-local string
   const [endAt,    setEndAt]    = useState('')
   const [loading,  setLoading]  = useState(false)
