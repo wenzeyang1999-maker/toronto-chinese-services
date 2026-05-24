@@ -286,7 +286,7 @@ export default function PostRequest() {
               服务时间 <span className="text-gray-400 font-normal">（可选）</span>
             </label>
             <p className="text-xs text-gray-400 mb-3">告诉商家什么时候到几点 · 让对方一眼看清是否能接</p>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className="block text-[11px] text-gray-500 mb-1">开始时间</label>
                 <input
