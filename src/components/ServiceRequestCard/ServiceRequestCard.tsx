@@ -1,8 +1,9 @@
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { Clock, MapPin, DollarSign } from 'lucide-react'
+import { Clock, MapPin, DollarSign, CalendarClock } from 'lucide-react'
 import type { ServiceRequest } from '../../types'
 import { getCategoryById } from '../../data/categories'
+import { formatRequestTime } from '../../lib/formatRequestTime'
 
 interface Props {
   request: ServiceRequest
@@ -12,6 +13,7 @@ interface Props {
 export default function ServiceRequestCard({ request, layout = 'list' }: Props) {
   const navigate = useNavigate()
   const cat = getCategoryById(request.category)
+  const serviceTime = formatRequestTime(request.serviceAtStart, request.serviceAtEnd)
 
   const urgencyColor =
     request.daysLeft <= 3  ? 'text-red-500 bg-red-50 border-red-200' :
@@ -45,6 +47,14 @@ export default function ServiceRequestCard({ request, layout = 'list' }: Props) 
             <p className="text-xs text-gray-500 leading-relaxed line-clamp-3">
               {request.description}
             </p>
+          )}
+
+          {serviceTime && (
+            <div className="flex items-center gap-1 text-[11px] font-semibold text-orange-700 bg-orange-50
+                            border border-orange-200 rounded-lg px-2 py-1 mt-1 w-fit max-w-full">
+              <CalendarClock size={11} className="flex-shrink-0" />
+              <span className="truncate">{serviceTime}</span>
+            </div>
           )}
 
           <div className="flex flex-wrap gap-1.5 pt-1">
@@ -109,6 +119,14 @@ export default function ServiceRequestCard({ request, layout = 'list' }: Props) 
 
         {request.description && (
           <p className="text-xs text-gray-400 line-clamp-1 mb-1.5">{request.description}</p>
+        )}
+
+        {serviceTime && (
+          <div className="flex items-center gap-1 text-[11px] font-semibold text-orange-700 bg-orange-50
+                          border border-orange-200 rounded-lg px-2 py-0.5 mb-1.5 w-fit max-w-full">
+            <CalendarClock size={11} className="flex-shrink-0" />
+            <span className="truncate">{serviceTime}</span>
+          </div>
         )}
 
         <div className="flex items-center gap-2 flex-wrap">

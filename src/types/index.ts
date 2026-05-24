@@ -78,6 +78,10 @@ export interface ServiceRequest {
   lat?: number
   lng?: number
   budget: string
+  /** When the service is needed (start) — independent of post expiry. ISO. */
+  serviceAtStart?: string
+  /** When the service is needed (end). ISO. */
+  serviceAtEnd?: string
   expiresAt: string
   status: 'open' | 'closed'
   createdAt: string

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { ArrowLeft, Clock, MapPin, DollarSign, Calendar, MessageSquare } from 'lucide-react'
+import { ArrowLeft, Clock, MapPin, DollarSign, Calendar, MessageSquare, CalendarClock } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { supabase } from '../../lib/supabase'
 import { useAuthStore } from '../../store/authStore'
@@ -8,6 +8,7 @@ import { getCategoryById } from '../../data/categories'
 import type { ServiceRequest } from '../../types'
 import Header from '../../components/Header/Header'
 import { toast } from '../../lib/toast'
+import { formatRequestTime } from '../../lib/formatRequestTime'
 
 export default function RequestDetail() {
   const { id }     = useParams<{ id: string }>()
@@ -39,6 +40,8 @@ export default function RequestDetail() {
           lat: data.lat ?? undefined,
           lng: data.lng ?? undefined,
           budget: data.budget ?? '',
+          serviceAtStart: data.service_at_start ?? undefined,
+          serviceAtEnd:   data.service_at_end   ?? undefined,
           expiresAt: data.expires_at,
           status: data.status,
           createdAt: data.created_at,
@@ -120,6 +123,17 @@ export default function RequestDetail() {
               </div>
 
               <h1 className="text-xl font-bold text-gray-900 mb-3">{req.title}</h1>
+
+              {(() => {
+                const t = formatRequestTime(req.serviceAtStart, req.serviceAtEnd)
+                return t ? (
+                  <div className="flex items-center gap-2 text-sm font-semibold text-orange-700 bg-orange-50
+                                  border border-orange-200 rounded-xl px-3 py-2 mb-4">
+                    <CalendarClock size={16} className="text-orange-500 flex-shrink-0" />
+                    <span>服务时间：{t}</span>
+                  </div>
+                ) : null
+              })()}
 
               {req.description && (
                 <p className="text-sm text-gray-600 leading-relaxed mb-4">{req.description}</p>

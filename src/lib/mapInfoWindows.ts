@@ -4,6 +4,7 @@
 // data (service title, request title, provider name, skill tags) cannot
 // execute as HTML.
 import type { Service, ServiceRequest, OnlineProvider } from '../types'
+import { formatRequestTime } from './formatRequestTime'
 
 function div(text: string, cssText: string): HTMLDivElement {
   const el = document.createElement('div')
@@ -76,6 +77,11 @@ export function buildDemandInfo(r: ServiceRequest, onClick: () => void): HTMLEle
   wrapper.style.cssText = 'padding:10px 14px;min-width:180px'
   wrapper.appendChild(div('🔍 求服务', 'font-size:11px;font-weight:700;color:#ea580c;margin-bottom:4px'))
   wrapper.appendChild(div(r.title, 'font-size:13px;font-weight:600;color:#111;margin-bottom:6px'))
+  const serviceTime = formatRequestTime(r.serviceAtStart, r.serviceAtEnd)
+  if (serviceTime) {
+    wrapper.appendChild(div(`🕒 ${serviceTime}`,
+      'font-size:11px;font-weight:600;color:#c2410c;background:#fff7ed;border:1px solid #fed7aa;border-radius:6px;padding:3px 6px;margin-bottom:6px;display:inline-block'))
+  }
   if (r.budget) wrapper.appendChild(div(`💰 ${r.budget}`, 'font-size:11px;color:#16a34a;margin-bottom:4px'))
   wrapper.appendChild(div(`还剩 ${r.daysLeft} 天`, 'font-size:11px;color:#888'))
   const btn = document.createElement('button')

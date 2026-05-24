@@ -147,6 +147,8 @@ function mapRequestRow(row: any): ServiceRequest {
     lat: row.lat ?? undefined,
     lng: row.lng ?? undefined,
     budget: row.budget ?? '',
+    serviceAtStart: row.service_at_start ?? undefined,
+    serviceAtEnd:   row.service_at_end   ?? undefined,
     expiresAt: row.expires_at,
     status: row.status,
     createdAt: row.created_at,

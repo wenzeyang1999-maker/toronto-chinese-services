@@ -1,6 +1,6 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { ArrowLeft, CheckCircle } from 'lucide-react'
+import { ArrowLeft, CheckCircle, Clock } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { useAuthStore } from '../../store/authStore'
 import { useAppStore } from '../../store/appStore'
@@ -10,6 +10,7 @@ import type { ServiceCategory } from '../../types'
 import Header from '../../components/Header/Header'
 import { toast } from '../../lib/toast'
 import { moderateContent } from '../../hooks/useContentModeration'
+import { toDatetimeLocal } from '../../lib/formatRequestTime'
 
 const TORONTO_AREAS = [
   'Downtown Toronto 多伦多市中心', 'North York 北约克', 'Scarborough 士嘉堡',
@@ -49,8 +50,14 @@ export default function PostRequest() {
   const [area,     setArea]     = useState('')
   const [budget,   setBudget]   = useState('')
   const [days,     setDays]     = useState(preset?.days ?? 14)
+  const [startAt,  setStartAt]  = useState('')   // datetime-local string
+  const [endAt,    setEndAt]    = useState('')
   const [loading,  setLoading]  = useState(false)
   const [done,     setDone]     = useState(false)
+
+  // Min selectable time = now (rounded down to the minute). Stops users from
+  // picking a service time in the past.
+  const minDatetime = useMemo(() => toDatetimeLocal(new Date()), [])
 
   if (!user) {
     navigate('/login', { state: { from: '/requests/post' } })
@@ -60,6 +67,24 @@ export default function PostRequest() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!title.trim()) return
+
+    // Validate the service-time window if provided
+    let serviceStartIso: string | null = null
+    let serviceEndIso:   string | null = null
+    if (startAt) {
+      const s = new Date(startAt)
+      if (Number.isNaN(s.getTime())) { toast('服务开始时间无效', 'error'); return }
+      serviceStartIso = s.toISOString()
+    }
+    if (endAt) {
+      if (!startAt) { toast('请先填写服务开始时间', 'error'); return }
+      const e2 = new Date(endAt)
+      if (Number.isNaN(e2.getTime())) { toast('服务结束时间无效', 'error'); return }
+      if (serviceStartIso && e2.getTime() < new Date(serviceStartIso).getTime()) {
+        toast('结束时间不能早于开始时间', 'error'); return
+      }
+      serviceEndIso = e2.toISOString()
+    }
 
     setLoading(true)
 
@@ -81,6 +106,8 @@ export default function PostRequest() {
         area:       area || null,
         city:       'Toronto',
         budget:     budget.trim() || null,
+        service_at_start: serviceStartIso,
+        service_at_end:   serviceEndIso,
         expires_at: expiresAt,
         status:     'open',
       })
@@ -106,6 +133,8 @@ export default function PostRequest() {
       lat: undefined,
       lng: undefined,
       budget: data.budget ?? '',
+      serviceAtStart: data.service_at_start ?? undefined,
+      serviceAtEnd:   data.service_at_end   ?? undefined,
       expiresAt: data.expires_at,
       status: 'open',
       createdAt: data.created_at,
@@ -246,6 +275,51 @@ export default function PostRequest() {
                 className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm
                            focus:outline-none focus:ring-2 focus:ring-primary-300"
               />
+            </div>
+          </div>
+
+          {/* Service-time window */}
+          <div className="card p-4">
+            <label className="flex items-center gap-1.5 text-sm font-semibold text-gray-700 mb-1">
+              <Clock size={14} className="text-primary-500" />
+              服务时间 <span className="text-gray-400 font-normal">（可选）</span>
+            </label>
+            <p className="text-xs text-gray-400 mb-3">告诉商家什么时候到几点 · 让对方一眼看清是否能接</p>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-[11px] text-gray-500 mb-1">开始时间</label>
+                <input
+                  type="datetime-local"
+                  value={startAt}
+                  min={minDatetime}
+                  onChange={(e) => {
+                    const v = e.target.value
+                    setStartAt(v)
+                    // Auto-bump end to start + 2h if end is empty or now < start
+                    if (v && (!endAt || new Date(endAt).getTime() < new Date(v).getTime())) {
+                      const s = new Date(v)
+                      if (!Number.isNaN(s.getTime())) {
+                        s.setHours(s.getHours() + 2)
+                        setEndAt(toDatetimeLocal(s))
+                      }
+                    }
+                  }}
+                  className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm bg-white
+                             focus:outline-none focus:ring-2 focus:ring-primary-300"
+                />
+              </div>
+              <div>
+                <label className="block text-[11px] text-gray-500 mb-1">结束时间</label>
+                <input
+                  type="datetime-local"
+                  value={endAt}
+                  min={startAt || minDatetime}
+                  disabled={!startAt}
+                  onChange={(e) => setEndAt(e.target.value)}
+                  className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm bg-white
+                             focus:outline-none focus:ring-2 focus:ring-primary-300 disabled:bg-gray-50 disabled:text-gray-400"
+                />
+              </div>
             </div>
           </div>
 
