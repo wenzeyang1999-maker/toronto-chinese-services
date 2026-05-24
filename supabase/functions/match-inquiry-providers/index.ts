@@ -10,6 +10,18 @@ const FROM = 'Toronto-Chinese-Service <noreply@huarenq.com>'
 const SITE = 'https://toronto-chinese-services.vercel.app'
 const MAX_RECIPIENTS = 5
 
+// Escape user-supplied strings before interpolating them into the email HTML.
+// Without this, a malicious inquiry description like `<img src=x onerror=...>`
+// would render (and possibly execute) in the recipient's email client.
+function h(s: unknown): string {
+  return String(s ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
+
 interface InquiryPayload {
   inquiryId: string
   categoryId: string
@@ -35,7 +47,7 @@ interface ProviderRow {
 
 function buildProviderInquiryEmail(recipientName: string, data: InquiryPayload) {
   return {
-    subject: `🔔 有客户正在寻找「${data.categoryLabel}」服务`,
+    subject: `🔔 有客户正在寻找「${h(data.categoryLabel)}」服务`,
     html: `<!DOCTYPE html>
 <html lang="zh">
 <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
@@ -47,16 +59,16 @@ function buildProviderInquiryEmail(recipientName: string, data: InquiryPayload) 
     </div>
     <div style="padding:28px 32px;">
       <p style="font-size:17px;font-weight:700;color:#111827;margin:0 0 20px;">您有一条新的客户询价</p>
-      <p>您好 <strong>${recipientName}</strong>，</p>
-      <p>有客户通过平台发布了一条服务需求，与您提供的「<strong>${data.categoryLabel}</strong>」服务匹配，请及时联系客户：</p>
+      <p>您好 <strong>${h(recipientName)}</strong>，</p>
+      <p>有客户通过平台发布了一条服务需求，与您提供的「<strong>${h(data.categoryLabel)}</strong>」服务匹配，请及时联系客户：</p>
       <table style="width:100%;border-collapse:collapse;font-size:14px;margin:16px 0;">
-        <tr style="background:#f9fafb;"><td style="padding:10px 14px;color:#6b7280;width:90px;font-weight:600;">客户姓名</td><td style="padding:10px 14px;color:#111827;">${data.name}</td></tr>
-        <tr><td style="padding:10px 14px;color:#6b7280;font-weight:600;">联系电话</td><td style="padding:10px 14px;color:#111827;font-weight:700;">${data.phone}</td></tr>
-        <tr style="background:#f9fafb;"><td style="padding:10px 14px;color:#6b7280;font-weight:600;">微信号</td><td style="padding:10px 14px;color:#111827;">${data.wechat || '未提供'}</td></tr>
-        <tr><td style="padding:10px 14px;color:#6b7280;font-weight:600;">服务类型</td><td style="padding:10px 14px;color:#111827;">${data.categoryLabel}</td></tr>
-        <tr style="background:#f9fafb;"><td style="padding:10px 14px;color:#6b7280;font-weight:600;">需求描述</td><td style="padding:10px 14px;color:#374151;">${data.description}</td></tr>
-        <tr><td style="padding:10px 14px;color:#6b7280;font-weight:600;">预算</td><td style="padding:10px 14px;color:#111827;">${data.budget ? `$${data.budget}` : '未指定'}</td></tr>
-        <tr style="background:#f9fafb;"><td style="padding:10px 14px;color:#6b7280;font-weight:600;">希望时间</td><td style="padding:10px 14px;color:#111827;">${data.timing}</td></tr>
+        <tr style="background:#f9fafb;"><td style="padding:10px 14px;color:#6b7280;width:90px;font-weight:600;">客户姓名</td><td style="padding:10px 14px;color:#111827;">${h(data.name)}</td></tr>
+        <tr><td style="padding:10px 14px;color:#6b7280;font-weight:600;">联系电话</td><td style="padding:10px 14px;color:#111827;font-weight:700;">${h(data.phone)}</td></tr>
+        <tr style="background:#f9fafb;"><td style="padding:10px 14px;color:#6b7280;font-weight:600;">微信号</td><td style="padding:10px 14px;color:#111827;">${data.wechat ? h(data.wechat) : '未提供'}</td></tr>
+        <tr><td style="padding:10px 14px;color:#6b7280;font-weight:600;">服务类型</td><td style="padding:10px 14px;color:#111827;">${h(data.categoryLabel)}</td></tr>
+        <tr style="background:#f9fafb;"><td style="padding:10px 14px;color:#6b7280;font-weight:600;">需求描述</td><td style="padding:10px 14px;color:#374151;">${h(data.description)}</td></tr>
+        <tr><td style="padding:10px 14px;color:#6b7280;font-weight:600;">预算</td><td style="padding:10px 14px;color:#111827;">${data.budget ? `$${h(data.budget)}` : '未指定'}</td></tr>
+        <tr style="background:#f9fafb;"><td style="padding:10px 14px;color:#6b7280;font-weight:600;">希望时间</td><td style="padding:10px 14px;color:#111827;">${h(data.timing)}</td></tr>
       </table>
       <p style="color:#6b7280;font-size:13px;">⚡ 建议尽快联系客户，先到先得！同类服务商也可能收到此通知。</p>
       <a href="${SITE}" style="display:inline-block;margin-top:8px;background:#e63946;color:#fff !important;text-decoration:none;padding:12px 28px;border-radius:10px;font-weight:700;font-size:14px;">登录平台查看更多询价</a>

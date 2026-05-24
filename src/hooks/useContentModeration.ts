@@ -1,6 +1,7 @@
-const SUPABASE_URL      = import.meta.env.VITE_SUPABASE_URL as string
-const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string
-const MODERATE_URL      = `${SUPABASE_URL}/functions/v1/moderate-content`
+// Content moderation client. Calls the moderate-content edge function with
+// the user's session JWT — the edge function refuses anonymous callers, so
+// only logged-in users can run moderation (and incur Groq cost).
+import { supabase } from '../lib/supabase'
 
 export interface ModerationResult {
   pass: boolean
@@ -13,19 +14,12 @@ export async function moderateContent(fields: Record<string, string | undefined>
   if (!text) return { pass: true }
 
   try {
-    const res = await fetch(MODERATE_URL, {
-      method:  'POST',
-      headers: {
-        'Content-Type':  'application/json',
-        'apikey':        SUPABASE_ANON_KEY,
-        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-      },
-      body:   JSON.stringify({ text }),
-      signal: AbortSignal.timeout(10_000),
+    const { data, error } = await supabase.functions.invoke<ModerationResult>('moderate-content', {
+      body: { text },
     })
-    if (!res.ok) return { pass: true }   // fail open
-    return await res.json() as ModerationResult
+    if (error || !data) return { pass: true }   // fail open
+    return data
   } catch {
-    return { pass: true }                // network error → fail open
+    return { pass: true }                       // network error → fail open
   }
 }

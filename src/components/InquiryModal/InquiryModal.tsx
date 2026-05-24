@@ -2,6 +2,7 @@
 // "获取报价" feature: user posts a need, service providers reach out to them.
 // Slides up from bottom on mobile; centered dialog on desktop.
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X, CheckCircle, ChevronDown, Sparkles, UserCheck, Clock3, ShieldCheck } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
@@ -41,6 +42,7 @@ const TIMING_OPTIONS = [
 ] as const
 
 export default function InquiryModal({ open, onClose }: Props) {
+  const navigate         = useNavigate()
   const user             = useAuthStore((s) => s.user)
   const userLocation     = useAppStore((s) => s.userLocation)
   const addServiceRequest = useAppStore((s) => s.addServiceRequest)
@@ -72,6 +74,14 @@ export default function InquiryModal({ open, onClose }: Props) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!validate()) return
+    // Anonymous inquiry submissions were a spam vector — now require login.
+    // Save the form by closing the modal so the user can re-fill after login;
+    // a sticky storage step would be nicer but is out of scope here.
+    if (!user) {
+      onClose()
+      navigate('/login', { state: { from: '/' } })
+      return
+    }
 
     setSubmitting(true)
     setServerError('')
@@ -84,7 +94,7 @@ export default function InquiryModal({ open, onClose }: Props) {
         name:        form.name.trim(),
         phone:       form.phone.trim(),
         wechat:      form.wechat.trim() || null,
-        user_id:     user?.id ?? null,
+        user_id:     user.id,
         status:      'open',
       }).select('id').single()
       if (error) throw error

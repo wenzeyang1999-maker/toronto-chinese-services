@@ -19,9 +19,15 @@ export default function RequestDetail() {
 
   useEffect(() => {
     if (!id) return
+    // Anon visitors can see request details but not the requester's contact
+    // info — phone/wechat are revoked from the anon role and fetched here only
+    // when the viewer is logged in.
+    const requesterCols = user
+      ? 'id, name, avatar_url, phone, wechat'
+      : 'id, name, avatar_url'
     supabase
       .from('service_requests')
-      .select('*, requester:users(id, name, avatar_url, phone, wechat)')
+      .select(`*, requester:users(${requesterCols})`)
       .eq('id', id)
       .single()
       .then(({ data, error }) => {
@@ -53,7 +59,7 @@ export default function RequestDetail() {
           daysLeft,
         })
       })
-  }, [id])
+  }, [id, user])
 
   async function handleContact() {
     if (!user) { navigate('/login', { state: { from: `/requests/${id}` } }); return }

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { ArrowLeft, CheckCircle, Clock } from 'lucide-react'
 import { motion } from 'framer-motion'
@@ -6,19 +6,12 @@ import { useAuthStore } from '../../store/authStore'
 import { useAppStore } from '../../store/appStore'
 import { supabase } from '../../lib/supabase'
 import { CATEGORIES } from '../../data/categories'
+import { TORONTO_AREAS } from '../../data/torontoAreas'
 import type { ServiceCategory } from '../../types'
 import Header from '../../components/Header/Header'
 import { toast } from '../../lib/toast'
 import { moderateContent } from '../../hooks/useContentModeration'
 import { toDatetimeLocal } from '../../lib/formatRequestTime'
-
-const TORONTO_AREAS = [
-  'Downtown Toronto 多伦多市中心', 'North York 北约克', 'Scarborough 士嘉堡',
-  'Etobicoke 怡陶碧谷', 'Markham 万锦', 'Richmond Hill 列治文山',
-  'Vaughan 旺市', 'Mississauga 密西沙加', 'Brampton 宾顿',
-  'Oakville 奥克维尔', 'Ajax 阿积士', 'Whitby 惠特比',
-  'Newmarket 新市', 'Aurora 奥罗拉', 'Stouffville 士多福维尔',
-]
 
 const EXPIRY_OPTIONS = [
   { label: '1 天', days: 1 },
@@ -55,6 +48,10 @@ export default function PostRequest() {
   const [endAt,    setEndAt]    = useState('')
   const [loading,  setLoading]  = useState(false)
   const [done,     setDone]     = useState(false)
+  // Guards against double-submission while the moderation + insert chain is in
+  // flight — React state lags a frame behind, so a quick double-tap can fire
+  // handleSubmit twice before `loading` is true.
+  const submittingRef = useRef(false)
 
   // Min selectable time = now (rounded down to the minute). Stops users from
   // picking a service time in the past.
@@ -68,21 +65,23 @@ export default function PostRequest() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!title.trim()) return
+    if (submittingRef.current) return
+    submittingRef.current = true
 
     // Validate the service-time window if provided
     let serviceStartIso: string | null = null
     let serviceEndIso:   string | null = null
     if (startAt) {
       const s = new Date(startAt)
-      if (Number.isNaN(s.getTime())) { toast('服务开始时间无效', 'error'); return }
+      if (Number.isNaN(s.getTime())) { toast('服务开始时间无效', 'error'); submittingRef.current = false; return }
       serviceStartIso = s.toISOString()
     }
     if (endAt) {
-      if (!startAt) { toast('请先填写服务开始时间', 'error'); return }
+      if (!startAt) { toast('请先填写服务开始时间', 'error'); submittingRef.current = false; return }
       const e2 = new Date(endAt)
-      if (Number.isNaN(e2.getTime())) { toast('服务结束时间无效', 'error'); return }
+      if (Number.isNaN(e2.getTime())) { toast('服务结束时间无效', 'error'); submittingRef.current = false; return }
       if (serviceStartIso && e2.getTime() < new Date(serviceStartIso).getTime()) {
-        toast('结束时间不能早于开始时间', 'error'); return
+        toast('结束时间不能早于开始时间', 'error'); submittingRef.current = false; return
       }
       serviceEndIso = e2.toISOString()
     }
@@ -93,6 +92,7 @@ export default function PostRequest() {
     if (!modResult.pass) {
       toast(`内容审核未通过：${modResult.reason ?? '包含违规内容'}`, 'error')
       setLoading(false)
+      submittingRef.current = false
       return
     }
     const expiresAt = new Date(Date.now() + days * 86_400_000).toISOString()
@@ -119,6 +119,7 @@ export default function PostRequest() {
 
     if (error) {
       toast('发布失败，请重试', 'error')
+      submittingRef.current = false
       return
     }
 
@@ -166,7 +167,7 @@ export default function PostRequest() {
             返回首页
           </button>
           <button
-            onClick={() => { setDone(false); setTitle(''); setDesc(''); setBudget(''); setArea('') }}
+            onClick={() => { setDone(false); setTitle(''); setDesc(''); setBudget(''); setArea(''); submittingRef.current = false }}
             className="px-5 py-2.5 bg-white border border-gray-200 text-gray-700 rounded-xl text-sm font-semibold"
           >
             再发一条

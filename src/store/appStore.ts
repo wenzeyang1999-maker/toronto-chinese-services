@@ -2,6 +2,7 @@
 import { create } from 'zustand'
 import type { Service, SearchFilters, ServiceCategory, ServiceRequest } from '../types'
 import { supabase } from '../lib/supabase'
+import { calcDistance } from '../lib/geo'
 
 // Cache user location across page reloads so the map works immediately and the
 // browser doesn't need to re-prompt on every visit.
@@ -74,22 +75,6 @@ interface AppState {
 }
 
 const SERVICES_PAGE_SIZE = 40
-
-// Haversine formula — returns distance in km between two lat/lng points
-function calcDistance(
-  lat1: number, lng1: number,
-  lat2: number, lng2: number
-): number {
-  const R = 6371
-  const dLat = ((lat2 - lat1) * Math.PI) / 180
-  const dLng = ((lng2 - lng1) * Math.PI) / 180
-  const a =
-    Math.sin(dLat / 2) ** 2 +
-    Math.cos((lat1 * Math.PI) / 180) *
-      Math.cos((lat2 * Math.PI) / 180) *
-      Math.sin(dLng / 2) ** 2
-  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
-}
 
 // Map a Supabase services row to the frontend Service type
 export function mapRow(row: ServiceRow): Service {
@@ -211,7 +196,7 @@ export const useAppStore = create<AppState>((set, get) => ({
 
     const { data, error } = await supabase
       .from('services')
-      .select('*, provider:users(id, name, phone, wechat, avatar_url, last_seen_at), reviews(rating)')
+      .select('*, provider:users(id, name, avatar_url, last_seen_at), reviews(rating)')
       .eq('is_available', true)
       .order('created_at', { ascending: false })
       .range(offset, offset + SERVICES_PAGE_SIZE - 1)
@@ -234,7 +219,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     // Uses trigram GIN index for fast ILIKE — fts_search_patch.sql must be applied
     const { data, error } = await supabase
       .from('services')
-      .select('*, provider:users(id, name, phone, wechat, avatar_url, last_seen_at), reviews(rating)')
+      .select('*, provider:users(id, name, avatar_url, last_seen_at), reviews(rating)')
       .eq('is_available', true)
       .or(`title.ilike.%${kw}%,description.ilike.%${kw}%`)
       .order('created_at', { ascending: false })

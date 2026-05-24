@@ -1,4 +1,5 @@
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react'
+import { calcDistance } from '../../lib/geo'
 import HeroBanner from '../../components/HeroBanner/HeroBanner'
 import CategoryButtons from '../../components/CategoryButtons/CategoryButtons'
 import InquiryModal from '../../components/InquiryModal/InquiryModal'
@@ -18,18 +19,6 @@ import { supabase } from '../../lib/supabase'
 import { getCategoryById } from '../../data/categories'
 
 const ServiceMap = lazy(() => import('../../components/ServiceMap/ServiceMap'))
-
-function calcDistance(lat1: number, lng1: number, lat2: number, lng2: number): number {
-  const R = 6371
-  const dLat = ((lat2 - lat1) * Math.PI) / 180
-  const dLng = ((lng2 - lng1) * Math.PI) / 180
-  const a =
-    Math.sin(dLat / 2) ** 2 +
-    Math.cos((lat1 * Math.PI) / 180) *
-      Math.cos((lat2 * Math.PI) / 180) *
-      Math.sin(dLng / 2) ** 2
-  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
-}
 
 export default function Home() {
   const requestLocation = useGeolocation()
@@ -100,10 +89,15 @@ export default function Home() {
     if (!user) return Date.now()
     return Number(localStorage.getItem(`tcs_requests_last_seen_${user.id}`)) || 0
   })
+  // Reset whenever the logged-in user changes (incl. logout → null) so the
+  // unread badge doesn't carry over from the previous account.
   useEffect(() => {
-    if (!user) return
+    if (!user) {
+      setRequestsSeenAt(Date.now())
+      return
+    }
     setRequestsSeenAt(Number(localStorage.getItem(`tcs_requests_last_seen_${user.id}`)) || 0)
-  }, [user])
+  }, [user?.id])
 
   const unreadRequestCount = useMemo(() => {
     if (!user) return 0

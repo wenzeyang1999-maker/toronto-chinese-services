@@ -69,16 +69,34 @@ export default function ServiceDetail() {
       let providerId: string | undefined = storeService?.provider.id
 
       if (!storeService) {
-        // Direct navigation (shared link / refresh) — fetch service + provider in one query
+        // Direct navigation (shared link / refresh) — fetch service + public
+        // provider fields. Contact info (phone/wechat) is fetched separately
+        // below only for authenticated users; anon visitors see a login CTA.
         const { data } = await supabase
           .from('services')
-          .select('*, provider:users!provider_id(id, name, phone, wechat, avatar_url, last_seen_at), reviews(rating)')
+          .select('*, provider:users!provider_id(id, name, avatar_url, last_seen_at), reviews(rating)')
           .eq('id', id)
           .single()
         if (!data) { setLoading(false); return }
         const mapped = mapRow(data as Parameters<typeof mapRow>[0])
         setLocalService(mapped)
         providerId = mapped.provider.id
+      }
+
+      // Authenticated users get the provider's contact info — merged into the
+      // local service via setLocalService(prev → with phone/wechat filled).
+      if (providerId && user) {
+        const { data: contact } = await supabase
+          .from('users')
+          .select('phone, wechat')
+          .eq('id', providerId)
+          .single()
+        if (contact) {
+          setLocalService((prev) => prev
+            ? { ...prev, provider: { ...prev.provider, phone: contact.phone ?? '', wechat: contact.wechat ?? undefined } }
+            : prev
+          )
+        }
       }
 
       if (!providerId) { setLoading(false); return }

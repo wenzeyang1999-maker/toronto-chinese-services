@@ -9,7 +9,8 @@ project_id = "toronto-chinese-services"
 verify_jwt = false
 
 [functions.moderate-content]
-verify_jwt = false
+# Auth required — only logged-in users can run AI moderation (cost gate).
+verify_jwt = true
 
 # Auth required — gateway enforces JWT (real user session token).
 # Listed for documentation; defaults to verify_jwt = true.
