@@ -13,7 +13,7 @@ import { useAuthStore } from '../../store/authStore'
 import HomeActionHero from './components/HomeActionHero'
 import HomeServiceShelf from './components/HomeServiceShelf'
 import { RADIUS_MIN_KM, RADIUS_MAX_KM } from '../../components/RadiusSlider/RadiusSlider'
-import { PlusCircle, Search as SearchIcon, ChevronRight, Sparkles } from 'lucide-react'
+import { PlusCircle, Search as SearchIcon, ChevronRight, Sparkles, Megaphone, ArrowRight } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { getCategoryById } from '../../data/categories'
 
@@ -235,6 +235,56 @@ export default function Home() {
         {/* RecentCategories hidden — redundant with the 热门服务 category grid
             above. Component kept for possible future reuse (e.g. 猜你喜欢). */}
         {/* <RecentCategories /> */}
+
+        {/* ── Post-request hero card — the platform's "发帖子" CTA ──────────── */}
+        <section className="relative mb-4 overflow-hidden rounded-2xl bg-gradient-to-br from-orange-500 via-rose-500 to-pink-600 p-5 text-white shadow-lg">
+          <div className="pointer-events-none absolute -right-12 -top-12 w-44 h-44 rounded-full bg-white/15 blur-3xl" />
+          <div className="pointer-events-none absolute -left-8 bottom-0 w-32 h-32 rounded-full bg-white/10 blur-2xl" />
+
+          <div className="relative">
+            <div className="flex items-start justify-between gap-3 mb-3">
+              <div className="min-w-0">
+                <div className="inline-flex items-center gap-1.5 bg-white/20 backdrop-blur-sm px-2.5 py-1 rounded-full text-[11px] font-semibold mb-2">
+                  <Megaphone size={11} /> 发需求 · 商家来找你
+                </div>
+                <h3 className="text-lg font-bold leading-tight">1 分钟告诉我们你要什么</h3>
+                <p className="text-xs text-white/85 mt-1">附近商家看到后主动联系你 · 比挨家挨家问省一半时间</p>
+              </div>
+              <PlusCircle size={32} className="text-white/35 flex-shrink-0" />
+            </div>
+
+            {/* Urgency quick-action chips */}
+            <div className="grid grid-cols-4 gap-2 mb-3">
+              {[
+                { key: 'urgent',   icon: '🔥', label: '紧急单' },
+                { key: 'today',    icon: '⏰', label: '今天就要' },
+                { key: 'week',     icon: '📅', label: '本周内'   },
+                { key: 'flexible', icon: '💬', label: '慢慢找'   },
+              ].map(chip => (
+                <button
+                  key={chip.key}
+                  onClick={() => navigate(`/requests/post?urgency=${chip.key}`)}
+                  className="flex flex-col items-center justify-center gap-0.5 bg-white/15 hover:bg-white/25
+                             backdrop-blur-sm rounded-xl py-2 text-[11px] font-semibold transition-colors
+                             active:scale-95"
+                >
+                  <span className="text-base leading-none">{chip.icon}</span>
+                  {chip.label}
+                </button>
+              ))}
+            </div>
+
+            <button
+              onClick={() => navigate('/requests/post')}
+              className="w-full flex items-center justify-center gap-2 bg-white text-rose-600
+                         py-3 rounded-xl text-sm font-bold shadow-md active:scale-[0.98] transition-transform"
+            >
+              <PlusCircle size={16} />
+              立即发布需求
+              <ArrowRight size={16} />
+            </button>
+          </div>
+        </section>
 
         {/* ── Feed mode toggle — headline dual-marketplace switcher ──────────── */}
         <div className="mb-4">

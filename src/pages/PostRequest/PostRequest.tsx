@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { ArrowLeft, CheckCircle } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { useAuthStore } from '../../store/authStore'
@@ -25,17 +25,30 @@ const EXPIRY_OPTIONS = [
   { label: '30 天', days: 30 },
 ]
 
+// Quick-tag prefill (drives title prefix + expiry default) — set from the
+// home-page "1分钟发布需求" card.
+const URGENCY_PRESETS: Record<string, { prefix: string; days: number }> = {
+  urgent:   { prefix: '[紧急] ', days: 7  },
+  today:    { prefix: '[今天] ', days: 7  },
+  week:     { prefix: '[本周] ', days: 14 },
+  flexible: { prefix: '',         days: 30 },
+}
+
 export default function PostRequest() {
   const navigate   = useNavigate()
+  const [searchParams] = useSearchParams()
+  const urgency    = searchParams.get('urgency') ?? ''
+  const preset     = URGENCY_PRESETS[urgency]
+
   const user       = useAuthStore((s) => s.user)
   const addServiceRequest = useAppStore((s) => s.addServiceRequest)
 
-  const [title,    setTitle]    = useState('')
+  const [title,    setTitle]    = useState(preset?.prefix ?? '')
   const [category, setCategory] = useState<ServiceCategory>('other')
   const [desc,     setDesc]     = useState('')
   const [area,     setArea]     = useState('')
   const [budget,   setBudget]   = useState('')
-  const [days,     setDays]     = useState(14)
+  const [days,     setDays]     = useState(preset?.days ?? 14)
   const [loading,  setLoading]  = useState(false)
   const [done,     setDone]     = useState(false)
 
