@@ -8,9 +8,14 @@ import { formatRequestTime } from '../../lib/formatRequestTime'
 interface Props {
   request: ServiceRequest
   layout?: 'list' | 'masonry'
+  distance?: number  // km, calculated by parent
 }
 
-export default function ServiceRequestCard({ request, layout = 'list' }: Props) {
+function fmtDist(km: number) {
+  return km < 1 ? '<1 km' : km < 10 ? `${km.toFixed(1)} km` : `${Math.round(km)} km`
+}
+
+export default function ServiceRequestCard({ request, layout = 'list', distance }: Props) {
   const navigate = useNavigate()
   const cat = getCategoryById(request.category)
   const serviceTime = formatRequestTime(request.serviceAtStart, request.serviceAtEnd)
@@ -70,12 +75,10 @@ export default function ServiceRequestCard({ request, layout = 'list' }: Props) 
           </div>
 
           <div className="flex items-center justify-between pt-1">
-            {(request.area || request.city) && (
-              <span className="flex items-center gap-0.5 text-[11px] text-gray-400">
-                <MapPin size={9} />
-                {request.area || request.city}
-              </span>
-            )}
+            <span className="flex items-center gap-0.5 text-[11px] text-gray-400">
+              <MapPin size={9} />
+              {distance != null ? fmtDist(distance) : (request.area || request.city)}
+            </span>
             <span className={`ml-auto flex items-center gap-0.5 text-[10px] font-semibold px-1.5 py-0.5 rounded-full border ${urgencyColor}`}>
               <Clock size={9} />
               {request.daysLeft}天后到期
@@ -133,12 +136,10 @@ export default function ServiceRequestCard({ request, layout = 'list' }: Props) 
           <span className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-semibold bg-gray-100 ${cat?.color ?? 'text-gray-500'}`}>
             {cat?.emoji} {cat?.label}
           </span>
-          {(request.area || request.city) && (
-            <span className="flex items-center gap-0.5 text-[11px] text-gray-400">
-              <MapPin size={9} />
-              {request.area || request.city}
-            </span>
-          )}
+          <span className="flex items-center gap-0.5 text-[11px] text-gray-400">
+            <MapPin size={9} />
+            {distance != null ? fmtDist(distance) : (request.area || request.city || '')}
+          </span>
           <span className={`ml-auto flex items-center gap-0.5 text-[10px] font-semibold px-1.5 py-0.5 rounded-full border ${urgencyColor}`}>
             <Clock size={9} />
             {request.daysLeft}天后到期

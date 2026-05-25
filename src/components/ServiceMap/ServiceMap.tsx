@@ -53,11 +53,10 @@ export default function ServiceMap({ services, requests = [], count, requestsOnl
   const mapped = useMemo(() => services.filter(hasCoordinates), [services])
   const [onlineProviders, setOnlineProviders] = useState<OnlineProvider[]>([])
 
-  // Auto-request location once per session for maps that filter by distance.
+  // Auto-request location once per session whenever any map mounts.
   // After the first grant the coords are cached in localStorage (appStore),
   // so future visits skip the prompt and the map shows immediately.
   useEffect(() => {
-    if (!onRadiusChange) return
     if (userLocation) return
     if (geoAutoRequested) return
     geoAutoRequested = true

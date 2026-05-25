@@ -4,6 +4,7 @@ import { Suspense, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import type { Service } from '../../../types'
 import ServiceCard from '../../../components/ServiceCard/ServiceCard'
+import { fuzzyFilterServices } from '../../../lib/fuzzySearch'
 
 interface Props {
   title: string
@@ -29,22 +30,10 @@ export default function HomeServiceShelf({
   const navigate = useNavigate()
   const [query, setQuery] = useState('')
 
-  const q = query.trim().toLowerCase()
+  const q = query.trim()
 
-  const filteredList = q
-    ? services.filter((s) =>
-        s.title.toLowerCase().includes(q) ||
-        s.provider.name.toLowerCase().includes(q)
-      )
-    : services
-
-  // No query → show nearby-only default; with query → search across all services
-  const filteredMap = q
-    ? allServices.filter((s) =>
-        s.title.toLowerCase().includes(q) ||
-        s.provider.name.toLowerCase().includes(q)
-      )
-    : defaultMapServices
+  const filteredList = q ? fuzzyFilterServices(services, q)    : services
+  const filteredMap  = q ? fuzzyFilterServices(allServices, q) : defaultMapServices
 
   function handleSearch(e: React.FormEvent) {
     e.preventDefault()
@@ -121,7 +110,7 @@ export default function HomeServiceShelf({
         <Suspense
           fallback={<div className="w-full rounded-2xl bg-gray-100 animate-pulse" style={{ height: '60vh', minHeight: 320 }} />}
         >
-          {mapContent(filteredMap, q)}
+          {mapContent(filteredMap, q.toLowerCase())}
         </Suspense>
       )}
     </motion.section>

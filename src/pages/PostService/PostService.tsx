@@ -16,8 +16,8 @@ import { notifyFollowerNewService } from '../../lib/notify'
 import { toast } from '../../lib/toast'
 
 // ── 内置服务库（搜索用）──────────────────────────────────────────────────────
-type ServiceCat = 'moving' | 'cleaning' | 'ride' | 'renovation' | 'cashwork' | 'food' | 'other'
-interface ServiceSuggestion { name: string; category: ServiceCat; tags: string[] }
+import type { ServiceCategory } from '../../types'
+interface ServiceSuggestion { name: string; category: ServiceCategory; tags: string[] }
 
 const BUILTIN_SERVICES: ServiceSuggestion[] = [
   // 搬家
@@ -66,63 +66,100 @@ const BUILTIN_SERVICES: ServiceSuggestion[] = [
   { name: '烘焙甜点',       category: 'food',       tags: ['烘焙','甜点','蛋糕','面包'] },
   { name: '外卖配送',       category: 'food',       tags: ['外卖','配送','delivery'] },
   { name: '喜宴包办',       category: 'food',       tags: ['宴席','喜宴','包办','婚宴'] },
-  // 教育教学
-  { name: '钢琴教学',       category: 'other',      tags: ['钢琴','音乐','教学','piano','教练','老师'] },
-  { name: '吉他教学',       category: 'other',      tags: ['吉他','guitar','音乐','教学','教练'] },
-  { name: '小提琴教学',     category: 'other',      tags: ['小提琴','violin','音乐','教学','教练'] },
-  { name: '声乐教学',       category: 'other',      tags: ['声乐','唱歌','歌唱','教学','教练'] },
-  { name: '中文家教',       category: 'other',      tags: ['家教','中文','补习','tutor','教练','老师'] },
-  { name: '数学家教',       category: 'other',      tags: ['数学','math','补习','家教','教练','tutor'] },
-  { name: '英文家教',       category: 'other',      tags: ['英文','english','补习','家教','tutor','教练'] },
-  { name: '法语教学',       category: 'other',      tags: ['法语','french','教学','教练','tutor'] },
-  { name: '游泳教练',       category: 'other',      tags: ['游泳','swimming','教练','coach'] },
-  { name: '网球教练',       category: 'other',      tags: ['网球','tennis','教练','coach'] },
-  { name: '羽毛球教练',     category: 'other',      tags: ['羽毛球','badminton','教练','coach'] },
-  { name: '篮球教练',       category: 'other',      tags: ['篮球','basketball','教练','coach'] },
-  { name: '乒乓球教练',     category: 'other',      tags: ['乒乓球','乒乓','table tennis','教练','coach'] },
-  { name: '高尔夫教练',     category: 'other',      tags: ['高尔夫','golf','教练','coach'] },
-  { name: '滑冰教练',       category: 'other',      tags: ['滑冰','skating','冰球','教练','coach'] },
-  { name: '滑雪教练',       category: 'other',      tags: ['滑雪','skiing','教练','coach'] },
-  { name: '舞蹈教练',       category: 'other',      tags: ['舞蹈','dance','跳舞','教练','老师'] },
-  { name: '瑜伽教练',       category: 'other',      tags: ['瑜伽','yoga','教练','coach'] },
-  { name: '健身教练',       category: 'other',      tags: ['健身','gym','fitness','私人教练','教练','personal trainer'] },
-  { name: '武术教练',       category: 'other',      tags: ['武术','功夫','太极','教练','coach'] },
-  { name: '跆拳道教练',     category: 'other',      tags: ['跆拳道','教练','coach','武术'] },
-  { name: '驾照培训',       category: 'other',      tags: ['驾照','学车','G2','G牌','driving','教练','coach'] },
-  // 专业服务
-  { name: '英文翻译',       category: 'other',      tags: ['翻译','英文','口译','translation'] },
-  { name: '中英翻译',       category: 'other',      tags: ['翻译','中文','英文','口译'] },
-  { name: '法语翻译',       category: 'other',      tags: ['翻译','法语','french','口译'] },
-  { name: '报税会计',       category: 'other',      tags: ['报税','会计','税务','tax','cpa'] },
-  { name: '法律咨询',       category: 'other',      tags: ['律师','法律','咨询','legal'] },
-  { name: '移民咨询',       category: 'other',      tags: ['移民','pr','签证','申请','咨询'] },
-  { name: '保险服务',       category: 'other',      tags: ['保险','insurance','理赔','人寿'] },
-  { name: '留学申请',       category: 'other',      tags: ['留学','申请','大学','移民','学校'] },
-  { name: '房产中介',       category: 'other',      tags: ['房产','买房','卖房','租房','中介','realtor'] },
-  { name: '贷款咨询',       category: 'other',      tags: ['贷款','mortgage','咨询','银行'] },
-  // 生活服务
-  { name: '摄影服务',       category: 'other',      tags: ['摄影','拍照','photography','婚礼'] },
-  { name: '宠物照看',       category: 'other',      tags: ['宠物','狗','猫','寄养','pet','boarding'] },
-  { name: '遛狗',           category: 'other',      tags: ['遛狗','dog walker','宠物','狗'] },
-  { name: '美甲',           category: 'other',      tags: ['美甲','nail','指甲','美容'] },
-  { name: '美发理发',       category: 'other',      tags: ['美发','理发','剪发','hair','发型'] },
-  { name: '按摩推拿',       category: 'other',      tags: ['按摩','推拿','massage','理疗'] },
-  { name: '针灸',           category: 'other',      tags: ['针灸','中医','acupuncture','理疗'] },
-  { name: '网站开发',       category: 'other',      tags: ['网站','开发','设计','web','前端'] },
-  { name: '电脑维修',       category: 'other',      tags: ['电脑','维修','手机','修复','it'] },
-  { name: '室内设计',       category: 'other',      tags: ['室内','设计','装饰','interior'] },
-  { name: '花园园艺',       category: 'other',      tags: ['花园','园艺','除草','landscaping','草坪'] },
-  { name: '除雪服务',       category: 'other',      tags: ['除雪','铲雪','snow','冬天'] },
-  { name: '婚庆策划',       category: 'other',      tags: ['婚庆','婚礼','策划','wedding'] },
-  { name: '坐月子服务',     category: 'other',      tags: ['月子','产后','护理','月嫂'] },
-  { name: '老人护理',       category: 'other',      tags: ['老人','护理','照顾','陪伴','elderly'] },
-  { name: '儿童托管',       category: 'other',      tags: ['托管','儿童','孩子','babysitter','daycare'] },
-  { name: '心理咨询',       category: 'other',      tags: ['心理','咨询','counseling','辅导'] },
-  { name: '视频剪辑',       category: 'other',      tags: ['视频','剪辑','editing','后期','制作'] },
-  { name: '平面设计',       category: 'other',      tags: ['设计','平面','graphic','logo','海报'] },
+  // 补课/教学
+  { name: '钢琴教学',       category: 'tutoring',   tags: ['钢琴','音乐','教学','piano','教练','老师'] },
+  { name: '吉他教学',       category: 'tutoring',   tags: ['吉他','guitar','音乐','教学','教练'] },
+  { name: '小提琴教学',     category: 'tutoring',   tags: ['小提琴','violin','音乐','教学','教练'] },
+  { name: '声乐教学',       category: 'tutoring',   tags: ['声乐','唱歌','歌唱','教学','教练'] },
+  { name: '中文家教',       category: 'tutoring',   tags: ['家教','中文','补习','tutor','教练','老师'] },
+  { name: '数学家教',       category: 'tutoring',   tags: ['数学','math','补习','家教','教练','tutor'] },
+  { name: '英文家教',       category: 'tutoring',   tags: ['英文','english','补习','家教','tutor','教练'] },
+  { name: '法语教学',       category: 'tutoring',   tags: ['法语','french','教学','教练','tutor'] },
+  { name: '游泳教练',       category: 'tutoring',   tags: ['游泳','swimming','教练','coach'] },
+  { name: '网球教练',       category: 'tutoring',   tags: ['网球','tennis','教练','coach'] },
+  { name: '羽毛球教练',     category: 'tutoring',   tags: ['羽毛球','badminton','教练','coach'] },
+  { name: '篮球教练',       category: 'tutoring',   tags: ['篮球','basketball','教练','coach'] },
+  { name: '乒乓球教练',     category: 'tutoring',   tags: ['乒乓球','乒乓','table tennis','教练','coach'] },
+  { name: '高尔夫教练',     category: 'tutoring',   tags: ['高尔夫','golf','教练','coach'] },
+  { name: '滑冰教练',       category: 'tutoring',   tags: ['滑冰','skating','冰球','教练','coach'] },
+  { name: '滑雪教练',       category: 'tutoring',   tags: ['滑雪','skiing','教练','coach'] },
+  { name: '舞蹈教练',       category: 'tutoring',   tags: ['舞蹈','dance','跳舞','教练','老师'] },
+  { name: '瑜伽教练',       category: 'tutoring',   tags: ['瑜伽','yoga','教练','coach'] },
+  { name: '健身教练',       category: 'tutoring',   tags: ['健身','gym','fitness','私人教练','教练','personal trainer'] },
+  { name: '武术教练',       category: 'tutoring',   tags: ['武术','功夫','太极','教练','coach'] },
+  { name: '跆拳道教练',     category: 'tutoring',   tags: ['跆拳道','教练','coach','武术'] },
+  // 驾校
+  { name: '驾照培训',       category: 'driving',    tags: ['驾照','学车','G2','G牌','driving','教练','coach'] },
+  { name: 'G1笔试辅导',     category: 'driving',    tags: ['G1','笔试','驾照','考试','driving'] },
+  { name: '路考陪练',       category: 'driving',    tags: ['路考','陪练','G2','G牌','road test'] },
+  // 翻译
+  { name: '英文翻译',       category: 'translation', tags: ['翻译','英文','口译','translation'] },
+  { name: '中英翻译',       category: 'translation', tags: ['翻译','中文','英文','口译'] },
+  { name: '法语翻译',       category: 'translation', tags: ['翻译','法语','french','口译'] },
+  { name: '认证翻译',       category: 'translation', tags: ['翻译','认证','移民','文件'] },
+  // 报税
+  { name: '个人报税',       category: 'tax',         tags: ['报税','个人','税务','tax','T4'] },
+  { name: '公司报税',       category: 'tax',         tags: ['报税','公司','税务','企业','GST'] },
+  { name: '记账会计',       category: 'tax',         tags: ['记账','会计','财务','bookkeeping'] },
+  // 法律
+  { name: '法律咨询',       category: 'legal',       tags: ['律师','法律','咨询','legal'] },
+  { name: '劳工纠纷',       category: 'legal',       tags: ['劳工','纠纷','律师','employment'] },
+  { name: '家庭法',         category: 'legal',       tags: ['家庭法','离婚','监护','family law'] },
+  { name: '公证服务',       category: 'legal',       tags: ['公证','notary','文件','认证'] },
+  // 移民
+  { name: '移民咨询',       category: 'immigration', tags: ['移民','pr','签证','申请','咨询'] },
+  { name: '工签申请',       category: 'immigration', tags: ['工签','签证','LMIA','work permit'] },
+  { name: '留学申请',       category: 'immigration', tags: ['留学','学签','申请','大学','study permit'] },
+  { name: '入籍辅导',       category: 'immigration', tags: ['入籍','公民','citizenship','移民'] },
+  // 保险
+  { name: '人寿保险',       category: 'insurance',   tags: ['保险','人寿','life insurance'] },
+  { name: '医疗保险',       category: 'insurance',   tags: ['保险','医疗','health insurance'] },
+  { name: '车险',           category: 'insurance',   tags: ['车险','汽车保险','auto insurance'] },
+  { name: '房屋保险',       category: 'insurance',   tags: ['房屋保险','home insurance','房产'] },
+  // 摄影
+  { name: '婚礼摄影',       category: 'photo',       tags: ['摄影','婚礼','拍照','photography','wedding'] },
+  { name: '人像写真',       category: 'photo',       tags: ['摄影','写真','人像','portrait'] },
+  { name: '证件照',         category: 'photo',       tags: ['证件照','passport','photo','拍照'] },
+  { name: '活动摄影',       category: 'photo',       tags: ['摄影','活动','宴席','event','拍摄'] },
+  { name: '视频剪辑',       category: 'photo',       tags: ['视频','剪辑','editing','后期','制作'] },
+  // 宠物
+  { name: '宠物照看',       category: 'pet',         tags: ['宠物','狗','猫','寄养','pet','boarding'] },
+  { name: '遛狗',           category: 'pet',         tags: ['遛狗','dog walker','宠物','狗'] },
+  { name: '宠物美容',       category: 'pet',         tags: ['宠物','美容','洗澡','grooming'] },
+  { name: '宠物训练',       category: 'pet',         tags: ['训练','宠物','狗','behavior','training'] },
+  // 美容美发
+  { name: '美甲',           category: 'beauty',      tags: ['美甲','nail','指甲','美容'] },
+  { name: '美发理发',       category: 'beauty',      tags: ['美发','理发','剪发','hair','发型'] },
+  { name: '化妆',           category: 'beauty',      tags: ['化妆','makeup','婚礼','彩妆'] },
+  { name: '睫毛嫁接',       category: 'beauty',      tags: ['睫毛','lash','美容','eyelash'] },
+  { name: '纹眉',           category: 'beauty',      tags: ['纹眉','眉毛','半永久','eyebrow'] },
+  // 中医推拿
+  { name: '中医推拿',       category: 'tcm',         tags: ['推拿','按摩','中医','massage'] },
+  { name: '针灸',           category: 'tcm',         tags: ['针灸','中医','acupuncture','理疗'] },
+  { name: '拔罐刮痧',       category: 'tcm',         tags: ['拔罐','刮痧','中医','cupping'] },
+  // IT
+  { name: '电脑维修',       category: 'it',          tags: ['电脑','维修','手机','修复','it'] },
+  { name: '网站开发',       category: 'it',          tags: ['网站','开发','设计','web','前端'] },
+  { name: '数据恢复',       category: 'it',          tags: ['数据','恢复','电脑','it','recovery'] },
+  // 育儿保姆
+  { name: '月嫂',           category: 'childcare',   tags: ['月嫂','月子','产后','护理','坐月子'] },
+  { name: '保姆',           category: 'childcare',   tags: ['保姆','照顾','孩子','nanny','babysitter'] },
+  { name: '老人护理',       category: 'childcare',   tags: ['老人','护理','照顾','陪伴','elderly'] },
+  { name: '儿童托管',       category: 'childcare',   tags: ['托管','儿童','孩子','babysitter','daycare'] },
+  // 园艺除雪
+  { name: '花园园艺',       category: 'lawn',        tags: ['花园','园艺','除草','landscaping','草坪'] },
+  { name: '除雪服务',       category: 'lawn',        tags: ['除雪','铲雪','snow','冬天','shoveling'] },
+  { name: '割草坪',         category: 'lawn',        tags: ['割草','草坪','lawn','庭院'] },
+  // 其他
+  { name: '室内设计',       category: 'other',       tags: ['室内','设计','装饰','interior'] },
+  { name: '婚庆策划',       category: 'other',       tags: ['婚庆','婚礼','策划','wedding'] },
+  { name: '房产中介',       category: 'other',       tags: ['房产','买房','卖房','租房','中介','realtor'] },
+  { name: '贷款咨询',       category: 'other',       tags: ['贷款','mortgage','咨询','银行'] },
+  { name: '平面设计',       category: 'other',       tags: ['设计','平面','graphic','logo','海报'] },
+  { name: '心理咨询',       category: 'other',       tags: ['心理','咨询','counseling','辅导'] },
 ]
 
-const MAIN_CAT_IDS = ['moving', 'cleaning', 'ride', 'renovation', 'cashwork']
+const MAIN_CAT_IDS = ['moving', 'cleaning', 'ride', 'renovation', 'cashwork', 'food', 'tax', 'legal', 'immigration', 'tutoring', 'beauty', 'tcm', 'pet', 'photo', 'translation', 'it', 'driving', 'lawn', 'childcare', 'insurance']
 
 const TORONTO_AREAS = [
   // ── Greater Toronto Area ──
@@ -264,7 +301,7 @@ export default function PostService() {
         if (data) {
           setDbServices(data.map(r => ({
             name: r.name,
-            category: (r.category_id ?? 'other') as ServiceCat,
+            category: (r.category_id ?? 'other') as ServiceCategory,
             tags: [r.name],
           })))
         }

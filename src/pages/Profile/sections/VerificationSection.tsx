@@ -145,28 +145,36 @@ export default function VerificationSection({ user }: Props) {
 
   // ── OTP send / verify ─────────────────────────────────────────────────────
   async function sendOtp() {
-    const formatted = toE164(phoneInput.trim())
-    if (formatted.length < 8) { setPhoneMsg({ ok: false, text: '请输入有效的手机号码' }); return }
-    setSending(true); setPhoneMsg(null)
-    const { error } = await supabase.auth.updateUser({ phone: formatted })
-    setSending(false)
-    if (error) {
-      setPhoneMsg({ ok: false, text: error.message.includes('not enabled') ? '短信服务暂未开通，请联系管理员' : error.message })
+    const digits = phoneInput.replace(/\D/g, '')
+    if (digits.length !== 10) {
+      setPhoneMsg({ ok: false, text: '请输入 10 位加拿大/美国手机号（不含 +1）' })
       return
     }
-    setStep('otp'); startCountdown()
+    const formatted = `+1${digits}`
+    // Start cooldown immediately — prevents spam regardless of success/failure
+    startCountdown()
+    setSending(true); setPhoneMsg(null)
+    const { error } = await supabase.functions.invoke('send-otp', { body: { phone: formatted } })
+    setSending(false)
+    if (error) {
+      const msg = (error as { message?: string }).message ?? '发送失败，请稍后重试'
+      setPhoneMsg({ ok: false, text: msg })
+      return
+    }
+    setStep('otp')
     setPhoneMsg({ ok: true, text: `验证码已发送至 ${formatted}` })
   }
 
   async function verifyOtp() {
     if (otpInput.length !== 6) { setPhoneMsg({ ok: false, text: '请输入 6 位验证码' }); return }
     setVerifying(true); setPhoneMsg(null)
-    const { error } = await supabase.auth.verifyOtp({
-      phone: toE164(phoneInput.trim()), token: otpInput, type: 'phone_change',
+    const { error } = await supabase.functions.invoke('verify-otp', {
+      body: { phone: toE164(phoneInput.trim()), code: otpInput },
     })
-    if (error) { setPhoneMsg({ ok: false, text: '验证码错误或已过期' }); setVerifying(false); return }
-    const { error: dbErr } = await supabase.from('users').update({ phone: toE164(phoneInput.trim()), phone_verified: true }).eq('id', user.id)
-    if (dbErr) { setPhoneMsg({ ok: false, text: '验证成功但保存失败，请稍后重试' }); setVerifying(false); return }
+    if (error) {
+      const msg = (error as { message?: string }).message ?? '验证码错误或已过期'
+      setPhoneMsg({ ok: false, text: msg }); setVerifying(false); return
+    }
     setDbPhone(toE164(phoneInput.trim())); setPhoneVerified(true)
     setStep('idle'); setPhoneMsg({ ok: true, text: '手机号验证成功 ✓' }); setVerifying(false)
   }
@@ -246,23 +254,34 @@ export default function VerificationSection({ user }: Props) {
                   <>
                     <p className="text-xs text-gray-500">输入手机号，我们将发送 6 位验证码</p>
                     <div className="flex gap-2">
-                      <div className="flex items-center gap-1.5 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 flex-shrink-0">
-                        <span className="text-sm">🇨🇦</span>
-                        <span className="text-sm text-gray-600">+1</span>
+                      <div className="flex items-center gap-1.5 bg-gray-100 border border-gray-200 rounded-xl px-3 py-2.5 flex-shrink-0 select-none">
+                        <span className="text-sm">🇨🇦🇺🇸</span>
+                        <span className="text-sm font-semibold text-gray-700">+1</span>
                       </div>
-                      <input type="tel" placeholder="647 123 4567" value={phoneInput}
-                        onChange={e => setPhoneInput(e.target.value)}
+                      <input
+                        type="tel"
+                        placeholder="647 123 4567"
+                        value={phoneInput}
+                        maxLength={14}
+                        onChange={e => {
+                          // Only allow digits, spaces, dashes, parentheses
+                          const raw = e.target.value.replace(/[^\d\s\-().]/g, '')
+                          setPhoneInput(raw)
+                        }}
                         onKeyDown={e => e.key === 'Enter' && sendOtp()}
-                        className="flex-1 text-sm border border-gray-200 rounded-xl px-3 py-2.5 outline-none focus:ring-2 focus:ring-primary-300" />
+                        className="flex-1 text-sm border border-gray-200 rounded-xl px-3 py-2.5 outline-none focus:ring-2 focus:ring-primary-300"
+                      />
                     </div>
+                    <p className="text-[11px] text-gray-400">仅支持加拿大/美国号码，+1 已自动添加，请直接输入 10 位号码</p>
                     <div className="flex gap-2">
                       <button onClick={() => { setStep('idle'); setPhoneMsg(null) }}
                         className="flex-1 text-sm text-gray-500 border border-gray-200 rounded-xl py-2.5 hover:bg-gray-50 transition-colors">
                         取消
                       </button>
-                      <button onClick={sendOtp} disabled={sending}
+                      <button onClick={sendOtp} disabled={sending || countdown > 0}
                         className="flex-1 flex items-center justify-center gap-1.5 text-sm text-white bg-primary-600 hover:bg-primary-700 rounded-xl py-2.5 font-medium transition-colors disabled:opacity-60">
-                        <Send size={13} />{sending ? '发送中…' : '发送验证码'}
+                        <Send size={13} />
+                        {sending ? '发送中…' : countdown > 0 ? `${countdown}s 后重试` : '发送验证码'}
                       </button>
                     </div>
                   </>

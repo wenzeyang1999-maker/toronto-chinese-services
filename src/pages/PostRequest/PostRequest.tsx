@@ -1,6 +1,6 @@
-import { useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { ArrowLeft, CheckCircle, Clock } from 'lucide-react'
+import { ArrowLeft, CheckCircle, Clock, MapPin } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { useAuthStore } from '../../store/authStore'
 import { useAppStore } from '../../store/appStore'
@@ -46,6 +46,9 @@ export default function PostRequest() {
   const [days,     setDays]     = useState(preset?.days ?? 3)
   const [startAt,  setStartAt]  = useState('')   // datetime-local string
   const [endAt,    setEndAt]    = useState('')
+  const [shareLocation, setShareLocation] = useState(true)
+  const [locCoords, setLocCoords]         = useState<{ lat: number; lng: number } | null>(null)
+  const [locError,  setLocError]          = useState<string | null>(null)
   const [loading,  setLoading]  = useState(false)
   const [done,     setDone]     = useState(false)
   // Guards against double-submission while the moderation + insert chain is in
@@ -56,6 +59,25 @@ export default function PostRequest() {
   // Min selectable time = now (rounded down to the minute). Stops users from
   // picking a service time in the past.
   const minDatetime = useMemo(() => toDatetimeLocal(new Date()), [])
+
+  // Auto-request location on mount since default is checked
+  useEffect(() => { toggleShareLocation(true) }, [])  // eslint-disable-line react-hooks/exhaustive-deps
+
+  function toggleShareLocation(checked: boolean) {
+    setShareLocation(checked)
+    setLocError(null)
+    if (!checked) { setLocCoords(null); return }
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        // Round to 2 decimal places ≈ 1 km grid — protects street-level privacy
+        const lat = Math.round(pos.coords.latitude  * 100) / 100
+        const lng = Math.round(pos.coords.longitude * 100) / 100
+        setLocCoords({ lat, lng })
+      },
+      () => { setLocError('无法获取位置，请检查浏览器定位权限'); setShareLocation(false) },
+      { timeout: 8000 },
+    )
+  }
 
   if (!user) {
     navigate('/login', { state: { from: '/requests/post' } })
@@ -106,6 +128,8 @@ export default function PostRequest() {
         category,
         area:       area || null,
         city:       'Toronto',
+        lat:        locCoords?.lat ?? null,
+        lng:        locCoords?.lng ?? null,
         budget:     budget.trim() || null,
         service_at_start: serviceStartIso,
         service_at_end:   serviceEndIso,
@@ -167,7 +191,7 @@ export default function PostRequest() {
             返回首页
           </button>
           <button
-            onClick={() => { setDone(false); setTitle(''); setDesc(''); setBudget(''); setArea(''); submittingRef.current = false }}
+            onClick={() => { setDone(false); setTitle(''); setDesc(''); setBudget(''); setArea(''); setShareLocation(false); setLocCoords(null); submittingRef.current = false }}
             className="px-5 py-2.5 bg-white border border-gray-200 text-gray-700 rounded-xl text-sm font-semibold"
           >
             再发一条
@@ -325,6 +349,33 @@ export default function PostRequest() {
             </div>
           </div>
 
+          {/* Share location */}
+          <div className="card p-4">
+            <label className="flex items-center gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={shareLocation}
+                onChange={(e) => toggleShareLocation(e.target.checked)}
+                className="w-4 h-4 accent-primary-600 cursor-pointer"
+              />
+              <div className="flex-1">
+                <div className="flex items-center gap-1.5 text-sm font-semibold text-gray-700">
+                  <MapPin size={14} className="text-primary-500" />
+                  在地图上显示我的大概位置
+                </div>
+                <p className="text-xs text-gray-400 mt-0.5">
+                  {locCoords
+                    ? '已获取模糊位置（误差约 1 km），商家可在地图上主动找到你'
+                    : '地图仅显示约 1 km 范围的模糊位置，不会暴露你的精确地址'}
+                </p>
+              </div>
+              {locCoords && (
+                <span className="text-xs text-green-600 bg-green-50 px-2 py-0.5 rounded-full font-medium flex-shrink-0">已定位</span>
+              )}
+            </label>
+            {locError && <p className="text-xs text-red-500 mt-2">{locError}</p>}
+          </div>
+
           {/* Expiry */}
           <div className="card p-4">
             <label className="block text-sm font-semibold text-gray-700 mb-2">有效期</label>
@@ -344,6 +395,11 @@ export default function PostRequest() {
               ))}
             </div>
           </div>
+
+          {/* Privacy notice */}
+          <p className="text-center text-[11px] text-gray-400 px-2">
+            需求过期或取消后，所有内容将自动从平台删除。地图上仅显示约 1 km 精度的模糊位置，不会透露你的精确地址。
+          </p>
 
           <button
             type="submit"

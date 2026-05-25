@@ -28,5 +28,11 @@ verify_jwt = false
 [functions.match-inquiry-providers]
 verify_jwt = true
 
+[functions.send-otp]
+verify_jwt = true
+
+[functions.verify-otp]
+verify_jwt = true
+
 [functions.ai-service-tools]
 verify_jwt = true

@@ -17,6 +17,7 @@ import { RADIUS_MIN_KM, RADIUS_MAX_KM } from '../../components/RadiusSlider/Radi
 import { PlusCircle, Search as SearchIcon, ChevronRight, Sparkles, Megaphone, ArrowRight } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { getCategoryById } from '../../data/categories'
+import { fuzzyFilterRequests } from '../../lib/fuzzySearch'
 
 const ServiceMap = lazy(() => import('../../components/ServiceMap/ServiceMap'))
 
@@ -336,17 +337,6 @@ export default function Home() {
             </button>
           </div>
 
-          {feedMode === 'requests' && (
-            <div className="flex justify-end mt-3">
-              <button
-                onClick={() => navigate('/requests/post')}
-                className="flex items-center gap-1.5 text-xs font-semibold text-orange-600
-                           bg-orange-50 border border-orange-200 px-3 py-2 rounded-xl hover:bg-orange-100 transition-colors"
-              >
-                <PlusCircle size={14} /> 发布需求
-              </button>
-            </div>
-          )}
         </div>
 
         {/* ── Services feed ────────────────────────────────────────────────── */}
@@ -402,22 +392,13 @@ export default function Home() {
 
         {/* ── Requests feed ────────────────────────────────────────────────── */}
         {feedMode === 'requests' && (() => {
-          const kw = requestSearch.trim().toLowerCase()
+          const kw = requestSearch.trim()
 
-          // Step 1: search keyword filter (works in both list + map view)
-          let filtered = kw
-            ? serviceRequests.filter(r =>
-                r.title.toLowerCase().includes(kw) ||
-                (r.description ?? '').toLowerCase().includes(kw) ||
-                r.category.toLowerCase().includes(kw) ||
-                (r.area ?? '').toLowerCase().includes(kw)
-              )
-            : serviceRequests
+          // Step 1: fuzzy search — handles synonyms, typos, cross-language matching
+          let filtered = fuzzyFilterRequests(serviceRequests, kw)
 
-          // Step 2 (map view only): fuzzy-match against the provider's own skill_tags.
-          // If the user hasn't set any tags, show everything. If tags exist, keep only
-          // requests whose title / description / category-label contains at least one tag.
-          const tagFiltered = (viewMode === 'map' && mySkillTags.length > 0)
+          // Step 2: skill-tag filter for map (keeps all for card grid)
+          const tagFiltered = mySkillTags.length > 0
             ? filtered.filter(r => {
                 const cat = getCategoryById(r.category)
                 const haystack = (
@@ -430,17 +411,35 @@ export default function Home() {
               })
             : filtered
 
-          // Step 3 (map view only): radius filter — drop requests further than mapRadiusKm
-          const radiusFiltered = (viewMode === 'map' && userLocation)
-            ? tagFiltered.filter(r => {
-                if (r.lat == null || r.lng == null) return true  // keep unlocated reqs
-                return calcDistance(userLocation.lat, userLocation.lng, r.lat, r.lng) <= mapRadiusKm
-              })
+          // Step 3: radius filter for map + cap at 25 nearest pins
+          const MAX_REQUEST_PINS = 25
+          const forMap = (userLocation
+            ? tagFiltered
+                .filter(r => r.lat != null && r.lng != null)
+                .map(r => ({ r, d: calcDistance(userLocation.lat, userLocation.lng, r.lat!, r.lng!) }))
+                .filter(({ d }) => d <= mapRadiusKm)
+                .sort((a, b) => a.d - b.d)
+                .slice(0, MAX_REQUEST_PINS)
+                .map(({ r }) => r)
             : tagFiltered
+                .filter(r => r.lat != null && r.lng != null)
+                .slice(0, MAX_REQUEST_PINS)
+          )
 
-          // What actually goes to the map vs the list
-          const forMap  = radiusFiltered
+          // Card grid: all keyword-filtered, sorted by distance
           const forList = filtered
+            .map(r => ({
+              req: r,
+              dist: (userLocation && r.lat != null && r.lng != null)
+                ? calcDistance(userLocation.lat, userLocation.lng, r.lat, r.lng)
+                : undefined,
+            }))
+            .sort((a, b) => {
+              if (a.dist == null && b.dist == null) return 0
+              if (a.dist == null) return 1
+              if (b.dist == null) return -1
+              return a.dist - b.dist
+            })
 
           return (
             <section className="mb-6">
@@ -448,25 +447,6 @@ export default function Home() {
                 <div className="min-w-0">
                   <h3 className="text-sm font-semibold text-gray-800">附近求服务</h3>
                   <p className="text-xs text-gray-400 mt-0.5">客户发布的服务需求，主动出击接单</p>
-                </div>
-                {/* List / Map toggle */}
-                <div className="flex bg-gray-100 rounded-full p-0.5 flex-shrink-0">
-                  <button
-                    onClick={() => handleViewMode('list')}
-                    className={`px-3 py-1 rounded-full text-xs font-semibold transition-all ${
-                      viewMode === 'list' ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-500'
-                    }`}
-                  >
-                    列表
-                  </button>
-                  <button
-                    onClick={() => handleViewMode('map')}
-                    className={`px-3 py-1 rounded-full text-xs font-semibold transition-all ${
-                      viewMode === 'map' ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-500'
-                    }`}
-                  >
-                    地图
-                  </button>
                 </div>
               </div>
 
@@ -484,57 +464,53 @@ export default function Home() {
                 )}
               </div>
 
-              {/* Map view */}
-              {viewMode === 'map' ? (
+              {/* Map — always visible */}
+              <Suspense fallback={<div className="h-80 rounded-2xl bg-gray-100 animate-pulse" />}>
+                <ServiceMap
+                  services={[]}
+                  requests={forMap}
+                  count={forMap.length}
+                  requestsOnly
+                  radiusKm={mapRadiusKm}
+                  onRadiusChange={handleMapRadius}
+                />
+              </Suspense>
+              {mySkillTags.length > 0 ? (
+                <p className="text-xs text-gray-400 mt-2 mb-4 text-center truncate">
+                  已按你的标签过滤：{mySkillTags.slice(0, 3).join('、')}{mySkillTags.length > 3 ? '…' : ''}
+                </p>
+              ) : (
+                <p className="text-xs text-gray-400 mt-2 mb-4 text-center">
+                  💡 在「我的主页 → 业务标签」设置标签，地图将自动按你能接的单类型过滤
+                </p>
+              )}
+
+              {/* Card grid — always visible below map */}
+              {forList.length === 0 ? (
+                <div className="card p-10 flex flex-col items-center gap-3 text-center">
+                  <span className="text-4xl">{kw ? '🔍' : '📭'}</span>
+                  <p className="text-sm font-semibold text-gray-600">
+                    {kw ? `没有找到"${requestSearch}"相关需求` : '暂无客户需求'}
+                  </p>
+                  <p className="text-xs text-gray-400">
+                    {kw ? '换个关键词试试' : '告诉身边的客户来这里发布需求吧'}
+                  </p>
+                </div>
+              ) : (
                 <>
-                  <Suspense fallback={<div className="h-80 rounded-2xl bg-gray-100 animate-pulse" />}>
-                    <ServiceMap
-                      services={[]}
-                      requests={forMap}
-                      count={forMap.length}
-                      requestsOnly
-                      radiusKm={mapRadiusKm}
-                      onRadiusChange={handleMapRadius}
-                    />
-                  </Suspense>
-                  {mySkillTags.length > 0 ? (
-                    <p className="text-xs text-gray-400 mt-2 text-center truncate">
-                      已按你的标签过滤：{mySkillTags.slice(0, 3).join('、')}{mySkillTags.length > 3 ? '…' : ''}
-                    </p>
-                  ) : (
-                    <p className="text-xs text-gray-400 mt-2 text-center">
-                      💡 在「我的主页 → 业务标签」里设置标签，地图就会按你能接的单类型自动过滤
+                  {kw && (
+                    <p className="text-xs text-gray-400 mb-2">
+                      找到 <strong className="text-gray-700">{forList.length}</strong> 条相关需求
                     </p>
                   )}
-                </>
-              ) : (
-                /* List view */
-                forList.length === 0 ? (
-                  <div className="card p-10 flex flex-col items-center gap-3 text-center">
-                    <span className="text-4xl">{kw ? '🔍' : '📭'}</span>
-                    <p className="text-sm font-semibold text-gray-600">
-                      {kw ? `没有找到"${requestSearch}"相关需求` : '暂无客户需求'}
-                    </p>
-                    <p className="text-xs text-gray-400">
-                      {kw ? '换个关键词试试' : '告诉身边的客户来这里发布需求吧'}
-                    </p>
+                  <div className="columns-2 md:columns-3 lg:columns-4 gap-3">
+                    {forList.map(({ req, dist }) => (
+                      <div key={req.id} className="break-inside-avoid mb-3">
+                        <ServiceRequestCard request={req} layout="masonry" distance={dist} />
+                      </div>
+                    ))}
                   </div>
-                ) : (
-                  <>
-                    {kw && (
-                      <p className="text-xs text-gray-400 mb-2">
-                        找到 <strong className="text-gray-700">{forList.length}</strong> 条相关需求
-                      </p>
-                    )}
-                    <div className="columns-2 md:columns-3 lg:columns-4 xl:columns-5 gap-3">
-                      {forList.map((req) => (
-                        <div key={req.id} className="break-inside-avoid mb-3">
-                          <ServiceRequestCard request={req} layout="masonry" />
-                        </div>
-                      ))}
-                    </div>
-                  </>
-                )
+                </>
               )}
             </section>
           )
