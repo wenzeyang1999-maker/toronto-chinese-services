@@ -288,9 +288,11 @@ export default function Register() {
               />
               <label htmlFor="terms" className="text-xs text-gray-500 leading-relaxed">
                 我已阅读并同意{' '}
-                <span className="text-primary-600 cursor-pointer hover:underline">服务条款</span>
+                <a href="/terms" target="_blank" rel="noopener noreferrer"
+                   className="text-primary-600 hover:underline">服务条款</a>
                 {' '}及{' '}
-                <span className="text-primary-600 cursor-pointer hover:underline">隐私政策</span>
+                <a href="/privacy" target="_blank" rel="noopener noreferrer"
+                   className="text-primary-600 hover:underline">隐私政策</a>
               </label>
             </div>
             {termsError && (

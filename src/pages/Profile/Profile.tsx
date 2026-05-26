@@ -259,6 +259,15 @@ export default function Profile() {
       {/* Install as App */}
       <InstallAppButton />
 
+      {/* Legal links */}
+      <div className="flex justify-center gap-4 text-xs text-gray-400">
+        <a href="/terms" target="_blank" rel="noopener noreferrer" className="hover:text-gray-600 hover:underline">服务条款</a>
+        <span>·</span>
+        <a href="/privacy" target="_blank" rel="noopener noreferrer" className="hover:text-gray-600 hover:underline">隐私政策</a>
+        <span>·</span>
+        <a href="mailto:support@ycs.ca" className="hover:text-gray-600 hover:underline">联系我们</a>
+      </div>
+
       {/* Logout */}
       <button onClick={async () => { await supabase.auth.signOut(); navigate('/') }}
         className="w-full flex items-center justify-center gap-2 bg-white border border-gray-200
