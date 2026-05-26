@@ -2,7 +2,8 @@
 // Tier definitions come from the membership_tiers table (single source of truth).
 // All three tiers are shown expanded; each tier visibly stacks on the previous.
 import { useEffect, useState } from 'react'
-import { Check, Crown } from 'lucide-react'
+import { Check, Crown, Gift, Zap } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 import { supabase } from '../../../lib/supabase'
 import MembershipBadge, { type MemberLevel } from '../../../components/MembershipBadge/MembershipBadge'
 
@@ -49,6 +50,7 @@ const ORDER: Record<MemberLevel, number> = { L1: 1, L2: 2, L3: 3 }
 export default function MembershipSection({ level, expiresAt }: Props) {
   const [tiers, setTiers] = useState<Tier[]>([])
   const [loading, setLoading] = useState(true)
+  const navigate = useNavigate()
 
   useEffect(() => {
     supabase.from('membership_tiers')
@@ -75,6 +77,47 @@ export default function MembershipSection({ level, expiresAt }: Props) {
       <div>
         <h2 className="text-lg font-bold text-gray-900">我的会员等级</h2>
         <p className="text-xs text-gray-400 mt-0.5">等级越高，权益越多 —— 每一级包含下一级全部权益</p>
+      </div>
+
+      {/* ── How it works banner ───────────────────────────────────────────── */}
+      <div className="rounded-2xl bg-gradient-to-br from-primary-50 to-amber-50 border border-primary-100 p-4 space-y-3">
+        <p className="text-sm font-bold text-gray-800">会员怎么来？</p>
+        <div className="space-y-2">
+          <div className="flex items-start gap-2.5">
+            <span className="text-base leading-none mt-0.5">✅</span>
+            <p className="text-xs text-gray-700 leading-relaxed">
+              <strong>平台完全免费</strong>，注册即是普通会员，发帖、接单、发消息全部不收费
+            </p>
+          </div>
+          <div className="flex items-start gap-2.5">
+            <Gift size={15} className="text-amber-500 flex-shrink-0 mt-0.5" />
+            <p className="text-xs text-gray-700 leading-relaxed">
+              <strong>邀请好友送会员</strong> — 邀请 <strong>3 人</strong>注册得黄金会员 30 天；邀请 <strong>10 人</strong>得至尊会员 30 天
+            </p>
+          </div>
+          <div className="flex items-start gap-2.5">
+            <Zap size={15} className="text-orange-500 flex-shrink-0 mt-0.5" />
+            <p className="text-xs text-gray-700 leading-relaxed">
+              <strong>服务置顶推广</strong> — 如需帖子在地图和搜索中置顶曝光，请单独联系我们洽谈
+            </p>
+          </div>
+        </div>
+        <div className="flex gap-2 pt-1">
+          <button
+            onClick={() => navigate('/profile?section=referral')}
+            className="flex-1 bg-primary-600 text-white text-xs font-semibold py-2.5 rounded-xl
+                       hover:bg-primary-700 active:scale-95 transition-all text-center"
+          >
+            立即邀请好友
+          </button>
+          <a
+            href="mailto:support@ycs.ca?subject=置顶推广咨询"
+            className="flex-1 bg-white border border-gray-200 text-gray-700 text-xs font-semibold
+                       py-2.5 rounded-xl hover:bg-gray-50 active:scale-95 transition-all text-center"
+          >
+            联系我们推广
+          </a>
+        </div>
       </div>
 
       {tiers.map((tier, idx) => {
@@ -159,7 +202,13 @@ export default function MembershipSection({ level, expiresAt }: Props) {
             {/* Upgrade hint */}
             {isLocked && (
               <p className="mt-3 text-xs text-gray-400">
-                如需升级到{tier.name}，请联系平台管理员
+                邀请更多好友注册即可解锁 —{' '}
+                <button
+                  onClick={() => navigate('/profile?section=referral')}
+                  className="text-primary-500 underline"
+                >
+                  去邀请
+                </button>
               </p>
             )}
           </div>

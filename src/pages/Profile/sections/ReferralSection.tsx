@@ -224,14 +224,37 @@ export default function ReferralSection({ user }: Props) {
         </div>
       </div>
 
-      {/* ── How it works ──────────────────────────────────────────────────── */}
-      <div className="bg-amber-50 rounded-3xl px-5 py-4 flex gap-3">
-        <Gift size={18} className="text-amber-500 flex-shrink-0 mt-0.5" />
-        <div>
-          <p className="text-xs font-semibold text-amber-700">邀请说明</p>
-          <p className="text-xs text-amber-600 mt-1 leading-relaxed">
-            将链接分享给朋友，朋友点击链接注册后，邀请码会自动填入。
-            注册成功后，你的邀请人数会 +1。
+      {/* ── Reward rules ──────────────────────────────────────────────────── */}
+      <div className="bg-amber-50 rounded-3xl px-5 py-4 space-y-3">
+        <div className="flex items-center gap-2">
+          <Gift size={16} className="text-amber-500 flex-shrink-0" />
+          <p className="text-xs font-bold text-amber-700">邀请奖励规则</p>
+        </div>
+        <div className="space-y-2">
+          <div className="flex items-center gap-3 bg-white rounded-2xl px-4 py-3">
+            <span className="text-xl">🥇</span>
+            <div className="flex-1">
+              <p className="text-xs font-semibold text-gray-800">邀请 3 位好友</p>
+              <p className="text-xs text-gray-500 mt-0.5">解锁黄金会员 30 天 · 搜索优先展示</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3 bg-white rounded-2xl px-4 py-3">
+            <span className="text-xl">👑</span>
+            <div className="flex-1">
+              <p className="text-xs font-semibold text-gray-800">邀请 10 位好友</p>
+              <p className="text-xs text-gray-500 mt-0.5">解锁至尊会员 30 天 · 首页推荐曝光</p>
+            </div>
+          </div>
+        </div>
+        <p className="text-xs text-amber-600 leading-relaxed">
+          朋友点击你的链接注册后，邀请码自动填入，注册成功即算一次有效邀请。
+          每达到门槛自动续期 30 天，无需手动申请。
+        </p>
+        <div className="border-t border-amber-200 pt-3">
+          <p className="text-xs text-amber-700 font-medium">💡 需要服务置顶推广？</p>
+          <p className="text-xs text-amber-600 mt-1">
+            推流/置顶属于付费推广服务，请直接联系我们洽谈：
+            <a href="mailto:support@ycs.ca?subject=置顶推广咨询" className="underline ml-1">support@ycs.ca</a>
           </p>
         </div>
       </div>

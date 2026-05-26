@@ -325,8 +325,8 @@ export default function ServicesSection() {
                           <Zap size={16} className="text-amber-500" />
                         </div>
                         <div>
-                          <p className="text-sm font-bold text-gray-800">申请置顶推广</p>
-                          <p className="text-[11px] text-gray-400">管理员审核后为您开启</p>
+                          <p className="text-sm font-bold text-gray-800">服务置顶推广</p>
+                          <p className="text-[11px] text-gray-400">让你的帖子出现在地图和搜索顶部</p>
                         </div>
                       </div>
                       <button
@@ -341,58 +341,28 @@ export default function ServicesSection() {
                     <div className="bg-amber-50 border border-amber-100 rounded-2xl px-4 py-3 mb-4">
                       <p className="text-[11px] text-amber-600 font-semibold mb-0.5">推广服务</p>
                       <p className="text-sm font-semibold text-gray-800 truncate">{svc.title}</p>
-                      <p className="text-[11px] text-gray-400 mt-0.5">{user?.email}</p>
                     </div>
 
-                    {/* Note */}
-                    <div className="mb-4">
-                      <label className="block text-xs font-medium text-gray-600 mb-1.5">
-                        留言给管理员 <span className="text-gray-400 font-normal">（可选）</span>
-                      </label>
-                      <textarea
-                        value={promoNote}
-                        onChange={e => setPromoNote(e.target.value)}
-                        placeholder="例：希望推广两周，可以电话/微信联系我"
-                        rows={3}
-                        className="w-full resize-none rounded-xl border border-gray-200 px-3 py-2.5
-                                   text-sm text-gray-800 placeholder-gray-400
-                                   focus:outline-none focus:ring-2 focus:ring-amber-300 focus:border-transparent"
-                      />
+                    {/* Contact instructions */}
+                    <div className="space-y-3 mb-4">
+                      <p className="text-xs text-gray-600 leading-relaxed">
+                        推广属于<strong>付费增值服务</strong>，价格灵活、按需定制。请直接联系我们洽谈：
+                      </p>
+                      <a
+                        href={`mailto:support@ycs.ca?subject=置顶推广咨询 — ${encodeURIComponent(svc.title)}&body=${encodeURIComponent(`你好，我想咨询「${svc.title}」的置顶推广方案，请问价格和周期如何？`)}`}
+                        className="flex items-center gap-3 bg-primary-50 border border-primary-100 rounded-2xl px-4 py-3 hover:bg-primary-100 transition-colors"
+                      >
+                        <span className="text-xl">📧</span>
+                        <div>
+                          <p className="text-xs font-semibold text-primary-700">发送邮件咨询</p>
+                          <p className="text-[11px] text-primary-500">support@ycs.ca</p>
+                        </div>
+                      </a>
                     </div>
 
-                    <button
-                      onClick={async () => {
-                        if (!user || promoSending) return
-                        setPromoSending(true)
-                        try {
-                          const { error } = await supabase.from('promo_requests').insert({
-                            service_id:  svc.id,
-                            provider_id: user.id,
-                            note:        promoNote.trim() || null,
-                          })
-                          if (error) throw error
-
-                          await notifyAdminPromoRequest({
-                            serviceName:   svc.title,
-                            serviceId:     svc.id,
-                            providerName:  user.user_metadata?.name ?? user.email ?? '服务商',
-                            providerEmail: user.email ?? '',
-                            note:          promoNote.trim(),
-                          })
-
-                          setPromoSent(true)
-                        } catch (err) {
-                          toast(err instanceof Error ? `提交失败：${err.message}` : '提交失败，请稍后再试', 'error')
-                        } finally {
-                          setPromoSending(false)
-                        }
-                      }}
-                      disabled={promoSending}
-                      className="w-full py-3 rounded-2xl bg-amber-500 hover:bg-amber-600 text-white
-                                 font-semibold text-sm transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
-                    >
-                      {promoSending ? '提交中…' : <><Zap size={15} className="fill-white" /> 提交申请</>}
-                    </button>
+                    <p className="text-[11px] text-gray-400 text-center">
+                      我们通常在 1 个工作日内回复
+                    </p>
                   </>
                 )}
               </motion.div>
