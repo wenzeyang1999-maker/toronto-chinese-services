@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { ChevronLeft } from 'lucide-react'
 
 const LAST_UPDATED = '2026年5月25日'
-const CONTACT_EMAIL = 'support@ycs.ca'
+const CONTACT_EMAIL = 'support@huarenq.com'
 
 export default function TermsOfService() {
   const navigate = useNavigate()

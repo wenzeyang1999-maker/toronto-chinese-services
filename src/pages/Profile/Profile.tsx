@@ -265,7 +265,7 @@ export default function Profile() {
         <span>·</span>
         <a href="/privacy" target="_blank" rel="noopener noreferrer" className="hover:text-gray-600 hover:underline">隐私政策</a>
         <span>·</span>
-        <a href="mailto:support@ycs.ca" className="hover:text-gray-600 hover:underline">联系我们</a>
+        <a href="mailto:support@huarenq.com" className="hover:text-gray-600 hover:underline">联系我们</a>
       </div>
 
       {/* Logout */}

@@ -349,13 +349,13 @@ export default function ServicesSection() {
                         推广属于<strong>付费增值服务</strong>，价格灵活、按需定制。请直接联系我们洽谈：
                       </p>
                       <a
-                        href={`mailto:support@ycs.ca?subject=置顶推广咨询 — ${encodeURIComponent(svc.title)}&body=${encodeURIComponent(`你好，我想咨询「${svc.title}」的置顶推广方案，请问价格和周期如何？`)}`}
+                        href={`mailto:support@huarenq.com?subject=置顶推广咨询 — ${encodeURIComponent(svc.title)}&body=${encodeURIComponent(`你好，我想咨询「${svc.title}」的置顶推广方案，请问价格和周期如何？`)}`}
                         className="flex items-center gap-3 bg-primary-50 border border-primary-100 rounded-2xl px-4 py-3 hover:bg-primary-100 transition-colors"
                       >
                         <span className="text-xl">📧</span>
                         <div>
                           <p className="text-xs font-semibold text-primary-700">发送邮件咨询</p>
-                          <p className="text-[11px] text-primary-500">support@ycs.ca</p>
+                          <p className="text-[11px] text-primary-500">support@huarenq.com</p>
                         </div>
                       </a>
                     </div>

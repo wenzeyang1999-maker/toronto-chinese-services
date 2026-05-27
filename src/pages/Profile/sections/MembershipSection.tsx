@@ -111,7 +111,7 @@ export default function MembershipSection({ level, expiresAt }: Props) {
             立即邀请好友
           </button>
           <a
-            href="mailto:support@ycs.ca?subject=置顶推广咨询"
+            href="mailto:support@huarenq.com?subject=置顶推广咨询"
             className="flex-1 bg-white border border-gray-200 text-gray-700 text-xs font-semibold
                        py-2.5 rounded-xl hover:bg-gray-50 active:scale-95 transition-all text-center"
           >

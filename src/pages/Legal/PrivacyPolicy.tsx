@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { ChevronLeft } from 'lucide-react'
 
 const LAST_UPDATED = '2026年5月25日'
-const COMPANY_EMAIL = 'privacy@ycs.ca'
+const COMPANY_EMAIL = 'privacy@huarenq.com'
 
 export default function PrivacyPolicy() {
   const navigate = useNavigate()

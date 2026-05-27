@@ -254,7 +254,7 @@ export default function ReferralSection({ user }: Props) {
           <p className="text-xs text-amber-700 font-medium">💡 需要服务置顶推广？</p>
           <p className="text-xs text-amber-600 mt-1">
             推流/置顶属于付费推广服务，请直接联系我们洽谈：
-            <a href="mailto:support@ycs.ca?subject=置顶推广咨询" className="underline ml-1">support@ycs.ca</a>
+            <a href="mailto:support@huarenq.com?subject=置顶推广咨询" className="underline ml-1">support@huarenq.com</a>
           </p>
         </div>
       </div>
