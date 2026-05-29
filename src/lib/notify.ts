@@ -142,12 +142,24 @@ export async function notifyFollowerNewCommunityPost(opts: {
   postId: string
   preview: string
 }) {
-  await notify('new_community_post', opts.recipientUserId, {
-    authorName: opts.authorName,
-    postTitle: opts.postTitle,
-    postId: opts.postId,
-    preview: opts.preview.slice(0, 120),
-  })
+  await Promise.allSettled([
+    notify('new_community_post', opts.recipientUserId, {
+      authorName: opts.authorName,
+      postTitle: opts.postTitle,
+      postId: opts.postId,
+      preview: opts.preview.slice(0, 120),
+    }),
+    supabase.functions.invoke('send-web-push', {
+      body: {
+        mode:            'follower_notify',
+        recipientUserId: opts.recipientUserId,
+        title:           `${opts.authorName} 发布了新帖子`,
+        body:            opts.postTitle,
+        url:             `/community/${opts.postId}`,
+        tag:             `community-post-${opts.postId}`,
+      },
+    }),
+  ])
 }
 
 export async function notifyFollowerNewListing(opts: {

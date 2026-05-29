@@ -60,7 +60,7 @@ export default function LoadingScreen() {
             transition={{ delay: 0.45, duration: 0.5 }}
             className="text-blue-100 text-sm leading-relaxed"
           >
-            多伦多华人一站式生活服务平台，让您的海外生活更加便利。
+            海外华人生活一站式服务平台，让您的海外生活更加便利。
           </motion.p>
         </motion.div>
 

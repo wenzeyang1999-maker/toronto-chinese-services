@@ -23,7 +23,7 @@ self.addEventListener('push', (event) => {
   let payload
   try { payload = event.data.json() } catch { payload = { title: 'NCC', body: event.data.text() } }
 
-  const title   = payload.title || 'NCC · 北美华人圈'
+  const title   = payload.title || '华林'
   const options = {
     body:    payload.body || '',
     icon:    payload.icon || '/favicon.svg',

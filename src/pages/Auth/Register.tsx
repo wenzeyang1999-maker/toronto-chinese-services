@@ -139,9 +139,12 @@ export default function Register() {
             </svg>
           </div>
           <h2 className="text-xl font-bold text-gray-900 mb-2">注册成功！</h2>
-          <p className="text-sm text-gray-500 mb-6">
+          <p className="text-sm text-gray-500 mb-2">
             我们已发送一封验证邮件到 <span className="font-medium text-gray-700">{form.email}</span>，
             请查收并点击链接激活账号。
+          </p>
+          <p className="text-xs text-gray-400 mb-6">
+            若未收到邮件，请检查垃圾邮件文件夹。
           </p>
           <button
             onClick={() => navigate('/')}
@@ -180,7 +183,7 @@ export default function Register() {
           {/* Header */}
           <div className="mb-8">
             <h1 className="text-2xl font-bold text-gray-900 mb-1">创建账号</h1>
-            <p className="text-sm text-gray-500">加入多伦多华人服务平台</p>
+            <p className="text-sm text-gray-500">加入华林</p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">

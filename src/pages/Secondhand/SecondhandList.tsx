@@ -80,7 +80,7 @@ export default function SecondhandList() {
           {/* Title */}
           <div>
             <h1 className="text-lg font-bold text-gray-900">二手交易</h1>
-            <p className="text-xs text-gray-400">大多伦多华人闲置转让</p>
+            <p className="text-xs text-gray-400">华林 · 闲置转让</p>
           </div>
 
           {/* L2 category tab bar */}

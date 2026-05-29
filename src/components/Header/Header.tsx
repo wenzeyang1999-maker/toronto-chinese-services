@@ -7,7 +7,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { ChevronDown, Menu, X, UserCircle, Grid2x2, Search } from 'lucide-react'
 import { useAuthStore } from '../../store/authStore'
 import { CATEGORIES } from '../../data/categories'
-import NccLogo from '../Logo/NccLogo'
+import HuaLinLogo from '../Logo/HuaLinLogo'
 import AdminNotificationsBell from '../AdminNotifications/AdminNotificationsBell'
 
 interface HeaderProps {
@@ -49,7 +49,7 @@ export default function Header({ sticky = true }: HeaderProps) {
 
         {/* Logo */}
         <Link to="/" onClick={close} className="flex items-center flex-shrink-0">
-          <NccLogo variant="full" theme="light" size={32} />
+          <HuaLinLogo variant="full" theme="light" size={32} />
         </Link>
 
         {/* Right side */}

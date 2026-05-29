@@ -1,10 +1,10 @@
 // ─── InquiryModal ─────────────────────────────────────────────────────────────
 // "获取报价" feature: user posts a need, service providers reach out to them.
-// Slides up from bottom on mobile; centered dialog on desktop.
+// Two modes: AI mode (free-text → LLM extraction) and manual mode (form).
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X, CheckCircle, ChevronDown, Sparkles, UserCheck, Clock3, ShieldCheck } from 'lucide-react'
+import { X, CheckCircle, ChevronDown, Sparkles, UserCheck, Clock3, ShieldCheck, Pencil } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { useAuthStore } from '../../store/authStore'
 import { useAppStore } from '../../store/appStore'
@@ -25,6 +25,16 @@ interface InquiryForm {
   wechat: string
 }
 
+interface Extracted {
+  category:      string | null
+  timing:        string | null
+  location_from: string | null
+  location_to:   string | null
+  special_notes: string | null
+  items:         string | null
+  description:   string | null
+}
+
 const INITIAL: InquiryForm = {
   categoryId: '',
   description: '',
@@ -42,14 +52,21 @@ const TIMING_OPTIONS = [
 ] as const
 
 export default function InquiryModal({ open, onClose }: Props) {
-  const navigate         = useNavigate()
-  const user             = useAuthStore((s) => s.user)
-  const userLocation     = useAppStore((s) => s.userLocation)
+  const navigate          = useNavigate()
+  const user              = useAuthStore((s) => s.user)
+  const userLocation      = useAppStore((s) => s.userLocation)
   const addServiceRequest = useAppStore((s) => s.addServiceRequest)
-  const [form, setForm]         = useState<InquiryForm>(INITIAL)
-  const [errors, setErrors]     = useState<Partial<Record<keyof InquiryForm, string>>>({})
-  const [submitting, setSubmitting] = useState(false)
-  const [done, setDone]         = useState(false)
+
+  const [aiMode,      setAiMode]      = useState(true)
+  const [rawInput,    setRawInput]    = useState('')
+  const [extracting,  setExtracting]  = useState(false)
+  const [extracted,   setExtracted]   = useState<Extracted | null>(null)
+  const [extractError, setExtractError] = useState('')
+
+  const [form,        setForm]        = useState<InquiryForm>(INITIAL)
+  const [errors,      setErrors]      = useState<Partial<Record<keyof InquiryForm, string>>>({})
+  const [submitting,  setSubmitting]  = useState(false)
+  const [done,        setDone]        = useState(false)
   const [serverError, setServerError] = useState('')
 
   const update = <K extends keyof InquiryForm>(field: K, value: InquiryForm[K]) => {
@@ -57,6 +74,40 @@ export default function InquiryModal({ open, onClose }: Props) {
     setErrors((e) => ({ ...e, [field]: undefined }))
   }
 
+  // ── AI extraction ────────────────────────────────────────────────────────────
+  async function handleExtract() {
+    if (!rawInput.trim()) { setExtractError('请先输入需求描述'); return }
+    setExtracting(true)
+    setExtractError('')
+    setExtracted(null)
+    try {
+      const { data, error } = await supabase.functions.invoke('extract-inquiry', {
+        body: { text: rawInput.trim() },
+      })
+      if (error) throw error
+      if (data.error) throw new Error(data.error)
+      const ext = data as Extracted
+      setExtracted(ext)
+      // Pre-fill form fields from extraction
+      const validTiming = ['asap', 'flexible', 'next_week'].includes(ext.timing ?? '')
+        ? (ext.timing as InquiryForm['timing'])
+        : 'flexible'
+      const matchedCat = CATEGORIES.find(c => c.id === ext.category)
+      setForm(f => ({
+        ...f,
+        categoryId:  matchedCat ? ext.category! : '',
+        timing:      validTiming,
+        description: ext.description ?? rawInput.trim(),
+      }))
+    } catch (e) {
+      setExtractError('解析失败，请重试或切换手动模式')
+      console.error(e)
+    } finally {
+      setExtracting(false)
+    }
+  }
+
+  // ── Validation & submit ──────────────────────────────────────────────────────
   const validate = (): boolean => {
     const errs: Partial<Record<keyof InquiryForm, string>> = {}
     if (!form.categoryId)          errs.categoryId  = '请选择服务类型'
@@ -74,9 +125,6 @@ export default function InquiryModal({ open, onClose }: Props) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!validate()) return
-    // Anonymous inquiry submissions were a spam vector — now require login.
-    // Save the form by closing the modal so the user can re-fill after login;
-    // a sticky storage step would be nicer but is out of scope here.
     if (!user) {
       onClose()
       navigate('/login', { state: { from: '/' } })
@@ -86,9 +134,20 @@ export default function InquiryModal({ open, onClose }: Props) {
     setSubmitting(true)
     setServerError('')
     try {
+      // Build description: if AI mode, merge extracted chips into description
+      let finalDescription = form.description.trim()
+      if (aiMode && extracted) {
+        const parts = [finalDescription]
+        if (extracted.location_from) parts.push(`起点：${extracted.location_from}`)
+        if (extracted.location_to)   parts.push(`终点：${extracted.location_to}`)
+        if (extracted.special_notes) parts.push(extracted.special_notes)
+        if (extracted.items)         parts.push(`物品：${extracted.items}`)
+        finalDescription = parts.join('；')
+      }
+
       const { data: inserted, error } = await supabase.from('inquiries').insert({
         category_id: form.categoryId,
-        description: form.description.trim(),
+        description: finalDescription,
         budget:      form.budget.trim() || null,
         timing:      form.timing,
         name:        form.name.trim(),
@@ -99,7 +158,6 @@ export default function InquiryModal({ open, onClose }: Props) {
       }).select('id').single()
       if (error) throw error
 
-      // Also create a public service_request so it appears on the provider map
       if (user?.id) {
         const expiryDays = form.timing === 'asap' ? 7 : form.timing === 'next_week' ? 14 : 30
         const expiresAt  = new Date(Date.now() + expiryDays * 86_400_000).toISOString()
@@ -110,7 +168,7 @@ export default function InquiryModal({ open, onClose }: Props) {
           .insert({
             user_id:     user.id,
             title,
-            description: form.description.trim(),
+            description: finalDescription,
             category:    form.categoryId || 'other',
             budget:      form.budget.trim() || null,
             lat:         userLocation?.lat ?? null,
@@ -145,14 +203,13 @@ export default function InquiryModal({ open, onClose }: Props) {
         }
       }
 
-      // Fire-and-forget: match and notify providers on the server side
       const cat = CATEGORIES.find((c) => c.id === form.categoryId)
       void supabase.functions.invoke('match-inquiry-providers', {
         body: {
           inquiryId:     inserted.id,
           categoryId:    form.categoryId,
           categoryLabel: cat ? `${cat.emoji} ${cat.label}` : form.categoryId,
-          description:   form.description.trim(),
+          description:   finalDescription,
           budget:        form.budget.trim(),
           timing:        form.timing,
           name:          form.name.trim(),
@@ -171,15 +228,47 @@ export default function InquiryModal({ open, onClose }: Props) {
 
   const handleClose = () => {
     onClose()
-    // Reset after animation finishes
-    setTimeout(() => { setForm(INITIAL); setErrors({}); setDone(false); setServerError('') }, 350)
+    setTimeout(() => {
+      setForm(INITIAL); setErrors({}); setDone(false); setServerError('')
+      setRawInput(''); setExtracted(null); setExtractError(''); setAiMode(true)
+    }, 350)
+  }
+
+  // ── Chip helper ──────────────────────────────────────────────────────────────
+  function EditableChip({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
+    const [editing, setEditing] = useState(false)
+    if (editing) {
+      return (
+        <div className="flex items-center gap-1 bg-primary-50 border border-primary-300 rounded-xl px-2 py-1">
+          <span className="text-[10px] text-primary-500 font-medium whitespace-nowrap">{label}</span>
+          <input
+            autoFocus
+            value={value}
+            onChange={e => onChange(e.target.value)}
+            onBlur={() => setEditing(false)}
+            onKeyDown={e => e.key === 'Enter' && setEditing(false)}
+            className="text-xs text-gray-800 bg-transparent outline-none w-24 border-b border-primary-300"
+          />
+        </div>
+      )
+    }
+    return (
+      <button
+        type="button"
+        onClick={() => setEditing(true)}
+        className="flex items-center gap-1 bg-primary-50 border border-primary-200 rounded-xl px-2.5 py-1 hover:border-primary-400 transition-colors"
+      >
+        <span className="text-[10px] text-primary-500 font-medium">{label}</span>
+        <span className="text-xs text-gray-700">{value}</span>
+        <Pencil size={9} className="text-primary-400 ml-0.5" />
+      </button>
+    )
   }
 
   return (
     <AnimatePresence>
       {open && (
         <>
-          {/* Backdrop */}
           <motion.div
             key="backdrop"
             initial={{ opacity: 0 }}
@@ -189,7 +278,6 @@ export default function InquiryModal({ open, onClose }: Props) {
             className="fixed inset-0 bg-black/40 z-[60]"
           />
 
-          {/* Sheet */}
           <motion.div
             key="sheet"
             initial={{ y: '100%' }}
@@ -200,7 +288,7 @@ export default function InquiryModal({ open, onClose }: Props) {
                        md:inset-0 md:m-auto md:rounded-3xl md:max-w-lg md:max-h-[90vh] md:overflow-hidden"
             style={{ maxHeight: '92vh' }}
           >
-            {/* Handle bar (mobile) */}
+            {/* Handle bar */}
             <div className="md:hidden flex justify-center pt-3 pb-1">
               <div className="w-10 h-1 bg-gray-200 rounded-full" />
             </div>
@@ -211,12 +299,35 @@ export default function InquiryModal({ open, onClose }: Props) {
                 <h2 className="text-base font-bold text-gray-900">免费获取报价</h2>
                 <p className="text-xs text-gray-400 mt-0.5">填写需求，服务商主动联系您</p>
               </div>
-              <button
-                onClick={handleClose}
-                className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-400 transition-colors"
-              >
-                <X size={18} />
-              </button>
+              <div className="flex items-center gap-3">
+                {/* Mode toggle */}
+                <div className="flex items-center bg-gray-100 rounded-xl p-0.5 gap-0.5">
+                  <button
+                    type="button"
+                    onClick={() => setAiMode(true)}
+                    className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                      aiMode ? 'bg-white shadow-sm text-primary-600' : 'text-gray-500'
+                    }`}
+                  >
+                    <Sparkles size={11} /> AI
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setAiMode(false)}
+                    className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                      !aiMode ? 'bg-white shadow-sm text-gray-700' : 'text-gray-500'
+                    }`}
+                  >
+                    手动
+                  </button>
+                </div>
+                <button
+                  onClick={handleClose}
+                  className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-400 transition-colors"
+                >
+                  <X size={18} />
+                </button>
+              </div>
             </div>
 
             {/* Content */}
@@ -238,213 +349,352 @@ export default function InquiryModal({ open, onClose }: Props) {
                     </p>
                   )}
                   <p className="text-xs text-gray-400 mb-8">通常在 24 小时内收到回复</p>
-                  <button
-                    onClick={handleClose}
-                    className="btn-primary px-8"
-                  >
-                    好的
-                  </button>
+                  <button onClick={handleClose} className="btn-primary px-8">好的</button>
                 </motion.div>
               ) : (
                 <form onSubmit={handleSubmit} className="px-5 py-4 space-y-4 pb-8">
 
-                  {/* Category */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                      服务类型 <span className="text-red-500">*</span>
-                    </label>
-                    <div className="relative">
-                      <select
-                        value={form.categoryId}
-                        onChange={(e) => update('categoryId', e.target.value)}
-                        className="w-full appearance-none border border-gray-200 rounded-xl px-4 py-2.5 text-sm
-                                   text-gray-800 bg-white outline-none focus:ring-2 focus:ring-primary-400
-                                   focus:border-transparent pr-9"
+                  {aiMode ? (
+                    /* ── AI MODE ─────────────────────────────────────────── */
+                    <div className="space-y-3">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                          描述您的需求
+                        </label>
+                        <textarea
+                          rows={4}
+                          value={rawInput}
+                          onChange={e => { setRawInput(e.target.value); setExtracted(null) }}
+                          placeholder="例：明天下午从North York搬到Markham，三楼无电梯，5个大箱子加一张床"
+                          className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-800
+                                     outline-none focus:ring-2 focus:ring-primary-400 focus:border-transparent
+                                     resize-none placeholder:text-gray-400"
+                        />
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={handleExtract}
+                        disabled={extracting || !rawInput.trim()}
+                        className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl
+                                   bg-primary-600 text-white text-sm font-semibold
+                                   hover:bg-primary-700 transition-colors disabled:opacity-50"
                       >
-                        <option value="">请选择服务类型...</option>
-                        {CATEGORIES.filter((c) => c.id !== 'other').map((c) => (
-                          <option key={c.id} value={c.id}>
-                            {c.emoji} {c.label}
-                          </option>
-                        ))}
-                        <option value="other">其他服务</option>
-                      </select>
-                      <ChevronDown size={15} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-                    </div>
-                    {errors.categoryId && <p className="text-xs text-red-500 mt-1">{errors.categoryId}</p>}
-                  </div>
+                        {extracting
+                          ? <><span className="animate-spin inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full" /> AI 解析中...</>
+                          : <><Sparkles size={15} /> AI 智能解析</>
+                        }
+                      </button>
 
-                  {/* Description */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                      需求描述 <span className="text-red-500">*</span>
-                    </label>
-                    <textarea
-                      rows={3}
-                      value={form.description}
-                      onChange={(e) => update('description', e.target.value)}
-                      placeholder="请描述您的需求，例如：需要搬两居室，3楼无电梯，下周末可以..."
-                      maxLength={300}
-                      className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-800
-                                 outline-none focus:ring-2 focus:ring-primary-400 focus:border-transparent
-                                 resize-none"
-                    />
-                    <p className="text-xs text-gray-400 text-right mt-0.5">{form.description.length}/300</p>
-                    {errors.description && <p className="text-xs text-red-500 mt-0.5">{errors.description}</p>}
-                  </div>
+                      {extractError && (
+                        <p className="text-xs text-red-500 text-center">{extractError}</p>
+                      )}
 
-                  {/* Budget */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                      预算范围 <span className="text-gray-400 font-normal text-xs">（可选）</span>
-                    </label>
-                    <div className="relative">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">$</span>
-                      <input
-                        type="text"
-                        value={form.budget}
-                        onChange={(e) => update('budget', e.target.value)}
-                        placeholder="例：100–200"
-                        className="w-full border border-gray-200 rounded-xl pl-7 pr-4 py-2.5 text-sm
-                                   text-gray-800 outline-none focus:ring-2 focus:ring-primary-400
-                                   focus:border-transparent"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Timing */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1.5">希望服务时间</label>
-                    <div className="flex gap-2">
-                      {TIMING_OPTIONS.map((opt) => (
-                        <button
-                          key={opt.value}
-                          type="button"
-                          onClick={() => update('timing', opt.value)}
-                          className={`flex-1 py-2 rounded-xl border text-xs font-medium transition-all ${
-                            form.timing === opt.value
-                              ? 'border-primary-500 bg-primary-50 text-primary-600'
-                              : 'border-gray-200 text-gray-600 hover:border-gray-300'
-                          }`}
+                      {/* Extracted chips */}
+                      {extracted && (
+                        <motion.div
+                          initial={{ opacity: 0, y: 6 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          className="space-y-3"
                         >
-                          {opt.label}
-                        </button>
-                      ))}
+                          <p className="text-xs text-gray-500 font-medium">✨ AI 解析结果（可点击修改）</p>
+                          <div className="flex flex-wrap gap-2">
+                            {extracted.location_from && (
+                              <EditableChip
+                                label="起点"
+                                value={extracted.location_from}
+                                onChange={v => setExtracted(ex => ex ? { ...ex, location_from: v } : ex)}
+                              />
+                            )}
+                            {extracted.location_to && (
+                              <EditableChip
+                                label="终点"
+                                value={extracted.location_to}
+                                onChange={v => setExtracted(ex => ex ? { ...ex, location_to: v } : ex)}
+                              />
+                            )}
+                            {extracted.special_notes && (
+                              <EditableChip
+                                label="特殊情况"
+                                value={extracted.special_notes}
+                                onChange={v => setExtracted(ex => ex ? { ...ex, special_notes: v } : ex)}
+                              />
+                            )}
+                            {extracted.items && (
+                              <EditableChip
+                                label="物品"
+                                value={extracted.items}
+                                onChange={v => setExtracted(ex => ex ? { ...ex, items: v } : ex)}
+                              />
+                            )}
+                          </div>
+
+                          {/* Category from extraction */}
+                          <div>
+                            <label className="block text-xs font-medium text-gray-500 mb-1">服务类型</label>
+                            <div className="relative">
+                              <select
+                                value={form.categoryId}
+                                onChange={e => update('categoryId', e.target.value)}
+                                className="w-full appearance-none border border-gray-200 rounded-xl px-4 py-2 text-sm
+                                           text-gray-800 bg-white outline-none focus:ring-2 focus:ring-primary-400 pr-9"
+                              >
+                                <option value="">请选择...</option>
+                                {CATEGORIES.filter(c => c.id !== 'other').map(c => (
+                                  <option key={c.id} value={c.id}>{c.emoji} {c.label}</option>
+                                ))}
+                                <option value="other">其他服务</option>
+                              </select>
+                              <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                            </div>
+                            {errors.categoryId && <p className="text-xs text-red-500 mt-1">{errors.categoryId}</p>}
+                          </div>
+
+                          {/* Timing */}
+                          <div>
+                            <label className="block text-xs font-medium text-gray-500 mb-1">时间</label>
+                            <div className="flex gap-2">
+                              {TIMING_OPTIONS.map(opt => (
+                                <button
+                                  key={opt.value}
+                                  type="button"
+                                  onClick={() => update('timing', opt.value)}
+                                  className={`flex-1 py-1.5 rounded-xl border text-xs font-medium transition-all ${
+                                    form.timing === opt.value
+                                      ? 'border-primary-500 bg-primary-50 text-primary-600'
+                                      : 'border-gray-200 text-gray-600 hover:border-gray-300'
+                                  }`}
+                                >
+                                  {opt.label}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        </motion.div>
+                      )}
                     </div>
-                  </div>
+                  ) : (
+                    /* ── MANUAL MODE ─────────────────────────────────────── */
+                    <div className="space-y-4">
+                      {/* Category */}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                          服务类型 <span className="text-red-500">*</span>
+                        </label>
+                        <div className="relative">
+                          <select
+                            value={form.categoryId}
+                            onChange={e => update('categoryId', e.target.value)}
+                            className="w-full appearance-none border border-gray-200 rounded-xl px-4 py-2.5 text-sm
+                                       text-gray-800 bg-white outline-none focus:ring-2 focus:ring-primary-400
+                                       focus:border-transparent pr-9"
+                          >
+                            <option value="">请选择服务类型...</option>
+                            {CATEGORIES.filter(c => c.id !== 'other').map(c => (
+                              <option key={c.id} value={c.id}>{c.emoji} {c.label}</option>
+                            ))}
+                            <option value="other">其他服务</option>
+                          </select>
+                          <ChevronDown size={15} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                        </div>
+                        {errors.categoryId && <p className="text-xs text-red-500 mt-1">{errors.categoryId}</p>}
+                      </div>
 
-                  {/* Divider */}
-                  <div className="flex items-center gap-2">
-                    <div className="flex-1 h-px bg-gray-100" />
-                    <span className="text-xs text-gray-400">联系方式</span>
-                    <div className="flex-1 h-px bg-gray-100" />
-                  </div>
+                      {/* Description */}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                          需求描述 <span className="text-red-500">*</span>
+                        </label>
+                        <textarea
+                          rows={3}
+                          value={form.description}
+                          onChange={e => update('description', e.target.value)}
+                          placeholder="请描述您的需求，例如：需要搬两居室，3楼无电梯，下周末可以..."
+                          maxLength={300}
+                          className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-800
+                                     outline-none focus:ring-2 focus:ring-primary-400 focus:border-transparent resize-none"
+                        />
+                        <p className="text-xs text-gray-400 text-right mt-0.5">{form.description.length}/300</p>
+                        {errors.description && <p className="text-xs text-red-500 mt-0.5">{errors.description}</p>}
+                      </div>
 
-                  {/* Name */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                      姓名 <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      value={form.name}
-                      onChange={(e) => update('name', e.target.value)}
-                      placeholder="您的称呼"
-                      className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm
-                                 text-gray-800 outline-none focus:ring-2 focus:ring-primary-400
-                                 focus:border-transparent"
-                    />
-                    {errors.name && <p className="text-xs text-red-500 mt-1">{errors.name}</p>}
-                  </div>
+                      {/* Budget */}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                          预算范围 <span className="text-gray-400 font-normal text-xs">（可选）</span>
+                        </label>
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">$</span>
+                          <input
+                            type="text"
+                            value={form.budget}
+                            onChange={e => update('budget', e.target.value)}
+                            placeholder="例：100–200"
+                            className="w-full border border-gray-200 rounded-xl pl-7 pr-4 py-2.5 text-sm
+                                       text-gray-800 outline-none focus:ring-2 focus:ring-primary-400 focus:border-transparent"
+                          />
+                        </div>
+                      </div>
 
-                  {/* Phone */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                      电话 <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="tel"
-                      value={form.phone}
-                      onChange={(e) => update('phone', e.target.value)}
-                      placeholder="647-xxx-xxxx"
-                      className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm
-                                 text-gray-800 outline-none focus:ring-2 focus:ring-primary-400
-                                 focus:border-transparent"
-                    />
-                    {errors.phone && <p className="text-xs text-red-500 mt-1">{errors.phone}</p>}
-                  </div>
-
-                  {/* WeChat */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                      微信号 <span className="text-gray-400 font-normal text-xs">（可选）</span>
-                    </label>
-                    <input
-                      type="text"
-                      value={form.wechat}
-                      onChange={(e) => update('wechat', e.target.value)}
-                      placeholder="您的微信号"
-                      className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm
-                                 text-gray-800 outline-none focus:ring-2 focus:ring-primary-400
-                                 focus:border-transparent"
-                    />
-                  </div>
-
-                  {serverError && (
-                    <div className="bg-red-50 border border-red-200 text-red-600 text-xs rounded-xl px-4 py-3">
-                      {serverError}
+                      {/* Timing */}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1.5">希望服务时间</label>
+                        <div className="flex gap-2">
+                          {TIMING_OPTIONS.map(opt => (
+                            <button
+                              key={opt.value}
+                              type="button"
+                              onClick={() => update('timing', opt.value)}
+                              className={`flex-1 py-2 rounded-xl border text-xs font-medium transition-all ${
+                                form.timing === opt.value
+                                  ? 'border-primary-500 bg-primary-50 text-primary-600'
+                                  : 'border-gray-200 text-gray-600 hover:border-gray-300'
+                              }`}
+                            >
+                              {opt.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
                     </div>
                   )}
 
-                  <motion.button
-                    type="submit"
-                    disabled={submitting}
-                    whileTap={{ scale: submitting ? 1 : 0.97 }}
-                    className="w-full btn-primary py-3.5 text-sm rounded-2xl disabled:opacity-60"
-                  >
-                    {submitting ? '提交中...' : '免费获取报价'}
-                  </motion.button>
+                  {/* ── Contact info (both modes) ───────────────────────── */}
+                  {(!aiMode || extracted) && (
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      className="space-y-4"
+                    >
+                      <div className="flex items-center gap-2">
+                        <div className="flex-1 h-px bg-gray-100" />
+                        <span className="text-xs text-gray-400">联系方式</span>
+                        <div className="flex-1 h-px bg-gray-100" />
+                      </div>
+
+                      {/* Budget (AI mode) */}
+                      {aiMode && (
+                        <div>
+                          <label className="block text-xs font-medium text-gray-500 mb-1">
+                            预算范围 <span className="text-gray-400 font-normal">（可选）</span>
+                          </label>
+                          <div className="relative">
+                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">$</span>
+                            <input
+                              type="text"
+                              value={form.budget}
+                              onChange={e => update('budget', e.target.value)}
+                              placeholder="例：100–200"
+                              className="w-full border border-gray-200 rounded-xl pl-7 pr-4 py-2 text-sm
+                                         text-gray-800 outline-none focus:ring-2 focus:ring-primary-400 focus:border-transparent"
+                            />
+                          </div>
+                        </div>
+                      )}
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                          姓名 <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                          type="text"
+                          value={form.name}
+                          onChange={e => update('name', e.target.value)}
+                          placeholder="您的称呼"
+                          className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm
+                                     text-gray-800 outline-none focus:ring-2 focus:ring-primary-400 focus:border-transparent"
+                        />
+                        {errors.name && <p className="text-xs text-red-500 mt-1">{errors.name}</p>}
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                          电话 <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                          type="tel"
+                          value={form.phone}
+                          onChange={e => update('phone', e.target.value)}
+                          placeholder="647-xxx-xxxx"
+                          className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm
+                                     text-gray-800 outline-none focus:ring-2 focus:ring-primary-400 focus:border-transparent"
+                        />
+                        {errors.phone && <p className="text-xs text-red-500 mt-1">{errors.phone}</p>}
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                          微信号 <span className="text-gray-400 font-normal text-xs">（可选）</span>
+                        </label>
+                        <input
+                          type="text"
+                          value={form.wechat}
+                          onChange={e => update('wechat', e.target.value)}
+                          placeholder="您的微信号"
+                          className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm
+                                     text-gray-800 outline-none focus:ring-2 focus:ring-primary-400 focus:border-transparent"
+                        />
+                      </div>
+
+                      {serverError && (
+                        <div className="bg-red-50 border border-red-200 text-red-600 text-xs rounded-xl px-4 py-3">
+                          {serverError}
+                        </div>
+                      )}
+
+                      <motion.button
+                        type="submit"
+                        disabled={submitting}
+                        whileTap={{ scale: submitting ? 1 : 0.97 }}
+                        className="w-full btn-primary py-3.5 text-sm rounded-2xl disabled:opacity-60"
+                      >
+                        {submitting ? '提交中...' : '免费获取报价'}
+                      </motion.button>
+                    </motion.div>
+                  )}
 
                   {/* How it works */}
-                  <div className="rounded-2xl bg-primary-50 border border-primary-100 px-4 py-4 space-y-3">
-                    <div className="flex items-center gap-1.5 mb-0.5">
-                      <Sparkles size={13} className="text-primary-500" />
-                      <span className="text-xs font-semibold text-primary-700 tracking-wide">AI 智能匹配流程</span>
+                  {!extracted && !aiMode && (
+                    <div className="rounded-2xl bg-primary-50 border border-primary-100 px-4 py-4 space-y-3">
+                      <div className="flex items-center gap-1.5 mb-0.5">
+                        <Sparkles size={13} className="text-primary-500" />
+                        <span className="text-xs font-semibold text-primary-700 tracking-wide">AI 智能匹配流程</span>
+                      </div>
+                      <div className="flex items-start gap-3">
+                        <div className="w-6 h-6 rounded-full bg-primary-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                          <Sparkles size={11} className="text-primary-500" />
+                        </div>
+                        <div>
+                          <p className="text-xs font-medium text-gray-700">AI 自动匹配附近服务商</p>
+                          <p className="text-[11px] text-gray-400 mt-0.5 leading-relaxed">系统将根据您的需求与所在区域，自动筛选评分高、距离近的服务商</p>
+                        </div>
+                      </div>
+                      <div className="flex items-start gap-3">
+                        <div className="w-6 h-6 rounded-full bg-primary-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                          <UserCheck size={11} className="text-primary-500" />
+                        </div>
+                        <div>
+                          <p className="text-xs font-medium text-gray-700">服务商主动联系您</p>
+                          <p className="text-[11px] text-gray-400 mt-0.5 leading-relaxed">匹配到的服务商将通过电话或微信与您取得联系，提供报价及方案</p>
+                        </div>
+                      </div>
+                      <div className="flex items-start gap-3">
+                        <div className="w-6 h-6 rounded-full bg-primary-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                          <Clock3 size={11} className="text-primary-500" />
+                        </div>
+                        <div>
+                          <p className="text-xs font-medium text-gray-700">通常 24 小时内收到回复</p>
+                          <p className="text-[11px] text-gray-400 mt-0.5 leading-relaxed">高峰时段可能略有延迟，您可同时收到多家报价，自由比较选择</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 pt-1 border-t border-primary-100">
+                        <ShieldCheck size={12} className="text-primary-400 flex-shrink-0" />
+                        <p className="text-[11px] text-gray-400 leading-relaxed">
+                          您的联系方式仅用于服务商回复，不会公开展示或转让给第三方
+                        </p>
+                      </div>
                     </div>
-                    <div className="flex items-start gap-3">
-                      <div className="w-6 h-6 rounded-full bg-primary-100 flex items-center justify-center flex-shrink-0 mt-0.5">
-                        <Sparkles size={11} className="text-primary-500" />
-                      </div>
-                      <div>
-                        <p className="text-xs font-medium text-gray-700">AI 自动匹配附近服务商</p>
-                        <p className="text-[11px] text-gray-400 mt-0.5 leading-relaxed">系统将根据您的需求与所在区域，自动筛选评分高、距离近的服务商</p>
-                      </div>
-                    </div>
-                    <div className="flex items-start gap-3">
-                      <div className="w-6 h-6 rounded-full bg-primary-100 flex items-center justify-center flex-shrink-0 mt-0.5">
-                        <UserCheck size={11} className="text-primary-500" />
-                      </div>
-                      <div>
-                        <p className="text-xs font-medium text-gray-700">服务商主动联系您</p>
-                        <p className="text-[11px] text-gray-400 mt-0.5 leading-relaxed">匹配到的服务商将通过电话或微信与您取得联系，提供报价及方案</p>
-                      </div>
-                    </div>
-                    <div className="flex items-start gap-3">
-                      <div className="w-6 h-6 rounded-full bg-primary-100 flex items-center justify-center flex-shrink-0 mt-0.5">
-                        <Clock3 size={11} className="text-primary-500" />
-                      </div>
-                      <div>
-                        <p className="text-xs font-medium text-gray-700">通常 24 小时内收到回复</p>
-                        <p className="text-[11px] text-gray-400 mt-0.5 leading-relaxed">高峰时段可能略有延迟，您可同时收到多家报价，自由比较选择</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2 pt-1 border-t border-primary-100">
-                      <ShieldCheck size={12} className="text-primary-400 flex-shrink-0" />
-                      <p className="text-[11px] text-gray-400 leading-relaxed">
-                        您的联系方式仅用于服务商回复，不会公开展示或转让给第三方
-                      </p>
-                    </div>
-                  </div>
+                  )}
                 </form>
               )}
             </div>

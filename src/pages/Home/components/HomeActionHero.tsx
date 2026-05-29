@@ -63,11 +63,11 @@ export default function HomeActionHero({
           >
             <div className="inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-medium text-blue-50/90">
               <MapPin size={12} />
-              {userHasLocation ? '已为您准备附近结果' : '服务覆盖大多伦多华人生活场景'}
+              {userHasLocation ? '已为您准备附近结果' : '海外华人生活一站式服务'}
             </div>
 
             <h1 className="mt-4 text-4xl font-bold tracking-tight text-white md:text-5xl xl:text-6xl">
-              找本地靠谱华人服务，
+              找本地靠谱服务，
               <br className="hidden md:block" />
               少走弯路，直接联系。
             </h1>

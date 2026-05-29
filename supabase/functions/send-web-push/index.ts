@@ -22,6 +22,8 @@ import webpush from 'npm:web-push@3.6.7'
 
 const ALLOWED_ORIGINS = new Set([
   'https://toronto-chinese-services.vercel.app',
+  'https://huarenq.com',
+  'https://www.huarenq.com',
   'http://localhost:5173',
   'http://localhost:4173',
 ])
@@ -55,6 +57,16 @@ interface BroadcastBody {
   url?:             string
   tag?:             string
   icon?:            string
+}
+
+interface FollowerNotifyBody {
+  mode:            'follower_notify'
+  recipientUserId: string
+  title:           string
+  body:            string
+  url?:            string
+  tag?:            string
+  icon?:           string
 }
 
 const VAPID_PUBLIC  = Deno.env.get('VAPID_PUBLIC_KEY')  ?? ''
@@ -104,7 +116,20 @@ Deno.serve(async (req) => {
   let tag:  string | undefined
   let icon: string | undefined
 
-  if ('mode' in raw && raw.mode === 'broadcast_match') {
+  if ('mode' in raw && raw.mode === 'follower_notify') {
+    // Authenticated user pushing to a follower — no conversationId needed.
+    const { data: userData, error: userErr } = await sb.auth.getUser(jwt)
+    if (userErr || !userData?.user) return json({ error: 'Invalid token' }, 401)
+    const payload = raw as FollowerNotifyBody
+    if (!payload.recipientUserId || !payload.title || !payload.body) {
+      return json({ error: 'Missing required fields' }, 400)
+    }
+    if (payload.recipientUserId === userData.user.id) {
+      return json({ error: 'Cannot push to self' }, 400)
+    }
+    recipientUserIds = [payload.recipientUserId]
+    title = payload.title; body = payload.body; url = payload.url; tag = payload.tag; icon = payload.icon
+  } else if ('mode' in raw && raw.mode === 'broadcast_match') {
     // Internal-only — accept either:
     //   1. our custom shared secret stored in env (TCS_TRIGGER_SECRET) — preferred,
     //      decoupled from Supabase's auto-rotated keys

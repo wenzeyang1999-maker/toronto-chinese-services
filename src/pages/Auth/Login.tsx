@@ -120,7 +120,7 @@ export default function Login() {
           {/* Header */}
           <div className="mb-8">
             <h1 className="text-2xl font-bold text-gray-900 mb-1">欢迎回来</h1>
-            <p className="text-sm text-gray-500">登录多伦多华人服务平台</p>
+            <p className="text-sm text-gray-500">登录华林</p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">

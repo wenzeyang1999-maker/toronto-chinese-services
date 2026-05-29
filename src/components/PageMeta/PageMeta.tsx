@@ -14,9 +14,9 @@ interface Props {
   url?:         string
 }
 
-const SITE_NAME = '大多伦多华人服务平台'
-const DEFAULT_TITLE = '大多伦多华人服务平台 — 找服务·招聘·房源·二手·活动'
-const DEFAULT_DESC  = '大多伦多华人一站式生活服务平台，涵盖本地服务、招聘求职、租房买房、二手交易和同城活动。'
+const SITE_NAME = '华林'
+const DEFAULT_TITLE = '华林 — 海外华人生活一站式服务平台'
+const DEFAULT_DESC  = '华林，海外华人生活一站式服务平台，涵盖本地服务、招聘求职、租房买房、二手交易和同城活动。'
 const DEFAULT_IMAGE = 'https://toronto-chinese-services.vercel.app/og-default.png'
 
 export default function PageMeta({ title, description, image, url }: Props) {

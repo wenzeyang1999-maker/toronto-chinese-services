@@ -15,7 +15,7 @@ const CORS = {
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 }
 
-const FROM = 'Toronto-Chinese-Service <noreply@huarenq.com>'
+const FROM = 'HuaLin <noreply@huarenq.com>'
 const SITE = 'https://toronto-chinese-services.vercel.app'
 
 // ── HTML escaping — must be applied to ALL user-supplied values in templates ──
@@ -52,8 +52,8 @@ function template(title: string, body: string, ctaText: string, ctaUrl: string):
 <body>
 <div class="wrap">
   <div class="header">
-    <h1>大多伦多华人服务</h1>
-    <p>Toronto Chinese Services</p>
+    <h1>华林</h1>
+    <p>海外华人生活一站式服务平台</p>
   </div>
   <div class="body">
     <p style="font-size:17px;font-weight:700;color:#111827;margin-bottom:20px;">${title}</p>
@@ -180,7 +180,7 @@ function buildEmail(type: string, recipientName: string, data: Record<string, st
 
     case 'new_community_post':
       return {
-        subject: `📝 ${h(data.authorName)} 在多村论坛发了新帖`,
+        subject: `📝 ${h(data.authorName)} 在华林社区发了新帖`,
         html: template(
           `您关注的人发布了新帖子`,
           `<p>您好 <strong>${h(recipientName)}</strong>，</p>
@@ -240,11 +240,11 @@ function buildEmail(type: string, recipientName: string, data: Record<string, st
 
     case 'welcome':
       return {
-        subject: `🎉 欢迎加入大多伦多华人服务平台！`,
+        subject: `🎉 欢迎加入华林！`,
         html: template(
           `欢迎加入华人圈！`,
           `<p>您好 <strong>${h(recipientName)}</strong>，</p>
-           <p>感谢您注册<strong>大多伦多华人服务平台</strong>！</p>
+           <p>感谢您注册<strong>华林</strong>！</p>
            <p>您现在可以：</p>
            <ul style="color:#374151;font-size:14px;line-height:2;">
              <li>🔧 浏览和联系本地华人服务商</li>

@@ -269,7 +269,7 @@ export default function CommunityDetail() {
       `📢 ${post.title}`,
       snippet,
       firstImage ? `🖼 ${firstImage}` : null,
-      `👉 大多伦多华人服务 · 多村论坛`,
+      `👉 华林 · 社区论坛`,
     ].filter(Boolean).join('\n\n')
 
     if (navigator.share) {

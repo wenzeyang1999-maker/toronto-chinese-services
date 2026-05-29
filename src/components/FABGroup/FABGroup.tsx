@@ -33,7 +33,7 @@ export default function FABGroup() {
       </div>}
 
       {/* Desktop: full FAB stack */}
-      <div className="hidden md:flex fixed bottom-6 right-5 lg:bottom-6 lg:right-16 z-50 flex-col items-end gap-3">
+      {!hideMobileFAB && <div className="hidden md:flex fixed bottom-6 right-5 lg:bottom-6 lg:right-16 z-50 flex-col items-end gap-3">
         <PostServiceFAB grouped />
         <button
           onClick={() => user ? navigate('/requests/post') : navigate('/login', { state: { from: '/requests/post' } })}
@@ -46,7 +46,7 @@ export default function FABGroup() {
         </button>
         {user && <MessagesButton grouped />}
         <AiChatWidget grouped />
-      </div>
+      </div>}
     </>
   )
 }

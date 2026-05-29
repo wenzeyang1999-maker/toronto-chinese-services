@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { ArrowLeft, Clock, MapPin, DollarSign, Calendar, MessageSquare, CalendarClock } from 'lucide-react'
+import { ArrowLeft, Clock, MapPin, DollarSign, Calendar, MessageSquare, CalendarClock, Navigation } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { supabase } from '../../lib/supabase'
 import { useAuthStore } from '../../store/authStore'
@@ -72,6 +72,16 @@ export default function RequestDetail() {
     })
     if (error || !data) { toast('无法发起会话', 'error'); return }
     navigate('/profile?section=messages', { state: { conversationId: data } })
+  }
+
+  function handleNavigate() {
+    if (!req?.lat || !req?.lng) return
+    const dest = `${req.lat},${req.lng}`
+    const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent)
+    const url = isIOS
+      ? `maps://?daddr=${dest}`
+      : `https://www.google.com/maps/dir/?api=1&destination=${dest}`
+    window.open(url, '_blank')
   }
 
   async function handleClose() {
@@ -193,6 +203,18 @@ export default function RequestDetail() {
               >
                 <MessageSquare size={16} />
                 联系发布者
+              </button>
+            )}
+
+            {/* 一键导航 — only shown to providers (not the requester) when coords exist */}
+            {req.lat && req.lng && req.userId !== user?.id && (
+              <button
+                onClick={handleNavigate}
+                className="w-full py-3.5 bg-green-600 hover:bg-green-700
+                           text-white font-bold rounded-2xl text-sm flex items-center justify-center gap-2 transition-colors"
+              >
+                <Navigation size={16} />
+                一键导航
               </button>
             )}
 

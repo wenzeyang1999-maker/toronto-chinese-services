@@ -22,6 +22,7 @@ import MessageToast from './components/MessageToast/MessageToast'
 import InstallPWA from './components/InstallPWA/InstallPWA'
 import FABGroup from './components/FABGroup/FABGroup'
 import BottomNav from './components/BottomNav/BottomNav'
+import GeofenceBanner from './components/GeofenceBanner/GeofenceBanner'
 
 const Category        = lazy(() => import('./pages/Category/Category'))
 const Search          = lazy(() => import('./pages/Search/Search'))
@@ -189,6 +190,7 @@ export default function App() {
       {isLoadingDone && <BottomNav />}
       {isLoadingDone && <MessageToast />}
       {isLoadingDone && <InstallPWA />}
+      {isLoadingDone && <GeofenceBanner />}
       <ToastContainer />
     </>
   )

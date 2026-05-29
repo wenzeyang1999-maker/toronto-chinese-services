@@ -10,7 +10,7 @@ export default function PrivacyPolicy() {
 
   useEffect(() => {
     window.scrollTo(0, 0)
-    document.title = '隐私政策 — 大多伦多华人圈'
+    document.title = '隐私政策 — 华林'
   }, [])
 
   return (
@@ -26,7 +26,7 @@ export default function PrivacyPolicy() {
         <div>
           <p className="text-xs text-gray-400">最后更新：{LAST_UPDATED}</p>
           <p className="mt-3">
-            大多伦多华人圈（"本平台"、"我们"）致力于保护您的个人信息。本隐私政策依据加拿大《个人信息保护和电子文件法》（PIPEDA）及安大略省相关法规制定，说明我们如何收集、使用、披露和保护您的信息。
+            华林（"本平台"、"我们"）致力于保护您的个人信息。本隐私政策依据加拿大《个人信息保护和电子文件法》（PIPEDA）及安大略省相关法规制定，说明我们如何收集、使用、披露和保护您的信息。
           </p>
         </div>
 
@@ -125,7 +125,7 @@ export default function PrivacyPolicy() {
         </Section>
 
         <div className="pt-4 border-t border-gray-100 text-xs text-gray-400">
-          本隐私政策适用于大多伦多华人圈平台及其移动应用。准据法为加拿大安大略省法律。
+          本隐私政策适用于华林平台及其移动应用。准据法为加拿大安大略省法律。
         </div>
       </div>
     </div>

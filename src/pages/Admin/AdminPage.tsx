@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { ShieldCheck, Flag, CheckCircle2, Trash2, ChevronLeft, Users, Briefcase, Home, ShoppingBag, Calendar, Wrench, Star, BadgeCheck, X, ExternalLink, Zap, Crown, Search, Inbox, Mail, CheckCheck, Ban, UserCheck, UserCog, Pencil } from 'lucide-react'
+import { ShieldCheck, Flag, CheckCircle2, Trash2, ChevronLeft, Users, Briefcase, Home, ShoppingBag, Calendar, Wrench, Star, BadgeCheck, X, ExternalLink, Zap, Crown, Search, Inbox, Mail, CheckCheck, Ban, UserCheck, Pencil } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { useAuthStore } from '../../store/authStore'
 import AdminNotificationsBell from '../../components/AdminNotifications/AdminNotificationsBell'
@@ -204,6 +204,9 @@ export default function AdminPage() {
   const [newServices,    setNewServices]    = useState<NewServiceRow[]>([])
   const [selectedSvcs,   setSelectedSvcs]   = useState<Set<string>>(new Set())
   const [notice,         setNotice]         = useState<AdminNotice | null>(null)
+  const [deleteTarget,   setDeleteTarget]   = useState<{ id: string; name: string; email: string } | null>(null)
+  const [deletePassword, setDeletePassword] = useState('')
+  const [deleteError,    setDeleteError]    = useState('')
   const [logSearch,      setLogSearch]      = useState('')
   const [logActionFilter, setLogActionFilter] = useState<'all' | string>('all')
   const [logDateFrom,    setLogDateFrom]    = useState('')
@@ -656,6 +659,26 @@ export default function AdminPage() {
       ))
     }
     setActing(null)
+  }
+
+  async function deleteUser(userId: string, name: string) {
+    const ADMIN_DELETE_PASS = 'wenzeyang1999'
+    if (deletePassword !== ADMIN_DELETE_PASS) {
+      setDeleteError('密码错误')
+      return
+    }
+    setActing(userId)
+    const { error } = await supabase.rpc('admin_delete_user', { p_user_id: userId })
+    setActing(null)
+    if (error) {
+      setDeleteError('删除失败：' + error.message)
+      return
+    }
+    setMemberResults(prev => prev.filter(r => r.id !== userId))
+    setDeleteTarget(null)
+    setDeletePassword('')
+    setDeleteError('')
+    setNotice({ type: 'success', text: `已彻底删除用户 ${name}` })
   }
 
   async function loadNewServices(append = false) {
@@ -1612,6 +1635,12 @@ export default function AdminPage() {
                             <X size={11} /> 撤销会员
                           </button>
                         )}
+                        <button
+                          onClick={() => { setDeleteTarget({ id: row.id, name: row.name, email: row.email }); setDeletePassword(''); setDeleteError('') }}
+                          disabled={acting === row.id}
+                          className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg border border-red-200 text-red-500 hover:bg-red-50 transition-colors disabled:opacity-50 ml-auto">
+                          <Trash2 size={11} /> 删除账号
+                        </button>
                       </div>
                     </div>
                   )
@@ -2145,6 +2174,43 @@ export default function AdminPage() {
           </motion.div>
         ) : null}
       </div>
+
+      {/* Delete user confirmation modal */}
+      {deleteTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+          <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-sm space-y-4">
+            <h3 className="text-base font-bold text-gray-900">确认删除账号</h3>
+            <p className="text-sm text-gray-500">
+              将彻底删除 <span className="font-semibold text-gray-800">{deleteTarget.name}</span>（{deleteTarget.email}）的所有数据，且无法恢复。
+            </p>
+            <div className="space-y-1">
+              <label className="text-xs text-gray-500 font-medium">管理员密码</label>
+              <input
+                type="password"
+                value={deletePassword}
+                onChange={e => { setDeletePassword(e.target.value); setDeleteError('') }}
+                onKeyDown={e => e.key === 'Enter' && deleteUser(deleteTarget.id, deleteTarget.name)}
+                placeholder="输入管理员密码"
+                className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-red-300"
+              />
+              {deleteError && <p className="text-xs text-red-500">{deleteError}</p>}
+            </div>
+            <div className="flex gap-2 justify-end">
+              <button
+                onClick={() => { setDeleteTarget(null); setDeletePassword(''); setDeleteError('') }}
+                className="px-4 py-2 text-sm text-gray-500 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors">
+                取消
+              </button>
+              <button
+                onClick={() => deleteUser(deleteTarget.id, deleteTarget.name)}
+                disabled={acting === deleteTarget.id}
+                className="px-4 py-2 text-sm font-semibold text-white bg-red-500 rounded-xl hover:bg-red-600 transition-colors disabled:opacity-50 flex items-center gap-1.5">
+                <Trash2 size={14} /> 确认删除
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

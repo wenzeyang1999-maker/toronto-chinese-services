@@ -4,11 +4,12 @@
 import { useEffect, useRef, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { ChevronLeft, Send, Phone, MessageCircle, Copy, RotateCcw, Flag, Ban } from 'lucide-react'
+import { ChevronLeft, Send, Phone, MessageCircle, Copy, RotateCcw, Flag, Ban, ImagePlus } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { useAuthStore } from '../../store/authStore'
 import { notifyNewMessage } from '../../lib/notify'
 import { toast } from '../../lib/toast'
+import { compressImage } from '../../lib/compressImage'
 
 interface Message {
   id: string
@@ -41,8 +42,10 @@ export default function ConversationPage() {
   const [reportSent,   setReportSent]  = useState(false)
   const [blockOpen,    setBlockOpen]   = useState(false)
   const [blockBusy,    setBlockBusy]   = useState(false)
-  const bottomRef = useRef<HTMLDivElement>(null)
-  const inputRef  = useRef<HTMLTextAreaElement>(null)
+  const [uploadingPhoto, setUploadingPhoto] = useState(false)
+  const bottomRef  = useRef<HTMLDivElement>(null)
+  const inputRef   = useRef<HTMLTextAreaElement>(null)
+  const photoInput = useRef<HTMLInputElement>(null)
 
   useEffect(() => { if (!user) navigate('/login') }, [user, navigate])
 
@@ -167,8 +170,9 @@ export default function ConversationPage() {
           })()
         }
       }
+      const displayText = text.startsWith('[photo]') ? '[图片]' : text
       await supabase.from('conversations').update({
-        last_message:    text,
+        last_message:    displayText,
         last_message_at: new Date().toISOString(),
       }).eq('id', id)
       await supabase.rpc('increment_conversation_unread', {
@@ -181,7 +185,7 @@ export default function ConversationPage() {
       notifyNewMessage({
         recipientUserId: recipientId,
         senderName:      user.user_metadata?.name ?? user.email ?? '用户',
-        preview:         text,
+        preview:         displayText,
         conversationId:  id!,
       })
     } else {
@@ -224,6 +228,29 @@ export default function ConversationPage() {
     } else {
       setReportSent(true)
       toast('举报已提交，我们将尽快处理', 'success')
+    }
+  }
+
+  async function handlePhotoSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file || !id || !user || !conv) return
+    setUploadingPhoto(true)
+    try {
+      const compressed = await compressImage(file)
+      const ext  = compressed.name.split('.').pop() ?? 'jpg'
+      const path = `chat-photos/${user.id}/${Date.now()}.${ext}`
+      const { error: uploadErr } = await supabase.storage
+        .from('service-images')
+        .upload(path, compressed, { upsert: false })
+      if (uploadErr) throw uploadErr
+      const { data: { publicUrl } } = supabase.storage.from('service-images').getPublicUrl(path)
+      await sendMessage(`[photo]${publicUrl}`)
+    } catch (err) {
+      console.error('[photo upload]', err)
+      toast('图片上传失败，请重试', 'error')
+    } finally {
+      setUploadingPhoto(false)
     }
   }
 
@@ -320,19 +347,38 @@ export default function ConversationPage() {
               initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
               className={`flex flex-col ${isMine ? 'items-end' : 'items-start'}`}
             >
-              <div className={`max-w-[75%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed
-                ${isMine
-                  ? msg.failed
-                    ? 'bg-red-100 text-red-800 border border-red-200 rounded-tr-sm'
-                    : 'bg-primary-600 text-white rounded-tr-sm'
-                  : 'bg-white text-gray-800 border border-gray-100 shadow-sm rounded-tl-sm'
-                }`}
-              >
-                <p className="whitespace-pre-wrap">{msg.content}</p>
-                <p className={`text-xs mt-1 ${isMine ? (msg.failed ? 'text-red-400' : 'text-blue-200') : 'text-gray-400'}`}>
-                  {new Date(msg.created_at).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}
-                </p>
-              </div>
+              {msg.content.startsWith('[photo]') ? (
+                <div className={`max-w-[75%] rounded-2xl overflow-hidden border shadow-sm
+                  ${isMine ? 'rounded-tr-sm border-primary-200' : 'rounded-tl-sm border-gray-100'}`}
+                >
+                  <img
+                    src={msg.content.slice(7)}
+                    alt="完工照片"
+                    className="w-full max-w-[240px] object-cover cursor-pointer"
+                    onClick={() => window.open(msg.content.slice(7), '_blank')}
+                  />
+                  <div className={`px-3 py-1.5 flex items-center justify-between gap-2 text-xs
+                    ${isMine ? 'bg-primary-600 text-blue-200' : 'bg-white text-gray-400'}`}
+                  >
+                    <span>📎 完工照片</span>
+                    <span>{new Date(msg.created_at).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}</span>
+                  </div>
+                </div>
+              ) : (
+                <div className={`max-w-[75%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed
+                  ${isMine
+                    ? msg.failed
+                      ? 'bg-red-100 text-red-800 border border-red-200 rounded-tr-sm'
+                      : 'bg-primary-600 text-white rounded-tr-sm'
+                    : 'bg-white text-gray-800 border border-gray-100 shadow-sm rounded-tl-sm'
+                  }`}
+                >
+                  <p className="whitespace-pre-wrap">{msg.content}</p>
+                  <p className={`text-xs mt-1 ${isMine ? (msg.failed ? 'text-red-400' : 'text-blue-200') : 'text-gray-400'}`}>
+                    {new Date(msg.created_at).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}
+                  </p>
+                </div>
+              )}
               {msg.failed && (
                 <button
                   onClick={() => retryMessage(msg)}
@@ -349,6 +395,26 @@ export default function ConversationPage() {
 
       {/* Input */}
       <div className="bg-white border-t border-gray-100 px-3 py-3 flex items-end gap-2">
+        <input
+          ref={photoInput}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={handlePhotoSelect}
+        />
+        <button
+          onClick={() => photoInput.current?.click()}
+          disabled={uploadingPhoto || sending}
+          title="上传完工照片"
+          className="w-9 h-9 flex-shrink-0 rounded-xl border border-gray-200 bg-gray-50
+                     hover:bg-gray-100 disabled:opacity-50 flex items-center justify-center
+                     transition-colors active:scale-95"
+        >
+          {uploadingPhoto
+            ? <div className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
+            : <ImagePlus size={16} className="text-gray-500" />
+          }
+        </button>
         <textarea
           ref={inputRef}
           value={input}

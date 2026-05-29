@@ -77,7 +77,7 @@ export default function RealEstateList() {
           {/* Title */}
           <div>
             <h1 className="text-lg font-bold text-gray-900">租房买房</h1>
-            <p className="text-xs text-gray-400">大多伦多华人房源</p>
+            <p className="text-xs text-gray-400">华林 · 房源</p>
           </div>
 
           {/* 出租 / 出售 / 合租 sub-tabs */}

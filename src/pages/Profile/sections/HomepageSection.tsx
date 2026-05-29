@@ -3,8 +3,9 @@ import { motion } from 'framer-motion'
 import {
   Camera, Check, ExternalLink, Pencil, Share2, Tag, X,
   AlignLeft, Wifi, WifiOff, Briefcase, Building2, User,
-  Plus, ImagePlus, ShieldCheck,
+  Plus, ImagePlus, ShieldCheck, Link2,
 } from 'lucide-react'
+import { SOCIAL_PLATFORMS } from '../../../lib/socialPlatforms'
 import { cropAndCompressImage, compressImage, validateImageFile } from '../../../lib/compressImage'
 import { supabase } from '../../../lib/supabase'
 import { useAuthStore } from '../../../store/authStore'
@@ -42,6 +43,7 @@ interface Profile {
   qualification_images: string[]
   membership_level: MemberLevel
   is_online: boolean
+  socialLinks: Record<string, string>
 }
 
 const MAX_QUAL_IMAGES = 8
@@ -77,6 +79,10 @@ export default function HomepageSection() {
   const [qualNoteInput,   setQualNoteInput]   = useState('')
   const [uploadingQual,   setUploadingQual]   = useState(false)
 
+  // Social links
+  const [editingSocial, setEditingSocial] = useState(false)
+  const [socialDraft,   setSocialDraft]   = useState<Record<string, string>>({})
+
   const coverRef = useRef<HTMLInputElement>(null)
   const qualRef  = useRef<HTMLInputElement>(null)
 
@@ -107,6 +113,7 @@ export default function HomepageSection() {
           qualification_images: (data.qualification_images ?? []) as string[],
           membership_level: isActive ? (data.membership_level as MemberLevel) ?? 'L1' : 'L1',
           is_online:      data.is_online ?? false,
+          socialLinks:    Object.fromEntries(Object.entries(links).filter(([k]) => k !== '_cover')),
         })
       })
   }, [user])
@@ -174,6 +181,21 @@ export default function HomepageSection() {
     await supabase.from('users').update({ qualification_note: note }).eq('id', user!.id)
     setProfile(p => p ? { ...p, qualification_note: note } : p)
     setEditingQualNote(false)
+    setSaving(false)
+  }
+
+  async function saveSocial() {
+    setSaving(true)
+    const { data: existing } = await supabase.from('users').select('social_links').eq('id', user!.id).single()
+    const cover = (existing?.social_links as Record<string, string>)?.['_cover']
+    const merged: Record<string, string> = { ...(cover ? { _cover: cover } : {}) }
+    for (const [k, v] of Object.entries(socialDraft)) {
+      if (v.trim()) merged[k] = v.trim()
+    }
+    await supabase.from('users').update({ social_links: merged }).eq('id', user!.id)
+    const newLinks = Object.fromEntries(Object.entries(merged).filter(([k]) => k !== '_cover'))
+    setProfile(p => p ? { ...p, socialLinks: newLinks } : p)
+    setEditingSocial(false)
     setSaving(false)
   }
 
@@ -586,6 +608,59 @@ export default function HomepageSection() {
               </div>
               <input ref={qualRef} type="file" accept="image/*" multiple className="hidden"
                 onChange={handleQualUpload} />
+            </div>
+
+            {/* ⑥ 社交媒体 */}
+            <div className="px-5 py-4">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2 text-sm font-semibold text-gray-700">
+                  <Link2 size={15} className="text-primary-400" />
+                  社交媒体
+                  <span className="text-xs text-gray-400 font-normal">（显示在你的公开主页）</span>
+                </div>
+                {!editingSocial && (
+                  <button onClick={() => { setSocialDraft({ ...profile.socialLinks }); setEditingSocial(true) }}
+                    className="text-gray-400 hover:text-primary-600"><Pencil size={14} /></button>
+                )}
+              </div>
+              {editingSocial ? (
+                <div className="space-y-2">
+                  {SOCIAL_PLATFORMS.map(p => (
+                    <div key={p.key} className="flex items-center gap-2">
+                      <span className="text-base w-5 text-center shrink-0">{p.icon}</span>
+                      <span className="text-xs text-gray-500 w-[4.5rem] shrink-0">{p.label}</span>
+                      <input
+                        value={socialDraft[p.key] ?? ''}
+                        onChange={e => setSocialDraft(d => ({ ...d, [p.key]: e.target.value }))}
+                        placeholder={p.key === 'xiaohongshu' ? '主页完整链接' : p.key === 'whatsapp' ? '手机号（含国家码）' : '用户名或链接'}
+                        className="flex-1 text-sm border border-gray-200 rounded-xl px-3 py-2 outline-none focus:ring-1 focus:ring-primary-300"
+                      />
+                    </div>
+                  ))}
+                  <div className="flex gap-2 mt-2">
+                    <button onClick={saveSocial} disabled={saving}
+                      className="flex items-center gap-1 text-xs text-white bg-primary-600 px-3 py-1.5 rounded-lg">
+                      <Check size={12} /> 保存
+                    </button>
+                    <button onClick={() => setEditingSocial(false)}
+                      className="flex items-center gap-1 text-xs text-gray-400">
+                      <X size={12} /> 取消
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex flex-wrap gap-2">
+                  {SOCIAL_PLATFORMS.some(p => profile.socialLinks[p.key]?.trim()) ? (
+                    SOCIAL_PLATFORMS.filter(p => profile.socialLinks[p.key]?.trim()).map(p => (
+                      <span key={p.key} className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold border ${p.color}`}>
+                        {p.icon} {p.label}
+                      </span>
+                    ))
+                  ) : (
+                    <span className="text-sm text-gray-400 italic">未填写，添加后客户可在你主页直接跳转</span>
+                  )}
+                </div>
+              )}
             </div>
           </div>
 

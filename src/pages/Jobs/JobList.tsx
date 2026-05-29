@@ -93,7 +93,7 @@ export default function JobList() {
           {/* Title */}
           <div>
             <h1 className="text-lg font-bold text-gray-900">招聘求职</h1>
-            <p className="text-xs text-gray-400">大多伦多华人职位</p>
+            <p className="text-xs text-gray-400">华林 · 职位</p>
           </div>
 
           {/* 招聘 / 求职 sub-tabs */}

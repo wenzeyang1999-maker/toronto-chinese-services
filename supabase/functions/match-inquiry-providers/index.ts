@@ -6,7 +6,7 @@ const CORS = {
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 }
 
-const FROM = 'Toronto-Chinese-Service <noreply@huarenq.com>'
+const FROM = 'HuaLin <noreply@huarenq.com>'
 const SITE = 'https://toronto-chinese-services.vercel.app'
 const MAX_RECIPIENTS = 5
 
@@ -34,6 +34,14 @@ interface InquiryPayload {
   wechat: string
 }
 
+// TODO (Plan B — 5-person racing mechanic):
+// Replace auto-match with Supabase Realtime broadcast to ALL matching providers.
+// Build a PostgreSQL RPC with row-level lock: only the first 5 providers who
+// click "抢单" get written into accepted_provider_ids[]. After 5 acceptances,
+// the RPC stops writes and the broadcast channel is closed. Client then sees
+// the 5 winners' cards and picks 1. Requires: provider-side accept UI,
+// orders.accepted_provider_ids uuid[] column, and a concurrency-safe RPC.
+
 interface ProviderRow {
   provider_id: string
   provider: {
@@ -41,6 +49,7 @@ interface ProviderRow {
     name: string | null
     email: string | null
     last_seen_at: string | null
+    is_online: boolean | null
   } | null
   reviews: { rating: number }[] | null
 }
@@ -54,8 +63,8 @@ function buildProviderInquiryEmail(recipientName: string, data: InquiryPayload) 
 <body style="margin:0;padding:0;background:#f5f5f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
   <div style="max-width:520px;margin:32px auto;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,0.08);">
     <div style="background:linear-gradient(135deg,#e63946,#c1121f);padding:28px 32px;">
-      <h1 style="margin:0;color:#fff;font-size:20px;font-weight:700;">大多伦多华人服务</h1>
-      <p style="margin:4px 0 0;color:rgba(255,255,255,0.8);font-size:13px;">Toronto Chinese Services</p>
+      <h1 style="margin:0;color:#fff;font-size:20px;font-weight:700;">华林</h1>
+      <p style="margin:4px 0 0;color:rgba(255,255,255,0.8);font-size:13px;">海外华人生活一站式服务平台</p>
     </div>
     <div style="padding:28px 32px;">
       <p style="font-size:17px;font-weight:700;color:#111827;margin:0 0 20px;">您有一条新的客户询价</p>
@@ -107,7 +116,7 @@ Deno.serve(async (req) => {
 
     const { data: rows, error } = await admin
       .from('services')
-      .select('provider_id, provider:provider_id(id, name, email, last_seen_at), reviews(rating)')
+      .select('provider_id, provider:provider_id(id, name, email, last_seen_at, is_online), reviews(rating)')
       .eq('category_id', payload.categoryId)
       .eq('is_available', true)
 
@@ -118,7 +127,7 @@ Deno.serve(async (req) => {
     }
 
     const seen = new Set<string>()
-    const providers: { id: string; name: string; email: string; rating: number; activeRecently: boolean }[] = []
+    const providers: { id: string; name: string; email: string; rating: number; isOnline: boolean; activeRecently: boolean }[] = []
     const cutoff = Date.now() - 24 * 60 * 60 * 1000
 
     for (const row of rows as ProviderRow[]) {
@@ -131,6 +140,7 @@ Deno.serve(async (req) => {
       const rating = reviews.length
         ? reviews.reduce((sum, item) => sum + item.rating, 0) / reviews.length
         : 0
+      const isOnline = provider.is_online === true
       const activeRecently = provider.last_seen_at
         ? new Date(provider.last_seen_at).getTime() > cutoff
         : false
@@ -139,11 +149,14 @@ Deno.serve(async (req) => {
         name: provider.name ?? '用户',
         email: provider.email,
         rating,
+        isOnline,
         activeRecently,
       })
     }
 
+    // Sort priority: 1) is_online (上线接单) 2) active in last 24h 3) rating
     providers.sort((a, b) => {
+      if (a.isOnline !== b.isOnline) return a.isOnline ? -1 : 1
       if (a.activeRecently !== b.activeRecently) return a.activeRecently ? -1 : 1
       return b.rating - a.rating
     })

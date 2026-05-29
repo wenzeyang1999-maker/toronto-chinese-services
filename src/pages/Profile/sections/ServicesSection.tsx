@@ -343,26 +343,58 @@ export default function ServicesSection() {
                       <p className="text-sm font-semibold text-gray-800 truncate">{svc.title}</p>
                     </div>
 
-                    {/* Contact instructions */}
-                    <div className="space-y-3 mb-4">
-                      <p className="text-xs text-gray-600 leading-relaxed">
-                        推广属于<strong>付费增值服务</strong>，价格灵活、按需定制。请直接联系我们洽谈：
+                    {/* Note input */}
+                    <div className="mb-4">
+                      <p className="text-xs text-gray-500 mb-2 leading-relaxed">
+                        管理员审核通过后服务将置顶展示。可填写补充说明（可选）：
                       </p>
-                      <a
-                        href={`mailto:support@huarenq.com?subject=置顶推广咨询 — ${encodeURIComponent(svc.title)}&body=${encodeURIComponent(`你好，我想咨询「${svc.title}」的置顶推广方案，请问价格和周期如何？`)}`}
-                        className="flex items-center gap-3 bg-primary-50 border border-primary-100 rounded-2xl px-4 py-3 hover:bg-primary-100 transition-colors"
-                      >
-                        <span className="text-xl">📧</span>
-                        <div>
-                          <p className="text-xs font-semibold text-primary-700">发送邮件咨询</p>
-                          <p className="text-[11px] text-primary-500">support@huarenq.com</p>
-                        </div>
-                      </a>
+                      <textarea
+                        value={promoNote}
+                        onChange={e => setPromoNote(e.target.value)}
+                        placeholder="例：希望置顶 2 周，预算灵活…"
+                        rows={3}
+                        maxLength={300}
+                        className="w-full resize-none text-sm border border-gray-200 rounded-xl px-3 py-2.5
+                                   outline-none focus:ring-2 focus:ring-amber-200 focus:border-amber-300"
+                      />
                     </div>
 
-                    <p className="text-[11px] text-gray-400 text-center">
-                      我们通常在 1 个工作日内回复
-                    </p>
+                    <button
+                      onClick={async () => {
+                        if (!user || promoSending) return
+                        setPromoSending(true)
+                        const { error } = await supabase.from('promo_requests').insert({
+                          service_id:  promoServiceId,
+                          provider_id: user.id,
+                          note:        promoNote.trim() || null,
+                        })
+                        setPromoSending(false)
+                        if (error) {
+                          if (error.code === '23505') {
+                            toast('该服务已有待审核的置顶申请，请等待管理员处理', 'error')
+                          } else {
+                            toast('提交失败，请稍后再试', 'error')
+                          }
+                        } else {
+                          setPromoSent(true)
+                          notifyAdminPromoRequest({
+                            serviceName:  svc.title,
+                            serviceId:    promoServiceId!,
+                            providerName: user.user_metadata?.name ?? user.email ?? '服务商',
+                            providerEmail: user.email ?? '',
+                            note:         promoNote.trim(),
+                          }).catch(() => {})
+                        }
+                      }}
+                      disabled={promoSending}
+                      className="w-full py-3 rounded-2xl bg-amber-500 hover:bg-amber-600 disabled:bg-gray-200
+                                 text-white font-bold text-sm flex items-center justify-center gap-2 transition-colors"
+                    >
+                      {promoSending
+                        ? <span className="text-sm">提交中…</span>
+                        : <><Zap size={15} className="fill-white" /> 提交置顶申请</>
+                      }
+                    </button>
                   </>
                 )}
               </motion.div>
