@@ -98,9 +98,10 @@ export default function MessagesButton({ grouped }: Props) {
   const btn = (
     <button
       onClick={() => navigate('/profile?section=messages')}
-      className="relative flex items-center gap-2 bg-white shadow-lg border border-gray-200
+      className="relative flex items-center gap-2 bg-white border border-gray-100
                  text-primary-600 rounded-full px-4 py-3
                  hover:bg-gray-50 active:scale-95 transition-all"
+      style={{ boxShadow: '0 8px 28px rgba(0,0,0,0.10), 0 2px 8px rgba(0,0,0,0.07)' }}
       aria-label="消息"
     >
       <MessageSquare size={20} />

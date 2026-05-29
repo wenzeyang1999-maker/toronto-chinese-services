@@ -12,8 +12,9 @@ export default function PostServiceFAB({ grouped }: Props) {
     <button
       onClick={() => user ? navigate('/post') : navigate('/login', { state: { from: '/post' } })}
       className="flex items-center gap-2 bg-primary-600 hover:bg-primary-700
-                 text-white rounded-full shadow-lg px-4 py-3
+                 text-white rounded-full px-4 py-3
                  active:scale-95 transition-all duration-200 text-sm font-semibold whitespace-nowrap"
+      style={{ boxShadow: '0 8px 28px rgba(37,99,235,0.45), 0 2px 8px rgba(37,99,235,0.25)' }}
     >
       <Plus size={20} strokeWidth={2.5} />
       发布服务

@@ -23,9 +23,9 @@ export default function FABGroup() {
       {!hideMobileFAB && <div className="md:hidden fixed bottom-20 right-4 z-50">
         <button
           onClick={() => user ? navigate('/requests/post') : navigate('/login', { state: { from: '/requests/post' } })}
-          className="flex items-center gap-2 bg-orange-500 text-white rounded-full shadow-lg
+          className="flex items-center gap-2 bg-orange-500 text-white rounded-full
                      px-4 py-3 active:scale-95 transition-all duration-200 text-sm font-semibold whitespace-nowrap"
-          style={{ boxShadow: '0 4px 16px rgba(249,115,22,0.4)' }}
+          style={{ boxShadow: '0 8px 28px rgba(249,115,22,0.50), 0 2px 8px rgba(249,115,22,0.30)' }}
         >
           <PlusCircle size={18} strokeWidth={2.2} />
           发布需求
@@ -38,8 +38,9 @@ export default function FABGroup() {
         <button
           onClick={() => user ? navigate('/requests/post') : navigate('/login', { state: { from: '/requests/post' } })}
           className="flex items-center gap-2 bg-orange-500 hover:bg-orange-600
-                     text-white rounded-full shadow-lg px-4 py-3
+                     text-white rounded-full px-4 py-3
                      active:scale-95 transition-all duration-200 text-sm font-semibold whitespace-nowrap"
+          style={{ boxShadow: '0 8px 28px rgba(249,115,22,0.50), 0 2px 8px rgba(249,115,22,0.30)' }}
         >
           <PlusCircle size={18} strokeWidth={2.2} />
           发布需求
