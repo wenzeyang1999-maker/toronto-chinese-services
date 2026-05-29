@@ -4,7 +4,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X, CheckCircle, ChevronDown, Sparkles, UserCheck, Clock3, ShieldCheck, Pencil } from 'lucide-react'
+import { X, CheckCircle, ChevronDown, Sparkles, UserCheck, Clock3, ShieldCheck, Pencil, MapPin } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { useAuthStore } from '../../store/authStore'
 import { useAppStore } from '../../store/appStore'
@@ -68,6 +68,7 @@ export default function InquiryModal({ open, onClose }: Props) {
   const [submitting,  setSubmitting]  = useState(false)
   const [done,        setDone]        = useState(false)
   const [serverError, setServerError] = useState('')
+  const [postPublic,  setPostPublic]  = useState(true)
 
   const update = <K extends keyof InquiryForm>(field: K, value: InquiryForm[K]) => {
     setForm((f) => ({ ...f, [field]: value }))
@@ -158,18 +159,31 @@ export default function InquiryModal({ open, onClose }: Props) {
       }).select('id').single()
       if (error) throw error
 
-      if (user?.id) {
+      if (user?.id && postPublic) {
         const expiryDays = form.timing === 'asap' ? 7 : form.timing === 'next_week' ? 14 : 30
         const expiresAt  = new Date(Date.now() + expiryDays * 86_400_000).toISOString()
         const cat        = CATEGORIES.find((c) => c.id === form.categoryId)
-        const title      = `${form.timing === 'asap' ? '急需' : '需要'} ${cat?.label ?? ''} 服务`
+        const rawText    = (aiMode ? rawInput : form.description).trim()
+        const title      = rawText.length > 0
+          ? rawText.slice(0, 40) + (rawText.length > 40 ? '…' : '')
+          : `${form.timing === 'asap' ? '急需' : '需要'}${cat ? ` ${cat.label}` : ''}服务`
+        const TIMING_LABEL: Record<string, string> = {
+          asap:      '急需，尽快安排',
+          next_week: '下周内',
+          flexible:  '时间灵活',
+        }
+        const timingTag = `【${TIMING_LABEL[form.timing] ?? form.timing}】`
+        const publicDesc = finalDescription
+          ? `${timingTag} ${finalDescription}`
+          : timingTag
         const { data: reqData } = await supabase
           .from('service_requests')
           .insert({
             user_id:     user.id,
             title,
-            description: finalDescription,
+            description: publicDesc,
             category:    form.categoryId || 'other',
+            city:        'Toronto',
             budget:      form.budget.trim() || null,
             lat:         userLocation?.lat ?? null,
             lng:         userLocation?.lng ?? null,
@@ -230,7 +244,7 @@ export default function InquiryModal({ open, onClose }: Props) {
     onClose()
     setTimeout(() => {
       setForm(INITIAL); setErrors({}); setDone(false); setServerError('')
-      setRawInput(''); setExtracted(null); setExtractError(''); setAiMode(true)
+      setRawInput(''); setExtracted(null); setExtractError(''); setAiMode(true); setPostPublic(true)
     }, 350)
   }
 
@@ -343,7 +357,7 @@ export default function InquiryModal({ open, onClose }: Props) {
                   <p className="text-sm text-gray-500 mb-2">
                     服务商将通过您留的电话或微信联系您，请保持畅通。
                   </p>
-                  {user && (
+                  {user && postPublic && (
                     <p className="text-xs text-primary-600 bg-primary-50 rounded-xl px-3 py-2 mb-3">
                       📍 您的需求已同步显示在服务商地图上
                     </p>
@@ -635,6 +649,27 @@ export default function InquiryModal({ open, onClose }: Props) {
                                      text-gray-800 outline-none focus:ring-2 focus:ring-primary-400 focus:border-transparent"
                         />
                       </div>
+
+                      {/* Public post toggle */}
+                      <label className={`flex items-start gap-3 rounded-2xl border-2 px-4 py-3 cursor-pointer transition-all ${
+                        postPublic ? 'border-primary-400 bg-primary-50' : 'border-gray-200 bg-gray-50'
+                      }`}>
+                        <input
+                          type="checkbox"
+                          checked={postPublic}
+                          onChange={e => setPostPublic(e.target.checked)}
+                          className="mt-0.5 w-4 h-4 accent-primary-600 flex-shrink-0 cursor-pointer"
+                        />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-1.5 text-sm font-semibold text-gray-800">
+                            <MapPin size={13} className="text-primary-500 flex-shrink-0" />
+                            同时发布公开需求帖
+                          </div>
+                          <p className="text-[11px] text-gray-500 mt-0.5 leading-relaxed">
+                            让附近更多商家在地图上看到你的需求，主动联系你报价，增加收到回复的机会
+                          </p>
+                        </div>
+                      </label>
 
                       {serverError && (
                         <div className="bg-red-50 border border-red-200 text-red-600 text-xs rounded-xl px-4 py-3">

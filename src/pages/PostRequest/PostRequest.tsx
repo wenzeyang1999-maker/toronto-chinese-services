@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { ArrowLeft, CheckCircle, Clock, MapPin } from 'lucide-react'
+import { ArrowLeft, CheckCircle, Clock, MapPin, ChevronDown } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { useAuthStore } from '../../store/authStore'
 import { useAppStore } from '../../store/appStore'
@@ -40,6 +40,8 @@ export default function PostRequest() {
 
   const [title,    setTitle]    = useState(preset?.prefix ?? '')
   const [category, setCategory] = useState<ServiceCategory>('other')
+  const [catMode,  setCatMode]  = useState<'basic' | 'all' | 'custom'>('basic')
+  const [customCat, setCustomCat] = useState('')
   const [desc,     setDesc]     = useState('')
   const [area,     setArea]     = useState('')
   const [budget,   setBudget]   = useState('')
@@ -124,7 +126,7 @@ export default function PostRequest() {
       .insert({
         user_id:    user!.id,
         title:      title.trim(),
-        description: desc.trim() || null,
+        description: [customCat.trim() ? `[${customCat.trim()}]` : '', desc.trim()].filter(Boolean).join(' ') || null,
         category,
         area:       area || null,
         city:       'Toronto',
@@ -236,25 +238,66 @@ export default function PostRequest() {
           </div>
 
           {/* Category */}
-          <div className="card p-4">
-            <label className="block text-sm font-semibold text-gray-700 mb-2">服务类别</label>
-            <div className="grid grid-cols-3 gap-2">
-              {CATEGORIES.map((cat) => (
-                <button
-                  key={cat.id}
-                  type="button"
-                  onClick={() => setCategory(cat.id)}
-                  className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold border transition-all
-                    ${category === cat.id
-                      ? `${cat.bgColor} ${cat.color} border-current`
-                      : 'bg-white text-gray-500 border-gray-200 hover:border-gray-300'}`}
-                >
-                  <span>{cat.emoji}</span>
-                  <span>{cat.postLabel}</span>
-                </button>
-              ))}
-            </div>
-          </div>
+          {(() => {
+            const BASIC_IDS = ['moving', 'cleaning', 'ride', 'renovation', 'cashwork', 'food']
+            const basicCats = CATEGORIES.filter((c) => BASIC_IDS.includes(c.id))
+            const visibleCats = catMode === 'basic' ? basicCats : CATEGORIES
+            return (
+              <div className="card p-4">
+                <label className="block text-sm font-semibold text-gray-700 mb-2">需求类别</label>
+
+                {catMode === 'custom' ? (
+                  <div className="space-y-2">
+                    <input
+                      value={customCat}
+                      onChange={(e) => setCustomCat(e.target.value)}
+                      placeholder="例：园艺除雪、宠物寄养、其他…"
+                      maxLength={20}
+                      className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm
+                                 focus:outline-none focus:ring-2 focus:ring-primary-300"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => { setCatMode('all'); setCustomCat(''); setCategory('other') }}
+                      className="text-xs text-primary-600 hover:underline"
+                    >
+                      ← 返回选择类别
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    <div className="grid grid-cols-3 gap-2">
+                      {visibleCats.map((cat) => (
+                        <button
+                          key={cat.id}
+                          type="button"
+                          onClick={() => setCategory(cat.id)}
+                          className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold border transition-all
+                            ${category === cat.id
+                              ? `${cat.bgColor} ${cat.color} border-current`
+                              : 'bg-white text-gray-500 border-gray-200 hover:border-gray-300'}`}
+                        >
+                          <span>{cat.emoji}</span>
+                          <span>{cat.postLabel}</span>
+                        </button>
+                      ))}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (catMode === 'basic') setCatMode('all')
+                        else { setCatMode('custom'); setCategory('other') }
+                      }}
+                      className="mt-2.5 flex items-center gap-1 text-xs text-gray-400 hover:text-gray-600 transition-colors"
+                    >
+                      <ChevronDown size={13} />
+                      {catMode === 'basic' ? '更多类别' : '找不到合适的？自己输入'}
+                    </button>
+                  </>
+                )}
+              </div>
+            )
+          })()}
 
           {/* Description */}
           <div className="card p-4">
