@@ -1,4 +1,4 @@
-import { MapPin, Sparkles, ArrowRight, ShieldCheck, Star, Zap } from 'lucide-react'
+import { MapPin, Sparkles, ArrowRight, ShieldCheck, Star } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
 import SearchBar from '../../../components/SearchBar/SearchBar'
@@ -23,7 +23,6 @@ export default function HomeActionHero({
   const navigate = useNavigate()
   const services = useAppStore((s) => s.services)
 
-  // Promoted first, then newest — take up to 10 for the ticker
   const ticker = services
     .filter((s) => s.available)
     .sort((a, b) => {
@@ -32,48 +31,32 @@ export default function HomeActionHero({
     })
     .slice(0, 10)
 
-  // Duplicate list so the CSS scroll loop is seamless
   const tickerLoop = ticker.length > 0 ? [...ticker, ...ticker] : []
-
-  // Height of each card row in px (keep in sync with the card min-h below)
   const CARD_H = 60
 
   return (
-    <div className="relative w-full overflow-hidden bg-gradient-to-br from-primary-700 via-primary-800 to-slate-950 px-4 py-10 md:px-5 md:py-14">
-      <div className="pointer-events-none absolute inset-0">
-        <motion.div
-          animate={{ x: [0, 24, 0], y: [0, -18, 0] }}
-          transition={{ duration: 9, repeat: Infinity, ease: 'easeInOut' }}
-          className="absolute -top-20 right-[10%] h-64 w-64 rounded-full bg-cyan-300/10 blur-3xl"
-        />
-        <motion.div
-          animate={{ x: [0, -20, 0], y: [0, 18, 0] }}
-          transition={{ duration: 11, repeat: Infinity, ease: 'easeInOut' }}
-          className="absolute bottom-0 left-[5%] h-72 w-72 rounded-full bg-indigo-300/10 blur-3xl"
-        />
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.14),transparent_28%),linear-gradient(rgba(255,255,255,0.04)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.04)_1px,transparent_1px)] bg-[length:auto,24px_24px,24px_24px]" />
-      </div>
-
+    <div className="relative w-full overflow-hidden bg-[#f7f8fa] border-b border-gray-200 px-4 py-10 md:px-5 md:py-16">
       <div className="mx-auto w-full px-2 md:w-[92%] md:px-0 lg:w-[86%] xl:w-[82%]">
-        <div className="relative grid items-center gap-8 lg:min-h-[30rem] lg:grid-cols-[minmax(0,1.08fr)_minmax(420px,0.92fr)] lg:gap-20 xl:gap-24">
+        <div className="relative grid items-center gap-8 lg:min-h-[28rem] lg:grid-cols-[minmax(0,1.08fr)_minmax(400px,0.92fr)] lg:gap-16 xl:gap-20">
+
+          {/* ── Left: headline + search ── */}
           <motion.div
             initial={{ opacity: 0, y: 14 }}
             animate={{ opacity: 1, y: 0 }}
             className="relative z-10 max-w-[42rem]"
           >
-            <div className="inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-medium text-blue-50/90">
-              <MapPin size={12} />
+            <div className="inline-flex items-center gap-1.5 rounded-full border border-gray-200 bg-white px-3 py-1 text-xs font-medium text-gray-500 shadow-sm mb-4">
+              <MapPin size={11} className="text-primary-500" />
               {userHasLocation ? '已为您准备附近结果' : '海外华人生活一站式服务'}
             </div>
 
-            <h1 className="mt-4 text-4xl font-bold tracking-tight text-white md:text-5xl xl:text-6xl">
+            <h1 className="text-4xl font-extrabold tracking-tight text-gray-900 md:text-5xl xl:text-6xl leading-[1.1]">
               找本地靠谱服务，
               <br className="hidden md:block" />
-              少走弯路，直接联系。
+              <span className="text-primary-600">少走弯路</span>，直接联系。
             </h1>
-            <p className="mt-4 max-w-2xl text-sm leading-6 text-blue-50/80 md:text-base md:leading-7">
-              先搜索，也可以把需求交给 AI 帮你找。搬家、保洁、接送、装修、现金工，一步进入，
-              更快看到评价、地图和真实联系方式。
+            <p className="mt-4 max-w-xl text-sm leading-6 text-gray-500 md:text-base md:leading-7">
+              先搜索，也可以把需求交给 AI 帮你找。搬家、保洁、接送、装修、现金工，一步进入，更快看到评价、地图和真实联系方式。
             </p>
 
             <div className="mt-6 flex flex-col gap-3 md:flex-row md:items-stretch">
@@ -87,70 +70,69 @@ export default function HomeActionHero({
               <motion.button
                 whileTap={{ scale: 0.97 }}
                 onClick={onOpenInquiry}
-                className="flex items-center justify-center gap-2 rounded-2xl bg-white px-5 py-3 text-sm font-bold text-primary-700 shadow-lg transition-colors hover:bg-blue-50"
+                className="flex items-center justify-center gap-2 rounded-2xl bg-primary-600 px-5 py-3 text-sm font-bold text-white shadow-md transition-colors hover:bg-primary-700"
               >
-                <Sparkles size={16} className="text-primary-500" />
+                <Sparkles size={15} />
                 AI 帮你找
               </motion.button>
             </div>
 
-            <div className="mt-4 flex flex-wrap gap-2 text-xs text-blue-100/80">
-              <span className="rounded-full bg-white/10 px-3 py-1">优先看真实评价</span>
-              <span className="rounded-full bg-white/10 px-3 py-1">支持微信、电话、站内消息</span>
-              <span className="rounded-full bg-white/10 px-3 py-1">地图和距离仅在需要时才启用定位</span>
+            <div className="mt-4 flex flex-wrap gap-2">
+              {['优先看真实评价', '支持微信、电话、站内消息', '需要时才启用定位'].map(t => (
+                <span key={t} className="rounded-full border border-gray-200 bg-white px-3 py-1 text-xs text-gray-500 shadow-sm">
+                  {t}
+                </span>
+              ))}
             </div>
 
-            <div className="mt-6 flex flex-wrap gap-3 text-sm text-white/80">
-              <div className="inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
-                <ShieldCheck size={16} className="text-emerald-300" />
-                <span>优先展示更值得联系的商家</span>
+            <div className="mt-5 flex flex-wrap gap-3 text-sm text-gray-600">
+              <div className="inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2.5 shadow-sm">
+                <ShieldCheck size={14} className="text-emerald-500 flex-shrink-0" />
+                <span className="text-xs">优先展示更值得联系的商家</span>
               </div>
-              <div className="inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
-                <ArrowRight size={16} className="text-cyan-300" />
-                <span>搜索、比价、联系一条线完成</span>
+              <div className="inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2.5 shadow-sm">
+                <ArrowRight size={14} className="text-primary-500 flex-shrink-0" />
+                <span className="text-xs">搜索、比价、联系一条线完成</span>
               </div>
             </div>
           </motion.div>
 
-          {/* ── Live ticker panel ── */}
+          {/* ── Right: live ticker ── */}
           <motion.div
-            initial={{ opacity: 0, scale: 0.96, y: 18 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
+            initial={{ opacity: 0, y: 18 }}
+            animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
             className="relative z-10 hidden lg:block"
           >
-            <div className="relative ml-auto max-w-[32rem] rounded-[2rem] border border-white/12 bg-white/8 p-4 shadow-2xl backdrop-blur-xl">
+            <div className="ml-auto max-w-[32rem] rounded-2xl border border-gray-200 bg-white p-4 shadow-lg">
 
               {/* Header */}
-              <div className="mb-3 flex items-center justify-between rounded-2xl border border-white/10 bg-slate-950/25 px-4 py-3">
+              <div className="mb-3 flex items-center justify-between rounded-xl border border-gray-100 bg-gray-50 px-4 py-3">
                 <div>
-                  <p className="text-xs uppercase tracking-[0.24em] text-blue-100/60">Live · 实时上线</p>
-                  <p className="mt-1 text-sm font-semibold text-white">最新入驻 &amp; 推广商家</p>
+                  <p className="text-[10px] uppercase tracking-widest text-gray-400">Live · 实时上线</p>
+                  <p className="mt-0.5 text-sm font-semibold text-gray-800">最新入驻 &amp; 推广商家</p>
                 </div>
-                <div className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/20 px-3 py-1 text-xs text-emerald-300 border border-emerald-500/30">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                <div className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs text-emerald-600">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                   实时
                 </div>
               </div>
 
               {/* Ticker */}
               {ticker.length === 0 ? (
-                // Skeleton while loading
                 <div className="space-y-2">
                   {Array.from({ length: 4 }).map((_, i) => (
-                    <div key={i} className="h-14 rounded-2xl bg-white/5 animate-pulse" />
+                    <div key={i} className="h-14 rounded-xl bg-gray-100 animate-pulse" />
                   ))}
                 </div>
               ) : (
                 <div
-                  className="relative overflow-hidden rounded-2xl"
-                  style={{ height: CARD_H * 4 + 8 * 3 }} // show ~4 cards
+                  className="relative overflow-hidden rounded-xl"
+                  style={{ height: CARD_H * 4 + 8 * 3 }}
                 >
-                  {/* Top + bottom fade masks */}
-                  <div className="pointer-events-none absolute inset-x-0 top-0 z-10 h-6 bg-gradient-to-b from-white/5 to-transparent" />
-                  <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-10 bg-gradient-to-t from-slate-950/40 to-transparent" />
+                  <div className="pointer-events-none absolute inset-x-0 top-0 z-10 h-6 bg-gradient-to-b from-white to-transparent" />
+                  <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-10 bg-gradient-to-t from-white to-transparent" />
 
-                  {/* Scrolling list — CSS animation, pause on hover */}
                   <style>{`
                     @keyframes ticker-up {
                       0%   { transform: translateY(0); }
@@ -159,9 +141,7 @@ export default function HomeActionHero({
                     .ticker-track {
                       animation: ticker-up ${ticker.length * 3}s linear infinite;
                     }
-                    .ticker-track:hover {
-                      animation-play-state: paused;
-                    }
+                    .ticker-track:hover { animation-play-state: paused; }
                   `}</style>
 
                   <div className="ticker-track flex flex-col gap-2">
@@ -176,12 +156,11 @@ export default function HomeActionHero({
                           key={`${svc.id}-${i}`}
                           onClick={() => navigate(`/service/${svc.id}`)}
                           style={{ minHeight: CARD_H }}
-                          className="w-full flex items-center gap-3 rounded-2xl border border-white/8
-                                     bg-white/6 hover:bg-white/12 active:scale-[0.98]
-                                     px-4 py-3 text-left transition-all flex-shrink-0"
+                          className="w-full flex items-center gap-3 rounded-xl border border-gray-100
+                                     bg-gray-50 hover:bg-primary-50 hover:border-primary-200
+                                     px-4 py-3 text-left transition-all flex-shrink-0 active:scale-[0.98]"
                         >
-                          {/* Avatar / category icon */}
-                          <div className="w-9 h-9 rounded-xl bg-white/10 flex items-center justify-center flex-shrink-0 text-lg overflow-hidden">
+                          <div className="w-9 h-9 rounded-lg bg-white border border-gray-200 flex items-center justify-center flex-shrink-0 text-lg overflow-hidden shadow-sm">
                             {svc.provider.avatar ? (
                               <img src={svc.provider.avatar} alt="" className="w-9 h-9 object-cover" />
                             ) : (
@@ -189,15 +168,14 @@ export default function HomeActionHero({
                             )}
                           </div>
 
-                          {/* Info */}
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm font-semibold text-white truncate leading-snug">
+                            <p className="text-sm font-semibold text-gray-800 truncate leading-snug">
                               {svc.title}
                             </p>
                             <div className="flex items-center gap-2 mt-0.5">
-                              <span className="text-xs text-blue-100/60 truncate">{svc.provider.name}</span>
+                              <span className="text-xs text-gray-400 truncate">{svc.provider.name}</span>
                               {svc.provider.rating > 0 && (
-                                <span className="flex items-center gap-0.5 text-xs text-amber-400 flex-shrink-0">
+                                <span className="flex items-center gap-0.5 text-xs text-amber-500 flex-shrink-0">
                                   <Star size={10} className="fill-amber-400" />
                                   {svc.provider.rating.toFixed(1)}
                                 </span>
@@ -205,15 +183,12 @@ export default function HomeActionHero({
                             </div>
                           </div>
 
-                          {/* Price + badge */}
                           <div className="flex flex-col items-end gap-1 flex-shrink-0">
-                            <span className="text-xs font-semibold text-cyan-300">{priceLabel}</span>
+                            <span className="text-xs font-semibold text-primary-600">{priceLabel}</span>
                             {svc.isPromoted ? (
-                              <span className="flex items-center gap-0.5 text-[10px] text-amber-300/90">
-                                <Zap size={9} className="fill-amber-300/90" /> 推广
-                              </span>
+                              <span className="text-[10px] text-amber-600 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded-full">推广</span>
                             ) : (
-                              <span className="text-[10px] text-emerald-400/80">新上线</span>
+                              <span className="text-[10px] text-emerald-600 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded-full">新上线</span>
                             )}
                           </div>
                         </button>
@@ -223,17 +198,17 @@ export default function HomeActionHero({
                 </div>
               )}
 
-              {/* Footer CTA */}
               <button
                 onClick={() => navigate('/search')}
                 className="mt-3 w-full flex items-center justify-center gap-1.5
-                           rounded-2xl border border-white/10 bg-white/5 hover:bg-white/10
-                           py-2.5 text-xs font-medium text-blue-100/70 transition-colors"
+                           rounded-xl border border-gray-200 bg-gray-50 hover:bg-gray-100
+                           py-2.5 text-xs font-medium text-gray-500 transition-colors"
               >
                 查看全部服务 <ArrowRight size={13} />
               </button>
             </div>
           </motion.div>
+
         </div>
       </div>
     </div>

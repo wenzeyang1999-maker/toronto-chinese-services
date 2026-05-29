@@ -186,7 +186,7 @@ export default function Home() {
   }, [services, userLocation])
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-[#f7f8fa]">
       <div className="sticky top-0 z-40">
         <HeroBanner />
         <div className="bg-white border-b border-gray-100">
@@ -208,22 +208,21 @@ export default function Home() {
 
       <InquiryModal open={inquiryOpen} onClose={() => setInquiryOpen(false)} />
 
-      <div className="relative z-10 w-full bg-gray-50 pt-6">
+      <div className="relative z-10 w-full bg-[#f7f8fa] pt-6">
       <div className="w-full px-3 md:w-[85%] md:px-0 lg:w-[70%] mx-auto">
 
         {/* Category buttons */}
-        <section className="card p-4 mb-4">
-          <div className="flex items-start justify-between gap-3 mb-1">
-            <h3 className="text-base font-semibold text-gray-800">热门服务</h3>
+        <section className="mb-4 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+          <div className="flex items-center justify-between gap-3 mb-3">
+            <h3 className="text-sm font-semibold text-gray-800">热门服务</h3>
             <button
               onClick={() => navigate('/search')}
-              className="flex items-center gap-0.5 text-sm font-semibold text-primary-600 hover:text-primary-700 flex-shrink-0 transition-colors"
+              className="flex items-center gap-0.5 text-xs font-semibold text-primary-600 hover:text-primary-700 flex-shrink-0 transition-colors"
             >
               更多服务
-              <ChevronRight size={16} />
+              <ChevronRight size={14} />
             </button>
           </div>
-          <p className="text-xs text-gray-400 mb-3">选择你需要的板块，找服务·看房·论坛·二手一站搞定。</p>
           <CategoryButtons />
         </section>
 
@@ -231,108 +230,93 @@ export default function Home() {
             above. Component kept for possible future reuse (e.g. 猜你喜欢). */}
         {/* <RecentCategories /> */}
 
-        {/* ── Post-request hero card — the platform's "发帖子" CTA ──────────── */}
-        <section className="relative mb-4 overflow-hidden rounded-2xl bg-gradient-to-br from-orange-500 via-rose-500 to-pink-600 p-5 text-white shadow-lg">
-          <div className="pointer-events-none absolute -right-12 -top-12 w-44 h-44 rounded-full bg-white/15 blur-3xl" />
-          <div className="pointer-events-none absolute -left-8 bottom-0 w-32 h-32 rounded-full bg-white/10 blur-2xl" />
-
-          <div className="relative">
-            <div className="flex items-start justify-between gap-3 mb-3">
-              <div className="min-w-0">
-                <div className="inline-flex items-center gap-1.5 bg-white/20 backdrop-blur-sm px-2.5 py-1 rounded-full text-[11px] font-semibold mb-2">
-                  <Megaphone size={11} /> 发需求 · 商家来找你
-                </div>
-                <h3 className="text-lg font-bold leading-tight">1 分钟告诉我们你要什么</h3>
-                <p className="text-xs text-white/85 mt-1">附近商家看到后主动联系你 · 比挨家挨家问省一半时间</p>
+        {/* ── Post-request CTA ─────────────────────────────────────────────── */}
+        <section className="mb-4 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+          <div className="flex items-start justify-between gap-3 mb-3">
+            <div className="min-w-0">
+              <div className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-primary-600 bg-primary-50 border border-primary-100 px-2.5 py-1 rounded-full mb-2">
+                <Megaphone size={11} /> 发需求 · 商家来找你
               </div>
-              <PlusCircle size={32} className="text-white/35 flex-shrink-0" />
+              <h3 className="text-base font-bold text-gray-900 leading-tight">1 分钟告诉我们你要什么</h3>
+              <p className="text-xs text-gray-400 mt-1">附近商家看到后主动联系你 · 比挨家挨家问省一半时间</p>
             </div>
-
-            {/* Urgency quick-action chips */}
-            <div className="grid grid-cols-4 gap-2 mb-3">
-              {[
-                { key: 'urgent',   icon: '🔥', label: '紧急单' },
-                { key: 'today',    icon: '⏰', label: '今天就要' },
-                { key: 'week',     icon: '📅', label: '本周内'   },
-                { key: 'flexible', icon: '💬', label: '慢慢找'   },
-              ].map(chip => (
-                <button
-                  key={chip.key}
-                  onClick={() => navigate(`/requests/post?urgency=${chip.key}`)}
-                  className="flex flex-col items-center justify-center gap-0.5 bg-white/15 hover:bg-white/25
-                             backdrop-blur-sm rounded-xl py-2 text-[11px] font-semibold transition-colors
-                             active:scale-95"
-                >
-                  <span className="text-base leading-none">{chip.icon}</span>
-                  {chip.label}
-                </button>
-              ))}
-            </div>
-
-            <button
-              onClick={() => navigate('/requests/post')}
-              className="w-full flex items-center justify-center gap-2 bg-white text-rose-600
-                         py-3 rounded-xl text-sm font-bold shadow-md active:scale-[0.98] transition-transform"
-            >
-              <PlusCircle size={16} />
-              立即发布需求
-              <ArrowRight size={16} />
-            </button>
+            <PlusCircle size={28} className="text-gray-200 flex-shrink-0 mt-0.5" />
           </div>
+
+          <div className="grid grid-cols-4 gap-2 mb-3">
+            {[
+              { key: 'urgent',   icon: '🔥', label: '紧急单' },
+              { key: 'today',    icon: '⏰', label: '今天就要' },
+              { key: 'week',     icon: '📅', label: '本周内'   },
+              { key: 'flexible', icon: '💬', label: '慢慢找'   },
+            ].map(chip => (
+              <button
+                key={chip.key}
+                onClick={() => navigate(`/requests/post?urgency=${chip.key}`)}
+                className="flex flex-col items-center justify-center gap-0.5 bg-gray-50 hover:bg-primary-50
+                           border border-gray-200 hover:border-primary-300
+                           rounded-xl py-2.5 text-[11px] font-semibold text-gray-600 hover:text-primary-600
+                           transition-colors active:scale-95"
+              >
+                <span className="text-base leading-none">{chip.icon}</span>
+                {chip.label}
+              </button>
+            ))}
+          </div>
+
+          <button
+            onClick={() => navigate('/requests/post')}
+            className="w-full flex items-center justify-center gap-2 bg-primary-600 hover:bg-primary-700
+                       text-white py-3 rounded-xl text-sm font-bold transition-colors active:scale-[0.98]"
+          >
+            <PlusCircle size={16} />
+            立即发布需求
+            <ArrowRight size={16} />
+          </button>
         </section>
 
         {/* ── Feed mode toggle — headline dual-marketplace switcher ──────────── */}
         <div className="mb-4">
           <div className="grid grid-cols-2 gap-3">
-            {/* 找服务 card */}
+            {/* 找服务 */}
             <button
               onClick={() => handleSetFeedMode('services')}
               aria-pressed={feedMode === 'services'}
-              className={`relative flex items-center gap-3 p-4 rounded-2xl border-2 text-left transition-all active:scale-[0.98]
-                ${feedMode === 'services'
-                  ? 'bg-gradient-to-br from-primary-50 to-primary-100/60 border-primary-500 shadow-md'
-                  : 'bg-white border-gray-200 hover:border-gray-300'}`}
+              className={`relative flex items-center gap-3 p-4 rounded-2xl border-2 text-left transition-all active:scale-[0.98] bg-white
+                ${feedMode === 'services' ? 'border-primary-500 shadow-sm' : 'border-gray-200 hover:border-gray-300'}`}
             >
-              <div className={`flex-shrink-0 w-12 h-12 rounded-2xl flex items-center justify-center transition-colors
-                ${feedMode === 'services' ? 'bg-primary-600 text-white shadow-sm' : 'bg-gray-100 text-gray-400'}`}>
-                <SearchIcon size={22} strokeWidth={2.4} />
+              <div className={`flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center transition-colors
+                ${feedMode === 'services' ? 'bg-primary-600 text-white' : 'bg-gray-100 text-gray-400'}`}>
+                <SearchIcon size={18} strokeWidth={2.4} />
               </div>
               <div className="flex-1 min-w-0">
-                <p className={`text-base font-bold truncate ${feedMode === 'services' ? 'text-primary-700' : 'text-gray-700'}`}>
-                  找服务
-                </p>
-                <p className="text-[11px] text-gray-500 truncate mt-0.5">附近商家 · 师傅</p>
+                <p className={`text-sm font-bold truncate ${feedMode === 'services' ? 'text-primary-700' : 'text-gray-700'}`}>找服务</p>
+                <p className="text-[11px] text-gray-400 truncate mt-0.5">附近商家 · 师傅</p>
               </div>
             </button>
 
-            {/* 发现客户 card — the platform's signature feature */}
+            {/* 发现客户 */}
             <button
               onClick={() => handleSetFeedMode('requests')}
               aria-pressed={feedMode === 'requests'}
-              className={`relative flex items-center gap-3 p-4 rounded-2xl border-2 text-left transition-all active:scale-[0.98]
-                ${feedMode === 'requests'
-                  ? 'bg-gradient-to-br from-orange-50 to-amber-100/60 border-orange-500 shadow-md'
-                  : 'bg-white border-gray-200 hover:border-gray-300'}`}
+              className={`relative flex items-center gap-3 p-4 rounded-2xl border-2 text-left transition-all active:scale-[0.98] bg-white
+                ${feedMode === 'requests' ? 'border-amber-500 shadow-sm' : 'border-gray-200 hover:border-gray-300'}`}
             >
-              <div className={`flex-shrink-0 w-12 h-12 rounded-2xl flex items-center justify-center transition-colors
-                ${feedMode === 'requests' ? 'bg-orange-500 text-white shadow-sm' : 'bg-gray-100 text-gray-400'}`}>
-                <Sparkles size={22} strokeWidth={2.4} />
+              <div className={`flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center transition-colors
+                ${feedMode === 'requests' ? 'bg-amber-500 text-white' : 'bg-gray-100 text-gray-400'}`}>
+                <Sparkles size={18} strokeWidth={2.4} />
               </div>
               <div className="flex-1 min-w-0">
-                <p className={`text-base font-bold truncate ${feedMode === 'requests' ? 'text-orange-700' : 'text-gray-700'}`}>
-                  发现客户
-                </p>
-                <p className="text-[11px] text-gray-500 truncate mt-0.5">接附近订单 · 赚钱</p>
+                <p className={`text-sm font-bold truncate ${feedMode === 'requests' ? 'text-amber-700' : 'text-gray-700'}`}>发现客户</p>
+                <p className="text-[11px] text-gray-400 truncate mt-0.5">接附近订单 · 赚钱</p>
               </div>
               {unreadRequestCount > 0 && (
-                <span className="absolute top-2 right-2 text-[10px] font-bold bg-red-500 text-white px-1.5 py-0.5 rounded-full shadow-sm">
+                <span className="absolute top-2 right-2 text-[10px] font-bold bg-red-500 text-white px-1.5 py-0.5 rounded-full">
                   {unreadRequestCount > 99 ? '99+' : unreadRequestCount}
                 </span>
               )}
               {feedMode !== 'requests' && unreadRequestCount === 0 && (
-                <span className="absolute top-2 right-2 text-[9px] font-bold text-orange-600 bg-orange-100 px-1.5 py-0.5 rounded-full">
-                  NEW
-                </span>
+                <span className="absolute top-2 right-2 text-[9px] font-bold text-amber-600 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded-full">NEW</span>
               )}
             </button>
           </div>
