@@ -323,7 +323,7 @@ export default function InquiryModal({ open, onClose }: Props) {
                       aiMode ? 'bg-white shadow-sm text-primary-600' : 'text-gray-500'
                     }`}
                   >
-                    <Sparkles size={11} /> AI
+                    <Sparkles size={11} /> AI 语音
                   </button>
                   <button
                     type="button"
@@ -332,7 +332,7 @@ export default function InquiryModal({ open, onClose }: Props) {
                       !aiMode ? 'bg-white shadow-sm text-gray-700' : 'text-gray-500'
                     }`}
                   >
-                    手动
+                    手动填写
                   </button>
                 </div>
                 <button
