@@ -1,10 +1,10 @@
 // ─── InquiryModal ─────────────────────────────────────────────────────────────
 // "获取报价" feature: user posts a need, service providers reach out to them.
 // Two modes: AI mode (free-text → LLM extraction) and manual mode (form).
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X, CheckCircle, ChevronDown, Sparkles, UserCheck, Clock3, ShieldCheck, Pencil, MapPin } from 'lucide-react'
+import { X, CheckCircle, ChevronDown, Sparkles, UserCheck, Clock3, ShieldCheck, Pencil, MapPin, Mic, MicOff } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { useAuthStore } from '../../store/authStore'
 import { useAppStore } from '../../store/appStore'
@@ -69,6 +69,36 @@ export default function InquiryModal({ open, onClose }: Props) {
   const [done,        setDone]        = useState(false)
   const [serverError, setServerError] = useState('')
   const [postPublic,  setPostPublic]  = useState(true)
+  const [isListening, setIsListening] = useState(false)
+  const recognitionRef = useRef<any>(null)
+  const voiceSupported = typeof window !== 'undefined' &&
+    ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window)
+
+  function startVoice() {
+    const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
+    if (!SR) return
+    const rec = new SR()
+    rec.lang = 'zh-CN'
+    rec.continuous = true
+    rec.interimResults = true
+    rec.onresult = (e: any) => {
+      const transcript = Array.from(e.results as any[])
+        .map((r: any) => r[0].transcript)
+        .join('')
+      setRawInput(transcript)
+      setExtracted(null)
+    }
+    rec.onend = () => setIsListening(false)
+    rec.onerror = () => setIsListening(false)
+    recognitionRef.current = rec
+    rec.start()
+    setIsListening(true)
+  }
+
+  function stopVoice() {
+    recognitionRef.current?.stop()
+    setIsListening(false)
+  }
 
   const update = <K extends keyof InquiryForm>(field: K, value: InquiryForm[K]) => {
     setForm((f) => ({ ...f, [field]: value }))
@@ -241,6 +271,7 @@ export default function InquiryModal({ open, onClose }: Props) {
   }
 
   const handleClose = () => {
+    stopVoice()
     onClose()
     setTimeout(() => {
       setForm(INITIAL); setErrors({}); setDone(false); setServerError('')
@@ -374,16 +405,37 @@ export default function InquiryModal({ open, onClose }: Props) {
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1.5">
                           描述您的需求
+                          {voiceSupported && (
+                            <span className="ml-2 text-[11px] font-normal text-gray-400">
+                              {isListening ? '🔴 正在聆听，点麦克风停止' : '可点麦克风语音输入'}
+                            </span>
+                          )}
                         </label>
-                        <textarea
-                          rows={4}
-                          value={rawInput}
-                          onChange={e => { setRawInput(e.target.value); setExtracted(null) }}
-                          placeholder="例：明天下午从North York搬到Markham，三楼无电梯，5个大箱子加一张床"
-                          className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-800
-                                     outline-none focus:ring-2 focus:ring-primary-400 focus:border-transparent
-                                     resize-none placeholder:text-gray-400"
-                        />
+                        <div className="relative">
+                          <textarea
+                            rows={4}
+                            value={rawInput}
+                            onChange={e => { setRawInput(e.target.value); setExtracted(null) }}
+                            placeholder={isListening ? '说话中，识别结果会自动显示…' : '例：明天下午从North York搬到Markham，三楼无电梯，5个大箱子加一张床'}
+                            className={`w-full border rounded-xl px-4 py-3 pr-12 text-sm text-gray-800
+                                       outline-none focus:ring-2 focus:ring-primary-400 focus:border-transparent
+                                       resize-none placeholder:text-gray-400 transition-colors
+                                       ${isListening ? 'border-red-300 bg-red-50/30' : 'border-gray-200'}`}
+                          />
+                          {voiceSupported && (
+                            <button
+                              type="button"
+                              onClick={isListening ? stopVoice : startVoice}
+                              className={`absolute bottom-3 right-3 p-2 rounded-full transition-all
+                                ${isListening
+                                  ? 'bg-red-500 text-white shadow-lg shadow-red-200 animate-pulse'
+                                  : 'bg-gray-100 text-gray-500 hover:bg-primary-50 hover:text-primary-600'}`}
+                              title={isListening ? '点击停止录音' : '点击语音输入'}
+                            >
+                              {isListening ? <MicOff size={16} /> : <Mic size={16} />}
+                            </button>
+                          )}
+                        </div>
                       </div>
 
                       <button
