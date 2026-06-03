@@ -142,6 +142,7 @@ export default function AiChatWidget({ grouped }: Props) {
     ]
 
     abortRef.current = new AbortController()
+    const timeoutId = window.setTimeout(() => abortRef.current?.abort(), 20_000)
 
     try {
       const res = await fetch(EDGE_FN_URL, {
@@ -192,7 +193,18 @@ export default function AiChatWidget({ grouped }: Props) {
         }
       }
     } catch (err: unknown) {
-      if ((err as Error).name === 'AbortError') return
+      window.clearTimeout(timeoutId)
+      if ((err as Error).name === 'AbortError') {
+        setMessages(prev => {
+          const copy = [...prev]
+          const last = copy[copy.length - 1]
+          if (last?.role === 'assistant' && !last.content) {
+            copy[copy.length - 1] = { ...last, content: '响应超时，请重试' }
+          }
+          return copy
+        })
+        return
+      }
       const msg = err instanceof Error ? err.message : '网络错误，请重试'
       setMessages(prev => {
         const copy = [...prev]
@@ -203,7 +215,7 @@ export default function AiChatWidget({ grouped }: Props) {
         return copy
       })
     } finally {
-      // Mark streaming done
+      window.clearTimeout(timeoutId)
       setMessages(prev => {
         const copy = [...prev]
         const last = copy[copy.length - 1]

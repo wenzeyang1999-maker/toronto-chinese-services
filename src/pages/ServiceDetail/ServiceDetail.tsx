@@ -5,6 +5,7 @@ import { toast } from '../../lib/toast'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useAppStore, mapRow } from '../../store/appStore'
 import { useAuthStore } from '../../store/authStore'
+import { useReadStore } from '../../store/readStore'
 import { supabase } from '../../lib/supabase'
 import { getCategoryById } from '../../data/categories'
 import type { BrowseEntry } from '../../types/browse'
@@ -43,6 +44,8 @@ export default function ServiceDetail() {
   const user     = useAuthStore((s) => s.user)
   const navigate = useNavigate()
   const services = useAppStore((s) => s.services)
+  const markRead = useReadStore((s) => s.markRead)
+  useEffect(() => { if (id) markRead('service', id) }, [id])
 
   const storeService = services.find((s) => s.id === id)
   const [localService, setLocalService] = useState<ReturnType<typeof mapRow> | null>(null)
@@ -83,26 +86,13 @@ export default function ServiceDetail() {
         providerId = mapped.provider.id
       }
 
-      // Authenticated users get the provider's contact info — merged into the
-      // local service via setLocalService(prev → with phone/wechat filled).
-      if (providerId && user) {
-        const { data: contact } = await supabase
-          .from('users')
-          .select('phone, wechat')
-          .eq('id', providerId)
-          .single()
-        if (contact) {
-          setLocalService((prev) => prev
-            ? { ...prev, provider: { ...prev.provider, phone: contact.phone ?? '', wechat: contact.wechat ?? undefined } }
-            : prev
-          )
-        }
-      }
-
       if (!providerId) { setLoading(false); return }
 
-      // Fetch provider extras + report status in parallel
-      const [{ data: profile }, { data: report }] = await Promise.all([
+      // Fetch contact info, provider extras, and report status all in parallel
+      const [{ data: contact }, { data: profile }, { data: report }] = await Promise.all([
+        providerId && user
+          ? supabase.from('users').select('phone, wechat').eq('id', providerId).single()
+          : Promise.resolve({ data: null }),
         supabase.from('public_profiles')
           .select('email, is_email_verified, phone_verified, social_links, avg_reply_hours')
           .eq('id', providerId)
@@ -116,6 +106,13 @@ export default function ServiceDetail() {
               .maybeSingle()
           : Promise.resolve({ data: null }),
       ])
+
+      if (contact) {
+        setLocalService((prev) => prev
+          ? { ...prev, provider: { ...prev.provider, phone: contact.phone ?? '', wechat: contact.wechat ?? undefined } }
+          : prev
+        )
+      }
 
       if (profile) {
         if (profile.email)                   setProviderEmail(profile.email as string)

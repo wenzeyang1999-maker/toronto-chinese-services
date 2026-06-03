@@ -3,7 +3,6 @@ import { calcDistance } from '../../lib/geo'
 import HeroBanner from '../../components/HeroBanner/HeroBanner'
 import CategoryButtons from '../../components/CategoryButtons/CategoryButtons'
 import InquiryModal from '../../components/InquiryModal/InquiryModal'
-import SectionTabs, { type SectionTab } from '../../components/SectionTabs/SectionTabs'
 import { useAppStore } from '../../store/appStore'
 import { useGeolocation } from '../../hooks/useGeolocation'
 // import RecentCategories from '../../components/RecentCategories/RecentCategories'  // hidden — see below
@@ -34,7 +33,6 @@ export default function Home() {
   const user             = useAuthStore((s) => s.user)
   const [searchParams]   = useSearchParams()
   const [inquiryOpen, setInquiryOpen]  = useState(false)
-  const [activeTab, setActiveTab]      = useState<SectionTab>('services')
   const [searchQuery, setSearchQuery]  = useState('')
   const [viewMode, setViewMode] = useState<'list' | 'map'>(() => {
     const saved = localStorage.getItem('tcs_view_mode')
@@ -189,11 +187,6 @@ export default function Home() {
     <div className="min-h-screen bg-[#f7f8fa]">
       <div className="sticky top-0 z-40">
         <HeroBanner />
-        <div className="bg-white border-b border-gray-100">
-          <div className="w-full px-3 md:w-[85%] md:px-0 lg:w-[70%] mx-auto">
-            <SectionTabs active={activeTab} onChange={setActiveTab} containerClassName="px-0" />
-          </div>
-        </div>
       </div>
 
       <div ref={searchRef}>

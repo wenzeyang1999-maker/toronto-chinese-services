@@ -1,145 +1,196 @@
-// ─── Header ───────────────────────────────────────────────────────────────────
-// Sticky navigation bar used on all pages EXCEPT Home.
-// Desktop: logo | 浏览服务▼ (dropdown) | 成为服务商 | 注册 | 登录
-// Mobile:  logo | ☰ (category grid + 成为服务商) | 注册 | 登录
-import { useState, useRef, useEffect } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
-import { ChevronDown, Menu, X, UserCircle, Grid2x2, Search } from 'lucide-react'
+// ─── Header ────────────────────────────────────────────────────────────────────
+// V5.2 unified nav bar + P2 contextual search bar
+//
+// Desktop (≥ lg): single row
+//   Logo | 生活服务 求职招聘 二手交易 房产租售 大多广场 | [search input] | 🔔 [auth]
+//
+// Mobile (< lg): three rows
+//   Row 1: Logo | <spacer> | 🔔 [auth]
+//   Row 2: scrollable section tabs
+//   Row 3: contextual search bar (only when on a section page)
+import { useCallback, useRef, useState } from 'react'
+import { Link, useNavigate, useLocation } from 'react-router-dom'
+import { motion } from 'framer-motion'
+import { Search, UserCircle } from 'lucide-react'
 import { useAuthStore } from '../../store/authStore'
-import { CATEGORIES } from '../../data/categories'
 import HuaLinLogo from '../Logo/HuaLinLogo'
 import AdminNotificationsBell from '../AdminNotifications/AdminNotificationsBell'
 
+// ── Section definitions ───────────────────────────────────────────────────────
+const NAV_SECTIONS = [
+  { id: 'services',   label: '生活服务', href: '/' },
+  { id: 'jobs',       label: '求职招聘', href: '/jobs' },
+  { id: 'secondhand', label: '二手交易', href: '/secondhand' },
+  { id: 'realestate', label: '房产租售', href: '/realestate' },
+  { id: 'plaza',      label: '大多广场', href: '/plaza' },
+] as const
+
+type SectionId = typeof NAV_SECTIONS[number]['id']
+
+const PLACEHOLDER: Record<SectionId, string> = {
+  services:   '在 7 大生活服务中搜索师傅…',
+  jobs:       '在招聘信息中搜索…',
+  secondhand: '在二手物品中搜索…',
+  realestate: '在当前房源中搜索…',
+  plaza:      '在同城集市 / 活动中搜索…',
+}
+
+// Pages that render their own search bar — Header row 3 would be redundant there
+const PAGES_WITH_OWN_SEARCH = new Set(['/jobs', '/secondhand', '/realestate'])
+
+function getActiveSection(pathname: string): SectionId | null {
+  if (pathname.startsWith('/jobs'))        return 'jobs'
+  if (pathname.startsWith('/secondhand'))  return 'secondhand'
+  if (pathname.startsWith('/realestate'))  return 'realestate'
+  if (
+    pathname.startsWith('/plaza') ||
+    pathname.startsWith('/events') ||
+    pathname.startsWith('/community')
+  ) return 'plaza'
+  if (
+    pathname === '/' ||
+    pathname.startsWith('/category') ||
+    pathname.startsWith('/service') ||
+    pathname.startsWith('/search') ||
+    pathname.startsWith('/post') ||
+    pathname.startsWith('/map')
+  ) return 'services'
+  return null
+}
+
+function buildSearchUrl(query: string, active: SectionId | null, global: boolean): string {
+  const q = encodeURIComponent(query.trim())
+  if (global || !active)        return `/search-all?q=${q}`
+  if (active === 'jobs')        return `/jobs?keyword=${q}`
+  if (active === 'secondhand')  return `/secondhand?keyword=${q}`
+  if (active === 'realestate')  return `/realestate?keyword=${q}`
+  return `/search-all?q=${q}`
+}
+
 interface HeaderProps {
-  /** When false, renders as a static bar (used on Home page over carousel) */
   sticky?: boolean
 }
 
 export default function Header({ sticky = true }: HeaderProps) {
-  const navigate        = useNavigate()
-  const [menuOpen,   setMenuOpen]   = useState(false)
-  const [browseOpen, setBrowseOpen] = useState(false)
-  const browseRef = useRef<HTMLDivElement>(null)
-  const close = () => setMenuOpen(false)
-  const user  = useAuthStore((s) => s.user)
+  const navigate  = useNavigate()
+  const location  = useLocation()
+  const user      = useAuthStore((s) => s.user)
+  const active    = getActiveSection(location.pathname)
+  const scrollRef = useRef<HTMLDivElement>(null)
 
-  // Close dropdown when clicking outside
-  useEffect(() => {
-    function onOutside(e: MouseEvent) {
-      if (browseRef.current && !browseRef.current.contains(e.target as Node)) {
-        setBrowseOpen(false)
-      }
-    }
-    document.addEventListener('mousedown', onOutside)
-    return () => document.removeEventListener('mousedown', onOutside)
-  }, [])
+  const [searchQuery,  setSearchQuery]  = useState('')
+  const [globalSearch, setGlobalSearch] = useState(false)
 
-  function goCategory(id: string) {
-    navigate(`/category/${id}`)
-    setBrowseOpen(false)
-    close()
-  }
+  const handleSearch = useCallback(() => {
+    if (!searchQuery.trim()) return
+    navigate(buildSearchUrl(searchQuery, active, globalSearch))
+    setSearchQuery('')
+  }, [searchQuery, active, globalSearch, navigate])
+
+  const placeholder = active ? PLACEHOLDER[active] : '搜索…'
 
   return (
     <header className={sticky
       ? 'sticky top-0 z-40 bg-white border-b border-gray-200'
       : 'w-full bg-white border-b border-gray-200 relative'
     }>
-      <div className="px-4 md:px-6 h-14 flex items-center justify-between">
+
+      {/* ── Main row ─────────────────────────────────────────────────────────── */}
+      <div className="px-3 md:px-6 h-14 flex items-center gap-2">
 
         {/* Logo */}
-        <Link to="/" onClick={close} className="flex items-center flex-shrink-0">
+        <Link to="/" className="flex items-center flex-shrink-0 mr-2 lg:mr-4">
           <HuaLinLogo variant="full" theme="light" size={32} />
         </Link>
 
-        {/* Right side */}
-        <div className="flex items-center gap-1">
+        {/* Desktop section nav (lg+) */}
+        <nav className="hidden lg:flex items-center gap-0.5 flex-shrink-0">
+          {NAV_SECTIONS.map((sec) => {
+            const isActive = active === sec.id
+            return (
+              <button
+                key={sec.id}
+                onClick={() => navigate(sec.href)}
+                className={`relative px-3 py-2 text-sm font-semibold rounded-lg transition-colors whitespace-nowrap
+                  ${isActive ? 'text-primary-600' : 'text-gray-500 hover:text-gray-800 hover:bg-gray-50'}`}
+              >
+                {sec.label}
+                {isActive && (
+                  <motion.div
+                    layoutId="nav-underline"
+                    className="absolute bottom-0.5 left-2 right-2 h-0.5 bg-primary-600 rounded-full"
+                    transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                  />
+                )}
+              </button>
+            )
+          })}
+        </nav>
 
-          {/* Desktop: 浏览服务 dropdown */}
-          <div className="hidden md:block relative" ref={browseRef}>
-            <button
-              onClick={() => setBrowseOpen((v) => !v)}
-              className="flex items-center gap-1 text-sm text-gray-600 px-3 py-2 rounded-lg hover:bg-gray-100 transition-colors"
-            >
-              浏览服务
-              <ChevronDown
-                size={14}
-                className={`transition-transform duration-200 ${browseOpen ? 'rotate-180' : ''}`}
+        {/* Desktop contextual search (lg+) */}
+        <div className="hidden lg:flex items-center flex-1 mx-3 min-w-0">
+          <div className="flex items-center w-full bg-gray-100 rounded-xl px-3 py-1.5 gap-2">
+            <Search size={14} className="text-gray-400 flex-shrink-0" />
+            <input
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') handleSearch() }}
+              placeholder={placeholder}
+              className="flex-1 bg-transparent text-sm text-gray-800 placeholder-gray-400 outline-none min-w-0"
+            />
+            <label className="flex items-center gap-1 flex-shrink-0 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={globalSearch}
+                onChange={(e) => setGlobalSearch(e.target.checked)}
+                className="w-3 h-3 rounded"
               />
-            </button>
-
-            {browseOpen && (
-              <div className="absolute top-full right-0 mt-1 w-48 bg-white rounded-xl shadow-lg border border-gray-100 py-1 z-50">
-                {CATEGORIES.map((cat) => (
-                  <button
-                    key={cat.id}
-                    onClick={() => goCategory(cat.id)}
-                    className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors text-left"
-                  >
-                    <span className="text-base">{cat.emoji}</span>
-                    <span>{cat.label}</span>
-                  </button>
-                ))}
-                <div className="border-t border-gray-100 mt-1 pt-1">
-                  <button
-                    onClick={() => { navigate('/search'); setBrowseOpen(false) }}
-                    className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-primary-600 font-medium hover:bg-primary-50 transition-colors text-left"
-                  >
-                    <Grid2x2 size={15} />
-                    <span>更多服务</span>
-                  </button>
-                </div>
-              </div>
-            )}
+              <span className="text-[11px] text-gray-400 whitespace-nowrap">全站</span>
+            </label>
           </div>
+        </div>
 
-          {/* Desktop: 成为服务商 */}
-          <button
-            onClick={() => navigate('/post')}
-            className="hidden md:block text-sm text-gray-600 px-3 py-2 rounded-lg hover:bg-gray-100 transition-colors"
-          >
-            成为服务商
-          </button>
+        {/* Mobile spacer */}
+        <div className="flex-1 lg:hidden" />
 
-          {/* Global search */}
+        {/* Right utilities */}
+        <div className="flex items-center gap-0.5">
+
+          {/* Mobile search icon (navigates to search-all) */}
           <button
             onClick={() => navigate('/search-all')}
-            className="text-gray-500 p-2 rounded-lg hover:bg-gray-100 transition-colors"
+            className="lg:hidden p-2 text-gray-500 rounded-lg hover:bg-gray-100 transition-colors"
             aria-label="全局搜索"
           >
             <Search size={18} />
           </button>
 
+          {/* Admin notification bell */}
           {user && <AdminNotificationsBell compact />}
 
-          {/* Mobile hamburger */}
-          <button
-            className="md:hidden text-gray-500 p-2 rounded-lg hover:bg-gray-100 transition-colors"
-            onClick={() => setMenuOpen((v) => !v)}
-          >
-            {menuOpen ? <X size={20} /> : <Menu size={20} />}
-          </button>
-
-          {/* Auth buttons */}
+          {/* Identity flip */}
           {user ? (
             <button
-              onClick={() => { navigate('/profile'); close() }}
-              className="flex items-center gap-1.5 text-xs md:text-sm text-gray-700 px-3 py-2 rounded-lg hover:bg-gray-100 transition-colors font-medium"
+              onClick={() => navigate('/profile')}
+              className="flex items-center gap-1.5 text-xs md:text-sm text-gray-700
+                         px-2.5 py-2 rounded-lg hover:bg-gray-100 transition-colors font-medium"
             >
               <UserCircle size={18} />
-              我的
+              <span className="hidden sm:inline">我的</span>
             </button>
           ) : (
             <>
               <button
-                onClick={() => { navigate('/register'); close() }}
-                className="text-xs md:text-sm bg-primary-600 text-white px-3 md:px-4 py-2 rounded-lg font-medium hover:bg-primary-700 transition-colors"
+                onClick={() => navigate('/register')}
+                className="text-xs md:text-sm bg-primary-600 text-white px-3 py-2 rounded-lg
+                           font-medium hover:bg-primary-700 transition-colors"
               >
                 注册
               </button>
               <button
-                onClick={() => { navigate('/login'); close() }}
-                className="text-xs md:text-sm text-gray-600 px-2 md:px-3 py-2 rounded-lg hover:bg-gray-100 transition-colors"
+                onClick={() => navigate('/login')}
+                className="text-xs md:text-sm text-gray-600 px-2 py-2 rounded-lg
+                           hover:bg-gray-100 transition-colors"
               >
                 登录
               </button>
@@ -148,36 +199,55 @@ export default function Header({ sticky = true }: HeaderProps) {
         </div>
       </div>
 
-      {/* Mobile dropdown: category grid + 成为服务商 */}
-      {menuOpen && (
-        <div className="md:hidden absolute top-14 left-0 right-0 bg-white border-b border-gray-200 shadow-md z-50 px-4 pt-3 pb-2">
-          <p className="text-xs font-medium text-gray-400 mb-2 px-1">热门服务</p>
-          <div className="grid grid-cols-4 gap-2 mb-3">
-            {CATEGORIES.map((cat) => (
-              <button
-                key={cat.id}
-                onClick={() => goCategory(cat.id)}
-                className={`${cat.bgColor} rounded-xl py-2.5 flex flex-col items-center gap-1`}
-              >
-                <span className="text-lg">{cat.emoji}</span>
-                <span className={`text-xs font-medium ${cat.color} leading-none`}>{cat.label}</span>
-              </button>
-            ))}
+      {/* ── Mobile section tabs (< lg) ────────────────────────────────────────── */}
+      <div
+        ref={scrollRef}
+        className="lg:hidden flex overflow-x-auto scrollbar-hide border-t border-gray-50 bg-white"
+        style={{ scrollbarWidth: 'none' }}
+      >
+        {NAV_SECTIONS.map((sec) => {
+          const isActive = active === sec.id
+          return (
             <button
-              onClick={() => { navigate('/search'); close() }}
-              className="bg-gray-100 rounded-xl py-2.5 flex flex-col items-center gap-1"
+              key={sec.id}
+              onClick={() => navigate(sec.href)}
+              className={`relative flex-shrink-0 px-4 py-2 text-xs font-semibold transition-colors whitespace-nowrap
+                ${isActive ? 'text-primary-600' : 'text-gray-500 hover:text-gray-700'}`}
             >
-              <Grid2x2 size={18} className="text-gray-500" />
-              <span className="text-xs font-medium text-gray-500 leading-none">更多</span>
+              {sec.label}
+              {isActive && (
+                <motion.div
+                  layoutId="nav-underline-mobile"
+                  className="absolute bottom-0 left-2 right-2 h-0.5 bg-primary-600 rounded-full"
+                  transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                />
+              )}
             </button>
-          </div>
-          <div className="border-t border-gray-100 pt-1 pb-1">
-            <button
-              onClick={() => { navigate('/post'); close() }}
-              className="w-full text-sm text-gray-600 px-3 py-3 rounded-lg hover:bg-gray-100 transition-colors text-left"
-            >
-              成为服务商
-            </button>
+          )
+        })}
+      </div>
+
+      {/* ── Mobile contextual search (< lg, section pages only) ──────────────── */}
+      {active !== null && !PAGES_WITH_OWN_SEARCH.has(location.pathname) && (
+        <div className="lg:hidden px-3 py-2 bg-white border-t border-gray-50">
+          <div className="flex items-center bg-gray-100 rounded-xl px-3 py-2 gap-2">
+            <Search size={14} className="text-gray-400 flex-shrink-0" />
+            <input
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') handleSearch() }}
+              placeholder={placeholder}
+              className="flex-1 bg-transparent text-sm text-gray-800 placeholder-gray-400 outline-none"
+            />
+            <label className="flex items-center gap-1 flex-shrink-0 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={globalSearch}
+                onChange={(e) => setGlobalSearch(e.target.checked)}
+                className="w-3 h-3 rounded"
+              />
+              <span className="text-[11px] text-gray-400 whitespace-nowrap">全站</span>
+            </label>
           </div>
         </div>
       )}

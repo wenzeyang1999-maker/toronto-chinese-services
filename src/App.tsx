@@ -53,6 +53,7 @@ const CommunityPage   = lazy(() => import('./pages/Community/CommunityPage'))
 const CommunityDetail = lazy(() => import('./pages/Community/CommunityDetail'))
 const PostCommunity   = lazy(() => import('./pages/Community/PostCommunity'))
 const PostRequest     = lazy(() => import('./pages/PostRequest/PostRequest'))
+const PlazaPage       = lazy(() => import('./pages/Plaza/PlazaPage'))
 const RequestDetail   = lazy(() => import('./pages/RequestDetail/RequestDetail'))
 const MapPage         = lazy(() => import('./pages/MapPage/MapPage'))
 const PrivacyPolicy   = lazy(() => import('./pages/Legal/PrivacyPolicy'))
@@ -62,9 +63,11 @@ import { useAuthStore } from './store/authStore'
 import { supabase } from './lib/supabase'
 import { unsubscribeFromWebPush } from './lib/webPush'
 import { useRequestMatchAlerts } from './hooks/useRequestMatchAlerts'
+import { useReadSync } from './lib/useReadSync'
 
 export default function App() {
   useRequestMatchAlerts()
+  useReadSync()
   const isLoadingDone = useAppStore((s) => s.isLoadingDone)
   const setLoadingDone = useAppStore((s) => s.setLoadingDone)
   const fetchServices = useAppStore((s) => s.fetchServices)
@@ -167,6 +170,7 @@ export default function App() {
           <Route path="/realestate" element={<RealEstateList />} />
           <Route path="/realestate/post" element={<PostProperty />} />
           <Route path="/realestate/:id" element={<RealEstateDetail />} />
+          <Route path="/plaza" element={<PlazaPage />} />
           <Route path="/events" element={<EventList />} />
           <Route path="/events/post" element={<PostEvent />} />
           <Route path="/events/:id" element={<EventDetail />} />

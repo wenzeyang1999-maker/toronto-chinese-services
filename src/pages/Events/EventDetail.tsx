@@ -6,6 +6,7 @@ import { motion } from 'framer-motion'
 import { ChevronLeft, MapPin, Phone, MessageCircle, Copy, Calendar, User, ExternalLink, Clock } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { useAuthStore } from '../../store/authStore'
+import { useReadStore } from '../../store/readStore'
 import {
   EVENT_TYPE_CONFIG, getPriceLabel, formatEventDate, formatEventTime, isUpcoming,
   type Event,
@@ -20,6 +21,9 @@ export default function EventDetail() {
   const { id }   = useParams<{ id: string }>()
   const navigate = useNavigate()
   const user     = useAuthStore((s) => s.user)
+  const markRead = useReadStore((s) => s.markRead)
+
+  useEffect(() => { if (id) markRead('event', id) }, [id])
 
   const [ev,      setEv]      = useState<Event | null>(null)
   const [loading, setLoading] = useState(true)

@@ -1,7 +1,7 @@
 // ─── Secondhand List Page ─────────────────────────────────────────────────────
 // Route: /secondhand
-// Desktop (≥ lg): split — left scrollable list, right detail panel
-// Mobile  (< lg): single column, clicking navigates to /secondhand/:id
+// Desktop (≥ lg): masonry list on left + detail panel on right
+// Mobile  (< lg): masonry grid, detail opens in bottom drawer
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -12,9 +12,9 @@ import {
 import { supabase } from '../../lib/supabase'
 import Header from '../../components/Header/Header'
 import PostFAB from '../../components/PostFAB/PostFAB'
-import SectionTabs from '../../components/SectionTabs/SectionTabs'
 import { useSecondhandStore } from '../../store/secondhandStore'
 import { useAuthStore } from '../../store/authStore'
+import { useReadStore } from '../../store/readStore'
 import {
   SECONDHAND_CATEGORY_CONFIG, ITEM_CONDITION_CONFIG, getPriceLabel,
   type SecondhandItem, type SecondhandCategory, type ItemCondition,
@@ -32,22 +32,22 @@ export default function SecondhandList() {
   const navigate  = useNavigate()
   const user      = useAuthStore((s) => s.user)
   const { fetchItems, setFilters, clearFilters, getFilteredItems, filters, isReady } = useSecondhandStore()
+  const readSet  = useReadStore((s) => s.read)
+  const markRead = useReadStore((s) => s.markRead)
 
   const [showFilters,  setShowFilters]  = useState(false)
   const [localKeyword, setLocalKeyword] = useState(filters.keyword ?? '')
   const [selectedId,   setSelectedId]   = useState<string | null>(null)
+  const [mobileOpen,   setMobileOpen]   = useState(false)
   const detailRef = useRef<HTMLDivElement>(null)
 
   useUrlFilters(filters, setFilters, ['keyword', 'category', 'condition', 'area', 'max_price'], { numericKeys: ['max_price'] })
 
   useEffect(() => { fetchItems() }, [])
 
-  const items       = getFilteredItems()
+  const items        = getFilteredItems()
   const selectedItem = items.find((i) => i.id === selectedId) ?? null
 
-  // No auto-selection — user clicks to open detail panel
-
-  // Scroll detail panel to top on selection change
   useEffect(() => {
     detailRef.current?.scrollTo({ top: 0, behavior: 'smooth' })
   }, [selectedId])
@@ -55,35 +55,25 @@ export default function SecondhandList() {
   const handleSearch = () => setFilters({ keyword: localKeyword || undefined })
 
   function handleItemClick(item: SecondhandItem) {
-    if (window.innerWidth < 1024) {
-      navigate(`/secondhand/${item.id}`)
-    } else {
-      setSelectedId(item.id)
-    }
+    markRead('secondhand', item.id)
+    setSelectedId(item.id)
+    if (window.innerWidth < 1024) setMobileOpen(true)
   }
 
   return (
     <div className="flex flex-col h-screen bg-gray-50 overflow-hidden">
       <Header />
 
-      {/* ── Section tabs ────────────────────────────────────────────────────── */}
-      <div className="bg-white flex-shrink-0 z-20">
-        <div className="w-full px-3 md:w-[85%] md:px-0 lg:w-[70%] mx-auto">
-          <SectionTabs active="secondhand" onChange={() => {}} containerClassName="px-0" />
-        </div>
-      </div>
-
       {/* ── Search / filter bar ─────────────────────────────────────────────── */}
       <div className="bg-white border-b border-gray-100 py-3 flex-shrink-0 z-20">
         <div className="w-full px-3 md:w-[85%] md:px-0 lg:w-[70%] mx-auto space-y-3">
 
-          {/* Title */}
           <div>
             <h1 className="text-lg font-bold text-gray-900">二手交易</h1>
             <p className="text-xs text-gray-400">华林 · 闲置转让</p>
           </div>
 
-          {/* L2 category tab bar */}
+          {/* Category tab bar */}
           <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide -mx-1 px-1">
             <button
               onClick={() => setFilters({ category: undefined })}
@@ -107,7 +97,6 @@ export default function SecondhandList() {
             ))}
           </div>
 
-          {/* Search row */}
           <div className="flex items-center gap-2">
             <div className="flex-1 flex items-center gap-2 bg-gray-100 rounded-xl px-3 py-2.5">
               <Search size={15} className="text-gray-400 flex-shrink-0" />
@@ -140,7 +129,6 @@ export default function SecondhandList() {
             </button>
           </div>
 
-          {/* Filter panel */}
           <AnimatePresence>
             {showFilters && (
               <motion.div
@@ -189,22 +177,25 @@ export default function SecondhandList() {
       {/* ── Content area ────────────────────────────────────────────────────── */}
       <div className="flex-1 overflow-hidden w-full px-3 md:w-[85%] md:px-0 lg:w-[70%] mx-auto flex gap-0 py-3">
 
-        {/* ── Left: item list ──────────────────────────────────────────────── */}
+        {/* ── Left: item masonry ───────────────────────────────────────────── */}
         <div className={`flex flex-col overflow-hidden
           ${selectedItem ? 'hidden lg:flex lg:w-[380px] lg:flex-shrink-0' : 'w-full'}`}>
           <p className="text-xs text-gray-400 mb-2 flex-shrink-0">共 {items.length} 件物品</p>
 
-          <div className="flex-1 overflow-y-auto space-y-2 pr-1">
+          <div className="flex-1 overflow-y-auto pr-0.5">
             {!isReady ? (
-              [1, 2, 3].map((i) => (
-                <div key={i} className="bg-white rounded-2xl p-4 animate-pulse flex gap-3">
-                  <div className="w-16 h-16 bg-gray-100 rounded-xl flex-shrink-0" />
-                  <div className="flex-1 space-y-2">
-                    <div className="h-4 bg-gray-100 rounded w-3/4" />
-                    <div className="h-3 bg-gray-100 rounded w-1/2" />
+              <div style={{ columns: '160px', columnGap: '10px' }}>
+                {[1, 2, 3, 4].map((i) => (
+                  <div key={i} className="break-inside-avoid mb-2.5 bg-white rounded-2xl overflow-hidden animate-pulse"
+                    style={{ height: i % 2 === 0 ? 200 : 240 }}>
+                    <div className="w-full h-3/5 bg-gray-100" />
+                    <div className="p-2.5 space-y-1.5">
+                      <div className="h-3.5 bg-gray-100 rounded w-4/5" />
+                      <div className="h-3 bg-gray-100 rounded w-1/2" />
+                    </div>
                   </div>
-                </div>
-              ))
+                ))}
+              </div>
             ) : items.length === 0 ? (
               <div className="text-center py-20 text-gray-400">
                 <Package size={40} className="mx-auto mb-3 opacity-30" />
@@ -212,51 +203,59 @@ export default function SecondhandList() {
                 <button onClick={() => navigate('/secondhand/post')}
                   className="text-xs text-primary-600 underline mt-1">发布第一件闲置</button>
               </div>
-            ) : items.map((item, i) => (
-              <motion.div key={item.id}
-                initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.02 }}
-                onClick={() => handleItemClick(item)}
-                className={`bg-white rounded-2xl border p-3 cursor-pointer transition-all duration-150 flex gap-3
-                  ${selectedId === item.id
-                    ? 'border-primary-400 shadow-md ring-1 ring-primary-200'
-                    : 'border-gray-100 shadow-sm hover:border-primary-200 hover:shadow-md'
-                  }`}
-              >
-                {/* Thumbnail */}
-                <div className="w-16 h-16 rounded-xl overflow-hidden flex-shrink-0 bg-gray-100">
-                  {item.images.length > 0 ? (
-                    <img src={item.images[0]} alt={item.title}
-                      className="w-full h-full object-cover" />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center text-2xl">
-                      {SECONDHAND_CATEGORY_CONFIG[item.category].emoji}
+            ) : (
+              <div style={{ columns: '160px', columnGap: '10px' }}>
+                {items.map((item, i) => (
+                  <motion.div key={item.id}
+                    initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: i * 0.02 }}
+                    onClick={() => handleItemClick(item)}
+                    className={`break-inside-avoid mb-2.5 bg-white rounded-2xl overflow-hidden
+                      cursor-pointer transition-all duration-150
+                      ${readSet.has(`secondhand:${item.id}`) ? 'opacity-75' : ''}
+                      ${selectedId === item.id
+                        ? 'ring-2 ring-primary-400 shadow-md'
+                        : 'shadow-sm hover:shadow-md'
+                      }`}
+                  >
+                    {/* Cover image */}
+                    <div className="w-full aspect-[4/3] bg-gray-100 overflow-hidden">
+                      {item.images.length > 0 ? (
+                        <img src={item.images[0]} alt={item.title}
+                          loading="lazy"
+                          className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-4xl opacity-60">
+                          {SECONDHAND_CATEGORY_CONFIG[item.category].emoji}
+                        </div>
+                      )}
                     </div>
-                  )}
-                </div>
 
-                {/* Info */}
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-start justify-between gap-1 mb-1">
-                    <h3 className="font-semibold text-gray-900 text-sm leading-snug line-clamp-2 flex-1">
-                      {item.title}
-                    </h3>
-                    <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full flex-shrink-0 ${ITEM_CONDITION_CONFIG[item.condition].color}`}>
-                      {ITEM_CONDITION_CONFIG[item.condition].label}
-                    </span>
-                  </div>
-                  <p className="text-sm font-bold text-primary-600 mb-1">{getPriceLabel(item)}</p>
-                  <div className="flex items-center gap-2 text-[11px] text-gray-400">
-                    <span>{SECONDHAND_CATEGORY_CONFIG[item.category].emoji} {SECONDHAND_CATEGORY_CONFIG[item.category].label}</span>
-                    {item.area && item.area.length > 0 && (
-                      <span className="flex items-center gap-0.5">
-                        <MapPin size={9} />{item.area[0]}
-                      </span>
-                    )}
-                  </div>
-                </div>
-              </motion.div>
-            ))}
+                    {/* Info */}
+                    <div className="p-2.5">
+                      <div className="flex items-start justify-between gap-1 mb-1">
+                        <h3 className={`font-semibold text-xs leading-snug line-clamp-2 flex-1
+                          ${readSet.has(`secondhand:${item.id}`) ? 'text-gray-400' : 'text-gray-900'}`}>
+                          {item.title}
+                        </h3>
+                        <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded-full flex-shrink-0 ml-1 ${ITEM_CONDITION_CONFIG[item.condition].color}`}>
+                          {ITEM_CONDITION_CONFIG[item.condition].label}
+                        </span>
+                      </div>
+                      <p className="text-sm font-bold text-primary-600 mb-1">{getPriceLabel(item)}</p>
+                      <div className="flex items-center gap-1.5 text-[10px] text-gray-400">
+                        <span className="flex-1 truncate">{SECONDHAND_CATEGORY_CONFIG[item.category].label}</span>
+                        {item.area && item.area.length > 0 && (
+                          <span className="flex items-center gap-0.5 flex-shrink-0">
+                            <MapPin size={9} />{item.area[0]}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
 
@@ -275,7 +274,31 @@ export default function SecondhandList() {
         </AnimatePresence>
       </div>
 
-      {/* FAB — 发布 */}
+      {/* ── Mobile bottom drawer ─────────────────────────────────────────────── */}
+      <AnimatePresence>
+        {mobileOpen && selectedItem && (
+          <motion.div
+            className="fixed inset-0 z-50 lg:hidden"
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            onClick={() => setMobileOpen(false)}
+          >
+            <div className="absolute inset-0 bg-black/40" />
+            <motion.div
+              initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
+              transition={{ type: 'spring', damping: 30, stiffness: 300 }}
+              className="absolute bottom-0 left-0 right-0 bg-white rounded-t-3xl max-h-[90vh] overflow-y-auto"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex justify-center pt-3 pb-2">
+                <div className="w-10 h-1 bg-gray-300 rounded-full" />
+              </div>
+              <DetailPanel item={selectedItem} onClose={() => setMobileOpen(false)} />
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* FAB */}
       {user && <PostFAB onClick={() => navigate('/secondhand/post')} />}
     </div>
   )
@@ -289,7 +312,6 @@ function DetailPanel({ item, onClose }: { item: SecondhandItem; onClose: () => v
   const [copied,    setCopied]    = useState(false)
   const [messaging, setMessaging] = useState(false)
 
-  // Reset image index when item changes
   useEffect(() => { setImgIdx(0) }, [item.id])
 
   async function copyWechat() {
@@ -351,13 +373,12 @@ function DetailPanel({ item, onClose }: { item: SecondhandItem; onClose: () => v
           )}
         </div>
       ) : (
-        <div className="aspect-video bg-gray-50 flex items-center justify-center text-6xl">
+        <div className="aspect-video bg-gray-50 flex items-center justify-center text-6xl rounded-t-2xl">
           {SECONDHAND_CATEGORY_CONFIG[item.category].emoji}
         </div>
       )}
 
       <div className="p-5 space-y-4">
-        {/* Title + condition */}
         <div className="flex items-start justify-between gap-3">
           <h1 className="text-xl font-bold text-gray-900 leading-tight flex-1">{item.title}</h1>
           <span className={`text-xs font-semibold px-2.5 py-1 rounded-full flex-shrink-0 ${ITEM_CONDITION_CONFIG[item.condition].color}`}>
@@ -365,12 +386,10 @@ function DetailPanel({ item, onClose }: { item: SecondhandItem; onClose: () => v
           </span>
         </div>
 
-        {/* Price */}
         <p className={`text-2xl font-bold ${item.is_free ? 'text-green-600' : 'text-primary-600'}`}>
           {getPriceLabel(item)}
         </p>
 
-        {/* Meta pills */}
         <div className="flex flex-wrap gap-2">
           <span className="text-xs px-2.5 py-1 rounded-full bg-gray-100 text-gray-600">
             {SECONDHAND_CATEGORY_CONFIG[item.category].emoji} {SECONDHAND_CATEGORY_CONFIG[item.category].label}
@@ -385,7 +404,6 @@ function DetailPanel({ item, onClose }: { item: SecondhandItem; onClose: () => v
           </span>
         </div>
 
-        {/* Contact */}
         {(!user || user.id !== item.seller_id) && (
           <div className="space-y-2">
             {!item.is_sold && item.seller && (
@@ -416,13 +434,11 @@ function DetailPanel({ item, onClose }: { item: SecondhandItem; onClose: () => v
           </div>
         )}
 
-        {/* Description */}
         <div className="pt-3 border-t border-gray-100">
           <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">物品描述</p>
           <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{item.description}</p>
         </div>
 
-        {/* Seller */}
         <div className="pt-3 border-t border-gray-100">
           <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">卖家</p>
           <div className="flex items-center gap-3">
@@ -451,7 +467,6 @@ function DetailPanel({ item, onClose }: { item: SecondhandItem; onClose: () => v
           </div>
         </div>
 
-        {/* CTA */}
         {(!user || user.id !== item.seller_id) && (
           <div className="bg-primary-50 border border-primary-100 rounded-xl p-3 text-center">
             <p className="text-xs text-primary-700 mb-1">有闲置要出售？</p>
@@ -463,7 +478,6 @@ function DetailPanel({ item, onClose }: { item: SecondhandItem; onClose: () => v
         )}
       </div>
 
-      {/* Public comments */}
       <div className="px-5 pb-5">
         <SecondhandComments itemId={item.id} sellerId={item.seller_id} />
       </div>

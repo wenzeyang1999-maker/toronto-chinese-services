@@ -9,6 +9,7 @@ import {
 } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { useAuthStore } from '../../store/authStore'
+import { useReadStore } from '../../store/readStore'
 import {
   JOB_CATEGORY_CONFIG, JOB_TYPE_CONFIG, SALARY_TYPE_LABEL, getCategoryLabel, type Job,
 } from './types'
@@ -22,10 +23,13 @@ export default function JobDetail() {
   const { id }   = useParams<{ id: string }>()
   const navigate = useNavigate()
   const user     = useAuthStore((s) => s.user)
+  const markRead = useReadStore((s) => s.markRead)
 
   const [job,     setJob]     = useState<Job | null>(null)
   const [loading, setLoading] = useState(true)
   const [copied,  setCopied]  = useState(false)
+
+  useEffect(() => { if (id) markRead('job', id) }, [id])
 
   useEffect(() => {
     if (!id) return

@@ -6,8 +6,8 @@ import { motion } from 'framer-motion'
 import { Heart, MessageCircle } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { useAuthStore } from '../../store/authStore'
+import { useReadStore } from '../../store/readStore'
 import Header from '../../components/Header/Header'
-import SectionTabs from '../../components/SectionTabs/SectionTabs'
 import PostFAB from '../../components/PostFAB/PostFAB'
 import { POST_TYPE_CONFIG, AREA_CONFIG } from './config'
 
@@ -27,6 +27,9 @@ interface Post {
 export default function CommunityPage() {
   const navigate = useNavigate()
   const user     = useAuthStore((s) => s.user)
+
+  const readSet  = useReadStore((s) => s.read)
+  const markRead = useReadStore((s) => s.markRead)
 
   const [posts,      setPosts]      = useState<Post[]>([])
   const [loading,    setLoading]    = useState(true)
@@ -74,13 +77,6 @@ export default function CommunityPage() {
   return (
     <div className="min-h-screen bg-gray-50 pb-24">
       <Header />
-
-      {/* Section tabs */}
-      <div className="bg-white border-b border-gray-100 sticky top-0 z-20">
-        <div className="w-full px-3 md:w-[85%] md:px-0 lg:w-[70%] mx-auto">
-          <SectionTabs active="community" onChange={() => {}} containerClassName="px-0" />
-        </div>
-      </div>
 
       {/* Filters */}
       <div className="bg-white border-b border-gray-100">
@@ -154,9 +150,10 @@ export default function CommunityPage() {
                   initial={{ opacity: 0, y: 12 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: i * 0.03 }}
-                  onClick={() => navigate(`/community/${post.id}`)}
-                  className="break-inside-avoid mb-2.5 bg-white rounded-2xl overflow-hidden
-                             cursor-pointer hover:shadow-md transition-shadow active:scale-[0.98]"
+                  onClick={() => { markRead('community', post.id); navigate(`/community/${post.id}`) }}
+                  className={`break-inside-avoid mb-2.5 bg-white rounded-2xl overflow-hidden
+                             cursor-pointer hover:shadow-md transition-shadow active:scale-[0.98]
+                             ${readSet.has(`community:${post.id}`) ? 'opacity-75' : ''}`}
                 >
                   {/* Cover image */}
                   {hasImg && (
@@ -178,7 +175,7 @@ export default function CommunityPage() {
 
                   {/* Content */}
                   <div className="px-3 pt-2 pb-3">
-                    <p className="text-sm font-semibold text-gray-900 line-clamp-2 leading-snug mb-2">
+                    <p className={`text-sm font-semibold line-clamp-2 leading-snug mb-2 ${readSet.has(`community:${post.id}`) ? 'text-gray-400' : 'text-gray-900'}`}>
                       {post.title}
                     </p>
                     {!hasImg && (

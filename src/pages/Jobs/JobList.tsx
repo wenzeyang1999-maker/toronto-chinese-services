@@ -1,7 +1,7 @@
 // ─── Job List Page ────────────────────────────────────────────────────────────
 // Route: /jobs
-// Desktop (≥ lg): Indeed-style split — left scrollable list, right detail panel
-// Mobile  (< lg): single column list, clicking navigates to /jobs/:id
+// Desktop (≥ lg): masonry list on left + detail panel on right
+// Mobile  (< lg): masonry grid, detail opens in bottom drawer
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -11,9 +11,9 @@ import {
 } from 'lucide-react'
 import Header from '../../components/Header/Header'
 import PostFAB from '../../components/PostFAB/PostFAB'
-import SectionTabs from '../../components/SectionTabs/SectionTabs'
 import { useJobStore } from '../../store/jobStore'
 import { useAuthStore } from '../../store/authStore'
+import { useReadStore } from '../../store/readStore'
 import {
   JOB_CATEGORY_CONFIG, JOB_TYPE_CONFIG, SALARY_TYPE_LABEL, getCategoryLabel,
   type Job, type JobCategory, type JobType, type ListingType,
@@ -30,28 +30,28 @@ export default function JobList() {
   const navigate       = useNavigate()
   const user           = useAuthStore((s) => s.user)
   const { fetchJobs, setFilters, clearFilters, getFilteredJobs, filters, isReady } = useJobStore()
+  const readSet    = useReadStore((s) => s.read)
+  const markRead   = useReadStore((s) => s.markRead)
   const [listingType,  setListingType]  = useState<ListingType>('hiring')
   const [showFilters,  setShowFilters]  = useState(false)
   const [localKeyword, setLocalKeyword] = useState(filters.keyword ?? '')
   const [selectedId,   setSelectedId]   = useState<string | null>(null)
+  const [mobileOpen,   setMobileOpen]   = useState(false)
   const detailRef = useRef<HTMLDivElement>(null)
 
   useUrlFilters(filters, setFilters, ['listing_type', 'keyword', 'category', 'job_type', 'area'])
 
   useEffect(() => { fetchJobs() }, [])
 
-  // Sync listing_type filter with sub-tab
   useEffect(() => {
     setFilters({ listing_type: listingType })
     setSelectedId(null)
+    setMobileOpen(false)
   }, [listingType])
 
-  const jobs       = getFilteredJobs()
+  const jobs        = getFilteredJobs()
   const selectedJob = jobs.find((j) => j.id === selectedId) ?? null
 
-  // No auto-selection — user clicks to open detail panel
-
-  // Scroll detail panel back to top when selection changes
   useEffect(() => {
     detailRef.current?.scrollTo({ top: 0, behavior: 'smooth' })
   }, [selectedId])
@@ -59,11 +59,9 @@ export default function JobList() {
   const handleSearch = () => setFilters({ keyword: localKeyword || undefined })
 
   function handleJobClick(job: Job) {
-    if (window.innerWidth < 1024) {
-      navigate(`/jobs/${job.id}`)
-    } else {
-      setSelectedId(job.id)
-    }
+    markRead('job', job.id)
+    setSelectedId(job.id)
+    if (window.innerWidth < 1024) setMobileOpen(true)
   }
 
   const salaryLabel = (job: Job) =>
@@ -79,24 +77,15 @@ export default function JobList() {
     <div className="flex flex-col h-screen bg-gray-50 overflow-hidden">
       <Header />
 
-      {/* ── Section tabs ────────────────────────────────────────────────────── */}
-      <div className="bg-white flex-shrink-0 z-20">
-        <div className="w-full px-3 md:w-[85%] md:px-0 lg:w-[70%] mx-auto">
-          <SectionTabs active="jobs" onChange={() => {}} containerClassName="px-0" />
-        </div>
-      </div>
-
       {/* ── Search / filter bar ─────────────────────────────────────────────── */}
       <div className="bg-white border-b border-gray-100 py-3 flex-shrink-0 z-20">
         <div className="w-full px-3 md:w-[85%] md:px-0 lg:w-[70%] mx-auto space-y-3">
 
-          {/* Title */}
           <div>
             <h1 className="text-lg font-bold text-gray-900">招聘求职</h1>
             <p className="text-xs text-gray-400">华林 · 职位</p>
           </div>
 
-          {/* 招聘 / 求职 sub-tabs */}
           <div className="flex bg-gray-100 rounded-xl p-1 gap-1">
             <SubTab active={listingType === 'hiring'} onClick={() => setListingType('hiring')}
               emoji="💼" label="招聘" />
@@ -104,7 +93,6 @@ export default function JobList() {
               emoji="🙋" label="求职" />
           </div>
 
-          {/* Search row */}
           <div className="flex items-center gap-2">
             <div className="flex-1 flex items-center gap-2 bg-gray-100 rounded-xl px-3 py-2.5">
               <Search size={15} className="text-gray-400 flex-shrink-0" />
@@ -137,7 +125,6 @@ export default function JobList() {
             </button>
           </div>
 
-          {/* Filter panel */}
           <AnimatePresence>
             {showFilters && (
               <motion.div
@@ -183,23 +170,28 @@ export default function JobList() {
         </div>
       </div>
 
-      {/* ── Content area (fills remaining height) ───────────────────────────── */}
+      {/* ── Content area ────────────────────────────────────────────────────── */}
       <div className="flex-1 overflow-hidden w-full px-3 md:w-[85%] md:px-0 lg:w-[70%] mx-auto flex gap-0 py-3">
 
-        {/* ── Left: job list ───────────────────────────────────────────────── */}
+        {/* ── Left: job masonry ────────────────────────────────────────────── */}
         <div className={`flex flex-col overflow-hidden
           ${selectedJob ? 'hidden lg:flex lg:w-[420px] lg:flex-shrink-0' : 'w-full'}`}>
           <p className="text-xs text-gray-400 mb-2 flex-shrink-0">共 {jobs.length} 个职位</p>
 
-          <div className="flex-1 overflow-y-auto space-y-2 pr-1">
+          <div className="flex-1 overflow-y-auto pr-0.5">
             {!isReady ? (
-              [1, 2, 3].map((i) => (
-                <div key={i} className="bg-white rounded-2xl p-4 animate-pulse">
-                  <div className="h-4 bg-gray-100 rounded w-2/3 mb-3" />
-                  <div className="h-3 bg-gray-100 rounded w-1/3 mb-2" />
-                  <div className="h-3 bg-gray-100 rounded w-full" />
-                </div>
-              ))
+              <div style={{ columns: '200px', columnGap: '10px' }}>
+                {[1, 2, 3, 4].map((i) => (
+                  <div key={i} className="break-inside-avoid mb-2.5 bg-white rounded-2xl overflow-hidden animate-pulse"
+                    style={{ height: i % 2 === 0 ? 200 : 230 }}>
+                    <div className="w-full h-1/2 bg-gray-100" />
+                    <div className="p-3 space-y-2">
+                      <div className="h-3.5 bg-gray-100 rounded w-3/4" />
+                      <div className="h-3 bg-gray-100 rounded w-1/2" />
+                    </div>
+                  </div>
+                ))}
+              </div>
             ) : jobs.length === 0 ? (
               <div className="text-center py-20 text-gray-400">
                 <Briefcase size={40} className="mx-auto mb-3 opacity-30" />
@@ -207,49 +199,59 @@ export default function JobList() {
                 <button onClick={() => navigate('/jobs/post')}
                   className="text-xs text-primary-600 underline mt-1">发布第一个职位</button>
               </div>
-            ) : jobs.map((job, i) => (
-              <motion.div key={job.id}
-                initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.02 }}
-                onClick={() => handleJobClick(job)}
-                className={`bg-white rounded-2xl border p-4 cursor-pointer transition-all duration-150
-                  ${selectedId === job.id
-                    ? 'border-primary-400 shadow-md ring-1 ring-primary-200'
-                    : 'border-gray-100 shadow-sm hover:border-primary-200 hover:shadow-md'
-                  }`}
-              >
-                <div className="flex items-start justify-between gap-2 mb-1.5">
-                  <h3 className="font-semibold text-gray-900 text-sm leading-snug line-clamp-2 flex-1">
-                    {job.title}
-                  </h3>
-                  <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full flex-shrink-0 ${JOB_TYPE_CONFIG[job.job_type].color}`}>
-                    {JOB_TYPE_CONFIG[job.job_type].label}
-                  </span>
-                </div>
-                <p
-                  className="text-xs text-gray-500 mb-2 hover:text-primary-600 cursor-pointer inline-block"
-                  onClick={(e) => { e.stopPropagation(); job.poster && navigate(`/provider/${job.poster.id}`) }}
-                >
-                  {job.company_name ?? job.poster?.name ?? '雇主'}
-                </p>
-                <div className="flex items-center flex-wrap gap-1.5 mb-2">
-                  <span className="text-[11px] px-2 py-0.5 rounded-full bg-gray-100 text-gray-600">
-                    {JOB_CATEGORY_CONFIG[job.category].emoji} {getCategoryLabel(job)}
-                  </span>
-                  {job.area && job.area.length > 0 && (
-                    <span className="flex items-center gap-0.5 text-[11px] text-gray-500">
-                      <MapPin size={10} /> {job.area.join('·')}
-                    </span>
-                  )}
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-bold text-primary-600">{salaryLabel(job)}</span>
-                  <span className="text-[11px] text-gray-400">
-                    {new Date(job.created_at).toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' })}
-                  </span>
-                </div>
-              </motion.div>
-            ))}
+            ) : (
+              <div style={{ columns: '200px', columnGap: '10px' }}>
+                {jobs.map((job, i) => (
+                  <motion.div key={job.id}
+                    initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: i * 0.02 }}
+                    onClick={() => handleJobClick(job)}
+                    className={`break-inside-avoid mb-2.5 bg-white rounded-2xl overflow-hidden
+                      cursor-pointer transition-all duration-150
+                      ${readSet.has(`job:${job.id}`) ? 'opacity-75' : ''}
+                      ${selectedId === job.id
+                        ? 'ring-2 ring-primary-400 shadow-md'
+                        : 'shadow-sm hover:shadow-md'
+                      }`}
+                  >
+                    {/* Cover — gradient placeholder with category emoji */}
+                    <div className="w-full py-7 flex items-center justify-center bg-gradient-to-br from-primary-50 to-primary-100">
+                      <span className="text-4xl">{JOB_CATEGORY_CONFIG[job.category].emoji}</span>
+                    </div>
+
+                    {/* Content */}
+                    <div className="p-3">
+                      <div className="flex items-start justify-between gap-1 mb-1.5">
+                        <h3 className={`font-semibold text-sm leading-snug line-clamp-2 flex-1
+                          ${readSet.has(`job:${job.id}`) ? 'text-gray-400' : 'text-gray-900'}`}>
+                          {job.title}
+                        </h3>
+                        <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full flex-shrink-0 ml-1 ${JOB_TYPE_CONFIG[job.job_type].color}`}>
+                          {JOB_TYPE_CONFIG[job.job_type].label}
+                        </span>
+                      </div>
+                      <p
+                        className="text-xs text-gray-500 mb-1.5 truncate hover:text-primary-600 cursor-pointer"
+                        onClick={(e) => { e.stopPropagation(); job.poster && navigate(`/provider/${job.poster.id}`) }}
+                      >
+                        {job.company_name ?? job.poster?.name ?? '雇主'}
+                      </p>
+                      <p className="text-sm font-bold text-primary-600 mb-1.5">{salaryLabel(job)}</p>
+                      <div className="flex items-center gap-1 text-[11px] text-gray-400">
+                        {job.area && job.area.length > 0 && (
+                          <span className="flex items-center gap-0.5 flex-1 min-w-0 truncate">
+                            <MapPin size={10} className="flex-shrink-0" /> {job.area[0]}
+                          </span>
+                        )}
+                        <span className="flex-shrink-0">
+                          {new Date(job.created_at).toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' })}
+                        </span>
+                      </div>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
 
@@ -269,13 +271,38 @@ export default function JobList() {
         </AnimatePresence>
       </div>
 
-      {/* FAB — 发布 */}
+      {/* ── Mobile bottom drawer ─────────────────────────────────────────────── */}
+      <AnimatePresence>
+        {mobileOpen && selectedJob && (
+          <motion.div
+            className="fixed inset-0 z-50 lg:hidden"
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            onClick={() => setMobileOpen(false)}
+          >
+            <div className="absolute inset-0 bg-black/40" />
+            <motion.div
+              initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
+              transition={{ type: 'spring', damping: 30, stiffness: 300 }}
+              className="absolute bottom-0 left-0 right-0 bg-white rounded-t-3xl max-h-[90vh] overflow-y-auto"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex justify-center pt-3 pb-2">
+                <div className="w-10 h-1 bg-gray-300 rounded-full" />
+              </div>
+              <DetailPanel job={selectedJob} salaryLabel={salaryLabel(selectedJob)}
+                onClose={() => setMobileOpen(false)} />
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* FAB */}
       {user && <PostFAB onClick={() => navigate(`/jobs/post?type=${listingType}`)} />}
     </div>
   )
 }
 
-// ─── Inline detail panel (desktop right column) ───────────────────────────────
+// ─── Inline detail panel (desktop right column + mobile drawer) ───────────────
 function DetailPanel({ job, salaryLabel, onClose }: { job: Job; salaryLabel: string; onClose: () => void }) {
   const navigate = useNavigate()
   const user     = useAuthStore((s) => s.user)
@@ -381,7 +408,6 @@ function DetailPanel({ job, salaryLabel, onClose }: { job: Job; salaryLabel: str
         </div>
       </Section>
 
-      {/* CTA */}
       {(!user || user.id !== job.poster_id) && (
         <div className="bg-primary-50 border border-primary-100 rounded-xl p-3 text-center">
           <p className="text-xs text-primary-700 mb-1">有职位要招人？</p>

@@ -45,6 +45,7 @@ interface ProviderUser {
   skill_tags: string[]
   qualification_note: string
   qualification_images: string[]
+  credit_penalty: number
 }
 
 interface ProviderReview {
@@ -120,7 +121,7 @@ export default function ProviderProfile() {
         supabase.from('follows')
           .select('id', { count: 'exact', head: true }).eq('provider_id', id),
         supabase.from('users')
-          .select('is_online, business_type, skill_tags, qualification_note, qualification_images')
+          .select('is_online, business_type, skill_tags, qualification_note, qualification_images, credit_penalty')
           .eq('id', id!).single(),
       ])
 
@@ -141,6 +142,7 @@ export default function ProviderProfile() {
         skill_tags: (ext?.skill_tags as string[]) ?? [],
         qualification_note: (ext?.qualification_note as string) ?? '',
         qualification_images: (ext?.qualification_images as string[]) ?? [],
+        credit_penalty: (ext?.credit_penalty as number) ?? 0,
       })
 
       if (svcsData) {
@@ -227,9 +229,30 @@ export default function ProviderProfile() {
 
   if (notFound || !provider) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center gap-3 text-gray-500">
-        <p>用户不存在</p>
-        <button onClick={() => navigate(-1)} className="text-primary-600 text-sm">返回</button>
+      <div className="min-h-screen bg-gray-50 flex flex-col">
+        <div className="sticky top-0 z-20 bg-white border-b border-gray-200 px-4 h-14 flex items-center gap-3">
+          <button onClick={() => navigate(-1)} className="text-gray-500 hover:text-gray-800">
+            <ArrowLeft size={22} />
+          </button>
+          <span className="text-sm font-semibold text-gray-700">服务商主页</span>
+        </div>
+        <div className="flex-1 flex flex-col items-center justify-center gap-4 px-6 text-center">
+          <div className="text-5xl">🔍</div>
+          <h2 className="text-lg font-bold text-gray-800">找不到这个服务商</h2>
+          <p className="text-sm text-gray-400 leading-relaxed max-w-xs">
+            该主页可能已被删除或链接已失效。<br />你可以回首页重新搜索。
+          </p>
+          <div className="flex gap-3 mt-2">
+            <button onClick={() => navigate(-1)}
+              className="px-4 py-2 rounded-xl border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 transition-colors">
+              返回上一页
+            </button>
+            <button onClick={() => navigate('/')}
+              className="px-4 py-2 rounded-xl bg-primary-600 text-white text-sm font-semibold hover:bg-primary-700 transition-colors">
+              回首页
+            </button>
+          </div>
+        </div>
       </div>
     )
   }
@@ -276,6 +299,7 @@ export default function ProviderProfile() {
                     emailVerified:        provider.is_email_verified,
                     phoneVerified:        provider.phone_verified,
                     idOrBusinessVerified: provider.business_verified,
+                    creditPenalty:        provider.credit_penalty,
                   }}
                 />
               </div>

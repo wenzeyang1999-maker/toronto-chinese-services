@@ -157,16 +157,45 @@ export default function ReferralSection({ user }: Props) {
         </div>
       </div>
 
-      {/* ── Stats ─────────────────────────────────────────────────────────── */}
-      <div className="bg-white rounded-3xl border border-gray-100 shadow-sm px-5 py-4 flex items-center gap-4">
-        <div className="w-12 h-12 bg-primary-50 rounded-2xl flex items-center justify-center flex-shrink-0">
-          <Users size={22} className="text-primary-600" />
-        </div>
-        <div>
-          <p className="text-2xl font-bold text-gray-900">{referralCount}</p>
-          <p className="text-xs text-gray-400 mt-0.5">位朋友通过你的分享码注册</p>
-        </div>
-      </div>
+      {/* ── Stats + progress ──────────────────────────────────────────────── */}
+      {(() => {
+        const monthsEarned = Math.floor(referralCount / 10)
+        const progress     = referralCount % 10
+        const toNext       = progress === 0 ? 10 : 10 - progress
+        const pct          = (progress / 10) * 100
+        return (
+          <div className="bg-white rounded-3xl border border-gray-100 shadow-sm px-5 py-4 space-y-3">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-primary-50 rounded-2xl flex items-center justify-center flex-shrink-0">
+                <Users size={22} className="text-primary-600" />
+              </div>
+              <div className="flex-1">
+                <p className="text-2xl font-bold text-gray-900">{referralCount}</p>
+                <p className="text-xs text-gray-400 mt-0.5">位朋友通过你的分享码注册</p>
+              </div>
+              {monthsEarned > 0 && (
+                <div className="text-right flex-shrink-0">
+                  <p className="text-sm font-bold text-amber-600">{monthsEarned} 个月</p>
+                  <p className="text-[11px] text-gray-400">已获黄金</p>
+                </div>
+              )}
+            </div>
+            {/* Progress bar toward next reward */}
+            <div>
+              <div className="flex justify-between text-[11px] text-gray-400 mb-1">
+                <span>距下一个月黄金会员</span>
+                <span>还差 {toNext} 人</span>
+              </div>
+              <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-gradient-to-r from-amber-400 to-amber-500 rounded-full transition-all"
+                  style={{ width: `${pct}%` }}
+                />
+              </div>
+            </div>
+          </div>
+        )
+      })()}
 
       {/* ── Share buttons ─────────────────────────────────────────────────── */}
       <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
@@ -234,21 +263,21 @@ export default function ReferralSection({ user }: Props) {
           <div className="flex items-center gap-3 bg-white rounded-2xl px-4 py-3">
             <span className="text-xl">🥇</span>
             <div className="flex-1">
-              <p className="text-xs font-semibold text-gray-800">邀请 3 位好友</p>
-              <p className="text-xs text-gray-500 mt-0.5">解锁黄金会员 30 天 · 搜索优先展示</p>
+              <p className="text-xs font-semibold text-gray-800">每邀请 10 位好友</p>
+              <p className="text-xs text-gray-500 mt-0.5">自动获得黄金会员 +1 个月 · 搜索优先展示</p>
             </div>
           </div>
           <div className="flex items-center gap-3 bg-white rounded-2xl px-4 py-3">
-            <span className="text-xl">👑</span>
+            <span className="text-xl">🎯</span>
             <div className="flex-1">
-              <p className="text-xs font-semibold text-gray-800">邀请 10 位好友</p>
-              <p className="text-xs text-gray-500 mt-0.5">解锁至尊会员 30 天 · 首页推荐曝光</p>
+              <p className="text-xs font-semibold text-gray-800">无上限累计叠加</p>
+              <p className="text-xs text-gray-500 mt-0.5">邀请越多，黄金会员时长越长，持续享受优先曝光</p>
             </div>
           </div>
         </div>
         <p className="text-xs text-amber-600 leading-relaxed">
           朋友点击你的链接注册后，邀请码自动填入，注册成功即算一次有效邀请。
-          每达到门槛自动续期 30 天，无需手动申请。
+          每满 10 人自动续期，无需手动申请。
         </p>
         <div className="border-t border-amber-200 pt-3">
           <p className="text-xs text-amber-700 font-medium">💡 需要服务置顶推广？</p>

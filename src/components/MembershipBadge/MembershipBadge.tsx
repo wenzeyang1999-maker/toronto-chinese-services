@@ -4,8 +4,10 @@
 // L2 — gold           (黄金会员)
 // L3 — black-gold     (至尊会员)
 //
-// On mobile, tapping the badge shows a tooltip explaining what the level means.
+// Tapping the badge opens a portal-based card fixed at the bottom of the screen,
+// which is visible regardless of any ancestor overflow:hidden or overflow:scroll.
 import { useState, useRef, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 
 export type MemberLevel = 'L1' | 'L2' | 'L3'
 
@@ -54,7 +56,6 @@ export default function MembershipBadge({ level = 'L1', size = 'sm' }: Props) {
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLSpanElement>(null)
 
-  // Close on outside tap
   useEffect(() => {
     if (!open) return
     function onOutside(e: MouseEvent | TouchEvent) {
@@ -83,17 +84,27 @@ export default function MembershipBadge({ level = 'L1', size = 'sm' }: Props) {
         <span>{level}</span>
       </button>
 
-      {open && (
-        <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-50
-                         bg-gray-900 text-white text-xs rounded-xl px-3 py-2
-                         whitespace-nowrap shadow-xl pointer-events-none">
-          <span className="font-semibold">{cfg.name}</span>
-          <span className="mx-1 text-gray-400">·</span>
-          {cfg.description}
-          {/* Arrow */}
-          <span className="absolute top-full left-1/2 -translate-x-1/2
-                           border-4 border-transparent border-t-gray-900" />
-        </span>
+      {open && createPortal(
+        <>
+          {/* Backdrop — closes on tap anywhere outside the card */}
+          <div
+            className="fixed inset-0 z-40"
+            onClick={() => setOpen(false)}
+          />
+          {/* Detail card fixed at bottom — visible regardless of ancestor overflow */}
+          <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 w-72 bg-gray-900 text-white rounded-2xl px-5 py-4 shadow-2xl">
+            <div className="flex items-center gap-3 mb-2">
+              <span className={`inline-flex items-center gap-1 font-bold text-sm px-2.5 py-1 rounded-full
+                               ${cfg.bg} ${cfg.text} ${cfg.ring}`}>
+                {cfg.icon} {level}
+              </span>
+              <span className="font-semibold text-base">{cfg.name}</span>
+            </div>
+            <p className="text-sm text-gray-300 leading-relaxed">{cfg.description}</p>
+            <p className="text-xs text-gray-500 mt-3 text-center">点击任意处关闭</p>
+          </div>
+        </>,
+        document.body,
       )}
     </span>
   )

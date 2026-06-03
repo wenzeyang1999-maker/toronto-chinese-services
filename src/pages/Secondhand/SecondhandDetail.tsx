@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { ChevronLeft, MapPin, Phone, MessageCircle, Copy, Package, User, ExternalLink, MessageSquare, Star, Flag } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { useAuthStore } from '../../store/authStore'
+import { useReadStore } from '../../store/readStore'
 import { SECONDHAND_CATEGORY_CONFIG, ITEM_CONDITION_CONFIG, getPriceLabel, type SecondhandItem } from './types'
 import SaveButton from '../../components/SaveButton/SaveButton'
 import ShareButton from '../../components/ShareButton/ShareButton'
@@ -35,6 +36,9 @@ export default function SecondhandDetail() {
   const { id }   = useParams<{ id: string }>()
   const navigate = useNavigate()
   const user     = useAuthStore((s) => s.user)
+  const markRead = useReadStore((s) => s.markRead)
+
+  useEffect(() => { if (id) markRead('secondhand', id) }, [id])
 
   const [item,    setItem]    = useState<SecondhandItem | null>(null)
   const [loading, setLoading] = useState(true)

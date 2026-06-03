@@ -11,9 +11,9 @@ import {
 } from 'lucide-react'
 import Header from '../../components/Header/Header'
 import PostFAB from '../../components/PostFAB/PostFAB'
-import SectionTabs from '../../components/SectionTabs/SectionTabs'
 import { useEventsStore } from '../../store/eventsStore'
 import { useAuthStore } from '../../store/authStore'
+import { useReadStore } from '../../store/readStore'
 import {
   EVENT_TYPE_CONFIG, getPriceLabel, formatEventDate, formatEventTime, isUpcoming,
   type Event, type EventType,
@@ -30,6 +30,8 @@ export default function EventList() {
   const navigate = useNavigate()
   const user     = useAuthStore((s) => s.user)
   const { fetchEvents, setFilters, clearFilters, getFilteredEvents, filters, isReady } = useEventsStore()
+  const readSet  = useReadStore((s) => s.read)
+  const markRead = useReadStore((s) => s.markRead)
 
   const [showFilters,  setShowFilters]  = useState(false)
   const [localKeyword, setLocalKeyword] = useState(filters.keyword ?? '')
@@ -50,6 +52,7 @@ export default function EventList() {
   const handleSearch = () => setFilters({ keyword: localKeyword || undefined })
 
   function handleItemClick(ev: Event) {
+    markRead('event', ev.id)
     if (window.innerWidth < 1024) {
       navigate(`/events/${ev.id}`)
     } else {
@@ -60,13 +63,6 @@ export default function EventList() {
   return (
     <div className="flex flex-col h-screen bg-gray-50 overflow-hidden">
       <Header />
-
-      {/* ── Section tabs ────────────────────────────────────────────────────── */}
-      <div className="bg-white flex-shrink-0 z-20">
-        <div className="w-full px-3 md:w-[85%] md:px-0 lg:w-[70%] mx-auto">
-          <SectionTabs active="events" onChange={() => {}} containerClassName="px-0" />
-        </div>
-      </div>
 
       {/* ── Search / filter bar ─────────────────────────────────────────────── */}
       <div className="bg-white border-b border-gray-100 py-3 flex-shrink-0 z-20">
@@ -258,7 +254,7 @@ export default function EventList() {
                                   ${selectedId === ev.id
                                     ? 'border-primary-400 shadow-md ring-1 ring-primary-200'
                                     : 'border-gray-100 hover:border-gray-300 hover:shadow-sm'
-                                  } ${past ? 'opacity-60' : ''}`}
+                                  } ${past ? 'opacity-60' : readSet.has(`event:${ev.id}`) ? 'opacity-75' : ''}`}
                     >
                       {/* Date badge */}
                       <div className="flex-shrink-0 w-12 flex flex-col items-center bg-primary-50 rounded-xl py-1.5 px-1 text-center">
@@ -273,7 +269,7 @@ export default function EventList() {
                       {/* Info */}
                       <div className="flex-1 min-w-0">
                         <div className="flex items-start justify-between gap-2 mb-1">
-                          <p className="text-sm font-semibold text-gray-900 leading-snug line-clamp-2">{ev.title}</p>
+                          <p className={`text-sm font-semibold leading-snug line-clamp-2 ${readSet.has(`event:${ev.id}`) ? 'text-gray-400' : 'text-gray-900'}`}>{ev.title}</p>
                           <span className={`text-xs font-semibold px-2 py-0.5 rounded-full flex-shrink-0 ${cfg.color}`}>
                             {cfg.emoji} {cfg.label}
                           </span>

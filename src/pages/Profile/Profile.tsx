@@ -78,6 +78,7 @@ export default function Profile() {
     () => localStorage.getItem('tcs_has_services') === 'true',
   )
   const [verify, setVerify] = useState({ email: false, phone: false, idOrBiz: false })
+  const [creditPenalty, setCreditPenalty] = useState(0)
   const [mode, setMode] = useState<'client' | 'provider'>(() => {
     const saved = localStorage.getItem('tcs_profile_mode')
     if (saved === 'provider' || saved === 'client') return saved
@@ -113,7 +114,7 @@ export default function Profile() {
   useEffect(() => {
     if (!user) return
     supabase.from('users')
-      .select('name, phone, avatar_url, membership_level, membership_expires_at, is_email_verified, phone_verified, id_verified, business_verified')
+      .select('name, phone, avatar_url, membership_level, membership_expires_at, is_email_verified, phone_verified, id_verified, business_verified, credit_penalty')
       .eq('id', user.id).single()
       .then(({ data }) => {
         if (!data) return
@@ -129,6 +130,7 @@ export default function Profile() {
           phone:   data.phone_verified ?? false,
           idOrBiz: (data.id_verified ?? false) || (data.business_verified ?? false),
         })
+        setCreditPenalty(data.credit_penalty ?? 0)
       })
     try { setBrowse(JSON.parse(localStorage.getItem('tcs_browse_history') ?? '[]')) } catch { /* */ }
 
@@ -199,6 +201,7 @@ export default function Profile() {
                 emailVerified:        verify.email,
                 phoneVerified:        verify.phone,
                 idOrBusinessVerified: verify.idOrBiz,
+                creditPenalty,
               }}
             />
           </div>

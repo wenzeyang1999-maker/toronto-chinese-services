@@ -58,14 +58,14 @@ export function buildServiceInfo(service: Service, onDetail: () => void, onProvi
   detailBtn.type = 'button'
   detailBtn.className = 'flex-1 bg-primary-600 hover:bg-primary-700 text-white text-xs font-semibold py-2 rounded-lg transition-colors'
   detailBtn.textContent = '查看详情'
-  detailBtn.onclick = onDetail
+  detailBtn.onclick = (e) => { e.stopPropagation(); onDetail() }
   row.appendChild(detailBtn)
 
   const providerBtn = document.createElement('button')
   providerBtn.type = 'button'
   providerBtn.className = 'flex-1 border border-primary-200 text-primary-600 hover:bg-primary-50 text-xs font-semibold py-2 rounded-lg transition-colors'
   providerBtn.textContent = '商家主页'
-  providerBtn.onclick = onProvider
+  providerBtn.onclick = (e) => { e.stopPropagation(); onProvider() }
   row.appendChild(providerBtn)
 
   wrapper.appendChild(row)
@@ -88,7 +88,7 @@ export function buildDemandInfo(r: ServiceRequest, onClick: () => void): HTMLEle
   btn.type = 'button'
   btn.style.cssText = 'margin-top:8px;width:100%;background:#ea580c;color:#fff;border:none;border-radius:8px;padding:6px 0;font-size:12px;font-weight:600;cursor:pointer'
   btn.textContent = '查看详情'
-  btn.onclick = onClick
+  btn.onclick = (e) => { e.stopPropagation(); onClick() }
   wrapper.appendChild(btn)
   return wrapper
 }
@@ -105,7 +105,7 @@ export function buildOnlineProviderInfo(p: OnlineProvider, onClick: () => void):
   btn.type = 'button'
   btn.style.cssText = 'width:100%;background:#16a34a;color:#fff;border:none;border-radius:8px;padding:6px 0;font-size:12px;font-weight:600;cursor:pointer'
   btn.textContent = '查看主页'
-  btn.onclick = onClick
+  btn.onclick = (e) => { e.stopPropagation(); onClick() }
   wrapper.appendChild(btn)
   return wrapper
 }

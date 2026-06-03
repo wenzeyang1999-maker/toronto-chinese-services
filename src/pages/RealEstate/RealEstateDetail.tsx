@@ -6,6 +6,7 @@ import { motion } from 'framer-motion'
 import { ChevronLeft, MapPin, Phone, MessageCircle, Copy, Home, User, ExternalLink, BedDouble, Bath, Car, PawPrint, Zap } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { useAuthStore } from '../../store/authStore'
+import { useReadStore } from '../../store/readStore'
 import { LISTING_TYPE_CONFIG, PROPERTY_TYPE_CONFIG, getPriceLabel, getBedroomLabel, type Property } from './types'
 import SaveButton from '../../components/SaveButton/SaveButton'
 import ShareButton from '../../components/ShareButton/ShareButton'
@@ -17,6 +18,9 @@ export default function RealEstateDetail() {
   const { id }   = useParams<{ id: string }>()
   const navigate = useNavigate()
   const user     = useAuthStore((s) => s.user)
+  const markRead = useReadStore((s) => s.markRead)
+
+  useEffect(() => { if (id) markRead('property', id) }, [id])
 
   const [prop,    setProp]    = useState<Property | null>(null)
   const [loading, setLoading] = useState(true)

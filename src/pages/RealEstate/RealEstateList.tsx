@@ -1,5 +1,7 @@
 // ─── Real Estate List Page ────────────────────────────────────────────────────
 // Route: /realestate
+// Desktop (≥ lg): masonry list on left + detail panel on right
+// Mobile  (< lg): masonry grid, detail opens in bottom drawer
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -10,9 +12,9 @@ import {
 } from 'lucide-react'
 import Header from '../../components/Header/Header'
 import PostFAB from '../../components/PostFAB/PostFAB'
-import SectionTabs from '../../components/SectionTabs/SectionTabs'
 import { useRealEstateStore } from '../../store/realestateStore'
 import { useAuthStore } from '../../store/authStore'
+import { useReadStore } from '../../store/readStore'
 import {
   LISTING_TYPE_CONFIG, PROPERTY_TYPE_CONFIG, PRICE_TYPE_LABEL, getPriceLabel, getBedroomLabel,
   type Property, type RealEstateListingType, type PropertyType,
@@ -29,10 +31,13 @@ export default function RealEstateList() {
   const navigate = useNavigate()
   const user     = useAuthStore((s) => s.user)
   const { fetchProperties, setFilters, clearFilters, getFilteredProperties, filters, isReady } = useRealEstateStore()
+  const readSet  = useReadStore((s) => s.read)
+  const markRead = useReadStore((s) => s.markRead)
 
   const [showFilters,  setShowFilters]  = useState(false)
   const [localKeyword, setLocalKeyword] = useState(filters.keyword ?? '')
   const [selectedId,   setSelectedId]   = useState<string | null>(null)
+  const [mobileOpen,   setMobileOpen]   = useState(false)
   const detailRef = useRef<HTMLDivElement>(null)
 
   useUrlFilters(filters, setFilters, ['listing_type', 'keyword', 'property_type', 'area', 'max_price', 'bedrooms'], { numericKeys: ['max_price', 'bedrooms'] })
@@ -46,41 +51,29 @@ export default function RealEstateList() {
     detailRef.current?.scrollTo({ top: 0, behavior: 'smooth' })
   }, [selectedId])
 
-  // Reset selection when listing type tab changes
-  useEffect(() => { setSelectedId(null) }, [filters.listing_type])
+  useEffect(() => { setSelectedId(null); setMobileOpen(false) }, [filters.listing_type])
 
   const handleSearch = () => setFilters({ keyword: localKeyword || undefined })
 
   function handleItemClick(p: Property) {
-    if (window.innerWidth < 1024) {
-      navigate(`/realestate/${p.id}`)
-    } else {
-      setSelectedId(p.id)
-    }
+    markRead('property', p.id)
+    setSelectedId(p.id)
+    if (window.innerWidth < 1024) setMobileOpen(true)
   }
 
   return (
     <div className="flex flex-col h-screen bg-gray-50 overflow-hidden">
       <Header />
 
-      {/* ── Section tabs ────────────────────────────────────────────────────── */}
-      <div className="bg-white flex-shrink-0 z-20">
-        <div className="w-full px-3 md:w-[85%] md:px-0 lg:w-[70%] mx-auto">
-          <SectionTabs active="realestate" onChange={() => {}} containerClassName="px-0" />
-        </div>
-      </div>
-
       {/* ── Search / filter bar ─────────────────────────────────────────────── */}
       <div className="bg-white border-b border-gray-100 py-3 flex-shrink-0 z-20">
         <div className="w-full px-3 md:w-[85%] md:px-0 lg:w-[70%] mx-auto space-y-3">
 
-          {/* Title */}
           <div>
             <h1 className="text-lg font-bold text-gray-900">租房买房</h1>
             <p className="text-xs text-gray-400">华林 · 房源</p>
           </div>
 
-          {/* 出租 / 出售 / 合租 sub-tabs */}
           <div className="flex bg-gray-100 rounded-xl p-1 gap-1">
             {(Object.keys(LISTING_TYPE_CONFIG) as RealEstateListingType[]).map((t) => (
               <button key={t}
@@ -96,7 +89,6 @@ export default function RealEstateList() {
             ))}
           </div>
 
-          {/* Search row */}
           <div className="flex items-center gap-2">
             <div className="flex-1 flex items-center gap-2 bg-gray-100 rounded-xl px-3 py-2.5">
               <Search size={15} className="text-gray-400 flex-shrink-0" />
@@ -129,7 +121,6 @@ export default function RealEstateList() {
             </button>
           </div>
 
-          {/* Filter panel */}
           <AnimatePresence>
             {showFilters && (
               <motion.div
@@ -178,22 +169,25 @@ export default function RealEstateList() {
       {/* ── Content area ────────────────────────────────────────────────────── */}
       <div className="flex-1 overflow-hidden w-full px-3 md:w-[85%] md:px-0 lg:w-[70%] mx-auto flex gap-0 py-3">
 
-        {/* ── Left: list ───────────────────────────────────────────────────── */}
+        {/* ── Left: property masonry ───────────────────────────────────────── */}
         <div className={`flex flex-col overflow-hidden
           ${selectedProp ? 'hidden lg:flex lg:w-[380px] lg:flex-shrink-0' : 'w-full'}`}>
           <p className="text-xs text-gray-400 mb-2 flex-shrink-0">共 {properties.length} 个房源</p>
 
-          <div className="flex-1 overflow-y-auto space-y-2 pr-1">
+          <div className="flex-1 overflow-y-auto pr-0.5">
             {!isReady ? (
-              [1, 2, 3].map((i) => (
-                <div key={i} className="bg-white rounded-2xl overflow-hidden animate-pulse">
-                  <div className="h-32 bg-gray-100" />
-                  <div className="p-3 space-y-2">
-                    <div className="h-4 bg-gray-100 rounded w-3/4" />
-                    <div className="h-3 bg-gray-100 rounded w-1/2" />
+              <div style={{ columns: '220px', columnGap: '10px' }}>
+                {[1, 2, 3, 4].map((i) => (
+                  <div key={i} className="break-inside-avoid mb-2.5 bg-white rounded-2xl overflow-hidden animate-pulse"
+                    style={{ height: i % 2 === 0 ? 220 : 260 }}>
+                    <div className="w-full h-1/2 bg-gray-100" />
+                    <div className="p-3 space-y-2">
+                      <div className="h-4 bg-gray-100 rounded w-3/4" />
+                      <div className="h-3 bg-gray-100 rounded w-1/2" />
+                    </div>
                   </div>
-                </div>
-              ))
+                ))}
+              </div>
             ) : properties.length === 0 ? (
               <div className="text-center py-20 text-gray-400">
                 <Home size={40} className="mx-auto mb-3 opacity-30" />
@@ -201,54 +195,64 @@ export default function RealEstateList() {
                 <button onClick={() => user ? navigate(`/realestate/post?type=${filters.listing_type ?? 'rent'}`) : navigate('/login')}
                   className="text-xs text-primary-600 underline mt-1">发布第一个房源</button>
               </div>
-            ) : properties.map((p, i) => (
-              <motion.div key={p.id}
-                initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.02 }}
-                onClick={() => handleItemClick(p)}
-                className={`bg-white rounded-2xl border overflow-hidden cursor-pointer transition-all duration-150
-                  ${selectedId === p.id
-                    ? 'border-primary-400 shadow-md ring-1 ring-primary-200'
-                    : 'border-gray-100 shadow-sm hover:border-primary-200 hover:shadow-md'
-                  }`}
-              >
-                {/* Cover image */}
-                <div className="h-36 bg-gray-100 overflow-hidden relative">
-                  {p.images.length > 0 ? (
-                    <img src={p.images[0]} alt={p.title}
-                      className="w-full h-full object-cover" />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center text-4xl">
-                      {PROPERTY_TYPE_CONFIG[p.property_type].emoji}
+            ) : (
+              <div style={{ columns: '220px', columnGap: '10px' }}>
+                {properties.map((p, i) => (
+                  <motion.div key={p.id}
+                    initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: i * 0.02 }}
+                    onClick={() => handleItemClick(p)}
+                    className={`break-inside-avoid mb-2.5 bg-white rounded-2xl overflow-hidden
+                      cursor-pointer transition-all duration-150
+                      ${readSet.has(`property:${p.id}`) ? 'opacity-75' : ''}
+                      ${selectedId === p.id
+                        ? 'ring-2 ring-primary-400 shadow-md'
+                        : 'shadow-sm hover:shadow-md'
+                      }`}
+                  >
+                    {/* Cover image */}
+                    <div className="w-full aspect-[16/9] bg-gray-100 overflow-hidden relative">
+                      {p.images.length > 0 ? (
+                        <img src={p.images[0]} alt={p.title}
+                          loading="lazy"
+                          className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-4xl opacity-60">
+                          {PROPERTY_TYPE_CONFIG[p.property_type].emoji}
+                        </div>
+                      )}
+                      <span className={`absolute top-2 left-2 text-[10px] font-bold px-2 py-0.5 rounded-full ${LISTING_TYPE_CONFIG[p.listing_type].color}`}>
+                        {LISTING_TYPE_CONFIG[p.listing_type].label}
+                      </span>
                     </div>
-                  )}
-                  <span className={`absolute top-2 left-2 text-xs font-bold px-2 py-0.5 rounded-full ${LISTING_TYPE_CONFIG[p.listing_type].color}`}>
-                    {LISTING_TYPE_CONFIG[p.listing_type].label}
-                  </span>
-                </div>
 
-                {/* Info */}
-                <div className="p-3">
-                  <p className="text-base font-bold text-primary-600 mb-1">{getPriceLabel(p)}</p>
-                  <h3 className="font-semibold text-gray-900 text-sm leading-snug line-clamp-1 mb-1.5">{p.title}</h3>
-                  <div className="flex items-center flex-wrap gap-2 text-[11px] text-gray-500">
-                    {p.bedrooms != null && (
-                      <span className="flex items-center gap-0.5"><BedDouble size={11} />{getBedroomLabel(p.bedrooms)}</span>
-                    )}
-                    {p.bathrooms != null && (
-                      <span className="flex items-center gap-0.5"><Bath size={11} />{p.bathrooms}卫</span>
-                    )}
-                    {p.area && p.area.length > 0 && (
-                      <span className="flex items-center gap-0.5"><MapPin size={10} />{p.area[0]}</span>
-                    )}
-                  </div>
-                </div>
-              </motion.div>
-            ))}
+                    {/* Info */}
+                    <div className="p-3">
+                      <p className="text-base font-bold text-primary-600 mb-1">{getPriceLabel(p)}</p>
+                      <h3 className={`font-semibold text-sm leading-snug line-clamp-1 mb-1.5
+                        ${readSet.has(`property:${p.id}`) ? 'text-gray-400' : 'text-gray-900'}`}>
+                        {p.title}
+                      </h3>
+                      <div className="flex items-center flex-wrap gap-1.5 text-[11px] text-gray-400">
+                        {p.bedrooms != null && (
+                          <span className="flex items-center gap-0.5"><BedDouble size={11} />{getBedroomLabel(p.bedrooms)}</span>
+                        )}
+                        {p.bathrooms != null && (
+                          <span className="flex items-center gap-0.5"><Bath size={11} />{p.bathrooms}卫</span>
+                        )}
+                        {p.area && p.area.length > 0 && (
+                          <span className="flex items-center gap-0.5"><MapPin size={10} />{p.area[0]}</span>
+                        )}
+                      </div>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
 
-        {/* ── Right: detail panel ──────────────────────────────────────────── */}
+        {/* ── Right: detail panel (desktop only) ───────────────────────────── */}
         <AnimatePresence mode="wait">
           {selectedProp && (
             <motion.div key={selectedProp.id}
@@ -263,7 +267,31 @@ export default function RealEstateList() {
         </AnimatePresence>
       </div>
 
-      {/* FAB — 发布 */}
+      {/* ── Mobile bottom drawer ─────────────────────────────────────────────── */}
+      <AnimatePresence>
+        {mobileOpen && selectedProp && (
+          <motion.div
+            className="fixed inset-0 z-50 lg:hidden"
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            onClick={() => setMobileOpen(false)}
+          >
+            <div className="absolute inset-0 bg-black/40" />
+            <motion.div
+              initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
+              transition={{ type: 'spring', damping: 30, stiffness: 300 }}
+              className="absolute bottom-0 left-0 right-0 bg-white rounded-t-3xl max-h-[90vh] overflow-y-auto"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex justify-center pt-3 pb-2">
+                <div className="w-10 h-1 bg-gray-300 rounded-full" />
+              </div>
+              <DetailPanel prop={selectedProp} onClose={() => setMobileOpen(false)} />
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* FAB */}
       {user && <PostFAB onClick={() => navigate(`/realestate/post?type=${filters.listing_type ?? 'rent'}`)} />}
     </div>
   )
@@ -312,13 +340,12 @@ function DetailPanel({ prop, onClose }: { prop: Property; onClose: () => void })
           )}
         </div>
       ) : (
-        <div className="aspect-video bg-gray-50 flex items-center justify-center text-7xl">
+        <div className="aspect-video bg-gray-50 flex items-center justify-center text-7xl rounded-t-2xl">
           {PROPERTY_TYPE_CONFIG[prop.property_type].emoji}
         </div>
       )}
 
       <div className="p-5 space-y-4">
-        {/* Price + type */}
         <div className="flex items-start justify-between gap-3">
           <div>
             <p className="text-2xl font-bold text-primary-600">{getPriceLabel(prop)}</p>
@@ -329,7 +356,6 @@ function DetailPanel({ prop, onClose }: { prop: Property; onClose: () => void })
           </span>
         </div>
 
-        {/* Meta pills */}
         <div className="flex flex-wrap gap-2">
           <span className="text-xs px-2.5 py-1 rounded-full bg-gray-100 text-gray-600">
             {PROPERTY_TYPE_CONFIG[prop.property_type].emoji} {PROPERTY_TYPE_CONFIG[prop.property_type].label}
@@ -351,7 +377,6 @@ function DetailPanel({ prop, onClose }: { prop: Property; onClose: () => void })
           )}
         </div>
 
-        {/* Features */}
         {(prop.pet_friendly || prop.parking || prop.utilities_included) && (
           <div className="flex flex-wrap gap-2">
             {prop.pet_friendly && (
@@ -372,7 +397,6 @@ function DetailPanel({ prop, onClose }: { prop: Property; onClose: () => void })
           </div>
         )}
 
-        {/* Available date + address */}
         {(prop.available_date || prop.address) && (
           <div className="text-sm text-gray-600 space-y-1">
             {prop.available_date && (
@@ -382,7 +406,6 @@ function DetailPanel({ prop, onClose }: { prop: Property; onClose: () => void })
           </div>
         )}
 
-        {/* Contact */}
         <div className="flex gap-2">
           <a href={`tel:${prop.contact_phone}`}
             className="flex-1 flex items-center justify-center gap-2 bg-primary-600 hover:bg-primary-700
@@ -400,13 +423,11 @@ function DetailPanel({ prop, onClose }: { prop: Property; onClose: () => void })
           )}
         </div>
 
-        {/* Description */}
         <div className="pt-3 border-t border-gray-100">
           <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">房源描述</p>
           <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{prop.description}</p>
         </div>
 
-        {/* Poster */}
         <div className="pt-3 border-t border-gray-100">
           <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">发布者</p>
           <div className="flex items-center gap-3">
@@ -435,7 +456,6 @@ function DetailPanel({ prop, onClose }: { prop: Property; onClose: () => void })
           </div>
         </div>
 
-        {/* CTA */}
         {(!user || user.id !== prop.poster_id) && (
           <div className="bg-primary-50 border border-primary-100 rounded-xl p-3 text-center">
             <p className="text-xs text-primary-700 mb-1">有房源要发布？</p>

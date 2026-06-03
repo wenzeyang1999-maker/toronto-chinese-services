@@ -3,6 +3,7 @@ import { motion } from 'framer-motion'
 import { Star, MapPin, ShieldCheck, Zap, Clock3 } from 'lucide-react'
 import type { Service } from '../../types'
 import { getCategoryById } from '../../data/categories'
+import { useReadStore } from '../../store/readStore'
 
 interface Props {
   service: Service
@@ -12,6 +13,13 @@ interface Props {
 export default function ServiceCard({ service, layout = 'list' }: Props) {
   const navigate    = useNavigate()
   const cat         = getCategoryById(service.category)
+  const isRead      = useReadStore((s) => s.read.has(`service:${service.id}`))
+  const markRead    = useReadStore((s) => s.markRead)
+
+  function handleClick() {
+    markRead('service', service.id)
+    navigate(`/service/${service.id}`)
+  }
   const hasImage    = (service.images?.length ?? 0) > 0
   const hasReviews  = service.provider.reviewCount > 0
   const isRecentlyActive = service.provider.lastSeenAt
@@ -26,12 +34,13 @@ export default function ServiceCard({ service, layout = 'list' }: Props) {
     return (
       <motion.div
         whileTap={{ scale: 0.98 }}
-        onClick={() => navigate(`/service/${service.id}`)}
-        className={`bg-white rounded-2xl cursor-pointer overflow-hidden transition-all duration-200 hover:shadow-md active:bg-gray-50 ${
-          service.isPromoted
+        onClick={handleClick}
+        className={`bg-white rounded-2xl cursor-pointer overflow-hidden transition-all duration-200 hover:shadow-md active:bg-gray-50
+          ${isRead ? 'opacity-75' : ''}
+          ${service.isPromoted
             ? 'border-2 border-amber-400 shadow-amber-50 shadow-sm'
             : 'border border-gray-100 shadow-sm'
-        }`}
+          }`}
       >
         <div className="relative aspect-[4/3] bg-gray-100">
           {hasImage ? (
@@ -53,7 +62,7 @@ export default function ServiceCard({ service, layout = 'list' }: Props) {
 
         <div className="p-4 space-y-2">
           <div className="flex items-start justify-between gap-2">
-            <h3 className="font-semibold text-gray-900 text-sm leading-snug line-clamp-2">{service.title}</h3>
+            <h3 className={`font-semibold text-sm leading-snug line-clamp-2 ${isRead ? 'text-gray-400' : 'text-gray-900'}`}>{service.title}</h3>
             <span className="text-sm font-bold text-primary-600 whitespace-nowrap">{priceLabel}</span>
           </div>
           <p className="text-xs text-gray-500 leading-relaxed line-clamp-3">{service.description}</p>
@@ -91,9 +100,10 @@ export default function ServiceCard({ service, layout = 'list' }: Props) {
   return (
     <motion.div
       whileTap={{ scale: 0.98 }}
-      onClick={() => navigate(`/service/${service.id}`)}
+      onClick={handleClick}
       className={`bg-white rounded-2xl cursor-pointer flex items-center gap-3 p-3
                  transition-all duration-200 hover:shadow-md active:bg-gray-50
+                 ${isRead ? 'opacity-75' : ''}
                  ${service.isPromoted
                    ? 'border-2 border-amber-400 shadow-amber-50 shadow-sm'
                    : 'border border-gray-100 shadow-sm'}`}
@@ -129,7 +139,7 @@ export default function ServiceCard({ service, layout = 'list' }: Props) {
       <div className="flex-1 min-w-0">
         {/* Title row */}
         <div className="flex items-start justify-between gap-2 mb-0.5">
-          <h3 className="font-semibold text-gray-900 text-sm leading-snug line-clamp-1 flex-1">
+          <h3 className={`font-semibold text-sm leading-snug line-clamp-1 flex-1 ${isRead ? 'text-gray-400' : 'text-gray-900'}`}>
             {service.title}
           </h3>
           <span className="flex-shrink-0 text-sm font-bold text-primary-600 whitespace-nowrap">

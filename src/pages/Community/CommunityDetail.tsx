@@ -9,6 +9,7 @@ import { supabase } from '../../lib/supabase'
 import { notifyAdminCommunityReport } from '../../lib/notify'
 import { toast } from '../../lib/toast'
 import { useAuthStore } from '../../store/authStore'
+import { useReadStore } from '../../store/readStore'
 import { POST_TYPE_CONFIG, AREA_CONFIG } from './config'
 
 interface PostDetail {
@@ -46,7 +47,10 @@ export default function CommunityDetail() {
   const { id }    = useParams<{ id: string }>()
   const navigate  = useNavigate()
   const user      = useAuthStore((s) => s.user)
+  const markRead  = useReadStore((s) => s.markRead)
   const bottomRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => { if (id) markRead('community', id) }, [id])
 
   const [post,     setPost]     = useState<PostDetail | null>(null)
   const [comments, setComments] = useState<Comment[]>([])

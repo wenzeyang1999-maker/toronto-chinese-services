@@ -12,7 +12,7 @@ interface Props {
 }
 
 function fmtDist(km: number) {
-  return km < 1 ? '<1 km' : km < 10 ? `${km.toFixed(1)} km` : `${Math.round(km)} km`
+  return km < 1 ? '直线 <1km' : km < 10 ? `直线 ${km.toFixed(1)}km` : `直线 ${Math.round(km)}km`
 }
 
 export default function ServiceRequestCard({ request, layout = 'list', distance }: Props) {
