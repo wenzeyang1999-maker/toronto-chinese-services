@@ -238,6 +238,33 @@ function buildEmail(type: string, recipientName: string, data: Record<string, st
         ),
       }
 
+    case 'inquiry_selected':
+      return {
+        subject: `🎉 客户选择了您！「${h(data.categoryLabel)}」订单`,
+        html: template(
+          `恭喜！您被客户选中`,
+          `<p>您好 <strong>${h(recipientName)}</strong>，</p>
+           <p>客户在抢单中选择了您来提供「<strong>${h(data.categoryLabel)}</strong>」服务，请尽快联系客户：</p>
+           <table style="width:100%;border-collapse:collapse;font-size:14px;margin:16px 0;">
+             <tr style="background:#f9fafb;">
+               <td style="padding:10px 14px;color:#6b7280;width:90px;font-weight:600;">客户姓名</td>
+               <td style="padding:10px 14px;color:#111827;">${h(data.customerName)}</td>
+             </tr>
+             <tr>
+               <td style="padding:10px 14px;color:#6b7280;font-weight:600;">联系电话</td>
+               <td style="padding:10px 14px;color:#111827;font-weight:700;">${h(data.phone)}</td>
+             </tr>
+             <tr style="background:#f9fafb;">
+               <td style="padding:10px 14px;color:#6b7280;font-weight:600;">微信号</td>
+               <td style="padding:10px 14px;color:#111827;">${data.wechat ? h(data.wechat) : '未提供'}</td>
+             </tr>
+           </table>
+           <p style="color:#6b7280;font-size:13px;">⚡ 请尽快联系客户，确认服务细节。</p>`,
+          '登录平台',
+          SITE
+        ),
+      }
+
     case 'welcome':
       return {
         subject: `🎉 欢迎加入华林！`,
@@ -538,9 +565,11 @@ Deno.serve(async (req: Request) => {
       headers: { ...CORS, 'Content-Type': 'application/json' },
     })
   } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err)
+    const status = msg === 'Unauthorized' ? 401 : 500
     console.error('send-notification error:', err)
-    return new Response(JSON.stringify({ error: String(err) }), {
-      status: 500, headers: { ...CORS, 'Content-Type': 'application/json' },
+    return new Response(JSON.stringify({ error: msg }), {
+      status, headers: { ...CORS, 'Content-Type': 'application/json' },
     })
   }
 })

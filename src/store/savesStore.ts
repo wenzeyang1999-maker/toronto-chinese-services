@@ -4,7 +4,7 @@
 import { create } from 'zustand'
 import { supabase } from '../lib/supabase'
 
-type TargetType = 'service' | 'job' | 'property' | 'secondhand' | 'event'
+type TargetType = 'service' | 'job' | 'property' | 'secondhand' | 'event' | 'community'
 
 interface SaveRow { id: string; target_type: string; target_id: string }
 
@@ -14,8 +14,8 @@ interface SavesState {
   isReady: boolean
 
   fetchSaves:  (userId: string) => Promise<void>
-  isSaved:     (type: TargetType, id: string) => boolean
-  toggleSave:  (userId: string, type: TargetType, id: string) => Promise<void>
+  isSaved:     (type: string, id: string) => boolean
+  toggleSave:  (userId: string, type: string, id: string) => Promise<void>
   clearSaves:  () => void
 }
 

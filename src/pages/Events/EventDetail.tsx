@@ -28,6 +28,7 @@ export default function EventDetail() {
   const [ev,      setEv]      = useState<Event | null>(null)
   const [loading, setLoading] = useState(true)
   const [imgIdx,  setImgIdx]  = useState(0)
+  useEffect(() => { setImgIdx(0) }, [id])
   const [copied,  setCopied]  = useState(false)
 
   useEffect(() => {

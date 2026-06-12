@@ -2,13 +2,13 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Heart, Wrench, Briefcase, Home, ShoppingBag, Calendar, Trash2 } from 'lucide-react'
+import { Heart, Wrench, Briefcase, Home, ShoppingBag, Calendar, MessageSquare, Trash2 } from 'lucide-react'
 import { supabase } from '../../../lib/supabase'
 import { useAuthStore } from '../../../store/authStore'
 import { useSavesStore } from '../../../store/savesStore'
 import { SectionSkeleton } from '../../../components/Skeleton/Skeleton'
 
-type TargetType = 'service' | 'job' | 'property' | 'secondhand' | 'event'
+type TargetType = 'service' | 'job' | 'property' | 'secondhand' | 'event' | 'community'
 type TabKey = 'all' | TargetType
 
 interface SavedItem {
@@ -23,11 +23,12 @@ interface SavedItem {
 }
 
 const TYPE_CONFIG: Record<TargetType, { label: string; icon: React.ReactNode; emoji: string }> = {
-  service:    { label: '服务',  icon: <Wrench      size={14} />, emoji: '🔧' },
-  job:        { label: '招聘',  icon: <Briefcase   size={14} />, emoji: '💼' },
-  property:   { label: '房源',  icon: <Home        size={14} />, emoji: '🏠' },
-  secondhand: { label: '闲置',  icon: <ShoppingBag size={14} />, emoji: '🛒' },
-  event:      { label: '活动',  icon: <Calendar    size={14} />, emoji: '🎉' },
+  service:    { label: '服务',  icon: <Wrench        size={14} />, emoji: '🔧' },
+  job:        { label: '招聘',  icon: <Briefcase     size={14} />, emoji: '💼' },
+  property:   { label: '房源',  icon: <Home          size={14} />, emoji: '🏠' },
+  secondhand: { label: '闲置',  icon: <ShoppingBag   size={14} />, emoji: '🛒' },
+  event:      { label: '活动',  icon: <Calendar      size={14} />, emoji: '🎉' },
+  community:  { label: '社区',  icon: <MessageSquare size={14} />, emoji: '🏘️' },
 }
 
 const TABS: { key: TabKey; label: string }[] = [
@@ -37,6 +38,7 @@ const TABS: { key: TabKey; label: string }[] = [
   { key: 'property',   label: '房源' },
   { key: 'secondhand', label: '闲置' },
   { key: 'event',      label: '活动' },
+  { key: 'community',  label: '社区' },
 ]
 
 const TABLE_MAP: Record<TargetType, string> = {
@@ -45,6 +47,7 @@ const TABLE_MAP: Record<TargetType, string> = {
   property:   'properties',
   secondhand: 'secondhand',
   event:      'events',
+  community:  'community_posts',
 }
 const PATH_PREFIX: Record<TargetType, string> = {
   service:    '/service',
@@ -52,6 +55,7 @@ const PATH_PREFIX: Record<TargetType, string> = {
   property:   '/realestate',
   secondhand: '/secondhand',
   event:      '/events',
+  community:  '/community',
 }
 
 export default function SavesSection() {
@@ -133,6 +137,7 @@ export default function SavesSection() {
     property:   items.filter(i => i.target_type === 'property').length,
     secondhand: items.filter(i => i.target_type === 'secondhand').length,
     event:      items.filter(i => i.target_type === 'event').length,
+    community:  items.filter(i => i.target_type === 'community').length,
   }
 
   if (loading) return <SectionSkeleton rows={5} />

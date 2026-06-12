@@ -4,7 +4,8 @@
 import { useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X, CheckCircle, ChevronDown, Sparkles, UserCheck, Clock3, ShieldCheck, Pencil, MapPin, Mic, MicOff } from 'lucide-react'
+import { X, ChevronDown, Sparkles, UserCheck, Clock3, ShieldCheck, Pencil, MapPin, Mic, MicOff } from 'lucide-react'
+import InquiryResultPanel from '../InquiryResultPanel/InquiryResultPanel'
 import { supabase } from '../../lib/supabase'
 import { useAuthStore } from '../../store/authStore'
 import { useAppStore } from '../../store/appStore'
@@ -67,6 +68,7 @@ export default function InquiryModal({ open, onClose }: Props) {
   const [errors,      setErrors]      = useState<Partial<Record<keyof InquiryForm, string>>>({})
   const [submitting,  setSubmitting]  = useState(false)
   const [done,        setDone]        = useState(false)
+  const [insertedId,  setInsertedId]  = useState<string | null>(null)
   const [serverError, setServerError] = useState('')
   const [postPublic,  setPostPublic]  = useState(true)
   const [isListening, setIsListening] = useState(false)
@@ -262,6 +264,7 @@ export default function InquiryModal({ open, onClose }: Props) {
         },
       })
 
+      setInsertedId(inserted.id)
       setDone(true)
     } catch {
       setServerError('提交失败，请稍后再试')
@@ -276,6 +279,7 @@ export default function InquiryModal({ open, onClose }: Props) {
     setTimeout(() => {
       setForm(INITIAL); setErrors({}); setDone(false); setServerError('')
       setRawInput(''); setExtracted(null); setExtractError(''); setAiMode(true); setPostPublic(true)
+      setInsertedId(null)
     }, 350)
   }
 
@@ -377,25 +381,19 @@ export default function InquiryModal({ open, onClose }: Props) {
 
             {/* Content */}
             <div className="overflow-y-auto" style={{ maxHeight: 'calc(92vh - 130px)' }}>
-              {done ? (
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  className="flex flex-col items-center justify-center py-16 px-8 text-center"
-                >
-                  <CheckCircle size={60} className="text-green-500 mb-4" />
-                  <h3 className="text-xl font-bold text-gray-900 mb-2">需求已发布！</h3>
-                  <p className="text-sm text-gray-500 mb-2">
-                    服务商将通过您留的电话或微信联系您，请保持畅通。
-                  </p>
-                  {user && postPublic && (
-                    <p className="text-xs text-primary-600 bg-primary-50 rounded-xl px-3 py-2 mb-3">
-                      📍 您的需求已同步显示在服务商地图上
-                    </p>
-                  )}
-                  <p className="text-xs text-gray-400 mb-8">通常在 24 小时内收到回复</p>
-                  <button onClick={handleClose} className="btn-primary px-8">好的</button>
-                </motion.div>
+              {done && insertedId ? (
+                <InquiryResultPanel
+                  inquiryId={insertedId}
+                  categoryId={form.categoryId}
+                  categoryLabel={(() => {
+                    const cat = CATEGORIES.find(c => c.id === form.categoryId)
+                    return cat ? `${cat.emoji} ${cat.label}` : form.categoryId
+                  })()}
+                  customerName={form.name}
+                  customerPhone={form.phone}
+                  customerWechat={form.wechat}
+                  onClose={handleClose}
+                />
               ) : (
                 <form onSubmit={handleSubmit} className="px-5 py-4 space-y-4 pb-8">
 

@@ -58,12 +58,14 @@ const RequestDetail   = lazy(() => import('./pages/RequestDetail/RequestDetail')
 const MapPage         = lazy(() => import('./pages/MapPage/MapPage'))
 const PrivacyPolicy   = lazy(() => import('./pages/Legal/PrivacyPolicy'))
 const TermsOfService  = lazy(() => import('./pages/Legal/TermsOfService'))
+const InquiryClaim    = lazy(() => import('./pages/InquiryClaim/InquiryClaim'))
 import { useAppStore } from './store/appStore'
 import { useAuthStore } from './store/authStore'
 import { supabase } from './lib/supabase'
 import { unsubscribeFromWebPush } from './lib/webPush'
 import { useRequestMatchAlerts } from './hooks/useRequestMatchAlerts'
 import { useReadSync } from './lib/useReadSync'
+import ProviderInquiryAlerts from './components/InquiryRaceAlert/ProviderInquiryAlerts'
 
 export default function App() {
   useRequestMatchAlerts()
@@ -181,6 +183,7 @@ export default function App() {
           <Route path="/community/:id" element={<CommunityDetail />} />
           <Route path="/requests/post" element={<PostRequest />} />
           <Route path="/requests/:id" element={<RequestDetail />} />
+          <Route path="/inquiries/:id/claim" element={<InquiryClaim />} />
           <Route path="/map" element={<MapPage />} />
           <Route path="/privacy" element={<PrivacyPolicy />} />
           <Route path="/terms" element={<TermsOfService />} />
@@ -195,6 +198,7 @@ export default function App() {
       {isLoadingDone && <MessageToast />}
       {isLoadingDone && <InstallPWA />}
       {isLoadingDone && <GeofenceBanner />}
+      {isLoadingDone && <ProviderInquiryAlerts />}
       <ToastContainer />
     </>
   )

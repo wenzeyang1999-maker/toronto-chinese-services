@@ -177,6 +177,21 @@ export async function notifyFollowerNewListing(opts: {
   })
 }
 
+export async function notifyInquirySelected(opts: {
+  recipientUserId: string
+  customerName:    string
+  phone:           string
+  wechat:          string
+  categoryLabel:   string
+}) {
+  await notify('inquiry_selected', opts.recipientUserId, {
+    customerName:  opts.customerName,
+    phone:         opts.phone,
+    wechat:        opts.wechat,
+    categoryLabel: opts.categoryLabel,
+  })
+}
+
 export async function notifyAdminPromoRequest(opts: {
   serviceName:   string
   serviceId:     string

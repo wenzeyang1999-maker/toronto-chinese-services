@@ -1,14 +1,28 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.57.4'
 
-const CORS = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+const ALLOWED_ORIGINS = new Set([
+  'https://toronto-chinese-services.vercel.app',
+  'https://huarenq.com',
+  'https://www.huarenq.com',
+  'http://localhost:5173',
+  'http://localhost:4173',
+])
+
+function corsHeaders(origin: string | null) {
+  const allowed = origin && ALLOWED_ORIGINS.has(origin)
+    ? origin
+    : 'https://toronto-chinese-services.vercel.app'
+  return {
+    'Access-Control-Allow-Origin':  allowed,
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  }
 }
 
 const FROM = 'HuaLin <noreply@huarenq.com>'
 const SITE = 'https://toronto-chinese-services.vercel.app'
-const MAX_RECIPIENTS = 5
+// Race mode: notify all matching providers, they race to claim the first 5 slots.
+const MAX_NOTIFY = 20
 
 // Escape user-supplied strings before interpolating them into the email HTML.
 // Without this, a malicious inquiry description like `<img src=x onerror=...>`
@@ -79,8 +93,8 @@ function buildProviderInquiryEmail(recipientName: string, data: InquiryPayload) 
         <tr><td style="padding:10px 14px;color:#6b7280;font-weight:600;">预算</td><td style="padding:10px 14px;color:#111827;">${data.budget ? `$${h(data.budget)}` : '未指定'}</td></tr>
         <tr style="background:#f9fafb;"><td style="padding:10px 14px;color:#6b7280;font-weight:600;">希望时间</td><td style="padding:10px 14px;color:#111827;">${h(data.timing)}</td></tr>
       </table>
-      <p style="color:#6b7280;font-size:13px;">⚡ 建议尽快联系客户，先到先得！同类服务商也可能收到此通知。</p>
-      <a href="${SITE}" style="display:inline-block;margin-top:8px;background:#e63946;color:#fff !important;text-decoration:none;padding:12px 28px;border-radius:10px;font-weight:700;font-size:14px;">登录平台查看更多询价</a>
+      <p style="color:#6b7280;font-size:13px;">⚡ 先到先得！最多 5 名服务商可抢到此单，请尽快登录抢单。</p>
+      <a href="${SITE}/inquiries/${h(data.inquiryId)}/claim" style="display:inline-block;margin-top:8px;background:#e63946;color:#fff !important;text-decoration:none;padding:12px 28px;border-radius:10px;font-weight:700;font-size:14px;">🔥 立即抢单</a>
     </div>
   </div>
 </body>
@@ -89,7 +103,10 @@ function buildProviderInquiryEmail(recipientName: string, data: InquiryPayload) 
 }
 
 Deno.serve(async (req) => {
-  if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS })
+  const origin = req.headers.get('origin')
+  const cors   = corsHeaders(origin)
+
+  if (req.method === 'OPTIONS') return new Response('ok', { headers: cors })
 
   try {
     const url = Deno.env.get('SUPABASE_URL')
@@ -101,18 +118,24 @@ Deno.serve(async (req) => {
     const payload = await req.json() as InquiryPayload
     if (!payload.inquiryId || !payload.categoryId || !payload.name || !payload.phone) {
       return new Response(JSON.stringify({ error: 'missing fields' }), {
-        status: 400, headers: { ...CORS, 'Content-Type': 'application/json' },
+        status: 400, headers: { ...cors, 'Content-Type': 'application/json' },
       })
     }
 
     const admin = createClient(url, serviceRoleKey)
 
+    // Verify inquiry exists and has not been matched already (prevents duplicate sends)
     const { data: inquiry, error: inquiryError } = await admin
       .from('inquiries')
-      .select('id')
+      .select('id, status')
       .eq('id', payload.inquiryId)
       .single()
     if (inquiryError || !inquiry) throw new Error('Inquiry not found')
+    if (inquiry.status === 'matched' || (inquiry as any).race_status === 'filled') {
+      return new Response(JSON.stringify({ sent: 0, total: 0, skipped: 'already_matched' }), {
+        headers: { ...cors, 'Content-Type': 'application/json' },
+      })
+    }
 
     const { data: rows, error } = await admin
       .from('services')
@@ -122,7 +145,7 @@ Deno.serve(async (req) => {
 
     if (error || !rows?.length) {
       return new Response(JSON.stringify({ sent: 0, total: 0 }), {
-        headers: { ...CORS, 'Content-Type': 'application/json' },
+        headers: { ...cors, 'Content-Type': 'application/json' },
       })
     }
 
@@ -161,7 +184,8 @@ Deno.serve(async (req) => {
       return b.rating - a.rating
     })
 
-    const targets = providers.slice(0, MAX_RECIPIENTS)
+    // Race mode: notify all providers (up to MAX_NOTIFY), they click "抢单" to claim.
+    const targets = providers.slice(0, MAX_NOTIFY)
 
     await Promise.all(targets.map(async (provider) => {
       const email = buildProviderInquiryEmail(provider.name, payload)
@@ -190,16 +214,18 @@ Deno.serve(async (req) => {
           email_sent: true,
         }))
       )
-      await admin.from('inquiries').update({ status: 'matched' }).eq('id', payload.inquiryId)
+      // Set race_status = 'open' (not immediately 'matched' — providers race to fill slots)
+      await admin.from('inquiries').update({ race_status: 'open' }).eq('id', payload.inquiryId)
     }
 
     return new Response(JSON.stringify({ sent: targets.length, total: providers.length }), {
-      headers: { ...CORS, 'Content-Type': 'application/json' },
+      headers: { ...cors, 'Content-Type': 'application/json' },
     })
   } catch (err) {
     console.error('match-inquiry-providers error:', err)
-    return new Response(JSON.stringify({ error: String(err) }), {
-      status: 500, headers: { ...CORS, 'Content-Type': 'application/json' },
+    const msg = err instanceof Error ? err.message : String(err)
+    return new Response(JSON.stringify({ error: msg }), {
+      status: 500, headers: { ...cors, 'Content-Type': 'application/json' },
     })
   }
 })

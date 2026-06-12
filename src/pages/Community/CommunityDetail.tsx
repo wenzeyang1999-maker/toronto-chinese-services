@@ -10,6 +10,7 @@ import { notifyAdminCommunityReport } from '../../lib/notify'
 import { toast } from '../../lib/toast'
 import { useAuthStore } from '../../store/authStore'
 import { useReadStore } from '../../store/readStore'
+import SaveButton from '../../components/SaveButton/SaveButton'
 import { POST_TYPE_CONFIG, AREA_CONFIG } from './config'
 
 interface PostDetail {
@@ -150,9 +151,15 @@ export default function CommunityDetail() {
     return () => { supabase.removeChannel(channel) }
   }, [id])
 
+  // Only scroll to bottom when the user sends a new comment (sending→false transition),
+  // not on initial load — visitors should start at the top of the post.
+  const prevSendingRef = useRef(false)
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [comments])
+    if (prevSendingRef.current && !sending) {
+      bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
+    }
+    prevSendingRef.current = sending
+  }, [sending])
 
   async function sendComment() {
     const text = input.trim()
@@ -403,6 +410,7 @@ export default function CommunityDetail() {
                 <MessageCircle size={16} />
                 {comments.length} 条回复
               </span>
+              <SaveButton type="community" id={post.id} size={16} className="text-gray-400" />
               <button
                 onClick={sharePost}
                 className="flex items-center gap-1.5 text-sm font-medium text-gray-400 hover:text-primary-500 transition-colors"

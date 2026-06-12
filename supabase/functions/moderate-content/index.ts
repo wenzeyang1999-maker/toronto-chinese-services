@@ -3,6 +3,8 @@
 // Returns { pass: boolean, reason?: string }
 // Uses Groq llama-3 for fast, cheap classification.
 
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.57.4'
+
 const ALLOWED_ORIGINS = new Set([
   'https://toronto-chinese-services.vercel.app',
   'http://localhost:5173',
@@ -40,6 +42,17 @@ const SYSTEM_PROMPT = `你是一个内容审核 AI，专门为加拿大多伦多
 只返回 JSON，格式严格如下，不要有任何其他文字：
 {"pass":true} 或 {"pass":false,"reason":"具体原因（中文，15字以内）"}`
 
+async function requireAuth(req: Request): Promise<void> {
+  const url     = Deno.env.get('SUPABASE_URL')
+  const anonKey = Deno.env.get('SUPABASE_ANON_KEY')
+  if (!url || !anonKey) throw new Error('Supabase env missing')
+  const client = createClient(url, anonKey, {
+    global: { headers: { Authorization: req.headers.get('Authorization') ?? '' } },
+  })
+  const { data, error } = await client.auth.getUser()
+  if (error || !data.user) throw new Error('Unauthorized')
+}
+
 Deno.serve(async (req: Request) => {
   const origin = req.headers.get('origin')
   const cors   = corsHeaders(origin)
@@ -49,6 +62,8 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
+    await requireAuth(req)
+
     const { text } = await req.json() as { text: string }
     if (!text?.trim()) {
       return new Response(JSON.stringify({ pass: true }), {
@@ -99,7 +114,13 @@ Deno.serve(async (req: Request) => {
       headers: { ...cors, 'Content-Type': 'application/json' },
     })
   } catch (err: unknown) {
-    // Always fail open so a function error doesn't block all publishing
+    const msg = err instanceof Error ? err.message : String(err)
+    if (msg === 'Unauthorized') {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401, headers: { ...cors, 'Content-Type': 'application/json' },
+      })
+    }
+    // Fail open for all other errors so a Groq outage doesn't block all publishing
     console.error('moderate-content error:', err)
     return new Response(JSON.stringify({ pass: true }), {
       headers: { ...cors, 'Content-Type': 'application/json' },

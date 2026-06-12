@@ -5,6 +5,8 @@
 // Sub-tab persists in URL: /plaza?tab=community (default) | events | market | charity
 import { useCallback, useEffect, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
+import CommunityDrawer from '../../components/CommunityDrawer/CommunityDrawer'
+import EventDrawer from '../../components/EventDrawer/EventDrawer'
 import { motion } from 'framer-motion'
 import { Heart, MessageCircle, MapPin, Clock, Calendar } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
@@ -96,6 +98,12 @@ export default function PlazaPage() {
   // ── Read state ──────────────────────────────────────────────────────────────
   const readSet  = useReadStore((s) => s.read)
   const markRead = useReadStore((s) => s.markRead)
+
+  // ── Community drawer ────────────────────────────────────────────────────────
+  const [drawerPostId,  setDrawerPostId]  = useState<string | null>(null)
+
+  // ── Event drawer ─────────────────────────────────────────────────────────────
+  const [drawerEventId, setDrawerEventId] = useState<string | null>(null)
 
   // ── FAB target per tab ──────────────────────────────────────────────────────
   const fabTarget = activeTab === 'community'
@@ -211,7 +219,7 @@ export default function PlazaPage() {
                       initial={{ opacity: 0, y: 12 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: i * 0.03 }}
-                      onClick={() => { markRead('community', post.id); navigate(`/community/${post.id}`) }}
+                      onClick={() => { markRead('community', post.id); setDrawerPostId(post.id) }}
                       className={`break-inside-avoid mb-2.5 bg-white rounded-2xl overflow-hidden
                                  cursor-pointer hover:shadow-md transition-shadow active:scale-[0.98]
                                  ${isRead ? 'opacity-75' : ''}`}
@@ -226,9 +234,15 @@ export default function PlazaPage() {
                         </div>
                       )}
                       <div className="px-3 pt-2 pb-3">
-                        <p className={`text-sm font-semibold line-clamp-2 leading-snug mb-2 ${isRead ? 'text-gray-400' : 'text-gray-900'}`}>
+                        <p className={`text-sm font-semibold line-clamp-2 leading-snug mb-1.5 ${isRead ? 'text-gray-400' : 'text-gray-900'}`}>
                           {post.title}
                         </p>
+                        {post.area && post.area !== 'all' && (
+                          <span className="inline-flex items-center gap-0.5 text-[10px] text-gray-400 bg-gray-50 border border-gray-100 rounded-full px-1.5 py-0.5 mb-1.5">
+                            <MapPin size={9} className="flex-shrink-0" />
+                            {AREA_CONFIG[post.area] ?? post.area}
+                          </span>
+                        )}
                         {!hasImg && (
                           <p className="text-xs text-gray-400 line-clamp-2 leading-relaxed mb-2">
                             {post.content}
@@ -316,7 +330,7 @@ export default function PlazaPage() {
                     key={ev.id}
                     initial={{ opacity: 0, y: 8 }}
                     animate={{ opacity: 1, y: 0 }}
-                    onClick={() => { markRead('event', ev.id); navigate(`/events/${ev.id}`) }}
+                    onClick={() => { markRead('event', ev.id); setDrawerEventId(ev.id) }}
                     className={`bg-white rounded-2xl border border-gray-100 shadow-sm p-4 flex gap-3 cursor-pointer
                                 hover:border-gray-300 hover:shadow-md transition-all
                                 ${past ? 'opacity-60' : ''} ${isRead ? 'opacity-75' : ''}`}
@@ -379,6 +393,16 @@ export default function PlazaPage() {
 
       {/* FAB */}
       {user && fabTarget && <PostFAB onClick={() => navigate(fabTarget)} />}
+
+      {/* Community post drawer */}
+      {drawerPostId && (
+        <CommunityDrawer postId={drawerPostId} onClose={() => setDrawerPostId(null)} />
+      )}
+
+      {/* Event drawer */}
+      {drawerEventId && (
+        <EventDrawer eventId={drawerEventId} onClose={() => setDrawerEventId(null)} />
+      )}
     </div>
   )
 }

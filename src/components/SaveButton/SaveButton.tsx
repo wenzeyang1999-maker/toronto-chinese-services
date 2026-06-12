@@ -6,7 +6,7 @@ import { Heart } from 'lucide-react'
 import { useAuthStore } from '../../store/authStore'
 import { useSavesStore } from '../../store/savesStore'
 
-type TargetType = 'service' | 'job' | 'property' | 'secondhand' | 'event'
+type TargetType = 'service' | 'job' | 'property' | 'secondhand' | 'event' | 'community'
 
 interface Props {
   type:  TargetType

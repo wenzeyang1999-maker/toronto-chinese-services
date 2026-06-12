@@ -45,8 +45,12 @@ async function fetchServicesSummary(): Promise<string> {
     })
 
     const label: Record<string, string> = {
-      moving: '搬家', cleaning: '保洁', ride: '接送',
-      renovation: '装修', cashwork: '现金工', food: '餐饮', other: '其他服务',
+      moving: '搬家', cleaning: '保洁', ride: '接送', renovation: '装修',
+      cashwork: '现金工', food: '餐饮', tax: '报税', legal: '法律',
+      immigration: '移民', tutoring: '补课/教学', beauty: '美容美发',
+      tcm: '中医推拿', pet: '宠物', photo: '摄影', translation: '翻译',
+      it: 'IT维修', driving: '驾校', lawn: '园艺除雪', childcare: '育儿保姆',
+      insurance: '保险', other: '其他服务',
     }
     const grouped: Record<string, string[]> = {}
     for (const r of rows) {

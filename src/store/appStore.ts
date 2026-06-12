@@ -49,6 +49,7 @@ export interface ServiceRow {
     wechat: string | null
     avatar_url: string | null
     last_seen_at: string | null
+    created_at: string | null
   } | null
   reviews: { rating: number }[] | null
 }
@@ -105,7 +106,7 @@ export function mapRow(row: ServiceRow): Service {
         : 0,
       reviewCount: row.reviews?.length ?? 0,
       verified: row.is_verified ?? false,
-      joinedAt: row.created_at?.slice(0, 10) ?? '',
+      joinedAt: row.provider?.created_at?.slice(0, 10) ?? row.created_at?.slice(0, 10) ?? '',
       lastSeenAt: row.provider?.last_seen_at ?? null,
       languages: ['中文'],
     },
@@ -196,7 +197,7 @@ export const useAppStore = create<AppState>((set, get) => ({
 
     const { data, error } = await supabase
       .from('services')
-      .select('*, provider:users(id, name, avatar_url, last_seen_at), reviews(rating)')
+      .select('*, provider:users(id, name, avatar_url, last_seen_at, created_at), reviews(rating)')
       .eq('is_available', true)
       .order('created_at', { ascending: false })
       .range(offset, offset + SERVICES_PAGE_SIZE - 1)
@@ -219,7 +220,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     // Uses trigram GIN index for fast ILIKE — fts_search_patch.sql must be applied
     const { data, error } = await supabase
       .from('services')
-      .select('*, provider:users(id, name, avatar_url, last_seen_at), reviews(rating)')
+      .select('*, provider:users(id, name, avatar_url, last_seen_at, created_at), reviews(rating)')
       .eq('is_available', true)
       .or(`title.ilike.%${kw}%,description.ilike.%${kw}%`)
       .order('created_at', { ascending: false })

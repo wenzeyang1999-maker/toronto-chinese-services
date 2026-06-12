@@ -64,6 +64,7 @@ function buildSearchUrl(query: string, active: SectionId | null, global: boolean
   if (active === 'jobs')        return `/jobs?keyword=${q}`
   if (active === 'secondhand')  return `/secondhand?keyword=${q}`
   if (active === 'realestate')  return `/realestate?keyword=${q}`
+  if (active === 'services')    return `/search?q=${q}`
   return `/search-all?q=${q}`
 }
 
@@ -111,8 +112,8 @@ export default function Header({ sticky = true }: HeaderProps) {
               <button
                 key={sec.id}
                 onClick={() => navigate(sec.href)}
-                className={`relative px-3 py-2 text-sm font-semibold rounded-lg transition-colors whitespace-nowrap
-                  ${isActive ? 'text-primary-600' : 'text-gray-500 hover:text-gray-800 hover:bg-gray-50'}`}
+                className={`relative px-3 py-2 text-sm rounded-lg transition-colors whitespace-nowrap
+                  ${isActive ? 'text-primary-600 font-bold' : 'font-semibold text-gray-500 hover:text-gray-800 hover:bg-gray-50'}`}
               >
                 {sec.label}
                 {isActive && (
@@ -211,8 +212,8 @@ export default function Header({ sticky = true }: HeaderProps) {
             <button
               key={sec.id}
               onClick={() => navigate(sec.href)}
-              className={`relative flex-shrink-0 px-4 py-2 text-xs font-semibold transition-colors whitespace-nowrap
-                ${isActive ? 'text-primary-600' : 'text-gray-500 hover:text-gray-700'}`}
+              className={`relative flex-shrink-0 px-4 py-2 text-xs transition-colors whitespace-nowrap
+                ${isActive ? 'text-primary-600 font-bold' : 'font-semibold text-gray-500 hover:text-gray-700'}`}
             >
               {sec.label}
               {isActive && (

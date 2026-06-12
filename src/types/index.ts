@@ -19,6 +19,8 @@ export type ServiceCategory =
   | 'lawn'
   | 'childcare'
   | 'insurance'
+  | 'handyman'
+  | 'junk'
   | 'other'
 
 export interface Location {

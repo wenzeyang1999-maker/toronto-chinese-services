@@ -150,6 +150,15 @@ const BUILTIN_SERVICES: ServiceSuggestion[] = [
   { name: '花园园艺',       category: 'lawn',        tags: ['花园','园艺','除草','landscaping','草坪'] },
   { name: '除雪服务',       category: 'lawn',        tags: ['除雪','铲雪','snow','冬天','shoveling'] },
   { name: '割草坪',         category: 'lawn',        tags: ['割草','草坪','lawn','庭院'] },
+  // 综合维修
+  { name: '小修小补',       category: 'handyman',    tags: ['维修','修理','小修','handyman','上门'] },
+  { name: '家电维修',       category: 'handyman',    tags: ['家电','维修','冰箱','洗衣机','空调'] },
+  { name: '家具组装',       category: 'handyman',    tags: ['组装','家具','ikea','宜家','安装'] },
+  { name: '换门锁换灯泡',   category: 'handyman',    tags: ['门锁','灯泡','更换','修理','安装'] },
+  // 垃圾清运
+  { name: '大件垃圾清运',   category: 'junk',        tags: ['垃圾','清运','搬走','旧家具','废品'] },
+  { name: '旧家具处理',     category: 'junk',        tags: ['旧家具','处理','清理','搬走','disposal'] },
+  { name: '建筑废料清运',   category: 'junk',        tags: ['建筑','废料','清运','debris','renovation'] },
   // 其他
   { name: '室内设计',       category: 'other',       tags: ['室内','设计','装饰','interior'] },
   { name: '婚庆策划',       category: 'other',       tags: ['婚庆','婚礼','策划','wedding'] },
@@ -159,7 +168,7 @@ const BUILTIN_SERVICES: ServiceSuggestion[] = [
   { name: '心理咨询',       category: 'other',       tags: ['心理','咨询','counseling','辅导'] },
 ]
 
-const MAIN_CAT_IDS = ['moving', 'cleaning', 'ride', 'renovation', 'cashwork', 'food', 'tax', 'legal', 'immigration', 'tutoring', 'beauty', 'tcm', 'pet', 'photo', 'translation', 'it', 'driving', 'lawn', 'childcare', 'insurance']
+const MAIN_CAT_IDS = ['moving', 'cleaning', 'ride', 'renovation', 'handyman', 'cashwork', 'food', 'tax', 'legal', 'immigration', 'tutoring', 'beauty', 'tcm', 'pet', 'photo', 'translation', 'it', 'driving', 'lawn', 'childcare', 'insurance', 'junk']
 
 const TORONTO_AREAS = [
   // ── Greater Toronto Area ──
