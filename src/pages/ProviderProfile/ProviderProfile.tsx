@@ -3,7 +3,7 @@
 // Shows a provider's public info + all their active listings.
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ArrowLeft, CheckCircle2, Clock, ExternalLink, MessageSquare, Phone, ShieldCheck, Star, Briefcase, MapPin, BadgeCheck, Wifi } from 'lucide-react'
+import { ArrowLeft, CheckCircle2, Clock, ExternalLink, MessageSquare, Phone, ShieldCheck, Star, MapPin, BadgeCheck, Wifi } from 'lucide-react'
 import { toast } from '../../lib/toast'
 import { motion, AnimatePresence } from 'framer-motion'
 import { supabase } from '../../lib/supabase'
@@ -23,6 +23,8 @@ import { EVENT_TYPE_CONFIG, getPriceLabel as getEventPriceLabel, formatEventDate
 import type { Event } from '../Events/types'
 import { SOCIAL_PLATFORMS } from '../../lib/socialPlatforms'
 import { ProviderProfileSkeleton } from '../../components/Skeleton/Skeleton'
+import ImgFallback from '../../components/ImgFallback/ImgFallback'
+import PageMeta from '../../components/PageMeta/PageMeta'
 
 interface ProviderUser {
   id: string
@@ -262,6 +264,10 @@ export default function ProviderProfile() {
 
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
+      <PageMeta
+        title={`${provider.name} — 华林服务商`}
+        description={provider.bio ?? `查看 ${provider.name} 的服务、招聘、房源和闲置信息`}
+      />
 
       {/* Top bar */}
       <div className="sticky top-0 z-20 bg-white border-b border-gray-200 px-4 h-14 flex items-center gap-3">
@@ -280,8 +286,17 @@ export default function ProviderProfile() {
           {/* Avatar + name row */}
           <div className="flex items-center gap-4">
             {provider.avatar_url ? (
-              <img src={provider.avatar_url} alt={provider.name}
-                className="w-20 h-20 rounded-full object-cover flex-shrink-0 border border-gray-100" />
+              <ImgFallback
+                src={provider.avatar_url}
+                alt={provider.name}
+                className="w-20 h-20 rounded-full object-cover flex-shrink-0 border border-gray-100"
+                fallback={
+                  <div className="w-20 h-20 rounded-full bg-gradient-to-br from-primary-400 to-primary-600
+                                  flex items-center justify-center text-white font-bold text-3xl flex-shrink-0">
+                    {provider.name.charAt(0)}
+                  </div>
+                }
+              />
             ) : (
               <div className="w-20 h-20 rounded-full bg-gradient-to-br from-primary-400 to-primary-600
                               flex items-center justify-center text-white font-bold text-3xl flex-shrink-0">
@@ -329,37 +344,37 @@ export default function ProviderProfile() {
                 </span>
               </div>
 
-              {/* Verification badges */}
-              <div className="flex flex-wrap gap-2 mt-2">
-                <span className={`flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-medium
-                  ${provider.is_email_verified ? 'text-green-600 bg-green-50' : 'text-gray-400 bg-gray-100'}`}>
-                  <CheckCircle2 size={10} />
-                  邮箱{provider.is_email_verified ? '已验证' : '未验证'}
-                </span>
-                <span className={`flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-medium
-                  ${provider.phone_verified ? 'text-green-600 bg-green-50' : 'text-gray-400 bg-gray-100'}`}>
-                  <CheckCircle2 size={10} />
-                  手机{provider.phone_verified ? '已验证' : '未验证'}
-                </span>
-                {services.length > 0 && (
-                  <span className="flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-medium text-blue-600 bg-blue-50">
-                    <ShieldCheck size={10} />
-                    {services.length} 项服务
-                  </span>
-                )}
-                {jobs.length > 0 && (
-                  <span className="flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-medium text-purple-600 bg-purple-50">
-                    <Briefcase size={10} />
-                    {jobs.length} 个职位
-                  </span>
-                )}
-                {provider.business_verified && (
-                  <span className="flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-medium text-blue-600 bg-blue-50 border border-blue-200">
-                    <BadgeCheck size={10} />
-                    已认证商户
-                  </span>
-                )}
-              </div>
+              {/* Trust bar — positive signals only, matches ServiceCard badge colours */}
+              {(provider.business_verified || provider.phone_verified ||
+                provider.is_email_verified || provider.qualification_images.length > 0) && (
+                <div className="mt-2.5 pt-2.5 border-t border-gray-100">
+                  <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-1.5">
+                    认证信息
+                  </p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {provider.business_verified && (
+                      <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-full bg-amber-50 text-amber-700 border border-amber-200">
+                        <BadgeCheck size={11} /> 商户认证
+                      </span>
+                    )}
+                    {provider.phone_verified && (
+                      <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-full bg-sky-50 text-sky-600 border border-sky-200">
+                        <Phone size={11} /> 手机已验证
+                      </span>
+                    )}
+                    {provider.is_email_verified && (
+                      <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-600 border border-emerald-200">
+                        <CheckCircle2 size={11} /> 邮箱已验证
+                      </span>
+                    )}
+                    {provider.qualification_images.length > 0 && (
+                      <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-full bg-violet-50 text-violet-600 border border-violet-200">
+                        <ShieldCheck size={11} /> {provider.qualification_images.length} 张资质证书
+                      </span>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
@@ -402,7 +417,8 @@ export default function ProviderProfile() {
                       rel="noopener noreferrer"
                       className="relative aspect-square rounded-xl overflow-hidden border border-gray-200 bg-gray-50 hover:opacity-90 transition-opacity"
                     >
-                      <img src={url} alt={`资质与设备 ${i + 1}`} loading="lazy" className="w-full h-full object-cover" />
+                      <img src={url} alt={`资质与设备 ${i + 1}`} loading="lazy" className="w-full h-full object-cover"
+                        onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
                     </a>
                   ))}
                 </div>
@@ -511,8 +527,13 @@ export default function ProviderProfile() {
                   {svc.images.length > 0 && (
                     <button onClick={() => navigate(`/service/${svc.id}`)} className="w-full text-left block">
                       <div className="w-full aspect-square overflow-hidden">
-                        <img src={svc.images[0]} alt={svc.title}
-                          className="w-full h-full object-cover hover:scale-105 transition-transform duration-300" />
+                        <ImgFallback
+                          src={svc.images[0]}
+                          alt={svc.title}
+                          className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+                          loading="lazy"
+                          fallback={<div className="w-full h-full bg-gray-100 flex items-center justify-center text-3xl">🔧</div>}
+                        />
                       </div>
                     </button>
                   )}
@@ -664,7 +685,13 @@ export default function ProviderProfile() {
                 >
                   <div className="w-20 h-20 flex-shrink-0 bg-gray-100 overflow-hidden">
                     {p.images.length > 0
-                      ? <img src={p.images[0]} alt={p.title} className="w-full h-full object-cover" />
+                      ? <ImgFallback
+                          src={p.images[0]}
+                          alt={p.title}
+                          className="w-full h-full object-cover"
+                          loading="lazy"
+                          fallback={<div className="w-full h-full flex items-center justify-center text-2xl">{PROPERTY_TYPE_CONFIG[p.property_type].emoji}</div>}
+                        />
                       : <div className="w-full h-full flex items-center justify-center text-2xl">{PROPERTY_TYPE_CONFIG[p.property_type].emoji}</div>
                     }
                   </div>
@@ -705,7 +732,13 @@ export default function ProviderProfile() {
                 >
                   <div className="aspect-square bg-gray-100 overflow-hidden">
                     {item.images.length > 0
-                      ? <img src={item.images[0]} alt={item.title} className="w-full h-full object-cover" />
+                      ? <ImgFallback
+                          src={item.images[0]}
+                          alt={item.title}
+                          className="w-full h-full object-cover"
+                          loading="lazy"
+                          fallback={<div className="w-full h-full flex items-center justify-center text-3xl">{SECONDHAND_CATEGORY_CONFIG[item.category].emoji}</div>}
+                        />
                       : <div className="w-full h-full flex items-center justify-center text-3xl">
                           {SECONDHAND_CATEGORY_CONFIG[item.category].emoji}
                         </div>

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useSearchParams, useNavigate } from 'react-router-dom'
-import { ArrowLeft, Search as SearchIcon, SlidersHorizontal, Sparkles, MessageSquare, Heart, LayoutList, Map } from 'lucide-react'
+import { ArrowLeft, Search as SearchIcon, SlidersHorizontal, Sparkles, MessageSquare, Heart, LayoutList, Map, Bell, BellOff } from 'lucide-react'
 import { motion } from 'framer-motion'
 import ServiceCard from '../../components/ServiceCard/ServiceCard'
 import ServiceMap from '../../components/ServiceMap/ServiceMap'
@@ -16,6 +16,14 @@ import SearchEmptyState from './components/SearchEmptyState'
 import { supabase } from '../../lib/supabase'
 import { POST_TYPE_CONFIG } from '../Community/config'
 import { expandSemanticSearch } from '../../lib/aiTools'
+import PageMeta from '../../components/PageMeta/PageMeta'
+import { useAuthStore } from '../../store/authStore'
+import { subscribeToWebPush } from '../../lib/webPush'
+import { toast } from '../../lib/toast'
+import {
+  getSavedSearches, saveSearch, removeSavedSearch,
+  isSavedSearch, markSearchSeen,
+} from '../../lib/savedSearches'
 
 interface CommunityResult {
   id: string
@@ -49,9 +57,11 @@ export default function Search() {
   const fetchServicesByKeyword = useAppStore((s) => s.fetchServicesByKeyword)
   const storeServices          = useAppStore((s) => s.services)
 
+  const user = useAuthStore((s) => s.user)
   const [localQuery, setLocalQuery] = useState(searchParams.get('q') ?? '')
   const [showFilters, setShowFilters] = useState(false)
   const [inquiryOpen, setInquiryOpen] = useState(false)
+  const [savedSearches, setSavedSearches] = useState(getSavedSearches)
   const [viewMode, setViewMode] = useState<'list' | 'map'>('list')
   const [communityResults, setCommunityResults] = useState<CommunityResult[]>([])
   const [communityLoading, setCommunityLoading] = useState(false)
@@ -140,6 +150,46 @@ export default function Search() {
     setSearchFilters({ keyword: localQuery || undefined })
   }
 
+  const query = searchParams.get('q') ?? ''
+  const currentCategory = searchFilters.category
+
+  // Mark saved search as seen when the user lands on a matching query
+  useEffect(() => {
+    if (!query) return
+    const match = savedSearches.find(
+      s => s.keyword.toLowerCase() === query.toLowerCase() && s.category === currentCategory
+    )
+    if (match && match.newCount > 0) {
+      markSearchSeen(match.id)
+      setSavedSearches(getSavedSearches())
+    }
+  }, [query, currentCategory])
+
+  const currentlySaved = savedSearches.some(
+    s => s.keyword.toLowerCase() === query.toLowerCase() && s.category === currentCategory
+  )
+
+  async function handleToggleSave() {
+    if (!query) return
+    if (currentlySaved) {
+      const match = savedSearches.find(
+        s => s.keyword.toLowerCase() === query.toLowerCase() && s.category === currentCategory
+      )
+      if (match) removeSavedSearch(match.id)
+      setSavedSearches(getSavedSearches())
+      toast('已取消订阅', 'success')
+    } else {
+      saveSearch(query, currentCategory)
+      setSavedSearches(getSavedSearches())
+      toast('搜索已订阅，有新结果时在通知中心提醒你', 'success')
+      // Request push permission and subscribe if user is logged in
+      if (user && 'Notification' in window) {
+        const perm = await Notification.requestPermission()
+        if (perm === 'granted') subscribeToWebPush(user.id)
+      }
+    }
+  }
+
   const handleCategorySelect = (catId: string | undefined) => {
     const next = searchFilters.category === catId ? undefined : catId
     const params: Record<string, string> = {}
@@ -169,6 +219,7 @@ export default function Search() {
 
   return (
     <div className="min-h-[100dvh] bg-gray-50">
+      <PageMeta title="服务搜索" description="搜索多伦多华人服务：搬家、保洁、装修、接送、育儿等，找到靠谱服务商" />
       <Header />
       <InquiryModal open={inquiryOpen} onClose={() => setInquiryOpen(false)} />
 
@@ -327,22 +378,40 @@ export default function Search() {
           hasLocation={!!userLocation}
           sortBy={searchFilters.sortBy}
         />
-        {(semanticLoading || semanticTerms.length > 0) && localQuery.trim() && (
-          <div className="mb-3 flex flex-wrap items-center gap-2">
-            <span className="text-[11px] font-semibold text-gray-400">语义联想</span>
-            {semanticLoading && <span className="text-[11px] text-gray-400">生成中…</span>}
-            {semanticTerms.map((term) => (
-              <button
-                key={term}
-                onClick={() => {
-                  setLocalQuery(term)
-                  setSearchParams(searchFilters.category ? { q: term, cat: searchFilters.category } : { q: term })
-                }}
-                className="text-[11px] px-2.5 py-1 rounded-full bg-primary-50 text-primary-600 hover:bg-primary-100 transition-colors"
-              >
-                {term}
-              </button>
-            ))}
+        {query && (
+          <div className="mb-3 flex items-center justify-between gap-2">
+            <div className="flex flex-wrap items-center gap-2 flex-1 min-w-0">
+              {(semanticLoading || semanticTerms.length > 0) && (
+                <>
+                  <span className="text-[11px] font-semibold text-gray-400">语义联想</span>
+                  {semanticLoading && <span className="text-[11px] text-gray-400">生成中…</span>}
+                  {semanticTerms.map((term) => (
+                    <button
+                      key={term}
+                      onClick={() => {
+                        setLocalQuery(term)
+                        setSearchParams(searchFilters.category ? { q: term, cat: searchFilters.category } : { q: term })
+                      }}
+                      className="text-[11px] px-2.5 py-1 rounded-full bg-primary-50 text-primary-600 hover:bg-primary-100 transition-colors"
+                    >
+                      {term}
+                    </button>
+                  ))}
+                </>
+              )}
+            </div>
+            <button
+              onClick={handleToggleSave}
+              className={`flex-shrink-0 flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-full border transition-colors ${
+                currentlySaved
+                  ? 'bg-amber-50 text-amber-600 border-amber-200 hover:bg-amber-100'
+                  : 'bg-gray-50 text-gray-500 border-gray-200 hover:bg-gray-100'
+              }`}
+            >
+              {currentlySaved
+                ? <><BellOff size={10} /> 已订阅</>
+                : <><Bell size={10} /> 订阅通知</>}
+            </button>
           </div>
         )}
         <SearchFilterSummary
@@ -415,7 +484,8 @@ export default function Search() {
                       <div className="flex items-center gap-2 mb-2">
                         {p.avatar_url ? (
                           <img src={p.avatar_url} alt={p.name}
-                            className="w-9 h-9 rounded-full object-cover flex-shrink-0 border border-gray-100" />
+                            className="w-9 h-9 rounded-full object-cover flex-shrink-0 border border-gray-100"
+                            onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
                         ) : (
                           <div className="w-9 h-9 rounded-full bg-gradient-to-br from-primary-400 to-primary-600
                                           flex items-center justify-center text-white font-bold text-sm flex-shrink-0">

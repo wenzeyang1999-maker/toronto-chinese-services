@@ -1,10 +1,16 @@
 // ─── Notification Preferences ─────────────────────────────────────────────────
 // Lets users toggle which push events they want to receive.
 import { useEffect, useState } from 'react'
-import { Bell, MessageSquare, ClipboardList, Star, Megaphone } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import { Bell, MessageSquare, ClipboardList, Star, Megaphone, Search as SearchIcon, Trash2 } from 'lucide-react'
 import { supabase } from '../../../lib/supabase'
 import { useAuthStore } from '../../../store/authStore'
 import { toast } from '../../../lib/toast'
+import {
+  getSavedSearches,
+  removeSavedSearch,
+  type SavedSearch,
+} from '../../../lib/savedSearches'
 
 interface NotifPrefs {
   messages:      boolean
@@ -53,11 +59,13 @@ const PREF_CONFIG: {
 ]
 
 export default function NotificationsSection() {
-  const user = useAuthStore((s) => s.user)
+  const user     = useAuthStore((s) => s.user)
+  const navigate = useNavigate()
   const [prefs,   setPrefs]   = useState<NotifPrefs>(DEFAULT_PREFS)
   const [loading, setLoading] = useState(true)
   const [saving,  setSaving]  = useState(false)
   const [permState, setPermState] = useState<NotificationPermission | 'unsupported'>('default')
+  const [savedSearches, setSavedSearches] = useState<SavedSearch[]>(() => getSavedSearches())
 
   useEffect(() => {
     if (typeof window !== 'undefined' && 'Notification' in window) {
@@ -92,6 +100,12 @@ export default function NotificationsSection() {
     }
   }
 
+  function handleRemoveSavedSearch(id: string) {
+    removeSavedSearch(id)
+    setSavedSearches(getSavedSearches())
+    toast('已取消订阅', 'success')
+  }
+
   async function requestPermission() {
     if (!('Notification' in window)) return
     const result = await Notification.requestPermission()
@@ -101,7 +115,21 @@ export default function NotificationsSection() {
 
   if (loading) {
     return (
-      <div className="p-6 text-center text-gray-400 text-sm">加载中…</div>
+      <div className="space-y-3 p-4">
+        <div className="bg-white rounded-2xl border border-gray-100 p-5 animate-pulse">
+          <div className="h-4 bg-gray-100 rounded w-1/2 mb-4" />
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="flex items-center gap-3 py-3 border-t border-gray-50">
+              <div className="w-9 h-9 bg-gray-100 rounded-xl flex-shrink-0" />
+              <div className="flex-1">
+                <div className="h-3.5 bg-gray-100 rounded w-2/3 mb-1.5" />
+                <div className="h-3 bg-gray-100 rounded w-1/2" />
+              </div>
+              <div className="w-11 h-6 bg-gray-100 rounded-full flex-shrink-0" />
+            </div>
+          ))}
+        </div>
+      </div>
     )
   }
 
@@ -168,6 +196,51 @@ export default function NotificationsSection() {
       <p className="text-xs text-gray-400 px-1">
         推送通知需要浏览器权限支持。Safari / iOS 需在"添加到主屏幕"后才能收到推送。
       </p>
+
+      {/* ── Saved Searches ─────────────────────────────────────────────────── */}
+      <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-5">
+        <div className="flex items-center gap-3 mb-1">
+          <SearchIcon size={20} className="text-primary-500" />
+          <h2 className="text-base font-semibold text-gray-900">已订阅的搜索</h2>
+        </div>
+        <p className="text-xs text-gray-400 mb-4">有新的匹配结果时在通知中心提醒你</p>
+
+        {savedSearches.length === 0 ? (
+          <p className="text-sm text-gray-400 text-center py-4">
+            暂无订阅。在搜索页点击"订阅通知"即可添加。
+          </p>
+        ) : (
+          <div className="divide-y divide-gray-50">
+            {savedSearches.map(s => (
+              <div key={s.id} className="flex items-center gap-3 py-3">
+                <button
+                  onClick={() => navigate(`/search?q=${encodeURIComponent(s.keyword)}${s.category ? `&cat=${s.category}` : ''}`)}
+                  className="flex-1 min-w-0 text-left"
+                >
+                  <div className="flex items-center gap-2 min-w-0">
+                    <p className="text-sm font-medium text-gray-800 truncate">{s.label}</p>
+                    {s.newCount > 0 && (
+                      <span className="flex-shrink-0 text-[10px] font-bold bg-red-500 text-white px-1.5 py-0.5 rounded-full">
+                        {s.newCount > 99 ? '99+' : s.newCount} 新
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-gray-400 mt-0.5">
+                    订阅于 {new Date(s.createdAt).toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' })}
+                  </p>
+                </button>
+                <button
+                  onClick={() => handleRemoveSavedSearch(s.id)}
+                  className="flex-shrink-0 p-2 text-gray-300 hover:text-red-400 transition-colors rounded-lg"
+                  aria-label="取消订阅"
+                >
+                  <Trash2 size={15} />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   )
 }

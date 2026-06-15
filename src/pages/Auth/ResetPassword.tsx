@@ -13,6 +13,7 @@ import { useNavigate, Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { Lock, Eye, EyeOff, CheckCircle, ChevronLeft } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
+import HuaLinLogo from '../../components/Logo/HuaLinLogo'
 
 // ── Read URL BEFORE Supabase clears the hash (module-level, runs once) ────────
 const _hash   = new URLSearchParams(window.location.hash.replace(/^#/, ''))
@@ -114,9 +115,7 @@ export default function ResetPassword() {
         <Link to="/login" className="text-gray-500 hover:text-gray-800 transition-colors">
           <ChevronLeft size={22} />
         </Link>
-        <div className="w-7 h-7 rounded-full bg-primary-600 flex items-center justify-center text-white font-bold text-sm">
-          T
-        </div>
+        <HuaLinLogo variant="icon" size={28} />
       </div>
 
       <div className="flex-1 flex items-center justify-center px-4 py-10">

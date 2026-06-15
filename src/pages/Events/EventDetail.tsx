@@ -30,6 +30,7 @@ export default function EventDetail() {
   const [imgIdx,  setImgIdx]  = useState(0)
   useEffect(() => { setImgIdx(0) }, [id])
   const [copied,  setCopied]  = useState(false)
+  const [failedImgs, setFailedImgs] = useState<Set<number>>(new Set())
 
   useEffect(() => {
     if (!id) return
@@ -101,7 +102,18 @@ export default function EventDetail() {
           {ev.images.length > 0 ? (
             <div>
               <div className="aspect-video overflow-hidden bg-gray-100">
-                <img src={ev.images[imgIdx]} alt={ev.title} className="w-full h-full object-cover" />
+                {failedImgs.has(imgIdx) ? (
+                  <div className="w-full h-full flex items-center justify-center text-8xl bg-gray-50">
+                    {cfg?.emoji}
+                  </div>
+                ) : (
+                  <img
+                    src={ev.images[imgIdx]}
+                    alt={ev.title}
+                    className="w-full h-full object-cover"
+                    onError={() => setFailedImgs((s) => new Set(s).add(imgIdx))}
+                  />
+                )}
               </div>
               {ev.images.length > 1 && (
                 <div className="flex gap-2 px-4 py-3 overflow-x-auto bg-white">
@@ -111,7 +123,18 @@ export default function EventDetail() {
                         imgIdx === i ? 'border-primary-500' : 'border-transparent'
                       }`}
                     >
-                      <img src={img} alt="" className="w-full h-full object-cover" />
+                      {failedImgs.has(i) ? (
+                        <div className="w-full h-full bg-gray-100 flex items-center justify-center text-xl">
+                          {cfg?.emoji}
+                        </div>
+                      ) : (
+                        <img
+                          src={img}
+                          alt=""
+                          className="w-full h-full object-cover"
+                          onError={() => setFailedImgs((s) => new Set(s).add(i))}
+                        />
+                      )}
                     </button>
                   ))}
                 </div>
@@ -197,7 +220,8 @@ export default function EventDetail() {
                              cursor-pointer ring-2 ring-primary-200 hover:ring-primary-400 transition-all"
                 >
                   {ev.poster?.avatar_url
-                    ? <img src={ev.poster.avatar_url} alt={ev.contact_name} className="w-full h-full rounded-full object-cover" />
+                    ? <img src={ev.poster.avatar_url} alt={ev.contact_name} className="w-full h-full rounded-full object-cover"
+                        onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
                     : <User size={18} className="text-primary-600" />
                   }
                 </div>

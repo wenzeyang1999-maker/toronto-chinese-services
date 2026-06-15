@@ -270,6 +270,30 @@ export default function ConversationPage() {
 
   if (!user) return null
 
+  // Show skeleton until conv metadata arrives
+  if (!conv) return (
+    <div className="min-h-[100dvh] bg-gray-100 lg:flex lg:items-start lg:justify-center lg:py-6">
+    <div className="bg-gray-50 flex flex-col min-h-[100dvh] lg:min-h-0 lg:h-[90vh] lg:w-full lg:max-w-2xl lg:rounded-2xl lg:shadow-xl lg:overflow-hidden">
+      <div className="bg-white border-b border-gray-100 px-4 h-14 flex items-center gap-3 sticky top-0 z-10 animate-pulse">
+        <button onClick={() => navigate(-1)} className="text-gray-500"><ChevronLeft size={22} /></button>
+        <div className="flex-1 space-y-1.5">
+          <div className="h-3.5 bg-gray-200 rounded w-28" />
+          <div className="h-3 bg-gray-100 rounded w-20" />
+        </div>
+      </div>
+      <div className="flex-1 flex items-center justify-center text-gray-400 text-sm">
+        <div className="animate-pulse space-y-3 px-4 w-full">
+          {[80, 60, 75].map((w, i) => (
+            <div key={i} className={`flex ${i % 2 === 0 ? 'justify-start' : 'justify-end'}`}>
+              <div className="h-10 bg-gray-200 rounded-2xl" style={{ width: `${w}%` }} />
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+    </div>
+  )
+
   return (
     <>
     <div className="min-h-[100dvh] bg-gray-100 lg:flex lg:items-start lg:justify-center lg:py-6">
@@ -356,6 +380,12 @@ export default function ConversationPage() {
                     alt="完工照片"
                     className="w-full max-w-[240px] object-cover cursor-pointer"
                     onClick={() => window.open(msg.content.slice(7), '_blank')}
+                    onError={e => {
+                      const el = e.target as HTMLImageElement
+                      el.style.display = 'none'
+                      el.parentElement?.insertAdjacentHTML('afterbegin',
+                        '<div class="w-full max-w-[240px] h-24 flex items-center justify-center text-xs text-gray-400 bg-gray-100">图片加载失败</div>')
+                    }}
                   />
                   <div className={`px-3 py-1.5 flex items-center justify-between gap-2 text-xs
                     ${isMine ? 'bg-primary-600 text-blue-200' : 'bg-white text-gray-400'}`}

@@ -12,6 +12,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuthStore } from '../../store/authStore'
 import HomeActionHero from './components/HomeActionHero'
 import HomeServiceShelf from './components/HomeServiceShelf'
+import HomeFollowingFeed from './components/HomeFollowingFeed'
 import { RADIUS_MIN_KM, RADIUS_MAX_KM } from '../../components/RadiusSlider/RadiusSlider'
 import { PlusCircle, Search as SearchIcon, ChevronRight, Sparkles, Megaphone, ArrowRight } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
@@ -36,7 +37,7 @@ export default function Home() {
   const [searchQuery, setSearchQuery]  = useState('')
   const [viewMode, setViewMode] = useState<'list' | 'map'>(() => {
     const saved = localStorage.getItem('tcs_view_mode')
-    return saved === 'list' || saved === 'map' ? saved : 'map'
+    return saved === 'list' || saved === 'map' ? saved : 'list'
   })
   const searchRef = useRef<HTMLDivElement>(null)
 
@@ -363,7 +364,8 @@ export default function Home() {
                 </button>
               </div>
             )}
-            <RecommendedServices />
+            <HomeFollowingFeed />
+            <RecommendedServices excludeIds={recent.map(s => s.id)} />
           </>
         )}
 

@@ -56,6 +56,7 @@ export default function PostListing() {
   const [submitting,  setSubmitting]  = useState(false)
   const [uploadingImg, setUploadingImg] = useState(false)
   const [done,        setDone]        = useState(false)
+  const [submitError, setSubmitError] = useState<string | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => { if (!user) navigate('/login') }, [user, navigate])
@@ -130,6 +131,7 @@ export default function PostListing() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!user || !validate()) return
+    setSubmitError(null)
     setSubmitting(true)
 
     const modResult = await moderateContent({ title: form.title, description: form.description })
@@ -147,7 +149,7 @@ export default function PostListing() {
         .from('service-images')
         .upload(path, file, { upsert: true })
       if (uploadErr) {
-        setErrors({ title: `图片上传失败：${uploadErr.message}` })
+        setSubmitError('图片上传失败，请检查网络后重试')
         setSubmitting(false)
         return
       }
@@ -184,7 +186,8 @@ export default function PostListing() {
     setSubmitting(false)
 
     if (error) {
-      setErrors({ title: `发布失败：${error.message}` })
+      setSubmitError('发布失败，请稍后重试')
+      setSubmitting(false)
       return
     }
 
@@ -421,6 +424,11 @@ export default function PostListing() {
         </Card>
 
         {/* Submit */}
+        {submitError && (
+          <div className="rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 mb-2">
+            {submitError}
+          </div>
+        )}
         <motion.button
           type="submit"
           disabled={submitting || uploadingImg}

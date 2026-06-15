@@ -25,7 +25,9 @@ export default function RealEstateDetail() {
   const [prop,    setProp]    = useState<Property | null>(null)
   const [loading, setLoading] = useState(true)
   const [imgIdx,  setImgIdx]  = useState(0)
+  useEffect(() => { setImgIdx(0) }, [id])
   const [copied,  setCopied]  = useState(false)
+  const [failedImgs, setFailedImgs] = useState<Set<number>>(new Set())
 
   useEffect(() => {
     if (!id) return
@@ -95,7 +97,18 @@ export default function RealEstateDetail() {
           {prop.images.length > 0 ? (
             <div>
               <div className="aspect-video overflow-hidden bg-gray-100">
-                <img src={prop.images[imgIdx]} alt={prop.title} className="w-full h-full object-cover" />
+                {failedImgs.has(imgIdx) ? (
+                  <div className="w-full h-full flex items-center justify-center text-8xl bg-gray-50">
+                    {PROPERTY_TYPE_CONFIG[prop.property_type].emoji}
+                  </div>
+                ) : (
+                  <img
+                    src={prop.images[imgIdx]}
+                    alt={prop.title}
+                    className="w-full h-full object-cover"
+                    onError={() => setFailedImgs((s) => new Set(s).add(imgIdx))}
+                  />
+                )}
               </div>
               {prop.images.length > 1 && (
                 <div className="flex gap-2 px-4 py-3 overflow-x-auto bg-white">
@@ -105,7 +118,18 @@ export default function RealEstateDetail() {
                         imgIdx === i ? 'border-primary-500' : 'border-transparent'
                       }`}
                     >
-                      <img src={img} alt="" className="w-full h-full object-cover" />
+                      {failedImgs.has(i) ? (
+                        <div className="w-full h-full bg-gray-100 flex items-center justify-center text-xl">
+                          {PROPERTY_TYPE_CONFIG[prop.property_type].emoji}
+                        </div>
+                      ) : (
+                        <img
+                          src={img}
+                          alt=""
+                          className="w-full h-full object-cover"
+                          onError={() => setFailedImgs((s) => new Set(s).add(i))}
+                        />
+                      )}
                     </button>
                   ))}
                 </div>
@@ -200,7 +224,8 @@ export default function RealEstateDetail() {
                              cursor-pointer ring-2 ring-primary-200 hover:ring-primary-400 transition-all"
                 >
                   {prop.poster?.avatar_url
-                    ? <img src={prop.poster.avatar_url} alt={prop.contact_name} className="w-full h-full rounded-full object-cover" />
+                    ? <img src={prop.poster.avatar_url} alt={prop.contact_name} className="w-full h-full rounded-full object-cover"
+                        onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
                     : <User size={18} className="text-primary-600" />
                   }
                 </div>

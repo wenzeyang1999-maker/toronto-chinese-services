@@ -16,6 +16,7 @@ import { Routes, Route } from 'react-router-dom'
 import { AnimatePresence } from 'framer-motion'
 import type { User } from '@supabase/supabase-js'
 import LoadingScreen from './components/LoadingScreen/LoadingScreen'
+import ErrorBoundary from './components/ErrorBoundary/ErrorBoundary'
 import Home from './pages/Home/Home'
 import ToastContainer from './components/Toast/ToastContainer'
 import MessageToast from './components/MessageToast/MessageToast'
@@ -59,6 +60,7 @@ const MapPage         = lazy(() => import('./pages/MapPage/MapPage'))
 const PrivacyPolicy   = lazy(() => import('./pages/Legal/PrivacyPolicy'))
 const TermsOfService  = lazy(() => import('./pages/Legal/TermsOfService'))
 const InquiryClaim    = lazy(() => import('./pages/InquiryClaim/InquiryClaim'))
+const NotFound        = lazy(() => import('./pages/NotFound/NotFound'))
 import { useAppStore } from './store/appStore'
 import { useAuthStore } from './store/authStore'
 import { supabase } from './lib/supabase'
@@ -111,6 +113,18 @@ export default function App() {
         return
       }
 
+      // First-time OAuth users (Google/Apple) won't have a public.users row yet.
+      // The email/password flow creates it via a DB trigger; OAuth needs this fallback.
+      if (!profile) {
+        const meta = authUser.user_metadata ?? {}
+        supabase.from('users').insert({
+          id:         authUser.id,
+          email:      authUser.email ?? '',
+          name:       meta.full_name ?? meta.name ?? '华林用户',
+          avatar_url: meta.avatar_url ?? meta.picture ?? null,
+        }).then(() => {}, () => {})
+      }
+
       setUser(authUser)
       supabase.from('users').update({ last_seen_at: new Date().toISOString() }).eq('id', authUser.id)
     }
@@ -148,6 +162,7 @@ export default function App() {
       </AnimatePresence>
 
       {isLoadingDone && (
+        <ErrorBoundary>
         <Suspense fallback={<div className="min-h-screen flex items-center justify-center text-gray-400 text-sm">加载中…</div>}>
         <div className="pb-16 md:pb-0">
         <Routes>
@@ -187,9 +202,11 @@ export default function App() {
           <Route path="/map" element={<MapPage />} />
           <Route path="/privacy" element={<PrivacyPolicy />} />
           <Route path="/terms" element={<TermsOfService />} />
+          <Route path="*" element={<NotFound />} />
         </Routes>
         </div>
         </Suspense>
+        </ErrorBoundary>
       )}
 
       {/* Desktop FABs + mobile bottom nav */}

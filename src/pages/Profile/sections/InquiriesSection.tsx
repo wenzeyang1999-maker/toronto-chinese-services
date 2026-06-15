@@ -84,7 +84,15 @@ export default function InquiriesSection() {
   }, [user])
 
   if (loading) return (
-    <div className="flex-1 flex items-center justify-center text-gray-400 text-sm py-20">加载中…</div>
+    <div className="flex-1 space-y-3 p-4">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="bg-white rounded-2xl border border-gray-100 p-4 animate-pulse">
+          <div className="h-4 bg-gray-100 rounded w-3/4 mb-3" />
+          <div className="h-3 bg-gray-100 rounded w-1/2 mb-2" />
+          <div className="h-3 bg-gray-100 rounded w-1/3" />
+        </div>
+      ))}
+    </div>
   )
 
   return (

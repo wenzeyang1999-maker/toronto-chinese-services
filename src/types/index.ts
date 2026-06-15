@@ -50,6 +50,8 @@ export interface ServiceProvider {
   rating: number
   reviewCount: number
   verified: boolean
+  phoneVerified: boolean
+  businessVerified: boolean
   joinedAt: string
   lastSeenAt?: string | null
   languages: string[]

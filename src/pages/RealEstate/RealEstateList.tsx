@@ -12,6 +12,7 @@ import {
 } from 'lucide-react'
 import Header from '../../components/Header/Header'
 import PostFAB from '../../components/PostFAB/PostFAB'
+import ImgFallback from '../../components/ImgFallback/ImgFallback'
 import { useRealEstateStore } from '../../store/realestateStore'
 import { useAuthStore } from '../../store/authStore'
 import { useReadStore } from '../../store/readStore'
@@ -21,6 +22,7 @@ import {
 } from './types'
 import { toast } from '../../lib/toast'
 import { useUrlFilters } from '../../lib/useUrlFilters'
+import PageMeta from '../../components/PageMeta/PageMeta'
 
 const GTA_AREAS = [
   '多伦多市区', '北约克', '士嘉堡', '密西沙加', '万锦',
@@ -63,6 +65,7 @@ export default function RealEstateList() {
 
   return (
     <div className="flex flex-col h-screen bg-gray-50 overflow-hidden">
+      <PageMeta title="华人房源" description="多伦多华人房源：出租、出售、合租，本地房东直接联系" />
       <Header />
 
       {/* ── Search / filter bar ─────────────────────────────────────────────── */}
@@ -106,7 +109,7 @@ export default function RealEstateList() {
               )}
             </div>
             <button onClick={handleSearch}
-              className="bg-primary-600 text-white text-sm font-medium px-4 py-2.5 rounded-xl hover:bg-primary-700 transition-colors">
+              className="flex-shrink-0 whitespace-nowrap bg-primary-600 text-white text-sm font-medium px-4 py-2.5 rounded-xl hover:bg-primary-700 transition-colors">
               搜索
             </button>
             <button
@@ -189,12 +192,24 @@ export default function RealEstateList() {
                 ))}
               </div>
             ) : properties.length === 0 ? (
-              <div className="text-center py-20 text-gray-400">
-                <Home size={40} className="mx-auto mb-3 opacity-30" />
-                <p className="text-sm">暂无房源</p>
-                <button onClick={() => user ? navigate(`/realestate/post?type=${filters.listing_type ?? 'rent'}`) : navigate('/login')}
-                  className="text-xs text-primary-600 underline mt-1">发布第一个房源</button>
-              </div>
+              filters.keyword || filters.property_type || filters.area || filters.bedrooms != null || filters.max_price ? (
+                <div className="text-center py-20 text-gray-400">
+                  <Search size={40} className="mx-auto mb-3 opacity-30" />
+                  <p className="text-sm font-medium text-gray-500">没有找到相关房源</p>
+                  {filters.keyword && <p className="text-xs text-gray-400 mt-1">"{filters.keyword}"</p>}
+                  <button onClick={clearFilters}
+                    className="mt-4 text-xs text-primary-600 bg-primary-50 border border-primary-100 rounded-xl px-4 py-2 font-medium">
+                    清除筛选条件
+                  </button>
+                </div>
+              ) : (
+                <div className="text-center py-20 text-gray-400">
+                  <Home size={40} className="mx-auto mb-3 opacity-30" />
+                  <p className="text-sm">暂无房源</p>
+                  <button onClick={() => user ? navigate(`/realestate/post?type=${filters.listing_type ?? 'rent'}`) : navigate('/login')}
+                    className="text-xs text-primary-600 underline mt-1">发布第一个房源</button>
+                </div>
+              )
             ) : (
               <div style={{ columns: '220px', columnGap: '10px' }}>
                 {properties.map((p, i) => (
@@ -213,9 +228,17 @@ export default function RealEstateList() {
                     {/* Cover image */}
                     <div className="w-full aspect-[16/9] bg-gray-100 overflow-hidden relative">
                       {p.images.length > 0 ? (
-                        <img src={p.images[0]} alt={p.title}
+                        <ImgFallback
+                          src={p.images[0]}
+                          alt={p.title}
                           loading="lazy"
-                          className="w-full h-full object-cover" />
+                          className="w-full h-full object-cover"
+                          fallback={
+                            <div className="w-full h-full flex items-center justify-center text-4xl opacity-60">
+                              {PROPERTY_TYPE_CONFIG[p.property_type].emoji}
+                            </div>
+                          }
+                        />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center text-4xl opacity-60">
                           {PROPERTY_TYPE_CONFIG[p.property_type].emoji}
@@ -303,8 +326,9 @@ function DetailPanel({ prop, onClose }: { prop: Property; onClose: () => void })
   const user     = useAuthStore((s) => s.user)
   const [imgIdx, setImgIdx] = useState(0)
   const [copied, setCopied] = useState(false)
+  const [failedImgs, setFailedImgs] = useState<Set<number>>(new Set())
 
-  useEffect(() => { setImgIdx(0) }, [prop.id])
+  useEffect(() => { setImgIdx(0); setFailedImgs(new Set()) }, [prop.id])
 
   async function copyWechat() {
     if (!prop.contact_wechat) return
@@ -323,7 +347,18 @@ function DetailPanel({ prop, onClose }: { prop: Property; onClose: () => void })
       {prop.images.length > 0 ? (
         <div>
           <div className="aspect-video overflow-hidden bg-gray-100 rounded-t-2xl">
-            <img src={prop.images[imgIdx]} alt={prop.title} className="w-full h-full object-cover" />
+            {failedImgs.has(imgIdx) ? (
+              <div className="w-full h-full flex items-center justify-center text-7xl bg-gray-50">
+                {PROPERTY_TYPE_CONFIG[prop.property_type].emoji}
+              </div>
+            ) : (
+              <img
+                src={prop.images[imgIdx]}
+                alt={prop.title}
+                className="w-full h-full object-cover"
+                onError={() => setFailedImgs((s) => new Set(s).add(imgIdx))}
+              />
+            )}
           </div>
           {prop.images.length > 1 && (
             <div className="flex gap-2 p-3 overflow-x-auto">
@@ -333,7 +368,18 @@ function DetailPanel({ prop, onClose }: { prop: Property; onClose: () => void })
                     imgIdx === i ? 'border-primary-500' : 'border-transparent'
                   }`}
                 >
-                  <img src={img} alt="" className="w-full h-full object-cover" />
+                  {failedImgs.has(i) ? (
+                    <div className="w-full h-full bg-gray-100 flex items-center justify-center text-xl">
+                      {PROPERTY_TYPE_CONFIG[prop.property_type].emoji}
+                    </div>
+                  ) : (
+                    <img
+                      src={img}
+                      alt=""
+                      className="w-full h-full object-cover"
+                      onError={() => setFailedImgs((s) => new Set(s).add(i))}
+                    />
+                  )}
                 </button>
               ))}
             </div>
@@ -437,7 +483,8 @@ function DetailPanel({ prop, onClose }: { prop: Property; onClose: () => void })
                          cursor-pointer ring-2 ring-primary-200 hover:ring-primary-400 transition-all"
             >
               {prop.poster?.avatar_url
-                ? <img src={prop.poster.avatar_url} className="w-full h-full rounded-full object-cover" alt="" />
+                ? <img src={prop.poster.avatar_url} className="w-full h-full rounded-full object-cover" alt=""
+                    onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
                 : <User size={16} className="text-primary-600" />
               }
             </div>

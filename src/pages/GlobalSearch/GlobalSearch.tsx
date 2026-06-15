@@ -4,7 +4,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useSearchParams, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Search, ChevronLeft, Wrench, Briefcase, Home, ShoppingBag, Calendar, Users } from 'lucide-react'
+import { Search, ChevronLeft, Wrench, Briefcase, Home, ShoppingBag, Calendar, Users, SlidersHorizontal } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 
 type ResultType = 'service' | 'job' | 'property' | 'secondhand' | 'event' | 'community'
@@ -243,7 +243,18 @@ export default function GlobalSearch() {
           </div>
         ) : (
           <div className="space-y-2">
-            <p className="text-xs text-gray-400 mb-3">共 {filtered.length} 条结果</p>
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-xs text-gray-400">共 {filtered.length} 条结果</p>
+              {(tab === 'service' || (tab === 'all' && counts.service > 0)) && query && (
+                <button
+                  onClick={() => navigate(`/search?q=${encodeURIComponent(query)}`)}
+                  className="flex items-center gap-1 text-xs font-semibold text-primary-600 hover:text-primary-700"
+                >
+                  <SlidersHorizontal size={12} />
+                  服务深度筛选
+                </button>
+              )}
+            </div>
             <AnimatePresence>
               {filtered.map((item, i) => {
                 const meta = TYPE_META[item.type]

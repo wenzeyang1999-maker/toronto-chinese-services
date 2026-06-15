@@ -362,7 +362,21 @@ export default function ReviewsSection({ serviceId, providerId }: Props) {
 
       {/* Review list */}
       {loading ? (
-        <p className="text-xs text-gray-400 text-center py-4">加载中…</p>
+        <div className="space-y-4 animate-pulse">
+          {[0,1,2].map(i => (
+            <div key={i} className="flex gap-3">
+              <div className="w-9 h-9 rounded-full bg-gray-200 flex-shrink-0" />
+              <div className="flex-1 space-y-1.5">
+                <div className="flex gap-2">
+                  <div className="h-3 bg-gray-200 rounded w-16" />
+                  <div className="h-3 bg-gray-100 rounded w-20" />
+                </div>
+                <div className="h-3 bg-gray-100 rounded w-5/6" />
+                <div className="h-3 bg-gray-100 rounded w-3/4" />
+              </div>
+            </div>
+          ))}
+        </div>
       ) : reviews.length === 0 ? (
         <p className="text-xs text-gray-400 text-center py-4">暂无评价，快来留下第一条吧</p>
       ) : (
@@ -381,15 +395,13 @@ export default function ReviewsSection({ serviceId, providerId }: Props) {
                   className="flex gap-3"
                 >
                   {/* Avatar */}
-                  {r.reviewer?.avatar_url ? (
-                    <img src={r.reviewer.avatar_url} alt={r.reviewer.name}
-                      className="w-9 h-9 rounded-full object-cover flex-shrink-0 border border-gray-100" />
-                  ) : (
-                    <div className="w-9 h-9 rounded-full bg-gradient-to-br from-primary-400 to-primary-600
-                                    flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
-                      {r.reviewer?.name?.charAt(0) ?? '?'}
-                    </div>
-                  )}
+                  <div className="w-9 h-9 rounded-full overflow-hidden flex-shrink-0 border border-gray-100 bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center text-white text-sm font-bold">
+                    {r.reviewer?.avatar_url ? (
+                      <img src={r.reviewer.avatar_url} alt={r.reviewer.name}
+                        className="w-full h-full object-cover"
+                        onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
+                    ) : (r.reviewer?.name?.charAt(0) ?? '?')}
+                  </div>
 
                   <div className="flex-1 min-w-0">
                     {editingId === r.id ? (

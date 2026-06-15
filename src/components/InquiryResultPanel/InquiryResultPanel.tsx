@@ -178,15 +178,13 @@ export default function InquiryResultPanel({ inquiryId, categoryId, categoryLabe
 
         {/* Provider card */}
         <div className="bg-gray-50 border border-gray-200 rounded-2xl p-4 flex items-center gap-3">
-          {assignedCard.avatar_url ? (
-            <img src={assignedCard.avatar_url} alt={assignedCard.name}
-              className="w-12 h-12 rounded-full object-cover flex-shrink-0 border border-gray-100" />
-          ) : (
-            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary-400 to-primary-600
-                            flex items-center justify-center text-white font-bold flex-shrink-0">
-              {assignedCard.name.charAt(0)}
-            </div>
-          )}
+          <div className="w-12 h-12 rounded-full overflow-hidden flex-shrink-0 border border-gray-100 bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center text-white font-bold">
+            {assignedCard.avatar_url ? (
+              <img src={assignedCard.avatar_url} alt={assignedCard.name}
+                className="w-full h-full object-cover"
+                onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
+            ) : assignedCard.name.charAt(0)}
+          </div>
           <div className="text-left min-w-0 flex-1">
             <p className="text-sm font-bold text-gray-800 truncate">{assignedCard.name}</p>
             {assignedCard.reviewCount > 0 && (
@@ -284,15 +282,13 @@ export default function InquiryResultPanel({ inquiryId, categoryId, categoryLabe
             transition={{ delay: i * 0.06 }}
             className="bg-white border border-gray-100 rounded-2xl p-4 flex items-center gap-3 shadow-sm"
           >
-            {p.avatar_url ? (
-              <img src={p.avatar_url} alt={p.name}
-                className="w-11 h-11 rounded-full object-cover flex-shrink-0 border border-gray-100" />
-            ) : (
-              <div className="w-11 h-11 rounded-full bg-gradient-to-br from-primary-400 to-primary-600
-                              flex items-center justify-center text-white font-bold flex-shrink-0">
-                {p.name.charAt(0)}
-              </div>
-            )}
+            <div className="w-11 h-11 rounded-full overflow-hidden flex-shrink-0 border border-gray-100 bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center text-white font-bold">
+              {p.avatar_url ? (
+                <img src={p.avatar_url} alt={p.name}
+                  className="w-full h-full object-cover"
+                  onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
+              ) : p.name.charAt(0)}
+            </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-semibold text-gray-800 truncate">{p.name}</p>
               {p.reviewCount > 0 ? (

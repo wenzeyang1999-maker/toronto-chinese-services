@@ -19,7 +19,9 @@ import {
   type Job, type JobCategory, type JobType, type ListingType,
 } from './types'
 import { toast } from '../../lib/toast'
+import ImgFallback from '../../components/ImgFallback/ImgFallback'
 import { useUrlFilters } from '../../lib/useUrlFilters'
+import PageMeta from '../../components/PageMeta/PageMeta'
 
 const GTA_AREAS = [
   '多伦多市区', '北约克', '士嘉堡', '密西沙加', '万锦',
@@ -75,6 +77,7 @@ export default function JobList() {
 
   return (
     <div className="flex flex-col h-screen bg-gray-50 overflow-hidden">
+      <PageMeta title="华人招聘" description="华人社区工作机会：全职、兼职、实习一站查询，本地雇主直招" />
       <Header />
 
       {/* ── Search / filter bar ─────────────────────────────────────────────── */}
@@ -110,7 +113,7 @@ export default function JobList() {
               )}
             </div>
             <button onClick={handleSearch}
-              className="bg-primary-600 text-white text-sm font-medium px-4 py-2.5 rounded-xl hover:bg-primary-700 transition-colors">
+              className="flex-shrink-0 whitespace-nowrap bg-primary-600 text-white text-sm font-medium px-4 py-2.5 rounded-xl hover:bg-primary-700 transition-colors">
               搜索
             </button>
             <button
@@ -193,12 +196,24 @@ export default function JobList() {
                 ))}
               </div>
             ) : jobs.length === 0 ? (
-              <div className="text-center py-20 text-gray-400">
-                <Briefcase size={40} className="mx-auto mb-3 opacity-30" />
-                <p className="text-sm">暂无职位</p>
-                <button onClick={() => navigate('/jobs/post')}
-                  className="text-xs text-primary-600 underline mt-1">发布第一个职位</button>
-              </div>
+              filters.keyword || filters.category || filters.job_type || filters.area ? (
+                <div className="text-center py-20 text-gray-400">
+                  <Search size={40} className="mx-auto mb-3 opacity-30" />
+                  <p className="text-sm font-medium text-gray-500">没有找到相关职位</p>
+                  {filters.keyword && <p className="text-xs text-gray-400 mt-1">"{filters.keyword}"</p>}
+                  <button onClick={clearFilters}
+                    className="mt-4 text-xs text-primary-600 bg-primary-50 border border-primary-100 rounded-xl px-4 py-2 font-medium">
+                    清除筛选条件
+                  </button>
+                </div>
+              ) : (
+                <div className="text-center py-20 text-gray-400">
+                  <Briefcase size={40} className="mx-auto mb-3 opacity-30" />
+                  <p className="text-sm">暂无职位</p>
+                  <button onClick={() => navigate('/jobs/post')}
+                    className="text-xs text-primary-600 underline mt-1">发布第一个职位</button>
+                </div>
+              )
             ) : (
               <div style={{ columns: '200px', columnGap: '10px' }}>
                 {jobs.map((job, i) => (
@@ -389,7 +404,7 @@ function DetailPanel({ job, salaryLabel, onClose }: { job: Job; salaryLabel: str
             className="w-9 h-9 rounded-full bg-primary-100 flex items-center justify-center flex-shrink-0 cursor-pointer ring-2 ring-primary-200 hover:ring-primary-400 transition-all"
           >
             {job.poster?.avatar_url
-              ? <img src={job.poster.avatar_url} className="w-full h-full rounded-full object-cover" alt="" />
+              ? <ImgFallback src={job.poster.avatar_url} className="w-full h-full rounded-full object-cover" fallback={<User size={16} className="text-primary-600" />} />
               : <User size={16} className="text-primary-600" />
             }
           </div>

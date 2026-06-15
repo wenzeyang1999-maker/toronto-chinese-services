@@ -59,9 +59,10 @@ export default function PostJob() {
 
   const [form,       setForm]       = useState<FormState>({ ...INITIAL, listing_type: initialType })
   const [errors,     setErrors]     = useState<Partial<Record<keyof FormState, string>>>({})
-  const [submitting, setSubmitting] = useState(false)
-  const [done,       setDone]       = useState(false)
-  const [location,   setLocation]   = useState<LocationResult | null>(null)
+  const [submitting,   setSubmitting]  = useState(false)
+  const [done,         setDone]        = useState(false)
+  const [location,     setLocation]    = useState<LocationResult | null>(null)
+  const [submitError,  setSubmitError] = useState<string | null>(null)
 
   useEffect(() => { if (!user) navigate('/login') }, [user, navigate])
 
@@ -108,6 +109,7 @@ export default function PostJob() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!user || !validate()) return
+    setSubmitError(null)
     setSubmitting(true)
 
     const modResult = await moderateContent({ title: form.title, description: form.description })
@@ -146,7 +148,8 @@ export default function PostJob() {
     setSubmitting(false)
 
     if (error) {
-      setErrors({ title: `发布失败：${error.message}` })
+      setSubmitError('发布失败，请稍后重试')
+      setSubmitting(false)
       return
     }
 
@@ -430,6 +433,11 @@ export default function PostJob() {
         </Card>
 
         {/* Submit */}
+        {submitError && (
+          <div className="rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 mb-2">
+            {submitError}
+          </div>
+        )}
         <motion.button
           type="submit"
           disabled={submitting}

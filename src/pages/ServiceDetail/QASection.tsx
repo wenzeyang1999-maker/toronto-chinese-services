@@ -228,7 +228,17 @@ export default function QASection({ serviceId, providerId }: Props) {
 
       {/* Question list */}
       {loading ? (
-        <p className="text-xs text-gray-400 text-center py-4">加载中…</p>
+        <div className="space-y-3 animate-pulse">
+          {[0,1,2].map(i => (
+            <div key={i} className="border border-gray-100 rounded-2xl px-4 py-3 flex gap-3">
+              <div className="w-8 h-8 rounded-full bg-gray-200 flex-shrink-0 mt-0.5" />
+              <div className="flex-1 space-y-1.5">
+                <div className="h-3 bg-gray-200 rounded w-1/5" />
+                <div className="h-3 bg-gray-100 rounded w-3/4" />
+              </div>
+            </div>
+          ))}
+        </div>
       ) : questions.length === 0 ? (
         <p className="text-xs text-gray-400 text-center py-4">暂无问题，来提第一个问题吧</p>
       ) : (
@@ -245,15 +255,13 @@ export default function QASection({ serviceId, providerId }: Props) {
                   {/* Question row */}
                   <div className="flex items-start gap-3 px-4 py-3 bg-white">
                     {/* Avatar */}
-                    {q.asker?.avatar_url ? (
-                      <img src={q.asker.avatar_url} alt={q.asker.name}
-                        className="w-8 h-8 rounded-full object-cover flex-shrink-0 border border-gray-100 mt-0.5" />
-                    ) : (
-                      <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary-400 to-primary-600
-                                      flex items-center justify-center text-white text-xs font-bold flex-shrink-0 mt-0.5">
-                        {q.asker?.name?.charAt(0) ?? '?'}
-                      </div>
-                    )}
+                    <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0 mt-0.5 border border-gray-100 bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center text-white text-xs font-bold">
+                      {q.asker?.avatar_url ? (
+                        <img src={q.asker.avatar_url} alt={q.asker.name}
+                          className="w-full h-full object-cover"
+                          onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
+                      ) : (q.asker?.name?.charAt(0) ?? '?')}
+                    </div>
 
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">

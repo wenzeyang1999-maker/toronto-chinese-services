@@ -9,16 +9,22 @@ import type { BrowseEntry } from '../../types/browse'
 const PAGE = 8
 const CTA_INSERT_AT = 4  // insert CTA card after this many items
 
-export default function RecommendedServices() {
+interface Props {
+  excludeIds?: string[]
+}
+
+export default function RecommendedServices({ excludeIds }: Props) {
   const services  = useAppStore((s) => s.services)
   const user      = useAuthStore((s) => s.user)
   const navigate  = useNavigate()
   const sentinelRef = useRef<HTMLDivElement>(null)
   const [displayed, setDisplayed] = useState(PAGE)
+  const excludeSet = useMemo(() => new Set(excludeIds ?? []), [excludeIds])
 
   const sorted = useMemo(() => {
     if (services.length === 0) return []
 
+    // Category affinity from browse history (ordered by recency)
     let recentCats: string[] = []
     try {
       const entries: BrowseEntry[] = JSON.parse(localStorage.getItem('tcs_browse_history') ?? '[]')
@@ -31,17 +37,41 @@ export default function RecommendedServices() {
       }
     } catch { /* ignore */ }
 
-    const byRating = [...services]
-      .filter((s) => s.available)
-      .sort((a, b) => b.provider.rating - a.provider.rating)
+    const now = Date.now()
 
-    if (recentCats.length > 0) {
-      const inCats = byRating.filter((s) =>  recentCats.includes(s.category))
-      const rest   = byRating.filter((s) => !recentCats.includes(s.category))
-      return [...inCats, ...rest]
-    }
-    return byRating
-  }, [services])
+    return [...services]
+      .filter((s) => s.available && !excludeSet.has(s.id))
+      .map(s => {
+        let score = 0
+
+        // Rating (0–100)
+        score += s.provider.rating * 20
+
+        // Trust tier bonus
+        if (s.provider.businessVerified) score += 30
+        else if (s.provider.verified)    score += 20
+        else if (s.provider.phoneVerified) score += 10
+
+        // Recency decay: fresher services score higher
+        const ageDays = (now - new Date(s.createdAt).getTime()) / 86_400_000
+        if (ageDays < 7)  score += 15
+        else if (ageDays < 30)  score += 8
+        else if (ageDays < 90) score += 3
+
+        // Category affinity (top-3 browsed categories get a boost)
+        const catIdx = recentCats.indexOf(s.category)
+        if (catIdx === 0) score += 25
+        else if (catIdx === 1) score += 15
+        else if (catIdx === 2) score += 10
+
+        // Promoted
+        if (s.isPromoted) score += 20
+
+        return { s, score }
+      })
+      .sort((a, b) => b.score - a.score)
+      .map(x => x.s)
+  }, [services, excludeSet])
 
   const loadMore = useCallback(() => {
     setDisplayed((prev) => Math.min(prev + PAGE, sorted.length))

@@ -496,7 +496,7 @@ export default function PostService() {
       }
 
       if (imageUploadErrors.length > 0) {
-        setSubmitError(`⚠️ 图片上传失败（${imageUploadErrors.join('、')}）— 请检查 Supabase Storage 权限设置，服务已发布但没有图片`)
+        setSubmitError(`服务已发布，但部分图片（${imageUploadErrors.join('、')}）上传失败，请稍后在"我的服务"中重新上传图片`)
         return   // 不跳转成功页，让用户看到错误
       }
 
@@ -672,7 +672,8 @@ export default function PostService() {
                         : 'border-gray-200 bg-white hover:border-gray-300'
                     }`}
                   >
-                    <img src={cat.image} alt={cat.postLabel} className="hidden sm:block w-8 h-8 object-contain" />
+                    <img src={cat.image} alt={cat.postLabel} className="hidden sm:block w-8 h-8 object-contain"
+                      onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
                     <span className={`text-xs font-medium ${form.category === cat.id && !confirmedCustom ? cat.color : 'text-gray-600'}`}>
                       {cat.postLabel}
                     </span>

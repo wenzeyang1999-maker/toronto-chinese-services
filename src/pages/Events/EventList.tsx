@@ -20,6 +20,7 @@ import {
 } from './types'
 import { toast } from '../../lib/toast'
 import { useUrlFilters } from '../../lib/useUrlFilters'
+import PageMeta from '../../components/PageMeta/PageMeta'
 
 const GTA_AREAS = [
   '多伦多市区', '北约克', '士嘉堡', '密西沙加', '万锦',
@@ -62,6 +63,7 @@ export default function EventList() {
 
   return (
     <div className="flex flex-col h-screen bg-gray-50 overflow-hidden">
+      <PageMeta title="社区活动" description="多伦多华人社区活动：聚会、课程、讲座、演出，尽在华林" />
       <Header />
 
       {/* ── Search / filter bar ─────────────────────────────────────────────── */}
@@ -332,8 +334,9 @@ function DetailPanel({ ev, onClose }: { ev: Event; onClose: () => void }) {
   const user     = useAuthStore((s) => s.user)
   const [imgIdx,  setImgIdx]  = useState(0)
   const [copied,  setCopied]  = useState(false)
+  const [failedImgs, setFailedImgs] = useState<Set<number>>(new Set())
 
-  useEffect(() => { setImgIdx(0) }, [ev.id])
+  useEffect(() => { setImgIdx(0); setFailedImgs(new Set()) }, [ev.id])
 
   const cfg = EVENT_TYPE_CONFIG[ev.event_type]
 
@@ -367,7 +370,18 @@ function DetailPanel({ ev, onClose }: { ev: Event; onClose: () => void }) {
       {ev.images.length > 0 && (
         <div>
           <div className="aspect-video overflow-hidden bg-gray-100">
-            <img src={ev.images[imgIdx]} alt={ev.title} className="w-full h-full object-cover" />
+            {failedImgs.has(imgIdx) ? (
+              <div className="w-full h-full flex items-center justify-center text-8xl bg-gray-50">
+                {cfg.emoji}
+              </div>
+            ) : (
+              <img
+                src={ev.images[imgIdx]}
+                alt={ev.title}
+                className="w-full h-full object-cover"
+                onError={() => setFailedImgs((s) => new Set(s).add(imgIdx))}
+              />
+            )}
           </div>
           {ev.images.length > 1 && (
             <div className="flex gap-2 px-4 py-3 overflow-x-auto bg-white">
@@ -377,7 +391,18 @@ function DetailPanel({ ev, onClose }: { ev: Event; onClose: () => void }) {
                     imgIdx === i ? 'border-primary-500' : 'border-transparent'
                   }`}
                 >
-                  <img src={img} alt="" className="w-full h-full object-cover" />
+                  {failedImgs.has(i) ? (
+                    <div className="w-full h-full bg-gray-100 flex items-center justify-center text-xl">
+                      {cfg.emoji}
+                    </div>
+                  ) : (
+                    <img
+                      src={img}
+                      alt=""
+                      className="w-full h-full object-cover"
+                      onError={() => setFailedImgs((s) => new Set(s).add(i))}
+                    />
+                  )}
                 </button>
               ))}
             </div>
@@ -446,7 +471,8 @@ function DetailPanel({ ev, onClose }: { ev: Event; onClose: () => void }) {
                          cursor-pointer ring-2 ring-primary-200 hover:ring-primary-400 transition-all"
             >
               {ev.poster?.avatar_url
-                ? <img src={ev.poster.avatar_url} alt={ev.contact_name} className="w-full h-full rounded-full object-cover" />
+                ? <img src={ev.poster.avatar_url} alt={ev.contact_name} className="w-full h-full rounded-full object-cover"
+                    onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
                 : <User size={16} className="text-primary-600" />
               }
             </div>

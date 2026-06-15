@@ -10,6 +10,7 @@ import { toast } from '../../lib/toast'
 import { useAuthStore } from '../../store/authStore'
 import { useReadStore } from '../../store/readStore'
 import SaveButton from '../SaveButton/SaveButton'
+import ImgFallback from '../ImgFallback/ImgFallback'
 import { POST_TYPE_CONFIG, AREA_CONFIG } from '../../pages/Community/config'
 
 interface PostDetail {
@@ -242,7 +243,44 @@ export default function CommunityDrawer({ postId, onClose }: Props) {
         {/* Scrollable body */}
         <div className="flex-1 overflow-y-auto overscroll-contain">
           {loading ? (
-            <div className="flex items-center justify-center py-20 text-gray-400 text-sm">加载中…</div>
+            <div className="max-w-2xl mx-auto px-4 py-4 animate-pulse space-y-4">
+              {/* Author row */}
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-full bg-gray-200 flex-shrink-0" />
+                <div className="space-y-1.5 flex-1">
+                  <div className="h-3.5 bg-gray-200 rounded w-1/4" />
+                  <div className="h-3 bg-gray-100 rounded w-1/6" />
+                </div>
+              </div>
+              {/* Title + body */}
+              <div className="space-y-2">
+                <div className="h-5 bg-gray-200 rounded w-4/5" />
+                <div className="h-3 bg-gray-100 rounded w-full" />
+                <div className="h-3 bg-gray-100 rounded w-5/6" />
+                <div className="h-3 bg-gray-100 rounded w-3/4" />
+              </div>
+              {/* Image grid */}
+              <div className="grid grid-cols-3 gap-1.5">
+                {[0, 1, 2].map(i => (
+                  <div key={i} className="aspect-square bg-gray-100 rounded-xl" />
+                ))}
+              </div>
+              {/* Like + comment bar */}
+              <div className="flex gap-4 py-2 border-t border-gray-100">
+                <div className="h-7 bg-gray-100 rounded-full w-16" />
+                <div className="h-7 bg-gray-100 rounded-full w-16" />
+              </div>
+              {/* Comment items */}
+              {[0, 1, 2].map(i => (
+                <div key={i} className="flex gap-2.5">
+                  <div className="w-7 h-7 rounded-full bg-gray-200 flex-shrink-0 mt-0.5" />
+                  <div className="flex-1 space-y-1.5">
+                    <div className="h-3 bg-gray-200 rounded w-1/5" />
+                    <div className="h-3 bg-gray-100 rounded w-4/5" />
+                  </div>
+                </div>
+              ))}
+            </div>
           ) : !post ? (
             <div className="flex items-center justify-center py-20 text-gray-400 text-sm">帖子不存在</div>
           ) : (
@@ -252,8 +290,17 @@ export default function CommunityDrawer({ postId, onClose }: Props) {
                 {/* Author */}
                 <div className="flex items-center gap-3 mb-3">
                   {post.author?.avatar_url ? (
-                    <img src={post.author.avatar_url} alt={post.author.name}
-                      className="w-9 h-9 rounded-full object-cover border border-gray-100" />
+                    <ImgFallback
+                      src={post.author.avatar_url}
+                      alt={post.author.name ?? ''}
+                      className="w-9 h-9 rounded-full object-cover border border-gray-100"
+                      fallback={
+                        <div className="w-9 h-9 rounded-full bg-gradient-to-br from-primary-400 to-primary-600
+                                        flex items-center justify-center text-white font-bold text-sm">
+                          {post.author?.name?.charAt(0) ?? '?'}
+                        </div>
+                      }
+                    />
                   ) : (
                     <div className="w-9 h-9 rounded-full bg-gradient-to-br from-primary-400 to-primary-600
                                     flex items-center justify-center text-white font-bold text-sm">
@@ -275,7 +322,14 @@ export default function CommunityDrawer({ postId, onClose }: Props) {
                 {post.images && post.images.length > 0 && (
                   <div className="grid grid-cols-3 gap-1.5 mb-3">
                     {post.images.map((url, i) => (
-                      <img key={i} src={url} alt="" className="w-full aspect-square object-cover rounded-xl" />
+                      <img
+                        key={i}
+                        src={url}
+                        alt=""
+                        className="w-full aspect-square object-cover rounded-xl"
+                        loading="lazy"
+                        onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
+                      />
                     ))}
                   </div>
                 )}
@@ -358,8 +412,17 @@ export default function CommunityDrawer({ postId, onClose }: Props) {
                     className="bg-white rounded-2xl border border-gray-100 shadow-sm px-4 py-3 flex gap-3 mb-2"
                   >
                     {c.author?.avatar_url ? (
-                      <img src={c.author.avatar_url} alt={c.author.name}
-                        className="w-7 h-7 rounded-full object-cover flex-shrink-0 border border-gray-100" />
+                      <ImgFallback
+                        src={c.author.avatar_url}
+                        alt={c.author.name ?? ''}
+                        className="w-7 h-7 rounded-full object-cover flex-shrink-0 border border-gray-100"
+                        fallback={
+                          <div className="w-7 h-7 rounded-full bg-gradient-to-br from-primary-400 to-primary-600
+                                          flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
+                            {c.author?.name?.charAt(0) ?? '?'}
+                          </div>
+                        }
+                      />
                     ) : (
                       <div className="w-7 h-7 rounded-full bg-gradient-to-br from-primary-400 to-primary-600
                                       flex items-center justify-center text-white text-xs font-bold flex-shrink-0">

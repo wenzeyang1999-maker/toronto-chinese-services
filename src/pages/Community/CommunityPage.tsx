@@ -10,6 +10,7 @@ import { useReadStore } from '../../store/readStore'
 import Header from '../../components/Header/Header'
 import PostFAB from '../../components/PostFAB/PostFAB'
 import { POST_TYPE_CONFIG, AREA_CONFIG } from './config'
+import ImgFallback from '../../components/ImgFallback/ImgFallback'
 
 interface Post {
   id: string
@@ -187,8 +188,17 @@ export default function CommunityPage() {
                     {/* Author + likes */}
                     <div className="flex items-center gap-1.5">
                       {post.author?.avatar_url ? (
-                        <img src={post.author.avatar_url} alt=""
-                          className="w-5 h-5 rounded-full object-cover flex-shrink-0" />
+                        <ImgFallback
+                          src={post.author.avatar_url}
+                          alt=""
+                          className="w-5 h-5 rounded-full object-cover flex-shrink-0"
+                          fallback={
+                            <div className="w-5 h-5 rounded-full bg-gradient-to-br from-primary-400 to-primary-600
+                                            flex items-center justify-center text-white text-[9px] font-bold flex-shrink-0">
+                              {post.author?.name?.charAt(0) ?? '?'}
+                            </div>
+                          }
+                        />
                       ) : (
                         <div className="w-5 h-5 rounded-full bg-gradient-to-br from-primary-400 to-primary-600
                                         flex items-center justify-center text-white text-[9px] font-bold flex-shrink-0">

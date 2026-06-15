@@ -50,6 +50,8 @@ export interface ServiceRow {
     avatar_url: string | null
     last_seen_at: string | null
     created_at: string | null
+    phone_verified: boolean | null
+    business_verified: boolean | null
   } | null
   reviews: { rating: number }[] | null
 }
@@ -105,7 +107,9 @@ export function mapRow(row: ServiceRow): Service {
         ? row.reviews.reduce((s, r) => s + r.rating, 0) / row.reviews.length
         : 0,
       reviewCount: row.reviews?.length ?? 0,
-      verified: row.is_verified ?? false,
+      verified:         row.is_verified ?? false,
+      phoneVerified:    row.provider?.phone_verified    ?? false,
+      businessVerified: row.provider?.business_verified ?? false,
       joinedAt: row.provider?.created_at?.slice(0, 10) ?? row.created_at?.slice(0, 10) ?? '',
       lastSeenAt: row.provider?.last_seen_at ?? null,
       languages: ['中文'],
@@ -197,7 +201,7 @@ export const useAppStore = create<AppState>((set, get) => ({
 
     const { data, error } = await supabase
       .from('services')
-      .select('*, provider:users(id, name, avatar_url, last_seen_at, created_at), reviews(rating)')
+      .select('*, provider:users(id, name, avatar_url, last_seen_at, created_at, phone_verified, business_verified), reviews(rating)')
       .eq('is_available', true)
       .order('created_at', { ascending: false })
       .range(offset, offset + SERVICES_PAGE_SIZE - 1)
@@ -220,7 +224,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     // Uses trigram GIN index for fast ILIKE — fts_search_patch.sql must be applied
     const { data, error } = await supabase
       .from('services')
-      .select('*, provider:users(id, name, avatar_url, last_seen_at, created_at), reviews(rating)')
+      .select('*, provider:users(id, name, avatar_url, last_seen_at, created_at, phone_verified, business_verified), reviews(rating)')
       .eq('is_available', true)
       .or(`title.ilike.%${kw}%,description.ilike.%${kw}%`)
       .order('created_at', { ascending: false })

@@ -43,7 +43,9 @@ export default function SecondhandDetail() {
   const [item,    setItem]    = useState<SecondhandItem | null>(null)
   const [loading, setLoading] = useState(true)
   const [imgIdx,  setImgIdx]  = useState(0)
+  useEffect(() => { setImgIdx(0) }, [id])
   const [copied,  setCopied]  = useState(false)
+  const [failedImgs, setFailedImgs] = useState<Set<number>>(new Set())
   const [messaging, setMessaging] = useState(false)
   const [showReportForm,   setShowReportForm]   = useState(false)
   const [reportReason,     setReportReason]     = useState('')
@@ -248,8 +250,18 @@ export default function SecondhandDetail() {
           {item.images.length > 0 ? (
             <div>
               <div className="relative aspect-video overflow-hidden bg-gray-100">
-                <img src={item.images[imgIdx]} alt={item.title}
-                  className="w-full h-full object-contain" />
+                {failedImgs.has(imgIdx) ? (
+                  <div className="w-full h-full flex items-center justify-center text-8xl bg-gray-50">
+                    {SECONDHAND_CATEGORY_CONFIG[item.category].emoji}
+                  </div>
+                ) : (
+                  <img
+                    src={item.images[imgIdx]}
+                    alt={item.title}
+                    className="w-full h-full object-contain"
+                    onError={() => setFailedImgs((s) => new Set(s).add(imgIdx))}
+                  />
+                )}
                 {/* Sold watermark */}
                 {item.is_sold && (
                   <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
@@ -269,7 +281,18 @@ export default function SecondhandDetail() {
                         imgIdx === i ? 'border-primary-500' : 'border-transparent'
                       }`}
                     >
-                      <img src={img} alt="" className="w-full h-full object-cover" />
+                      {failedImgs.has(i) ? (
+                        <div className="w-full h-full bg-gray-100 flex items-center justify-center text-xl">
+                          {SECONDHAND_CATEGORY_CONFIG[item.category].emoji}
+                        </div>
+                      ) : (
+                        <img
+                          src={img}
+                          alt=""
+                          className="w-full h-full object-cover"
+                          onError={() => setFailedImgs((s) => new Set(s).add(i))}
+                        />
+                      )}
                     </button>
                   ))}
                 </div>
@@ -416,7 +439,8 @@ export default function SecondhandDetail() {
                   >
                     {item.seller?.avatar_url
                       ? <img src={item.seller.avatar_url} alt={item.contact_name}
-                          className="w-full h-full rounded-full object-cover" />
+                          className="w-full h-full rounded-full object-cover"
+                          onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
                       : <User size={18} className="text-primary-600" />
                     }
                   </div>
@@ -549,9 +573,10 @@ export default function SecondhandDetail() {
                       initial={{ opacity: 0 }} animate={{ opacity: 1 }}
                       className="flex gap-3 py-3 border-b border-gray-50 last:border-0"
                     >
-                      <div className="w-8 h-8 rounded-full bg-primary-100 flex items-center justify-center flex-shrink-0 text-sm font-bold text-primary-600">
+                      <div className="w-8 h-8 rounded-full bg-primary-100 overflow-hidden flex items-center justify-center flex-shrink-0 text-sm font-bold text-primary-600">
                         {r.reviewer?.avatar_url
-                          ? <img src={r.reviewer.avatar_url} alt="" className="w-full h-full rounded-full object-cover" />
+                          ? <img src={r.reviewer.avatar_url} alt="" className="w-full h-full object-cover"
+                              onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
                           : (r.reviewer?.name?.slice(0, 1) ?? '?')
                         }
                       </div>

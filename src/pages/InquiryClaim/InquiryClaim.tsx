@@ -59,8 +59,12 @@ export default function InquiryClaim() {
               <p className="text-sm text-gray-500 mb-1">当前 {slotCount}/5 名服务商已接单</p>
             )}
             <p className="text-sm text-gray-500 mb-6">客户将通过平台联系您，请保持电话畅通。</p>
+            <button onClick={() => navigate('/profile?section=claimed-inquiries')}
+              className="w-full py-3 bg-primary-600 text-white font-bold rounded-2xl text-sm hover:bg-primary-700 transition-colors mb-2">
+              查看我的接单
+            </button>
             <button onClick={() => navigate('/')}
-              className="w-full py-3 bg-primary-600 text-white font-bold rounded-2xl text-sm hover:bg-primary-700 transition-colors">
+              className="w-full py-3 bg-gray-100 text-gray-600 font-semibold rounded-2xl text-sm hover:bg-gray-200 transition-colors">
               返回首页
             </button>
           </>

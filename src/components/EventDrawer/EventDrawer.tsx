@@ -26,6 +26,7 @@ export default function EventDrawer({ eventId, onClose }: Props) {
   const [loading, setLoading] = useState(true)
   const [imgIdx,  setImgIdx]  = useState(0)
   const [copied,  setCopied]  = useState(false)
+  const [failedImgs, setFailedImgs] = useState<Set<number>>(new Set())
 
   useEffect(() => {
     markRead('event', eventId)
@@ -115,7 +116,39 @@ export default function EventDrawer({ eventId, onClose }: Props) {
         {/* Scrollable body */}
         <div className="flex-1 overflow-y-auto overscroll-contain">
           {loading ? (
-            <div className="flex items-center justify-center py-20 text-gray-400 text-sm">加载中…</div>
+            <div className="max-w-2xl mx-auto px-4 py-4 animate-pulse space-y-4">
+              {/* Image placeholder */}
+              <div className="w-full aspect-video bg-gray-100 rounded-2xl" />
+              {/* Title + badge */}
+              <div className="space-y-2">
+                <div className="h-5 bg-gray-200 rounded w-3/4" />
+                <div className="h-4 bg-gray-100 rounded w-1/3" />
+              </div>
+              {/* Info pills row */}
+              <div className="flex gap-2">
+                <div className="h-7 bg-gray-100 rounded-full w-28" />
+                <div className="h-7 bg-gray-100 rounded-full w-20" />
+                <div className="h-7 bg-gray-100 rounded-full w-24" />
+              </div>
+              {/* Description lines */}
+              <div className="space-y-2">
+                <div className="h-3 bg-gray-100 rounded w-full" />
+                <div className="h-3 bg-gray-100 rounded w-5/6" />
+                <div className="h-3 bg-gray-100 rounded w-4/6" />
+              </div>
+              {/* Contact card */}
+              <div className="bg-gray-50 rounded-2xl p-4 space-y-3">
+                <div className="h-4 bg-gray-200 rounded w-1/4" />
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-gray-200 flex-shrink-0" />
+                  <div className="space-y-1.5 flex-1">
+                    <div className="h-3.5 bg-gray-200 rounded w-1/3" />
+                    <div className="h-3 bg-gray-100 rounded w-1/4" />
+                  </div>
+                </div>
+                <div className="h-11 bg-gray-200 rounded-xl" />
+              </div>
+            </div>
           ) : !ev ? (
             <div className="flex items-center justify-center py-20 text-gray-400 text-sm">活动不存在</div>
           ) : (
@@ -124,7 +157,18 @@ export default function EventDrawer({ eventId, onClose }: Props) {
               {ev.images.length > 0 ? (
                 <div>
                   <div className="aspect-video overflow-hidden bg-gray-100">
-                    <img src={ev.images[imgIdx]} alt={ev.title} className="w-full h-full object-cover" />
+                    {failedImgs.has(imgIdx) ? (
+                      <div className="w-full h-full flex items-center justify-center text-7xl bg-gray-50">
+                        {cfg?.emoji}
+                      </div>
+                    ) : (
+                      <img
+                        src={ev.images[imgIdx]}
+                        alt={ev.title}
+                        className="w-full h-full object-cover"
+                        onError={() => setFailedImgs((s) => new Set(s).add(imgIdx))}
+                      />
+                    )}
                   </div>
                   {ev.images.length > 1 && (
                     <div className="flex gap-2 px-4 py-3 overflow-x-auto bg-white">
@@ -134,7 +178,18 @@ export default function EventDrawer({ eventId, onClose }: Props) {
                             imgIdx === i ? 'border-primary-500' : 'border-transparent'
                           }`}
                         >
-                          <img src={img} alt="" className="w-full h-full object-cover" />
+                          {failedImgs.has(i) ? (
+                            <div className="w-full h-full bg-gray-100 flex items-center justify-center text-lg">
+                              {cfg?.emoji}
+                            </div>
+                          ) : (
+                            <img
+                              src={img}
+                              alt=""
+                              className="w-full h-full object-cover"
+                              onError={() => setFailedImgs((s) => new Set(s).add(i))}
+                            />
+                          )}
                         </button>
                       ))}
                     </div>

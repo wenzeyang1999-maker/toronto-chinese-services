@@ -1,10 +1,26 @@
 import { ChevronRight, List, Map, Search } from 'lucide-react'
 import { motion } from 'framer-motion'
-import { Suspense, useState } from 'react'
+import { Component, Suspense, useState } from 'react'
+import type { ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
 import type { Service } from '../../../types'
 import ServiceCard from '../../../components/ServiceCard/ServiceCard'
 import { fuzzyFilterServices } from '../../../lib/fuzzySearch'
+
+class MapErrorBoundary extends Component<{ onError: () => void; children: ReactNode }, { err: boolean }> {
+  state = { err: false }
+  static getDerivedStateFromError() { return { err: true } }
+  componentDidCatch() { this.props.onError() }
+  render() {
+    if (this.state.err) return (
+      <div className="flex flex-col items-center justify-center rounded-2xl bg-gray-50 border border-gray-100 py-10 text-gray-400 text-sm gap-2">
+        <Map size={28} className="opacity-40" />
+        <span>地图暂不可用，已切换至列表</span>
+      </div>
+    )
+    return this.props.children
+  }
+}
 
 interface Props {
   title: string
@@ -107,11 +123,13 @@ export default function HomeServiceShelf({
           }
         </div>
       ) : (
-        <Suspense
-          fallback={<div className="w-full rounded-2xl bg-gray-100 animate-pulse" style={{ height: '60vh', minHeight: 320 }} />}
-        >
-          {mapContent(filteredMap, q.toLowerCase())}
-        </Suspense>
+        <MapErrorBoundary onError={() => onViewModeChange('list')}>
+          <Suspense
+            fallback={<div className="w-full rounded-2xl bg-gray-100 animate-pulse" style={{ height: '60vh', minHeight: 320 }} />}
+          >
+            {mapContent(filteredMap, q.toLowerCase())}
+          </Suspense>
+        </MapErrorBoundary>
       )}
     </motion.section>
   )

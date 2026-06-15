@@ -19,6 +19,7 @@ import PageMeta from '../../components/PageMeta/PageMeta'
 import ViewCount from '../../components/ViewCount/ViewCount'
 import { SOCIAL_PLATFORMS } from '../../lib/socialPlatforms'
 import ContactActions from './components/ContactActions'
+import ImgFallback from '../../components/ImgFallback/ImgFallback'
 import GoogleMapCanvas, { type GoogleMapPoint } from '../../components/ServiceMap/GoogleMapCanvas'
 import { ServiceDetailSkeleton } from '../../components/Skeleton/Skeleton'
 
@@ -57,6 +58,9 @@ export default function ServiceDetail() {
   const [phoneVerified,  setPhoneVerified]  = useState(false)
   const [providerEmail,  setProviderEmail]  = useState<string | null>(null)
   const [avgReplyHours,  setAvgReplyHours]  = useState<number | null>(null)
+  // Contact overlay — stores phone/wechat fetched from DB separately, since the
+  // store query omits them for privacy. Overlays storeService which always has ''.
+  const [contactOverlay, setContactOverlay] = useState<{ phone: string; wechat?: string } | null>(null)
   const [showMap,        setShowMap]        = useState(false)
   const [showContactActions, setShowContactActions] = useState(false)
   const [showReportForm,  setShowReportForm]  = useState(false)
@@ -77,7 +81,7 @@ export default function ServiceDetail() {
         // below only for authenticated users; anon visitors see a login CTA.
         const { data } = await supabase
           .from('services')
-          .select('*, provider:users!provider_id(id, name, avatar_url, last_seen_at), reviews(rating)')
+          .select('*, provider:users!provider_id(id, name, avatar_url, last_seen_at, created_at, phone_verified, business_verified), reviews(rating)')
           .eq('id', id)
           .single()
         if (!data) { setLoading(false); return }
@@ -108,6 +112,8 @@ export default function ServiceDetail() {
       ])
 
       if (contact) {
+        // Always store in overlay so storeService path picks it up too
+        setContactOverlay({ phone: contact.phone ?? '', wechat: contact.wechat ?? undefined })
         setLocalService((prev) => prev
           ? { ...prev, provider: { ...prev.provider, phone: contact.phone ?? '', wechat: contact.wechat ?? undefined } }
           : prev
@@ -226,18 +232,22 @@ export default function ServiceDetail() {
       ? `$${service.price} 起`
       : '价格面议'
 
+  // Use overlay when available (store path never fetches phone/wechat)
+  const effectivePhone  = contactOverlay?.phone  ?? service.provider.phone  ?? ''
+  const effectiveWechat = contactOverlay?.wechat ?? service.provider.wechat
+
   const handleCall = () => {
-    if (!service.provider.phone) return
-    window.location.href = `tel:${service.provider.phone}`
+    if (!effectivePhone) return
+    window.location.href = `tel:${effectivePhone}`
   }
 
   const handleWechat = async () => {
-    if (!service.provider.wechat) return
+    if (!effectiveWechat) return
     try {
-      await navigator.clipboard.writeText(service.provider.wechat)
+      await navigator.clipboard.writeText(effectiveWechat)
       toast('微信号已复制 ✓', 'success')
     } catch {
-      toast(`微信号：${service.provider.wechat}（请手动复制）`)
+      toast(`微信号：${effectiveWechat}（请手动复制）`)
     }
   }
 
@@ -459,7 +469,16 @@ export default function ServiceDetail() {
             className="w-full flex items-center gap-3 text-left hover:bg-gray-50 active:bg-gray-100 rounded-2xl transition-colors -mx-2 px-2 py-2"
           >
             {service.provider.avatar ? (
-              <img src={service.provider.avatar} alt={service.provider.name} className="w-12 h-12 rounded-full object-cover flex-shrink-0" />
+              <ImgFallback
+                src={service.provider.avatar}
+                alt={service.provider.name}
+                className="w-12 h-12 rounded-full object-cover flex-shrink-0"
+                fallback={
+                  <div className="w-12 h-12 bg-gradient-to-br from-primary-400 to-primary-600 rounded-full flex items-center justify-center text-white font-bold text-lg flex-shrink-0">
+                    {service.provider.name.charAt(0)}
+                  </div>
+                }
+              />
             ) : (
               <div className="w-12 h-12 bg-gradient-to-br from-primary-400 to-primary-600 rounded-full flex items-center justify-center text-white font-bold text-lg flex-shrink-0">
                 {service.provider.name.charAt(0)}
@@ -503,18 +522,18 @@ export default function ServiceDetail() {
                 <span className="truncate">{providerEmail}</span>
               </a>
             )}
-            {service.provider.phone && (
-              <a href={`tel:${service.provider.phone}`}
+            {effectivePhone && (
+              <a href={`tel:${effectivePhone}`}
                 className="flex items-center gap-2 text-sm text-gray-700 hover:text-primary-600 transition-colors">
                 <span className="text-base">📞</span>
-                <span>{service.provider.phone}</span>
+                <span>{effectivePhone}</span>
               </a>
             )}
-            {service.provider.wechat && (
+            {effectiveWechat && (
               <button onClick={handleWechat}
                 className="flex items-center gap-2 text-sm text-gray-700 hover:text-primary-600 transition-colors w-full text-left">
                 <span className="text-base">💬</span>
-                <span>{service.provider.wechat}</span>
+                <span>{effectiveWechat}</span>
                 <span className="text-xs text-gray-400 ml-1">（点击复制）</span>
               </button>
             )}
@@ -625,8 +644,8 @@ export default function ServiceDetail() {
       <ContactActions
         isOpen={showContactActions}
         providerName={service.provider.name}
-        phone={service.provider.phone}
-        wechat={service.provider.wechat}
+        phone={effectivePhone}
+        wechat={effectiveWechat}
         onClose={() => setShowContactActions(false)}
         onMessage={() => { setShowContactActions(false); handleMessage() }}
         onCall={() => { setShowContactActions(false); handleCall() }}
@@ -663,6 +682,7 @@ export default function ServiceDetail() {
 // ── Image block: swipe carousel on mobile, grid on desktop ────────────────────
 function ImageBlock({ images }: { images: string[] }) {
   const [current, setCurrent] = useState(0)
+  const [failedImgs, setFailedImgs] = useState<Set<number>>(new Set())
   const scrollRef = useRef<HTMLDivElement>(null)
 
   function onScroll() {
@@ -696,13 +716,24 @@ function ImageBlock({ images }: { images: string[] }) {
           style={{ scrollbarWidth: 'none' }}
         >
           {images.map((img, i) => (
-            <img
-              key={i}
-              src={img}
-              alt={`服务图片${i + 1}`}
-              className="w-full flex-shrink-0 object-cover rounded-xl snap-start"
-              style={{ aspectRatio: '4/3' }}
-            />
+            failedImgs.has(i) ? (
+              <div
+                key={i}
+                className="w-full flex-shrink-0 rounded-xl snap-start bg-gray-100 flex items-center justify-center text-5xl"
+                style={{ aspectRatio: '4/3' }}
+              >
+                🔧
+              </div>
+            ) : (
+              <img
+                key={i}
+                src={img}
+                alt={`服务图片${i + 1}`}
+                className="w-full flex-shrink-0 object-cover rounded-xl snap-start"
+                style={{ aspectRatio: '4/3' }}
+                onError={() => setFailedImgs((s) => new Set(s).add(i))}
+              />
+            )
           ))}
         </div>
         {/* Dot indicators */}
@@ -721,12 +752,22 @@ function ImageBlock({ images }: { images: string[] }) {
       {/* Desktop: grid */}
       <div className={`hidden lg:grid gap-2 ${cols}`}>
         {images.map((img, i) => (
-          <img
-            key={i}
-            src={img}
-            alt={`服务图片${i + 1}`}
-            className={`w-full object-cover rounded-xl ${images.length === 1 ? '' : 'aspect-square'}`}
-          />
+          failedImgs.has(i) ? (
+            <div
+              key={i}
+              className={`w-full rounded-xl bg-gray-100 flex items-center justify-center text-5xl ${images.length === 1 ? 'aspect-video' : 'aspect-square'}`}
+            >
+              🔧
+            </div>
+          ) : (
+            <img
+              key={i}
+              src={img}
+              alt={`服务图片${i + 1}`}
+              className={`w-full object-cover rounded-xl ${images.length === 1 ? '' : 'aspect-square'}`}
+              onError={() => setFailedImgs((s) => new Set(s).add(i))}
+            />
+          )
         ))}
       </div>
     </motion.div>

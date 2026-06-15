@@ -11,6 +11,7 @@ import { toast } from '../../lib/toast'
 import { useAuthStore } from '../../store/authStore'
 import { useReadStore } from '../../store/readStore'
 import SaveButton from '../../components/SaveButton/SaveButton'
+import PageMeta from '../../components/PageMeta/PageMeta'
 import { POST_TYPE_CONFIG, AREA_CONFIG } from './config'
 
 interface PostDetail {
@@ -319,7 +320,41 @@ export default function CommunityDetail() {
   }
 
   if (loading) return (
-    <div className="min-h-screen flex items-center justify-center text-gray-400 text-sm">加载中…</div>
+    <div className="min-h-screen bg-gray-50">
+      <div className="sticky top-0 z-20 bg-white border-b border-gray-100 px-4 h-14 flex items-center gap-3">
+        <button onClick={() => navigate(-1)} className="text-gray-500"><ArrowLeft size={22} /></button>
+        <div className="h-4 bg-gray-200 rounded w-24 animate-pulse" />
+      </div>
+      <div className="max-w-2xl mx-auto px-4 py-5 animate-pulse space-y-4">
+        <div className="bg-white rounded-2xl p-5 space-y-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-gray-200 flex-shrink-0" />
+            <div className="space-y-1.5 flex-1">
+              <div className="h-3.5 bg-gray-200 rounded w-1/4" />
+              <div className="h-3 bg-gray-100 rounded w-1/3" />
+            </div>
+          </div>
+          <div className="h-5 bg-gray-200 rounded w-3/4" />
+          <div className="space-y-2">
+            <div className="h-3 bg-gray-100 rounded w-full" />
+            <div className="h-3 bg-gray-100 rounded w-5/6" />
+            <div className="h-3 bg-gray-100 rounded w-4/6" />
+          </div>
+          <div className="grid grid-cols-3 gap-2">
+            {[0,1,2].map(i => <div key={i} className="aspect-square bg-gray-100 rounded-xl" />)}
+          </div>
+        </div>
+        {[0,1,2].map(i => (
+          <div key={i} className="bg-white rounded-2xl px-4 py-3 flex gap-3">
+            <div className="w-8 h-8 rounded-full bg-gray-200 flex-shrink-0" />
+            <div className="flex-1 space-y-1.5">
+              <div className="h-3 bg-gray-200 rounded w-1/5" />
+              <div className="h-3 bg-gray-100 rounded w-4/5" />
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
   )
   if (!post) return (
     <div className="min-h-screen flex flex-col items-center justify-center gap-3 text-gray-500">
@@ -332,6 +367,7 @@ export default function CommunityDetail() {
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
+      <PageMeta title={post.title} description={post.content.slice(0, 120)} />
 
       {/* Header */}
       <div className="sticky top-0 z-20 bg-white border-b border-gray-100 px-4 h-14 flex items-center gap-3">
@@ -364,15 +400,13 @@ export default function CommunityDetail() {
 
             {/* Author + meta */}
             <div className="flex items-center gap-3 mb-4">
-              {post.author?.avatar_url ? (
-                <img src={post.author.avatar_url} alt={post.author.name}
-                  className="w-10 h-10 rounded-full object-cover border border-gray-100" />
-              ) : (
-                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary-400 to-primary-600
-                                flex items-center justify-center text-white font-bold">
-                  {post.author?.name?.charAt(0) ?? '?'}
-                </div>
-              )}
+              <div className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0 border border-gray-100 bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center text-white font-bold">
+                {post.author?.avatar_url ? (
+                  <img src={post.author.avatar_url} alt={post.author.name}
+                    className="w-full h-full object-cover"
+                    onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
+                ) : (post.author?.name?.charAt(0) ?? '?')}
+              </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-semibold text-gray-800">{post.author?.name ?? '匿名'}</p>
                 <p className="text-xs text-gray-400">{post.created_at.slice(0, 10)} · 📍 {AREA_CONFIG[post.area] ?? post.area}</p>
@@ -392,7 +426,9 @@ export default function CommunityDetail() {
             {post.images && post.images.length > 0 && (
               <div className="grid grid-cols-3 gap-2 mb-4">
                 {post.images.map((url, i) => (
-                  <img key={i} src={url} alt="" className="w-full aspect-square object-cover rounded-xl" />
+                  <img key={i} src={url} alt="" loading="lazy"
+                    className="w-full aspect-square object-cover rounded-xl"
+                    onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
                 ))}
               </div>
             )}
@@ -495,15 +531,13 @@ export default function CommunityDetail() {
                   transition={{ delay: i * 0.02 }}
                   className="bg-white rounded-2xl border border-gray-100 shadow-sm px-4 py-3 flex gap-3"
                 >
-                  {c.author?.avatar_url ? (
-                    <img src={c.author.avatar_url} alt={c.author.name}
-                      className="w-8 h-8 rounded-full object-cover flex-shrink-0 border border-gray-100" />
-                  ) : (
-                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary-400 to-primary-600
-                                    flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
-                      {c.author?.name?.charAt(0) ?? '?'}
-                    </div>
-                  )}
+                  <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0 border border-gray-100 bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center text-white text-xs font-bold">
+                    {c.author?.avatar_url ? (
+                      <img src={c.author.avatar_url} alt={c.author.name}
+                        className="w-full h-full object-cover"
+                        onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
+                    ) : (c.author?.name?.charAt(0) ?? '?')}
+                  </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                       <span className="text-xs font-semibold text-gray-700">{c.author?.name ?? '匿名'}</span>

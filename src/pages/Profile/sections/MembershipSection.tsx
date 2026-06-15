@@ -69,7 +69,21 @@ export default function MembershipSection({ level, expiresAt }: Props) {
     : null
 
   if (loading) {
-    return <div className="px-4 py-10 text-center text-sm text-gray-400">加载中…</div>
+    return (
+      <div className="space-y-3 p-4">
+        <div className="bg-white rounded-2xl border border-gray-100 p-6 animate-pulse">
+          <div className="h-5 bg-gray-100 rounded w-1/3 mb-4" />
+          <div className="h-10 bg-gray-100 rounded-xl mb-3" />
+          <div className="h-3 bg-gray-100 rounded w-2/3" />
+        </div>
+        {[1, 2].map((i) => (
+          <div key={i} className="bg-white rounded-2xl border border-gray-100 p-4 animate-pulse">
+            <div className="h-4 bg-gray-100 rounded w-1/2 mb-2" />
+            <div className="h-3 bg-gray-100 rounded w-3/4" />
+          </div>
+        ))}
+      </div>
+    )
   }
 
   return (

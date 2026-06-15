@@ -172,7 +172,8 @@ export default function HomeActionHero({
                         >
                           <div className="w-9 h-9 rounded-lg bg-white border border-gray-200 flex items-center justify-center flex-shrink-0 text-lg overflow-hidden shadow-sm">
                             {svc.provider.avatar ? (
-                              <img src={svc.provider.avatar} alt="" className="w-9 h-9 object-cover" />
+                              <img src={svc.provider.avatar} alt="" className="w-9 h-9 object-cover"
+                                onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
                             ) : (
                               cat?.emoji ?? '🔧'
                             )}

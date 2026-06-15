@@ -115,7 +115,14 @@ export default function StatsSection() {
   }
 
   if (loading) return (
-    <div className="flex-1 flex items-center justify-center text-gray-400 text-sm py-20">加载中…</div>
+    <div className="flex-1 p-4 grid grid-cols-2 gap-3">
+      {[1, 2, 3, 4].map((i) => (
+        <div key={i} className="bg-white rounded-2xl border border-gray-100 p-5 animate-pulse">
+          <div className="h-7 bg-gray-100 rounded w-1/2 mb-2" />
+          <div className="h-3 bg-gray-100 rounded w-3/4" />
+        </div>
+      ))}
+    </div>
   )
 
   const cards: StatCard[] = [

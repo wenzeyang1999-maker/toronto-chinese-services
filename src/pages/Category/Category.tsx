@@ -9,6 +9,7 @@ import { getCategoryById } from '../../data/categories'
 import type { ServiceCategory } from '../../types'
 import Header from '../../components/Header/Header'
 import { useGeolocation } from '../../hooks/useGeolocation'
+import PageMeta from '../../components/PageMeta/PageMeta'
 
 const ServiceMap = lazy(() => import('../../components/ServiceMap/ServiceMap'))
 
@@ -60,6 +61,7 @@ export default function Category() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      <PageMeta title={`${category.label}服务`} description={category.description} />
       <Header />
 
       {/* Category hero — compact */}
@@ -75,7 +77,8 @@ export default function Category() {
 
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-3">
-              <img src={category.image} alt={category.label} className="w-10 h-10 object-contain flex-shrink-0" />
+              <img src={category.image} alt={category.label} className="w-10 h-10 object-contain flex-shrink-0"
+                onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
               <div className="flex items-baseline gap-2">
                 <h1 className={`text-xl font-bold leading-none ${category.color}`}>{category.label}</h1>
                 <p className="text-gray-400 text-xs">{category.description}</p>
@@ -99,9 +102,9 @@ export default function Category() {
 
       <div className="w-full px-3 md:w-[85%] md:px-0 lg:w-[70%] mx-auto mt-4">
         {/* Sort bar + view toggle */}
-        <div className="card p-3 mb-4 flex items-center gap-2">
-          <SlidersHorizontal size={14} className="text-gray-400" />
-          <span className="text-xs text-gray-500 mr-1">排序：</span>
+        <div className="card p-3 mb-4 flex items-center gap-2 overflow-x-auto scrollbar-hide" style={{ scrollbarWidth: 'none' }}>
+          <SlidersHorizontal size={14} className="text-gray-400 flex-shrink-0" />
+          <span className="text-xs text-gray-500 mr-1 flex-shrink-0">排序：</span>
           {[
             { value: 'distance', label: '距离优先' },
             { value: 'rating', label: '好评优先' },
@@ -110,7 +113,7 @@ export default function Category() {
             <button
               key={opt.value}
               onClick={() => handleSortChange(opt.value as typeof sortBy)}
-              className={`text-xs px-3 py-1.5 rounded-full transition-colors ${
+              className={`flex-shrink-0 whitespace-nowrap text-xs px-3 py-1.5 rounded-full transition-colors ${
                 sortBy === opt.value
                   ? 'bg-primary-600 text-white'
                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
@@ -120,10 +123,10 @@ export default function Category() {
             </button>
           ))}
           {/* View mode toggle */}
-          <div className="ml-auto flex items-center bg-gray-100 rounded-xl p-0.5">
+          <div className="ml-auto flex-shrink-0 flex items-center bg-gray-100 rounded-xl p-0.5">
             <button
               onClick={() => handleViewModeChange('list')}
-              className={`flex items-center gap-1.5 text-sm px-3 py-1.5 rounded-lg font-medium transition-colors ${
+              className={`flex-shrink-0 flex items-center gap-1.5 text-sm px-3 py-1.5 rounded-lg font-medium transition-colors ${
                 viewMode === 'list' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
               }`}
             >
@@ -131,7 +134,7 @@ export default function Category() {
             </button>
             <button
               onClick={() => handleViewModeChange('map')}
-              className={`flex items-center gap-1.5 text-sm px-3 py-1.5 rounded-lg font-medium transition-colors ${
+              className={`flex-shrink-0 flex items-center gap-1.5 text-sm px-3 py-1.5 rounded-lg font-medium transition-colors ${
                 viewMode === 'map' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
               }`}
             >
@@ -165,7 +168,8 @@ export default function Category() {
         {/* List view */}
         {viewMode === 'list' && (sorted.length === 0 ? (
           <div className="text-center py-16 text-gray-400">
-            <img src={category.image} alt={category.label} className="w-12 h-12 mx-auto mb-3 object-contain opacity-40" />
+            <img src={category.image} alt={category.label} className="w-12 h-12 mx-auto mb-3 object-contain opacity-40"
+              onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
             <p>暂无此类服务</p>
             <button
               onClick={() => navigate('/post')}

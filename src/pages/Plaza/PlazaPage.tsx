@@ -15,11 +15,22 @@ import { useEventsStore } from '../../store/eventsStore'
 import { useReadStore } from '../../store/readStore'
 import Header from '../../components/Header/Header'
 import PostFAB from '../../components/PostFAB/PostFAB'
+import PageMeta from '../../components/PageMeta/PageMeta'
 import { POST_TYPE_CONFIG, AREA_CONFIG } from '../Community/config'
 import {
   EVENT_TYPE_CONFIG, getPriceLabel, formatEventTime, isUpcoming,
   type Event,
 } from '../Events/types'
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function timeAgo(iso: string): string {
+  const h = (Date.now() - new Date(iso).getTime()) / 3_600_000
+  if (h < 1) return '刚刚'
+  if (h < 24) return `${Math.floor(h)}小时前`
+  const d = Math.floor(h / 24)
+  if (d < 30) return `${d}天前`
+  return `${Math.floor(d / 30)}个月前`
+}
 
 // ── Community types ───────────────────────────────────────────────────────────
 interface CommunityPost {
@@ -114,6 +125,7 @@ export default function PlazaPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 pb-24">
+      <PageMeta title="大多广场 · 社区" description="大多伦多华人社区圈子、同城活动、集市摊位" />
       <Header />
 
       {/* ── Sub-tab bar ──────────────────────────────────────────────────────── */}
@@ -226,7 +238,8 @@ export default function PlazaPage() {
                     >
                       {hasImg && (
                         <img src={coverImg} alt={post.title} loading="lazy"
-                          className="w-full object-cover" style={{ display: 'block' }} />
+                          className="w-full object-cover" style={{ display: 'block' }}
+                          onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
                       )}
                       {!hasImg && (
                         <div className="w-full py-6 flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100">
@@ -249,17 +262,18 @@ export default function PlazaPage() {
                           </p>
                         )}
                         <div className="flex items-center gap-1.5">
-                          {post.author?.avatar_url ? (
-                            <img src={post.author.avatar_url} alt=""
-                              className="w-5 h-5 rounded-full object-cover flex-shrink-0" />
-                          ) : (
-                            <div className="w-5 h-5 rounded-full bg-gradient-to-br from-primary-400 to-primary-600
-                                            flex items-center justify-center text-white text-[9px] font-bold flex-shrink-0">
-                              {post.author?.name?.charAt(0) ?? '?'}
-                            </div>
-                          )}
+                          <div className="w-5 h-5 rounded-full overflow-hidden flex-shrink-0 bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center text-white text-[9px] font-bold">
+                            {post.author?.avatar_url ? (
+                              <img src={post.author.avatar_url} alt=""
+                                className="w-full h-full object-cover"
+                                onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
+                            ) : (post.author?.name?.charAt(0) ?? '?')}
+                          </div>
                           <span className="text-[11px] text-gray-400 truncate flex-1">
                             {post.author?.name ?? '匿名'}
+                          </span>
+                          <span className="text-[10px] text-gray-300 flex-shrink-0">
+                            {timeAgo(post.created_at)}
                           </span>
                           <span className="flex items-center gap-0.5 text-[11px] text-gray-400 flex-shrink-0">
                             <Heart size={11} className="text-gray-300" />{post.like_count}

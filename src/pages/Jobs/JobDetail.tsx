@@ -15,6 +15,7 @@ import {
 } from './types'
 import SaveButton from '../../components/SaveButton/SaveButton'
 import ShareButton from '../../components/ShareButton/ShareButton'
+import ImgFallback from '../../components/ImgFallback/ImgFallback'
 import PageMeta from '../../components/PageMeta/PageMeta'
 import ViewCount from '../../components/ViewCount/ViewCount'
 import { toast } from '../../lib/toast'
@@ -177,8 +178,12 @@ export default function JobDetail() {
                 className="w-10 h-10 rounded-full bg-primary-100 flex items-center justify-center flex-shrink-0 cursor-pointer ring-2 ring-primary-200 hover:ring-primary-400 transition-all"
               >
                 {job.poster?.avatar_url ? (
-                  <img src={job.poster.avatar_url} alt={job.contact_name}
-                    className="w-full h-full rounded-full object-cover" />
+                  <ImgFallback
+                    src={job.poster.avatar_url}
+                    alt={job.contact_name}
+                    className="w-full h-full rounded-full object-cover"
+                    fallback={<User size={18} className="text-primary-600" />}
+                  />
                 ) : (
                   <User size={18} className="text-primary-600" />
                 )}

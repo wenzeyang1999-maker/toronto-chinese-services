@@ -125,7 +125,8 @@ export default function HeroCarousel() {
           {slide.type === 'video' ? (
             <video src={slide.src} autoPlay muted loop playsInline className="w-full h-full object-cover" />
           ) : (
-            <img src={slide.src} alt={slide.title} className="w-full h-full object-cover" />
+            <img src={slide.src} alt={slide.title} className="w-full h-full object-cover"
+              onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
           )}
 
           {/* Semi-transparent overlay */}

@@ -6,6 +6,7 @@ import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { Mail, ChevronLeft, CheckCircle } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
+import HuaLinLogo from '../../components/Logo/HuaLinLogo'
 
 export default function ForgotPassword() {
   const [email, setEmail]           = useState('')
@@ -40,9 +41,7 @@ export default function ForgotPassword() {
         <Link to="/login" className="text-gray-500 hover:text-gray-800 transition-colors">
           <ChevronLeft size={22} />
         </Link>
-        <div className="w-7 h-7 rounded-full bg-primary-600 flex items-center justify-center text-white font-bold text-sm">
-          T
-        </div>
+        <HuaLinLogo variant="icon" size={28} />
       </div>
 
       <div className="flex-1 flex items-center justify-center px-4 py-10">

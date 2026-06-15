@@ -12,6 +12,7 @@ import {
 import { supabase } from '../../lib/supabase'
 import Header from '../../components/Header/Header'
 import PostFAB from '../../components/PostFAB/PostFAB'
+import ImgFallback from '../../components/ImgFallback/ImgFallback'
 import { useSecondhandStore } from '../../store/secondhandStore'
 import { useAuthStore } from '../../store/authStore'
 import { useReadStore } from '../../store/readStore'
@@ -22,6 +23,7 @@ import {
 import SecondhandComments from './components/SecondhandComments'
 import { toast } from '../../lib/toast'
 import { useUrlFilters } from '../../lib/useUrlFilters'
+import PageMeta from '../../components/PageMeta/PageMeta'
 
 const GTA_AREAS = [
   '多伦多市区', '北约克', '士嘉堡', '密西沙加', '万锦',
@@ -62,6 +64,7 @@ export default function SecondhandList() {
 
   return (
     <div className="flex flex-col h-screen bg-gray-50 overflow-hidden">
+      <PageMeta title="华人闲置物品" description="多伦多华人二手闲置市场：家具、电器、母婴、数码，安全交易" />
       <Header />
 
       {/* ── Search / filter bar ─────────────────────────────────────────────── */}
@@ -114,7 +117,7 @@ export default function SecondhandList() {
               )}
             </div>
             <button onClick={handleSearch}
-              className="bg-primary-600 text-white text-sm font-medium px-4 py-2.5 rounded-xl hover:bg-primary-700 transition-colors">
+              className="flex-shrink-0 whitespace-nowrap bg-primary-600 text-white text-sm font-medium px-4 py-2.5 rounded-xl hover:bg-primary-700 transition-colors">
               搜索
             </button>
             <button
@@ -197,12 +200,24 @@ export default function SecondhandList() {
                 ))}
               </div>
             ) : items.length === 0 ? (
-              <div className="text-center py-20 text-gray-400">
-                <Package size={40} className="mx-auto mb-3 opacity-30" />
-                <p className="text-sm">暂无物品</p>
-                <button onClick={() => navigate('/secondhand/post')}
-                  className="text-xs text-primary-600 underline mt-1">发布第一件闲置</button>
-              </div>
+              filters.keyword || filters.category || filters.condition || filters.area || filters.max_price ? (
+                <div className="text-center py-20 text-gray-400">
+                  <Search size={40} className="mx-auto mb-3 opacity-30" />
+                  <p className="text-sm font-medium text-gray-500">没有找到相关物品</p>
+                  {filters.keyword && <p className="text-xs text-gray-400 mt-1">"{filters.keyword}"</p>}
+                  <button onClick={clearFilters}
+                    className="mt-4 text-xs text-primary-600 bg-primary-50 border border-primary-100 rounded-xl px-4 py-2 font-medium">
+                    清除筛选条件
+                  </button>
+                </div>
+              ) : (
+                <div className="text-center py-20 text-gray-400">
+                  <Package size={40} className="mx-auto mb-3 opacity-30" />
+                  <p className="text-sm">暂无物品</p>
+                  <button onClick={() => navigate('/secondhand/post')}
+                    className="text-xs text-primary-600 underline mt-1">发布第一件闲置</button>
+                </div>
+              )
             ) : (
               <div style={{ columns: '160px', columnGap: '10px' }}>
                 {items.map((item, i) => (
@@ -221,9 +236,17 @@ export default function SecondhandList() {
                     {/* Cover image */}
                     <div className="w-full aspect-[4/3] bg-gray-100 overflow-hidden">
                       {item.images.length > 0 ? (
-                        <img src={item.images[0]} alt={item.title}
+                        <ImgFallback
+                          src={item.images[0]}
+                          alt={item.title}
                           loading="lazy"
-                          className="w-full h-full object-cover" />
+                          className="w-full h-full object-cover"
+                          fallback={
+                            <div className="w-full h-full flex items-center justify-center text-4xl opacity-60">
+                              {SECONDHAND_CATEGORY_CONFIG[item.category].emoji}
+                            </div>
+                          }
+                        />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center text-4xl opacity-60">
                           {SECONDHAND_CATEGORY_CONFIG[item.category].emoji}
@@ -311,8 +334,9 @@ function DetailPanel({ item, onClose }: { item: SecondhandItem; onClose: () => v
   const [imgIdx,    setImgIdx]    = useState(0)
   const [copied,    setCopied]    = useState(false)
   const [messaging, setMessaging] = useState(false)
+  const [failedImgs, setFailedImgs] = useState<Set<number>>(new Set())
 
-  useEffect(() => { setImgIdx(0) }, [item.id])
+  useEffect(() => { setImgIdx(0); setFailedImgs(new Set()) }, [item.id])
 
   async function copyWechat() {
     if (!item.contact_wechat) return
@@ -355,8 +379,18 @@ function DetailPanel({ item, onClose }: { item: SecondhandItem; onClose: () => v
       {item.images.length > 0 ? (
         <div className="relative">
           <div className="aspect-video overflow-hidden bg-gray-100 rounded-t-2xl">
-            <img src={item.images[imgIdx]} alt={item.title}
-              className="w-full h-full object-contain" />
+            {failedImgs.has(imgIdx) ? (
+              <div className="w-full h-full flex items-center justify-center text-6xl bg-gray-50">
+                {SECONDHAND_CATEGORY_CONFIG[item.category].emoji}
+              </div>
+            ) : (
+              <img
+                src={item.images[imgIdx]}
+                alt={item.title}
+                className="w-full h-full object-contain"
+                onError={() => setFailedImgs((s) => new Set(s).add(imgIdx))}
+              />
+            )}
           </div>
           {item.images.length > 1 && (
             <div className="flex gap-2 p-3 overflow-x-auto">
@@ -366,7 +400,18 @@ function DetailPanel({ item, onClose }: { item: SecondhandItem; onClose: () => v
                     imgIdx === i ? 'border-primary-500' : 'border-transparent'
                   }`}
                 >
-                  <img src={img} alt="" className="w-full h-full object-cover" />
+                  {failedImgs.has(i) ? (
+                    <div className="w-full h-full bg-gray-100 flex items-center justify-center text-xl">
+                      {SECONDHAND_CATEGORY_CONFIG[item.category].emoji}
+                    </div>
+                  ) : (
+                    <img
+                      src={img}
+                      alt=""
+                      className="w-full h-full object-cover"
+                      onError={() => setFailedImgs((s) => new Set(s).add(i))}
+                    />
+                  )}
                 </button>
               ))}
             </div>

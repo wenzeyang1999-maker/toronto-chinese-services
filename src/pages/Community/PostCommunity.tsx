@@ -29,10 +29,12 @@ export default function PostCommunity() {
   // New images selected in this session (File objects)
   const [newImages,    setNewImages]    = useState<File[]>([])
   const [newPreviews,  setNewPreviews]  = useState<string[]>([])
-  const [submitting,   setSubmitting]   = useState(false)
-  const [uploadingImg, setUploadingImg] = useState(false)
-  const [loading,      setLoading]      = useState(!!editId)
-  const [error,        setError]        = useState('')
+  const [submitting,    setSubmitting]    = useState(false)
+  const [uploadingImg,  setUploadingImg]  = useState(false)
+  const [loading,       setLoading]       = useState(!!editId)
+  const [titleError,    setTitleError]    = useState('')
+  const [contentError,  setContentError]  = useState('')
+  const [submitError,   setSubmitError]   = useState('')
   const [showTypePicker, setShowTypePicker] = useState(false)
   const [showAreaPicker, setShowAreaPicker] = useState(false)
 
@@ -68,7 +70,7 @@ export default function PostCommunity() {
     const toProcess = files.slice(0, remaining)
     for (const file of toProcess) {
       const err = validateImageFile(file)
-      if (err) { setError(err); return }
+      if (err) { setSubmitError(err); return }
     }
     setUploadingImg(true)
     const compressed = await Promise.all(toProcess.map(f => compressImage(f)))
@@ -88,14 +90,17 @@ export default function PostCommunity() {
   }
 
   async function submit() {
-    if (!title.trim()) { setError('请填写标题'); return }
-    if (!content.trim()) { setError('请填写内容'); return }
-    setError('')
+    const te = title.trim() ? '' : '请填写标题'
+    const ce = content.trim() ? '' : '请填写内容'
+    setTitleError(te)
+    setContentError(ce)
+    if (te || ce) return
+    setSubmitError('')
     setSubmitting(true)
 
     const modResult = await moderateContent({ title, content })
     if (!modResult.pass) {
-      setError(`内容审核未通过：${modResult.reason ?? '包含违规内容'}。请修改后重新发布。`)
+      setSubmitError(`内容审核未通过：${modResult.reason ?? '包含违规内容'}。请修改后重新发布。`)
       setSubmitting(false)
       return
     }
@@ -108,7 +113,7 @@ export default function PostCommunity() {
       const { error: uploadErr } = await supabase.storage
         .from('service-images').upload(path, file, { upsert: true })
       if (uploadErr) {
-        setError(`图片上传失败：${uploadErr.message}`)
+        setSubmitError(`图片上传失败：${uploadErr.message}`)
         setSubmitting(false)
         return
       }
@@ -133,7 +138,7 @@ export default function PostCommunity() {
         .eq('author_id', user!.id)
 
       setSubmitting(false)
-      if (err) { setError('保存失败，请重试'); return }
+      if (err) { setSubmitError('保存失败，请重试'); return }
       toast('帖子已更新', 'success')
       navigate(`/community/${editId}`)
     } else {
@@ -151,7 +156,7 @@ export default function PostCommunity() {
         .select('id').single()
 
       setSubmitting(false)
-      if (err || !data) { setError('发布失败，请重试'); return }
+      if (err || !data) { setSubmitError('发布失败，请重试'); return }
 
       // Notify followers — fire-and-forget, don't block navigation
       ;(async () => {
@@ -268,25 +273,31 @@ export default function PostCommunity() {
         {/* Title */}
         <input
           value={title}
-          onChange={e => { setTitle(e.target.value); setError('') }}
+          onChange={e => { setTitle(e.target.value); if (titleError) setTitleError('') }}
           placeholder="写一个吸引人的标题…"
           maxLength={80}
-          className="w-full text-lg font-semibold text-gray-900 placeholder-gray-300
-                     outline-none border-none bg-transparent mb-1"
+          className={`w-full text-lg font-semibold text-gray-900 placeholder-gray-300
+                     outline-none border-none bg-transparent mb-1
+                     ${titleError ? 'placeholder-red-300' : ''}`}
         />
-        <div className="h-px bg-gray-100 mb-4" />
+        {titleError ? (
+          <p className="text-xs text-red-500 mb-2">{titleError}</p>
+        ) : (
+          <div className="h-px bg-gray-100 mb-4" />
+        )}
 
         {/* Content */}
         <textarea
           value={content}
-          onChange={e => { setContent(e.target.value); setError('') }}
+          onChange={e => { setContent(e.target.value); if (contentError) setContentError('') }}
           placeholder="分享你的经验、问题或推荐…"
           rows={8}
           className="w-full text-sm text-gray-700 placeholder-gray-300
                      outline-none border-none bg-transparent resize-none leading-relaxed"
         />
+        {contentError && <p className="text-xs text-red-500 mt-1">{contentError}</p>}
 
-        {error && <p className="text-sm text-red-500 mt-2">{error}</p>}
+        {submitError && <p className="text-sm text-red-500 mt-3">{submitError}</p>}
       </div>
 
       {/* Bottom bar: optional tags */}

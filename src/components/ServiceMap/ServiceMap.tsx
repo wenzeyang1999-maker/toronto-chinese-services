@@ -152,10 +152,9 @@ export default function ServiceMap({ services, requests = [], count, requestsOnl
   return (
     <div className="relative w-full rounded-2xl overflow-hidden border border-gray-200 shadow-sm transition-all duration-500" style={{ height, minHeight: '320px' }}>
       {points.length === 0 && (
-        <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-gray-50 text-gray-400">
-          <span className="text-4xl mb-2">📍</span>
-          <p className="text-sm">{requestsOnly ? '附近暂无标记位置的需求' : '暂无商家填写位置信息'}</p>
-          <p className="text-xs mt-1">{requestsOnly ? '客户发布需求时勾选位置即可显示' : '发布服务时填写位置后即可显示在地图上'}</p>
+        <div className="absolute bottom-14 left-1/2 -translate-x-1/2 z-10 bg-white/90 backdrop-blur-sm rounded-xl shadow-md px-4 py-2.5 text-center pointer-events-none">
+          <p className="text-xs font-medium text-gray-600">{requestsOnly ? '附近暂无标记位置的需求' : '暂无商家填写位置信息'}</p>
+          <p className="text-[11px] text-gray-400 mt-0.5">{requestsOnly ? '客户发布需求时勾选位置即可显示' : '发布服务时填写位置后即可显示在地图上'}</p>
         </div>
       )}
 

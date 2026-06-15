@@ -8,6 +8,8 @@ import { useNavigate, useSearchParams, Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { Eye, EyeOff, User, Phone, Lock, Mail, ChevronLeft, Gift } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
+import HuaLinLogo from '../../components/Logo/HuaLinLogo'
+import SocialAuthButtons from './SocialAuthButtons'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface RegisterForm {
@@ -167,9 +169,7 @@ export default function Register() {
         >
           <ChevronLeft size={22} />
         </button>
-        <div className="w-7 h-7 rounded-full bg-primary-600 flex items-center justify-center text-white font-bold text-sm">
-          T
-        </div>
+        <HuaLinLogo variant="icon" size={28} />
       </div>
 
       {/* Form card */}
@@ -181,9 +181,19 @@ export default function Register() {
           className="w-full max-w-md bg-white rounded-3xl shadow-sm border border-gray-100 p-8"
         >
           {/* Header */}
-          <div className="mb-8">
+          <div className="mb-6">
             <h1 className="text-2xl font-bold text-gray-900 mb-1">创建账号</h1>
             <p className="text-sm text-gray-500">加入华林</p>
+          </div>
+
+          {/* OAuth buttons */}
+          <SocialAuthButtons redirectTo={window.location.origin} />
+
+          {/* Divider */}
+          <div className="flex items-center gap-3 my-5">
+            <div className="flex-1 h-px bg-gray-100" />
+            <span className="text-xs text-gray-400">或使用邮箱注册</span>
+            <div className="flex-1 h-px bg-gray-100" />
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -331,15 +341,8 @@ export default function Register() {
             </motion.button>
           </form>
 
-          {/* Divider */}
-          <div className="flex items-center gap-3 my-6">
-            <div className="flex-1 h-px bg-gray-100" />
-            <span className="text-xs text-gray-400">或</span>
-            <div className="flex-1 h-px bg-gray-100" />
-          </div>
-
           {/* Login link */}
-          <p className="text-center text-sm text-gray-500">
+          <p className="text-center text-sm text-gray-500 mt-6">
             已有账号？{' '}
             <Link to="/login" className="text-primary-600 font-medium hover:underline">
               立即登录

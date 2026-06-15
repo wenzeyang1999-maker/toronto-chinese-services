@@ -111,7 +111,7 @@ export default function Profile() {
     if (item && !item.modes.includes(next)) setSection(null)
   }
 
-  useEffect(() => { if (!user) navigate('/login') }, [user, navigate])
+  // Unauthenticated: show benefits screen (no hard redirect — let the screen sell the value)
 
   useEffect(() => {
     if (!user) return
@@ -151,7 +151,59 @@ export default function Profile() {
       })
   }, [user])
 
-  if (!user) return null
+  if (!user) return (
+    <div className="min-h-screen bg-gray-50 flex flex-col">
+      <div className="w-full bg-white border-b border-gray-100 px-4 h-14 flex items-center gap-3">
+        <button onClick={() => navigate(-1)} className="text-gray-500 hover:text-gray-800">
+          <ChevronLeft size={22} />
+        </button>
+        <span className="font-semibold text-gray-800">我的账号</span>
+      </div>
+      <div className="flex-1 flex flex-col items-center justify-center px-6 py-12 text-center gap-6">
+        <div className="w-20 h-20 rounded-full bg-gradient-to-br from-primary-400 to-primary-600
+                        flex items-center justify-center text-white text-3xl shadow-lg">
+          👤
+        </div>
+        <div>
+          <h2 className="text-xl font-bold text-gray-900 mb-2">登录后解锁完整功能</h2>
+          <p className="text-sm text-gray-500 leading-relaxed max-w-xs mx-auto">
+            加入华林，一键发现大多伦多华人生活服务
+          </p>
+        </div>
+        <div className="w-full max-w-sm bg-white rounded-2xl border border-gray-100 shadow-sm divide-y divide-gray-100">
+          {[
+            { icon: '🔍', label: '智能AI帮你找服务', sub: '描述需求，自动匹配服务商' },
+            { icon: '💬', label: '一键发起询价', sub: '5分钟内获得多家报价' },
+            { icon: '❤️', label: '收藏喜欢的服务', sub: '随时查看，对比不迷路' },
+            { icon: '🎁', label: '邀请好友得奖励', sub: '专属邀请码，双方都受益' },
+          ].map(({ icon, label, sub }) => (
+            <div key={label} className="flex items-center gap-3.5 px-5 py-4 text-left">
+              <span className="text-2xl flex-shrink-0">{icon}</span>
+              <div>
+                <p className="text-sm font-semibold text-gray-800">{label}</p>
+                <p className="text-xs text-gray-400 mt-0.5">{sub}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+        <div className="w-full max-w-sm space-y-3">
+          <button
+            onClick={() => navigate('/login', { state: { from: '/profile' } })}
+            className="w-full bg-primary-600 hover:bg-primary-700 active:scale-95 text-white
+                       font-semibold py-3.5 rounded-2xl text-sm transition-all shadow-sm"
+          >
+            登录 / 注册
+          </button>
+          <button
+            onClick={() => navigate(-1)}
+            className="w-full text-gray-500 text-sm py-2"
+          >
+            稍后再说
+          </button>
+        </div>
+      </div>
+    </div>
+  )
 
   async function handleAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
@@ -181,7 +233,8 @@ export default function Profile() {
         <div className="relative flex-shrink-0">
           <div className="w-[68px] h-[68px] rounded-full overflow-hidden bg-primary-100 flex items-center justify-center">
             {avatarUrl
-              ? <img src={avatarUrl} alt="avatar" className="w-full h-full object-cover" />
+              ? <img src={avatarUrl} alt="avatar" className="w-full h-full object-cover"
+                  onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
               : <span className="text-2xl font-bold text-primary-600">{name.slice(0, 1)}</span>
             }
           </div>
