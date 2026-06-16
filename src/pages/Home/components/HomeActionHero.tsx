@@ -1,9 +1,24 @@
-import { MapPin, Sparkles, ArrowRight, ShieldCheck, Star } from 'lucide-react'
-import { motion } from 'framer-motion'
+import { MapPin, Sparkles, ArrowRight, ShieldCheck, Star, Clock, X } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import SearchBar from '../../../components/SearchBar/SearchBar'
 import { useAppStore } from '../../../store/appStore'
 import { getCategoryById } from '../../../data/categories'
+
+const HISTORY_KEY = 'tcs_search_history'
+const MAX_HISTORY = 5
+
+function getHistory(): string[] {
+  try { return JSON.parse(localStorage.getItem(HISTORY_KEY) ?? '[]') } catch { return [] }
+}
+function addToHistory(kw: string) {
+  const prev = getHistory().filter(h => h.toLowerCase() !== kw.toLowerCase())
+  localStorage.setItem(HISTORY_KEY, JSON.stringify([kw, ...prev].slice(0, MAX_HISTORY)))
+}
+function removeFromHistory(kw: string) {
+  localStorage.setItem(HISTORY_KEY, JSON.stringify(getHistory().filter(h => h !== kw)))
+}
 
 interface Props {
   userHasLocation: boolean
@@ -22,6 +37,22 @@ export default function HomeActionHero({
 }: Props) {
   const navigate = useNavigate()
   const services = useAppStore((s) => s.services)
+  const [history, setHistory] = useState<string[]>(getHistory)
+  const [showHistory, setShowHistory] = useState(false)
+  const searchWrapRef = useRef<HTMLDivElement>(null)
+
+  function handleSearch(kw: string) {
+    if (!kw.trim()) return
+    addToHistory(kw.trim())
+    setHistory(getHistory())
+    setShowHistory(false)
+    onSearch(kw)
+  }
+
+  function handleRemoveHistory(kw: string) {
+    removeFromHistory(kw)
+    setHistory(getHistory())
+  }
 
   const ticker = services
     .filter((s) => s.available)
@@ -70,12 +101,47 @@ export default function HomeActionHero({
             </p>
 
             <div className="mt-6 flex flex-col gap-3 md:flex-row md:items-stretch">
-              <div className="min-w-0 flex-1">
+              <div className="min-w-0 flex-1 relative" ref={searchWrapRef}
+                onFocus={() => setShowHistory(true)}
+                onBlur={(e) => {
+                  if (!searchWrapRef.current?.contains(e.relatedTarget as Node)) setShowHistory(false)
+                }}
+              >
                 <SearchBar
                   value={searchQuery}
                   onChange={onSearchQueryChange}
-                  onSearch={onSearch}
+                  onSearch={handleSearch}
                 />
+                <AnimatePresence>
+                  {showHistory && history.length > 0 && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -4 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -4 }}
+                      transition={{ duration: 0.15 }}
+                      className="absolute top-full left-0 right-0 mt-1.5 bg-white border border-gray-200 rounded-2xl shadow-lg z-50 overflow-hidden"
+                    >
+                      <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest px-4 pt-3 pb-1">最近搜索</p>
+                      {history.map(h => (
+                        <div key={h} className="flex items-center gap-2 px-4 py-2.5 hover:bg-gray-50 group">
+                          <Clock size={13} className="text-gray-300 flex-shrink-0" />
+                          <button
+                            className="flex-1 text-sm text-gray-700 text-left truncate"
+                            onMouseDown={() => handleSearch(h)}
+                          >
+                            {h}
+                          </button>
+                          <button
+                            onMouseDown={(e) => { e.stopPropagation(); handleRemoveHistory(h) }}
+                            className="opacity-0 group-hover:opacity-100 text-gray-300 hover:text-gray-500 transition-opacity"
+                          >
+                            <X size={13} />
+                          </button>
+                        </div>
+                      ))}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
               <motion.button
                 whileTap={{ scale: 0.97 }}

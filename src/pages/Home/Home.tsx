@@ -5,7 +5,6 @@ import CategoryButtons from '../../components/CategoryButtons/CategoryButtons'
 import InquiryModal from '../../components/InquiryModal/InquiryModal'
 import { useAppStore } from '../../store/appStore'
 import { useGeolocation } from '../../hooks/useGeolocation'
-// import RecentCategories from '../../components/RecentCategories/RecentCategories'  // hidden — see below
 import RecommendedServices from '../../components/RecommendedServices/RecommendedServices'
 import ServiceRequestCard from '../../components/ServiceRequestCard/ServiceRequestCard'
 import { useNavigate, useSearchParams } from 'react-router-dom'
@@ -219,10 +218,6 @@ export default function Home() {
           </div>
           <CategoryButtons />
         </section>
-
-        {/* RecentCategories hidden — redundant with the 热门服务 category grid
-            above. Component kept for possible future reuse (e.g. 猜你喜欢). */}
-        {/* <RecentCategories /> */}
 
         {/* ── Post-request CTA ─────────────────────────────────────────────── */}
         <section className="mb-4 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">

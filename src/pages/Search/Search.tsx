@@ -445,10 +445,16 @@ export default function Search() {
             {results.length > 0 && (
               <>
                 <div className="columns-1 md:columns-2 gap-3 [column-fill:_balance]">
-                  {results.slice(0, page * PAGE_SIZE).map((svc) => (
-                    <div key={svc.id} className="break-inside-avoid mb-3">
+                  {results.slice(0, page * PAGE_SIZE).map((svc, i) => (
+                    <motion.div
+                      key={svc.id}
+                      className="break-inside-avoid mb-3"
+                      initial={{ opacity: 0, y: 12 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.2, delay: Math.min(i, 8) * 0.04 }}
+                    >
                       <ServiceCard service={svc} layout="masonry" />
-                    </div>
+                    </motion.div>
                   ))}
                 </div>
                 {results.length > page * PAGE_SIZE && (

@@ -6,7 +6,7 @@
 import { useEffect, useState } from 'react'
 import { Download, X, Share } from 'lucide-react'
 import { isIos, isStandalone } from '../../lib/pwa'
-import { useInstallState, triggerInstall } from '../../lib/pwaInstall'
+import { useInstallState, triggerInstall } from '../../lib/pwa'
 
 const DISMISSED_KEY = 'tcs_pwa_install_dismissed'
 

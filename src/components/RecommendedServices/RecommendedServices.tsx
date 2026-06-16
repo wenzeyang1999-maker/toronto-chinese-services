@@ -113,7 +113,13 @@ export default function RecommendedServices({ excludeIds }: Props) {
       <div className="columns-2 md:columns-3 lg:columns-4 xl:columns-5 2xl:columns-6 gap-3">
         {items.map((item, idx) =>
           item.type === 'cta' ? (
-            <div key="cta" className="break-inside-avoid mb-3">
+            <motion.div
+              key="cta"
+              className="break-inside-avoid mb-3"
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.2, delay: Math.min(idx, 8) * 0.04 }}
+            >
               <div className="bg-gradient-to-br from-primary-600 to-primary-800 rounded-2xl p-4 text-white flex flex-col gap-3">
                 <p className="font-bold text-sm leading-snug">有技能想接单？</p>
                 <p className="text-xs text-blue-100 leading-relaxed">免费发布服务，让附近客户找到你</p>
@@ -124,11 +130,17 @@ export default function RecommendedServices({ excludeIds }: Props) {
                   立即发布 →
                 </button>
               </div>
-            </div>
+            </motion.div>
           ) : (
-            <div key={item.id ?? idx} className="break-inside-avoid mb-3">
+            <motion.div
+              key={item.id ?? idx}
+              className="break-inside-avoid mb-3"
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.2, delay: Math.min(idx, 8) * 0.04 }}
+            >
               <ServiceCard service={svcMap[item.id]} layout="masonry" />
-            </div>
+            </motion.div>
           )
         )}
       </div>

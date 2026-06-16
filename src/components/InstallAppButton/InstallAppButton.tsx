@@ -6,7 +6,7 @@
 import { useState } from 'react'
 import { Download, Smartphone, Share, X, Monitor } from 'lucide-react'
 import { isIos, isStandalone } from '../../lib/pwa'
-import { triggerInstall, useInstallState } from '../../lib/pwaInstall'
+import { triggerInstall, useInstallState } from '../../lib/pwa'
 import { toast } from '../../lib/toast'
 
 export default function InstallAppButton() {
