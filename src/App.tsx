@@ -12,7 +12,7 @@
 //   /login          → User login page
 //   /profile        → User profile page
 import { lazy, Suspense, useEffect } from 'react'
-import { Routes, Route } from 'react-router-dom'
+import { Routes, Route, Navigate } from 'react-router-dom'
 import { AnimatePresence } from 'framer-motion'
 import type { User } from '@supabase/supabase-js'
 import LoadingScreen from './components/LoadingScreen/LoadingScreen'
@@ -49,7 +49,6 @@ const EventList       = lazy(() => import('./pages/Events/EventList'))
 const EventDetail     = lazy(() => import('./pages/Events/EventDetail'))
 const PostEvent       = lazy(() => import('./pages/Events/PostEvent'))
 const AdminPage       = lazy(() => import('./pages/Admin/AdminPage'))
-const GlobalSearch    = lazy(() => import('./pages/GlobalSearch/GlobalSearch'))
 const CommunityPage   = lazy(() => import('./pages/Community/CommunityPage'))
 const CommunityDetail = lazy(() => import('./pages/Community/CommunityDetail'))
 const PostCommunity   = lazy(() => import('./pages/Community/PostCommunity'))
@@ -68,6 +67,11 @@ import { unsubscribeFromWebPush } from './lib/webPush'
 import { useRequestMatchAlerts } from './hooks/useRequestMatchAlerts'
 import { useReadSync } from './lib/useReadSync'
 import ProviderInquiryAlerts from './components/InquiryRaceAlert/ProviderInquiryAlerts'
+
+function SearchAllRedirect() {
+  const q = new URLSearchParams(window.location.search).get('q') ?? ''
+  return <Navigate to={q ? `/search?q=${encodeURIComponent(q)}&global=1` : '/search?global=1'} replace />
+}
 
 export default function App() {
   useRequestMatchAlerts()
@@ -191,7 +195,7 @@ export default function App() {
           <Route path="/events" element={<EventList />} />
           <Route path="/events/post" element={<PostEvent />} />
           <Route path="/events/:id" element={<EventDetail />} />
-          <Route path="/search-all" element={<GlobalSearch />} />
+          <Route path="/search-all" element={<SearchAllRedirect />} />
           <Route path="/admin" element={<AdminPage />} />
           <Route path="/community" element={<CommunityPage />} />
           <Route path="/community/post" element={<PostCommunity />} />

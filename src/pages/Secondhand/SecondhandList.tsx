@@ -1,8 +1,6 @@
 // ─── Secondhand List Page ─────────────────────────────────────────────────────
 // Route: /secondhand
-// Desktop (≥ lg): masonry list on left + detail panel on right
-// Mobile  (< lg): masonry grid, detail opens in bottom drawer
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
@@ -10,8 +8,7 @@ import {
   Phone, MessageCircle, MessageSquare, Copy, Package, User, ExternalLink,
 } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
-import Header from '../../components/Header/Header'
-import PostFAB from '../../components/PostFAB/PostFAB'
+import ListPageShell from '../../components/ListPageShell/ListPageShell'
 import ImgFallback from '../../components/ImgFallback/ImgFallback'
 import { useSecondhandStore } from '../../store/secondhandStore'
 import { useAuthStore } from '../../store/authStore'
@@ -23,7 +20,6 @@ import {
 import SecondhandComments from './components/SecondhandComments'
 import { toast } from '../../lib/toast'
 import { useUrlFilters } from '../../lib/useUrlFilters'
-import PageMeta from '../../components/PageMeta/PageMeta'
 
 const GTA_AREAS = [
   '多伦多市区', '北约克', '士嘉堡', '密西沙加', '万锦',
@@ -41,7 +37,6 @@ export default function SecondhandList() {
   const [localKeyword, setLocalKeyword] = useState(filters.keyword ?? '')
   const [selectedId,   setSelectedId]   = useState<string | null>(null)
   const [mobileOpen,   setMobileOpen]   = useState(false)
-  const detailRef = useRef<HTMLDivElement>(null)
 
   useUrlFilters(filters, setFilters, ['keyword', 'category', 'condition', 'area', 'max_price'], { numericKeys: ['max_price'] })
 
@@ -49,10 +44,6 @@ export default function SecondhandList() {
 
   const items        = getFilteredItems()
   const selectedItem = items.find((i) => i.id === selectedId) ?? null
-
-  useEffect(() => {
-    detailRef.current?.scrollTo({ top: 0, behavior: 'smooth' })
-  }, [selectedId])
 
   const handleSearch = () => setFilters({ keyword: localKeyword || undefined })
 
@@ -62,272 +53,222 @@ export default function SecondhandList() {
     if (window.innerWidth < 1024) setMobileOpen(true)
   }
 
-  return (
-    <div className="flex flex-col h-screen bg-gray-50 overflow-hidden">
-      <PageMeta title="华人闲置物品" description="多伦多华人二手闲置市场：家具、电器、母婴、数码，安全交易" />
-      <Header />
-
-      {/* ── Search / filter bar ─────────────────────────────────────────────── */}
-      <div className="bg-white border-b border-gray-100 py-3 flex-shrink-0 z-20">
-        <div className="w-full px-3 md:w-[85%] md:px-0 lg:w-[70%] mx-auto space-y-3">
-
-          <div>
-            <h1 className="text-lg font-bold text-gray-900">二手交易</h1>
-            <p className="text-xs text-gray-400">华林 · 闲置转让</p>
-          </div>
-
-          {/* Category tab bar */}
-          <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide -mx-1 px-1">
-            <button
-              onClick={() => setFilters({ category: undefined })}
-              className={`flex-shrink-0 text-xs font-semibold px-3 py-1.5 rounded-full transition-colors ${
-                !filters.category ? 'bg-primary-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-              }`}
-            >
-              全部
-            </button>
-            {(Object.keys(SECONDHAND_CATEGORY_CONFIG) as SecondhandCategory[]).map((k) => (
-              <button
-                key={k}
-                onClick={() => setFilters({ category: filters.category === k ? undefined : k })}
-                className={`flex-shrink-0 flex items-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-full transition-colors ${
-                  filters.category === k ? 'bg-primary-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                }`}
-              >
-                <span>{SECONDHAND_CATEGORY_CONFIG[k].emoji}</span>
-                <span>{SECONDHAND_CATEGORY_CONFIG[k].label}</span>
-              </button>
-            ))}
-          </div>
-
-          <div className="flex items-center gap-2">
-            <div className="flex-1 flex items-center gap-2 bg-gray-100 rounded-xl px-3 py-2.5">
-              <Search size={15} className="text-gray-400 flex-shrink-0" />
-              <input
-                value={localKeyword}
-                onChange={(e) => setLocalKeyword(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                placeholder="搜索物品..."
-                className="flex-1 bg-transparent outline-none text-sm text-gray-900 placeholder-gray-400"
-              />
-              {localKeyword && (
-                <button onClick={() => { setLocalKeyword(''); setFilters({ keyword: undefined }) }}>
-                  <X size={14} className="text-gray-400" />
-                </button>
-              )}
-            </div>
-            <button onClick={handleSearch}
-              className="flex-shrink-0 whitespace-nowrap bg-primary-600 text-white text-sm font-medium px-4 py-2.5 rounded-xl hover:bg-primary-700 transition-colors">
-              搜索
-            </button>
-            <button
-              onClick={() => setShowFilters((v) => !v)}
-              className={`p-2.5 rounded-xl border transition-colors ${
-                showFilters || filters.category || filters.condition || filters.area
-                  ? 'border-primary-400 text-primary-600 bg-primary-50'
-                  : 'border-gray-200 text-gray-500 bg-white'
-              }`}
-            >
-              <SlidersHorizontal size={16} />
-            </button>
-          </div>
-
-          <AnimatePresence>
-            {showFilters && (
-              <motion.div
-                initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }}
-                exit={{ height: 0, opacity: 0 }} className="overflow-hidden"
-              >
-                <div className="space-y-3 pt-1">
-                  <FilterRow label="分类">
-                    <Chip active={!filters.category} onClick={() => setFilters({ category: undefined })}>全部</Chip>
-                    {(Object.keys(SECONDHAND_CATEGORY_CONFIG) as SecondhandCategory[]).map((k) => (
-                      <Chip key={k} active={filters.category === k}
-                        onClick={() => setFilters({ category: filters.category === k ? undefined : k })}>
-                        {SECONDHAND_CATEGORY_CONFIG[k].emoji} {SECONDHAND_CATEGORY_CONFIG[k].label}
-                      </Chip>
-                    ))}
-                  </FilterRow>
-                  <FilterRow label="成色">
-                    <Chip active={!filters.condition} onClick={() => setFilters({ condition: undefined })}>全部</Chip>
-                    {(Object.keys(ITEM_CONDITION_CONFIG) as ItemCondition[]).map((k) => (
-                      <Chip key={k} active={filters.condition === k}
-                        onClick={() => setFilters({ condition: filters.condition === k ? undefined : k })}>
-                        {ITEM_CONDITION_CONFIG[k].label}
-                      </Chip>
-                    ))}
-                  </FilterRow>
-                  <FilterRow label="地区">
-                    <Chip active={!filters.area} onClick={() => setFilters({ area: undefined })}>全部</Chip>
-                    {GTA_AREAS.map((a) => (
-                      <Chip key={a} active={filters.area === a}
-                        onClick={() => setFilters({ area: filters.area === a ? undefined : a })}>
-                        {a}
-                      </Chip>
-                    ))}
-                  </FilterRow>
-                  <button onClick={() => { clearFilters(); setLocalKeyword('') }}
-                    className="text-xs text-gray-400 hover:text-red-500 transition-colors">
-                    清除所有筛选
-                  </button>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
+  const topBar = (
+    <>
+      <div>
+        <h1 className="text-lg font-bold text-gray-900">二手交易</h1>
+        <p className="text-xs text-gray-400">华林 · 闲置转让</p>
       </div>
 
-      {/* ── Content area ────────────────────────────────────────────────────── */}
-      <div className="flex-1 overflow-hidden w-full px-3 md:w-[85%] md:px-0 lg:w-[70%] mx-auto flex gap-0 py-3">
-
-        {/* ── Left: item masonry ───────────────────────────────────────────── */}
-        <div className={`flex flex-col overflow-hidden
-          ${selectedItem ? 'hidden lg:flex lg:w-[380px] lg:flex-shrink-0' : 'w-full'}`}>
-          <p className="text-xs text-gray-400 mb-2 flex-shrink-0">共 {items.length} 件物品</p>
-
-          <div className="flex-1 overflow-y-auto pr-0.5">
-            {!isReady ? (
-              <div style={{ columns: '160px', columnGap: '10px' }}>
-                {[1, 2, 3, 4].map((i) => (
-                  <div key={i} className="break-inside-avoid mb-2.5 bg-white rounded-2xl overflow-hidden animate-pulse"
-                    style={{ height: i % 2 === 0 ? 200 : 240 }}>
-                    <div className="w-full h-3/5 bg-gray-100" />
-                    <div className="p-2.5 space-y-1.5">
-                      <div className="h-3.5 bg-gray-100 rounded w-4/5" />
-                      <div className="h-3 bg-gray-100 rounded w-1/2" />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : items.length === 0 ? (
-              filters.keyword || filters.category || filters.condition || filters.area || filters.max_price ? (
-                <div className="text-center py-20 text-gray-400">
-                  <Search size={40} className="mx-auto mb-3 opacity-30" />
-                  <p className="text-sm font-medium text-gray-500">没有找到相关物品</p>
-                  {filters.keyword && <p className="text-xs text-gray-400 mt-1">"{filters.keyword}"</p>}
-                  <button onClick={clearFilters}
-                    className="mt-4 text-xs text-primary-600 bg-primary-50 border border-primary-100 rounded-xl px-4 py-2 font-medium">
-                    清除筛选条件
-                  </button>
-                </div>
-              ) : (
-                <div className="text-center py-20 text-gray-400">
-                  <Package size={40} className="mx-auto mb-3 opacity-30" />
-                  <p className="text-sm">暂无物品</p>
-                  <button onClick={() => navigate('/secondhand/post')}
-                    className="text-xs text-primary-600 underline mt-1">发布第一件闲置</button>
-                </div>
-              )
-            ) : (
-              <div style={{ columns: '160px', columnGap: '10px' }}>
-                {items.map((item, i) => (
-                  <motion.div key={item.id}
-                    initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: i * 0.02 }}
-                    onClick={() => handleItemClick(item)}
-                    className={`break-inside-avoid mb-2.5 bg-white rounded-2xl overflow-hidden
-                      cursor-pointer transition-all duration-150
-                      ${readSet.has(`secondhand:${item.id}`) ? 'opacity-75' : ''}
-                      ${selectedId === item.id
-                        ? 'ring-2 ring-primary-400 shadow-md'
-                        : 'shadow-sm hover:shadow-md'
-                      }`}
-                  >
-                    {/* Cover image */}
-                    <div className="w-full aspect-[4/3] bg-gray-100 overflow-hidden">
-                      {item.images.length > 0 ? (
-                        <ImgFallback
-                          src={item.images[0]}
-                          alt={item.title}
-                          loading="lazy"
-                          className="w-full h-full object-cover"
-                          fallback={
-                            <div className="w-full h-full flex items-center justify-center text-4xl opacity-60">
-                              {SECONDHAND_CATEGORY_CONFIG[item.category].emoji}
-                            </div>
-                          }
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center text-4xl opacity-60">
-                          {SECONDHAND_CATEGORY_CONFIG[item.category].emoji}
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Info */}
-                    <div className="p-2.5">
-                      <div className="flex items-start justify-between gap-1 mb-1">
-                        <h3 className={`font-semibold text-xs leading-snug line-clamp-2 flex-1
-                          ${readSet.has(`secondhand:${item.id}`) ? 'text-gray-400' : 'text-gray-900'}`}>
-                          {item.title}
-                        </h3>
-                        <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded-full flex-shrink-0 ml-1 ${ITEM_CONDITION_CONFIG[item.condition].color}`}>
-                          {ITEM_CONDITION_CONFIG[item.condition].label}
-                        </span>
-                      </div>
-                      <p className="text-sm font-bold text-primary-600 mb-1">{getPriceLabel(item)}</p>
-                      <div className="flex items-center gap-1.5 text-[10px] text-gray-400">
-                        <span className="flex-1 truncate">{SECONDHAND_CATEGORY_CONFIG[item.category].label}</span>
-                        {item.area && item.area.length > 0 && (
-                          <span className="flex items-center gap-0.5 flex-shrink-0">
-                            <MapPin size={9} />{item.area[0]}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </motion.div>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* ── Right: detail panel (desktop only) ───────────────────────────── */}
-        <AnimatePresence mode="wait">
-          {selectedItem && (
-            <motion.div key={selectedItem.id}
-              ref={detailRef}
-              initial={{ opacity: 0, x: 16 }} animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0 }} transition={{ duration: 0.18 }}
-              className="hidden lg:flex flex-col flex-1 overflow-y-auto ml-4"
-            >
-              <DetailPanel item={selectedItem} onClose={() => setSelectedId(null)} />
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
-
-      {/* ── Mobile bottom drawer ─────────────────────────────────────────────── */}
-      <AnimatePresence>
-        {mobileOpen && selectedItem && (
-          <motion.div
-            className="fixed inset-0 z-50 lg:hidden"
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            onClick={() => setMobileOpen(false)}
+      {/* Category tab bar */}
+      <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide -mx-1 px-1">
+        <button
+          onClick={() => setFilters({ category: undefined })}
+          className={`flex-shrink-0 text-xs font-semibold px-3 py-1.5 rounded-full transition-colors ${
+            !filters.category ? 'bg-primary-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+          }`}
+        >
+          全部
+        </button>
+        {(Object.keys(SECONDHAND_CATEGORY_CONFIG) as SecondhandCategory[]).map((k) => (
+          <button
+            key={k}
+            onClick={() => setFilters({ category: filters.category === k ? undefined : k })}
+            className={`flex-shrink-0 flex items-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-full transition-colors ${
+              filters.category === k ? 'bg-primary-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+            }`}
           >
-            <div className="absolute inset-0 bg-black/40" />
-            <motion.div
-              initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
-              transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-              className="absolute bottom-0 left-0 right-0 bg-white rounded-t-3xl max-h-[90vh] overflow-y-auto"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="flex justify-center pt-3 pb-2">
-                <div className="w-10 h-1 bg-gray-300 rounded-full" />
-              </div>
-              <DetailPanel item={selectedItem} onClose={() => setMobileOpen(false)} />
-            </motion.div>
+            <span>{SECONDHAND_CATEGORY_CONFIG[k].emoji}</span>
+            <span>{SECONDHAND_CATEGORY_CONFIG[k].label}</span>
+          </button>
+        ))}
+      </div>
+
+      <div className="flex items-center gap-2">
+        <div className="flex-1 flex items-center gap-2 bg-gray-100 rounded-xl px-3 py-2.5">
+          <Search size={15} className="text-gray-400 flex-shrink-0" />
+          <input
+            value={localKeyword}
+            onChange={(e) => setLocalKeyword(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+            placeholder="搜索物品..."
+            className="flex-1 bg-transparent outline-none text-sm text-gray-900 placeholder-gray-400"
+          />
+          {localKeyword && (
+            <button onClick={() => { setLocalKeyword(''); setFilters({ keyword: undefined }) }}>
+              <X size={14} className="text-gray-400" />
+            </button>
+          )}
+        </div>
+        <button onClick={handleSearch}
+          className="flex-shrink-0 whitespace-nowrap bg-primary-600 text-white text-sm font-medium px-4 py-2.5 rounded-xl hover:bg-primary-700 transition-colors">
+          搜索
+        </button>
+        <button
+          onClick={() => setShowFilters((v) => !v)}
+          className={`p-2.5 rounded-xl border transition-colors ${
+            showFilters || filters.category || filters.condition || filters.area
+              ? 'border-primary-400 text-primary-600 bg-primary-50'
+              : 'border-gray-200 text-gray-500 bg-white'
+          }`}
+        >
+          <SlidersHorizontal size={16} />
+        </button>
+      </div>
+
+      <AnimatePresence>
+        {showFilters && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }} className="overflow-hidden"
+          >
+            <div className="space-y-3 pt-1">
+              <FilterRow label="分类">
+                <Chip active={!filters.category} onClick={() => setFilters({ category: undefined })}>全部</Chip>
+                {(Object.keys(SECONDHAND_CATEGORY_CONFIG) as SecondhandCategory[]).map((k) => (
+                  <Chip key={k} active={filters.category === k}
+                    onClick={() => setFilters({ category: filters.category === k ? undefined : k })}>
+                    {SECONDHAND_CATEGORY_CONFIG[k].emoji} {SECONDHAND_CATEGORY_CONFIG[k].label}
+                  </Chip>
+                ))}
+              </FilterRow>
+              <FilterRow label="成色">
+                <Chip active={!filters.condition} onClick={() => setFilters({ condition: undefined })}>全部</Chip>
+                {(Object.keys(ITEM_CONDITION_CONFIG) as ItemCondition[]).map((k) => (
+                  <Chip key={k} active={filters.condition === k}
+                    onClick={() => setFilters({ condition: filters.condition === k ? undefined : k })}>
+                    {ITEM_CONDITION_CONFIG[k].label}
+                  </Chip>
+                ))}
+              </FilterRow>
+              <FilterRow label="地区">
+                <Chip active={!filters.area} onClick={() => setFilters({ area: undefined })}>全部</Chip>
+                {GTA_AREAS.map((a) => (
+                  <Chip key={a} active={filters.area === a}
+                    onClick={() => setFilters({ area: filters.area === a ? undefined : a })}>
+                    {a}
+                  </Chip>
+                ))}
+              </FilterRow>
+              <button onClick={() => { clearFilters(); setLocalKeyword('') }}
+                className="text-xs text-gray-400 hover:text-red-500 transition-colors">
+                清除所有筛选
+              </button>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
+    </>
+  )
 
-      {/* FAB */}
-      {user && <PostFAB onClick={() => navigate('/secondhand/post')} />}
+  const cardList = !isReady ? (
+    <div style={{ columns: '160px', columnGap: '10px' }}>
+      {[1, 2, 3, 4].map((i) => (
+        <div key={i} className="break-inside-avoid mb-2.5 bg-white rounded-2xl overflow-hidden animate-pulse"
+          style={{ height: i % 2 === 0 ? 200 : 240 }}>
+          <div className="w-full h-3/5 bg-gray-100" />
+          <div className="p-2.5 space-y-1.5">
+            <div className="h-3.5 bg-gray-100 rounded w-4/5" />
+            <div className="h-3 bg-gray-100 rounded w-1/2" />
+          </div>
+        </div>
+      ))}
     </div>
+  ) : items.length === 0 ? (
+    filters.keyword || filters.category || filters.condition || filters.area || filters.max_price ? (
+      <div className="text-center py-20 text-gray-400">
+        <Search size={40} className="mx-auto mb-3 opacity-30" />
+        <p className="text-sm font-medium text-gray-500">没有找到相关物品</p>
+        {filters.keyword && <p className="text-xs text-gray-400 mt-1">"{filters.keyword}"</p>}
+        <button onClick={clearFilters}
+          className="mt-4 text-xs text-primary-600 bg-primary-50 border border-primary-100 rounded-xl px-4 py-2 font-medium">
+          清除筛选条件
+        </button>
+      </div>
+    ) : (
+      <div className="text-center py-20 text-gray-400">
+        <Package size={40} className="mx-auto mb-3 opacity-30" />
+        <p className="text-sm">暂无物品</p>
+        <button onClick={() => navigate('/secondhand/post')}
+          className="text-xs text-primary-600 underline mt-1">发布第一件闲置</button>
+      </div>
+    )
+  ) : (
+    <div style={{ columns: '160px', columnGap: '10px' }}>
+      {items.map((item, i) => (
+        <motion.div key={item.id}
+          initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: i * 0.02 }}
+          onClick={() => handleItemClick(item)}
+          className={`break-inside-avoid mb-2.5 bg-white rounded-2xl overflow-hidden
+            cursor-pointer transition-all duration-150
+            ${readSet.has(`secondhand:${item.id}`) ? 'opacity-75' : ''}
+            ${selectedId === item.id ? 'ring-2 ring-primary-400 shadow-md' : 'shadow-sm hover:shadow-md'}`}
+        >
+          <div className="w-full aspect-[4/3] bg-gray-100 overflow-hidden">
+            {item.images.length > 0 ? (
+              <ImgFallback
+                src={item.images[0]}
+                alt={item.title}
+                loading="lazy"
+                className="w-full h-full object-cover"
+                fallback={
+                  <div className="w-full h-full flex items-center justify-center text-4xl opacity-60">
+                    {SECONDHAND_CATEGORY_CONFIG[item.category].emoji}
+                  </div>
+                }
+              />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center text-4xl opacity-60">
+                {SECONDHAND_CATEGORY_CONFIG[item.category].emoji}
+              </div>
+            )}
+          </div>
+          <div className="p-2.5">
+            <div className="flex items-start justify-between gap-1 mb-1">
+              <h3 className={`font-semibold text-xs leading-snug line-clamp-2 flex-1
+                ${readSet.has(`secondhand:${item.id}`) ? 'text-gray-400' : 'text-gray-900'}`}>
+                {item.title}
+              </h3>
+              <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded-full flex-shrink-0 ml-1 ${ITEM_CONDITION_CONFIG[item.condition].color}`}>
+                {ITEM_CONDITION_CONFIG[item.condition].label}
+              </span>
+            </div>
+            <p className="text-sm font-bold text-primary-600 mb-1">{getPriceLabel(item)}</p>
+            <div className="flex items-center gap-1.5 text-[10px] text-gray-400">
+              <span className="flex-1 truncate">{SECONDHAND_CATEGORY_CONFIG[item.category].label}</span>
+              {item.area && item.area.length > 0 && (
+                <span className="flex items-center gap-0.5 flex-shrink-0">
+                  <MapPin size={9} />{item.area[0]}
+                </span>
+              )}
+            </div>
+          </div>
+        </motion.div>
+      ))}
+    </div>
+  )
+
+  return (
+    <ListPageShell
+      pageTitle="华人闲置物品"
+      pageDescription="多伦多华人二手闲置市场：家具、电器、母婴、数码，安全交易"
+      topBar={topBar}
+      countText={`共 ${items.length} 件物品`}
+      selectedId={selectedId}
+      mobileOpen={mobileOpen}
+      onCloseMobile={() => setMobileOpen(false)}
+      detailDesktop={selectedItem ? <DetailPanel item={selectedItem} onClose={() => setSelectedId(null)} /> : null}
+      detailMobile={selectedItem ? <DetailPanel item={selectedItem} onClose={() => setMobileOpen(false)} /> : null}
+      leftColWidth={380}
+      fabPath="/secondhand/post"
+    >
+      {cardList}
+    </ListPageShell>
   )
 }
 
-// ─── Inline detail panel ──────────────────────────────────────────────────────
+// ─── Detail panel ─────────────────────────────────────────────────────────────
 function DetailPanel({ item, onClose }: { item: SecondhandItem; onClose: () => void }) {
   const navigate  = useNavigate()
   const user      = useAuthStore((s) => s.user)
@@ -375,7 +316,6 @@ function DetailPanel({ item, onClose }: { item: SecondhandItem; onClose: () => v
 
   return (
     <div className="bg-white rounded-2xl border border-gray-100 shadow-sm mb-4">
-      {/* Images */}
       {item.images.length > 0 ? (
         <div className="relative">
           <div className="aspect-video overflow-hidden bg-gray-100 rounded-t-2xl">
@@ -405,12 +345,8 @@ function DetailPanel({ item, onClose }: { item: SecondhandItem; onClose: () => v
                       {SECONDHAND_CATEGORY_CONFIG[item.category].emoji}
                     </div>
                   ) : (
-                    <img
-                      src={img}
-                      alt=""
-                      className="w-full h-full object-cover"
-                      onError={() => setFailedImgs((s) => new Set(s).add(i))}
-                    />
+                    <img src={img} alt="" className="w-full h-full object-cover"
+                      onError={() => setFailedImgs((s) => new Set(s).add(i))} />
                   )}
                 </button>
               ))}
@@ -530,7 +466,7 @@ function DetailPanel({ item, onClose }: { item: SecondhandItem; onClose: () => v
   )
 }
 
-// ─── Small helpers ────────────────────────────────────────────────────────────
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 function FilterRow({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div>

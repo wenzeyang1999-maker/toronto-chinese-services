@@ -4,7 +4,7 @@ import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Heart } from 'lucide-react'
 import { useAuthStore } from '../../store/authStore'
-import { useSavesStore } from '../../store/savesStore'
+import { useSavesStore } from '../../store/interactionStore'
 
 type TargetType = 'service' | 'job' | 'property' | 'secondhand' | 'event' | 'community'
 

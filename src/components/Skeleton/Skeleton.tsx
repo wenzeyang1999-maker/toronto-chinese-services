@@ -127,6 +127,50 @@ export function ServiceDetailSkeleton() {
   )
 }
 
+/** Skeleton for a global search result row */
+export function GlobalResultRowSkeleton() {
+  return (
+    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm flex items-center gap-3 px-4 py-3.5">
+      <SkeletonBox className="w-8 h-8 rounded-xl flex-shrink-0" />
+      <div className="flex-1 space-y-2 min-w-0">
+        <SkeletonBox className="h-4 w-3/4 rounded-lg" />
+        <SkeletonBox className="h-3 w-1/2 rounded-lg" />
+      </div>
+      <SkeletonBox className="h-5 w-14 rounded-full flex-shrink-0" />
+    </div>
+  )
+}
+
+/** Repeats GlobalResultRowSkeleton n times */
+export function GlobalSearchSkeleton({ count = 6 }: { count?: number }) {
+  return (
+    <div className="space-y-2">
+      <SkeletonBox className="h-3 w-24 rounded-lg mb-3" />
+      {Array.from({ length: count }).map((_, i) => (
+        <GlobalResultRowSkeleton key={i} />
+      ))}
+    </div>
+  )
+}
+
+/** Skeleton for a community post card in search results */
+export function CommunityPostSkeleton() {
+  return (
+    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm px-4 py-3">
+      <div className="flex items-start justify-between gap-2 mb-2">
+        <SkeletonBox className="h-4 flex-1 rounded-lg" />
+        <SkeletonBox className="h-5 w-14 rounded-full flex-shrink-0" />
+      </div>
+      <SkeletonBox className="h-3 w-full rounded-lg mb-1.5" />
+      <SkeletonBox className="h-3 w-4/5 rounded-lg mb-2" />
+      <div className="flex items-center gap-3">
+        <SkeletonBox className="h-3 w-16 rounded-lg" />
+        <SkeletonBox className="h-3 w-20 rounded-lg" />
+      </div>
+    </div>
+  )
+}
+
 /** Generic section skeleton for Profile sections */
 export function SectionSkeleton({ rows = 4 }: { rows?: number }) {
   return (

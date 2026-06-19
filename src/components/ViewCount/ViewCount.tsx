@@ -5,7 +5,7 @@
 //   <ViewCount type="secondhand" id={item.id} />
 import { useEffect } from 'react'
 import { Eye } from 'lucide-react'
-import { useViewsStore } from '../../store/viewsStore'
+import { useViewsStore } from '../../store/interactionStore'
 import { useAuthStore } from '../../store/authStore'
 
 type TargetType = 'service' | 'job' | 'property' | 'secondhand' | 'event'

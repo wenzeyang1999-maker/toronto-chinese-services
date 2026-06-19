@@ -3,20 +3,25 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { ChevronLeft, CheckCircle, ImagePlus, X } from 'lucide-react'
+import { ChevronLeft, ImagePlus, X } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { useAuthStore } from '../../store/authStore'
 import { useEventsStore } from '../../store/eventsStore'
+import PostFormCard from '../../components/PostForm/PostFormCard'
+import PostFormField from '../../components/PostForm/PostFormField'
+import { postFormInput } from '../../components/PostForm/postFormInput'
+import PostFormAreaPicker from '../../components/PostForm/PostFormAreaPicker'
+import PostFormContact from '../../components/PostForm/PostFormContact'
+import PostFormSuccess from '../../components/PostForm/PostFormSuccess'
 import { compressImage, validateImageFile } from '../../lib/compressImage'
 import { EVENT_TYPE_CONFIG, type EventType, type Event } from './types'
 import { toast } from '../../lib/toast'
 import { moderateContent } from '../../hooks/useContentModeration'
 import { notifyFollowerNewListing } from '../../lib/notify'
 
-const GTA_AREAS = [
-  '多伦多市区', '北约克', '士嘉堡', '密西沙加', '万锦',
-  '列治文山', '奥克维尔', '宾顿', '安省其他',
-]
+const Card  = PostFormCard
+const Field = PostFormField
+const input = postFormInput
 
 const MAX_IMAGES = 4
 
@@ -63,7 +68,6 @@ export default function PostEvent() {
 
   useEffect(() => { if (!user) navigate('/login') }, [user, navigate])
 
-  // Pre-fill contact from profile
   useEffect(() => {
     if (!user) return
     supabase.from('users').select('name, phone, wechat').eq('id', user.id).single()
@@ -143,7 +147,6 @@ export default function PostEvent() {
       return
     }
 
-    // Upload images
     const imageUrls: string[] = []
     for (const file of images) {
       const path = `events/${user.id}/${Date.now()}-${file.name}`
@@ -199,7 +202,6 @@ export default function PostEvent() {
         poster: Array.isArray(data.poster) ? (data.poster[0] ?? null) : (data.poster ?? null),
       } as Event)
 
-      // Notify followers (fire-and-forget)
       ;(async () => {
         const { data: followers } = await supabase
           .from('follows').select('follower_id').eq('provider_id', user!.id)
@@ -223,62 +225,21 @@ export default function PostEvent() {
     setDone(true)
   }
 
-  const input = (hasErr: boolean) =>
-    `w-full border rounded-xl px-3 py-2.5 text-sm outline-none transition-colors ${
-      hasErr ? 'border-red-400 bg-red-50' : 'border-gray-200 bg-white focus:border-primary-400'
-    }`
-
-  interface CardProps { title: string; children: React.ReactNode }
-  function Card({ title, children }: CardProps) {
-    return (
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-4">
-        <h2 className="text-sm font-bold text-gray-700">{title}</h2>
-        {children}
-      </div>
-    )
-  }
-
-  interface FieldProps { label: string; required?: boolean; error?: string; children: React.ReactNode }
-  function Field({ label, required, error, children }: FieldProps) {
-    return (
-      <div>
-        <label className="block text-xs font-semibold text-gray-600 mb-1.5">
-          {label}{required && <span className="text-red-500 ml-0.5">*</span>}
-        </label>
-        {children}
-        {error && <p className="text-xs text-red-500 mt-1">{error}</p>}
-      </div>
-    )
-  }
-
   if (done) {
     return (
-      <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center px-4">
-        <motion.div
-          initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}
-          className="bg-white rounded-3xl shadow-sm border border-gray-100 p-10 text-center max-w-sm w-full"
-        >
-          <CheckCircle size={56} className="text-green-500 mx-auto mb-4" />
-          <h2 className="text-xl font-bold text-gray-900 mb-2">活动已发布！</h2>
-          <p className="text-sm text-gray-500 mb-6">感兴趣的人可以联系您了</p>
-          <div className="flex flex-col gap-2">
-            <button onClick={() => navigate('/events')}
-              className="w-full bg-primary-600 text-white py-3 rounded-2xl font-semibold text-sm hover:bg-primary-700 transition-colors">
-              查看活动列表
-            </button>
-            <button onClick={() => { setDone(false); setForm(INITIAL); setImages([]); setPreviews([]) }}
-              className="w-full border border-gray-200 text-gray-600 py-3 rounded-2xl font-semibold text-sm hover:bg-gray-50 transition-colors">
-              再发一个活动
-            </button>
-          </div>
-        </motion.div>
-      </div>
+      <PostFormSuccess
+        title="活动已发布！"
+        subtitle="感兴趣的人可以联系您了"
+        viewListLabel="查看活动列表"
+        onViewList={() => navigate('/events')}
+        postAnotherLabel="再发一个活动"
+        onPostAnother={() => { setDone(false); setForm(INITIAL); setImages([]); setPreviews([]) }}
+      />
     )
   }
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
       <div className="sticky top-0 z-20 bg-white border-b border-gray-100 px-4 h-14 flex items-center gap-3">
         <button type="button" onClick={() => navigate(-1)} className="text-gray-500 hover:text-gray-800">
           <ChevronLeft size={22} />
@@ -384,24 +345,7 @@ export default function PostEvent() {
           </Field>
 
           <Field label="所在地区" required error={errors.area}>
-            <div className="flex flex-wrap gap-2">
-              {GTA_AREAS.map((a) => {
-                const selected = form.area.includes(a)
-                return (
-                  <button key={a} type="button"
-                    onClick={() => set('area', selected ? form.area.filter((x) => x !== a) : [...form.area, a])}
-                    className={`text-sm px-3 py-1.5 rounded-xl border transition-colors ${
-                      selected
-                        ? 'bg-primary-600 text-white border-primary-600'
-                        : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'
-                    }`}
-                  >
-                    {a}
-                  </button>
-                )
-              })}
-            </div>
-            {errors.area && <p className="text-xs text-red-500 mt-1">{errors.area}</p>}
+            <PostFormAreaPicker selected={form.area} onChange={(areas) => set('area', areas)} error={errors.area} />
           </Field>
         </Card>
 
@@ -447,20 +391,13 @@ export default function PostEvent() {
         </Card>
 
         {/* Contact */}
-        <Card title="联系方式">
-          <Field label="联系人姓名" required error={errors.contact_name}>
-            <input value={form.contact_name} onChange={(e) => set('contact_name', e.target.value)}
-              placeholder="您的姓名或昵称" className={input(!!errors.contact_name)} />
-          </Field>
-          <Field label="联系电话" required error={errors.contact_phone}>
-            <input type="tel" value={form.contact_phone} onChange={(e) => set('contact_phone', e.target.value)}
-              placeholder="647-xxx-xxxx" className={input(!!errors.contact_phone)} />
-          </Field>
-          <Field label="微信号（选填）">
-            <input value={form.contact_wechat} onChange={(e) => set('contact_wechat', e.target.value)}
-              placeholder="选填" className={input(false)} />
-          </Field>
-        </Card>
+        <PostFormContact
+          name={form.contact_name} phone={form.contact_phone} wechat={form.contact_wechat}
+          onNameChange={(v) => set('contact_name', v)}
+          onPhoneChange={(v) => set('contact_phone', v)}
+          onWechatChange={(v) => set('contact_wechat', v)}
+          nameError={errors.contact_name} phoneError={errors.contact_phone}
+        />
 
         {submitError && (
           <div className="rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 mb-2">

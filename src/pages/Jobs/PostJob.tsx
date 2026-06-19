@@ -4,11 +4,17 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { ChevronLeft, CheckCircle } from 'lucide-react'
+import { ChevronLeft } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { useAuthStore } from '../../store/authStore'
 import { useJobStore } from '../../store/jobStore'
-import LocationInput, { type LocationResult } from '../../components/LocationInput/LocationInput'
+import PostFormCard from '../../components/PostForm/PostFormCard'
+import PostFormField from '../../components/PostForm/PostFormField'
+import { postFormInput } from '../../components/PostForm/postFormInput'
+import PostFormAreaPicker from '../../components/PostForm/PostFormAreaPicker'
+import PostFormContact from '../../components/PostForm/PostFormContact'
+import PostFormSuccess from '../../components/PostForm/PostFormSuccess'
+import type { LocationResult } from '../../components/LocationInput/LocationInput'
 import {
   JOB_CATEGORY_CONFIG, JOB_TYPE_CONFIG, SALARY_TYPE_LABEL,
   type JobCategory, type JobType, type SalaryType, type Job, type ListingType,
@@ -17,10 +23,9 @@ import { toast } from '../../lib/toast'
 import { moderateContent } from '../../hooks/useContentModeration'
 import { notifyFollowerNewListing } from '../../lib/notify'
 
-const GTA_AREAS = [
-  '多伦多市区', '北约克', '士嘉堡', '密西沙加', '万锦',
-  '列治文山', '奥克维尔', '宾顿', '安省其他',
-]
+const Card  = PostFormCard
+const Field = PostFormField
+const input = postFormInput
 
 interface FormState {
   listing_type: ListingType
@@ -182,30 +187,14 @@ export default function PostJob() {
 
   if (done) {
     return (
-      <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center px-4">
-        <motion.div
-          initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}
-          className="bg-white rounded-3xl shadow-sm border border-gray-100 p-10 text-center max-w-sm w-full"
-        >
-          <CheckCircle size={56} className="text-green-500 mx-auto mb-4" />
-          <h2 className="text-xl font-bold text-gray-900 mb-2">
-            {isHiring ? '职位已发布！' : '求职帖已发布！'}
-          </h2>
-          <p className="text-sm text-gray-500 mb-6">
-            {isHiring ? '求职者可以联系您了' : '雇主可以联系您了'}
-          </p>
-          <div className="flex flex-col gap-2">
-            <button onClick={() => navigate('/jobs')}
-              className="w-full bg-primary-600 text-white py-3 rounded-2xl font-semibold text-sm hover:bg-primary-700 transition-colors">
-              查看列表
-            </button>
-            <button onClick={() => { setForm({ ...INITIAL, listing_type: form.listing_type }); setDone(false) }}
-              className="w-full border border-gray-200 text-gray-600 py-3 rounded-2xl font-semibold text-sm hover:bg-gray-50 transition-colors">
-              继续发布
-            </button>
-          </div>
-        </motion.div>
-      </div>
+      <PostFormSuccess
+        title={isHiring ? '职位已发布！' : '求职帖已发布！'}
+        subtitle={isHiring ? '求职者可以联系您了' : '雇主可以联系您了'}
+        viewListLabel="查看列表"
+        onViewList={() => navigate('/jobs')}
+        postAnotherLabel="继续发布"
+        onPostAnother={() => { setForm({ ...INITIAL, listing_type: form.listing_type }); setDone(false) }}
+      />
     )
   }
 
@@ -301,31 +290,11 @@ export default function PostJob() {
             </div>
           </Field>
 
-          {/* Area — multi-select */}
           <Field label={isHiring ? '工作地区' : '可服务地区'} required error={errors.area}>
-            <div className="flex flex-wrap gap-2">
-              {GTA_AREAS.map((a) => {
-                const selected = form.area.includes(a)
-                return (
-                  <button key={a} type="button"
-                    onClick={() => set('area', selected
-                      ? form.area.filter((x) => x !== a)
-                      : [...form.area, a]
-                    )}
-                    className={`text-sm px-3 py-1.5 rounded-xl border transition-colors ${
-                      selected
-                        ? 'bg-primary-600 text-white border-primary-600'
-                        : 'bg-white text-gray-600 border-gray-200 hover:border-primary-300'
-                    }`}
-                  >
-                    {a}
-                  </button>
-                )
-              })}
-            </div>
-            {form.area.length > 0 && (
-              <p className="text-xs text-gray-400 mt-1.5">已选：{form.area.join('、')}</p>
-            )}
+            <PostFormAreaPicker
+              selected={form.area}
+              onChange={(areas) => set('area', areas)}
+            />
           </Field>
         </Card>
 
@@ -409,28 +378,18 @@ export default function PostJob() {
           )}
         </Card>
 
-        {/* ── 联系方式 ─────────────────────────────────────────────────────── */}
-        <Card title="联系方式">
-          <Field label="姓名" required error={errors.contact_name}>
-            <input value={form.contact_name} onChange={(e) => set('contact_name', e.target.value)}
-              placeholder="联系人姓名"
-              className={input(!!errors.contact_name)} />
-          </Field>
-          <Field label="联系电话" required error={errors.contact_phone}>
-            <input type="tel" value={form.contact_phone}
-              onChange={(e) => set('contact_phone', e.target.value)}
-              placeholder="647-xxx-xxxx"
-              className={input(!!errors.contact_phone)} />
-          </Field>
-          <Field label="微信号（选填）">
-            <input value={form.contact_wechat} onChange={(e) => set('contact_wechat', e.target.value)}
-              placeholder="微信号"
-              className={input(false)} />
-          </Field>
-          <Field label="所在位置（选填）">
-            <LocationInput onChange={setLocation} />
-          </Field>
-        </Card>
+        <PostFormContact
+          name={form.contact_name}
+          phone={form.contact_phone}
+          wechat={form.contact_wechat}
+          onNameChange={(v) => set('contact_name', v)}
+          onPhoneChange={(v) => set('contact_phone', v)}
+          onWechatChange={(v) => set('contact_wechat', v)}
+          nameError={errors.contact_name}
+          phoneError={errors.contact_phone}
+          showLocation
+          onLocationChange={setLocation}
+        />
 
         {/* Submit */}
         {submitError && (
@@ -477,35 +436,3 @@ function TypeTab({ active, onClick, emoji, label, sub }: {
   )
 }
 
-// ─── Local UI helpers ─────────────────────────────────────────────────────────
-function Card({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-4">
-      <h2 className="text-sm font-semibold text-gray-700">{title}</h2>
-      {children}
-    </div>
-  )
-}
-
-function Field({
-  label, required, error, className = '', children,
-}: {
-  label: string; required?: boolean; error?: string; className?: string; children: React.ReactNode
-}) {
-  return (
-    <div className={className}>
-      <label className="block text-xs font-medium text-gray-600 mb-1.5">
-        {label}{required && <span className="text-red-400 ml-0.5">*</span>}
-      </label>
-      {children}
-      {error && <p className="text-xs text-red-500 mt-1">{error}</p>}
-    </div>
-  )
-}
-
-const input = (hasError: boolean) =>
-  `w-full border rounded-xl px-3 py-2.5 text-sm outline-none transition-all
-   ${hasError
-     ? 'border-red-300 focus:ring-2 focus:ring-red-200'
-     : 'border-gray-200 focus:ring-2 focus:ring-primary-300 focus:border-transparent'
-   }`

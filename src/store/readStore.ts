@@ -24,7 +24,7 @@ function persist(s: Set<string>) {
     let arr = [...s]
     if (arr.length > MAX_ENTRIES) arr = arr.slice(arr.length - MAX_ENTRIES)
     localStorage.setItem(STORAGE_KEY, JSON.stringify(arr))
-  } catch {}
+  } catch { /* localStorage unavailable — ignore */ }
 }
 
 interface ReadState {

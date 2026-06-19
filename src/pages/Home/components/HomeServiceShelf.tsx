@@ -6,6 +6,7 @@ import { useNavigate } from 'react-router-dom'
 import type { Service } from '../../../types'
 import ServiceCard from '../../../components/ServiceCard/ServiceCard'
 import { fuzzyFilterServices } from '../../../lib/fuzzySearch'
+import { ServiceListSkeleton } from '../../../components/Skeleton/Skeleton'
 
 class MapErrorBoundary extends Component<{ onError: () => void; children: ReactNode }, { err: boolean }> {
   state = { err: false }
@@ -119,7 +120,9 @@ export default function HomeServiceShelf({
         <div className="flex flex-col gap-2">
           {filteredList.length > 0
             ? filteredList.map((svc) => <ServiceCard key={svc.id} service={svc} />)
-            : <p className="py-6 text-center text-sm text-gray-400">没有找到相关服务</p>
+            : q
+              ? <p className="py-6 text-center text-sm text-gray-400">没有找到相关服务</p>
+              : <ServiceListSkeleton count={4} />
           }
         </div>
       ) : (

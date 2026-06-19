@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { Heart, Wrench, Briefcase, Home, ShoppingBag, Calendar, MessageSquare, Trash2 } from 'lucide-react'
 import { supabase } from '../../../lib/supabase'
 import { useAuthStore } from '../../../store/authStore'
-import { useSavesStore } from '../../../store/savesStore'
+import { useSavesStore } from '../../../store/interactionStore'
 import { SectionSkeleton } from '../../../components/Skeleton/Skeleton'
 
 type TargetType = 'service' | 'job' | 'property' | 'secondhand' | 'event' | 'community'

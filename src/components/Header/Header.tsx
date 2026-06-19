@@ -60,12 +60,12 @@ function getActiveSection(pathname: string): SectionId | null {
 
 function buildSearchUrl(query: string, active: SectionId | null, global: boolean): string {
   const q = encodeURIComponent(query.trim())
-  if (global || !active)        return `/search-all?q=${q}`
+  if (global || !active)        return `/search?q=${q}&global=1`
   if (active === 'jobs')        return `/jobs?keyword=${q}`
   if (active === 'secondhand')  return `/secondhand?keyword=${q}`
   if (active === 'realestate')  return `/realestate?keyword=${q}`
   if (active === 'services')    return `/search?q=${q}`
-  return `/search-all?q=${q}`
+  return `/search?q=${q}&global=1`
 }
 
 interface HeaderProps {
@@ -157,9 +157,9 @@ export default function Header({ sticky = true }: HeaderProps) {
         {/* Right utilities */}
         <div className="flex items-center gap-0.5">
 
-          {/* Mobile search icon (navigates to search-all) */}
+          {/* Mobile search icon */}
           <button
-            onClick={() => navigate('/search-all')}
+            onClick={() => navigate('/search?global=1')}
             className="lg:hidden p-2 text-gray-500 rounded-lg hover:bg-gray-100 transition-colors"
             aria-label="全局搜索"
           >

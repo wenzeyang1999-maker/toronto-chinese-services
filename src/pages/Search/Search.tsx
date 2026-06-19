@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useSearchParams, useNavigate } from 'react-router-dom'
-import { ArrowLeft, Search as SearchIcon, SlidersHorizontal, Sparkles, MessageSquare, Heart, LayoutList, Map, Bell, BellOff } from 'lucide-react'
-import { motion } from 'framer-motion'
+import { ArrowLeft, Search as SearchIcon, SlidersHorizontal, Sparkles, MessageSquare, Heart, LayoutList, Map, Bell, BellOff, Wrench, Briefcase, Home, ShoppingBag, Calendar, Users } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
 import ServiceCard from '../../components/ServiceCard/ServiceCard'
 import ServiceMap from '../../components/ServiceMap/ServiceMap'
 import { useAppStore } from '../../store/appStore'
@@ -22,8 +22,45 @@ import { subscribeToWebPush } from '../../lib/webPush'
 import { toast } from '../../lib/toast'
 import {
   getSavedSearches, saveSearch, removeSavedSearch,
-  isSavedSearch, markSearchSeen,
+  markSearchSeen, type SavedSearch,
 } from '../../lib/savedSearches'
+import { ServiceListSkeleton, GlobalSearchSkeleton, CommunityPostSkeleton } from '../../components/Skeleton/Skeleton'
+
+// ─── Global search types ──────────────────────────────────────────────────────
+type GlobalResultType = 'service' | 'job' | 'property' | 'secondhand' | 'event' | 'community'
+type GlobalTab = 'all' | GlobalResultType
+
+interface GlobalResult {
+  id: string
+  type: GlobalResultType
+  title: string
+  subtitle: string
+  emoji: string
+  path: string
+}
+
+const GLOBAL_TYPE_META: Record<GlobalResultType, { label: string; icon: React.ReactNode; emoji: string; color: string }> = {
+  service:    { label: '服务',  icon: <Wrench      size={13} />, emoji: '🔧', color: 'text-primary-600 bg-primary-50' },
+  job:        { label: '招聘',  icon: <Briefcase   size={13} />, emoji: '💼', color: 'text-purple-600 bg-purple-50'  },
+  property:   { label: '房源',  icon: <Home        size={13} />, emoji: '🏠', color: 'text-green-600 bg-green-50'    },
+  secondhand: { label: '闲置',  icon: <ShoppingBag size={13} />, emoji: '🛒', color: 'text-orange-600 bg-orange-50'  },
+  event:      { label: '活动',  icon: <Calendar    size={13} />, emoji: '🎉', color: 'text-pink-600 bg-pink-50'      },
+  community:  { label: '社区',  icon: <Users       size={13} />, emoji: '🏘️', color: 'text-teal-600 bg-teal-50'     },
+}
+
+function Highlight({ text, keyword }: { text: string; keyword: string }) {
+  if (!keyword.trim()) return <>{text}</>
+  const parts = text.split(new RegExp(`(${keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi'))
+  return (
+    <>
+      {parts.map((p, i) =>
+        p.toLowerCase() === keyword.toLowerCase()
+          ? <mark key={i} className="bg-yellow-100 text-yellow-800 rounded px-0.5">{p}</mark>
+          : p
+      )}
+    </>
+  )
+}
 
 interface CommunityResult {
   id: string
@@ -58,10 +95,11 @@ export default function Search() {
   const storeServices          = useAppStore((s) => s.services)
 
   const user = useAuthStore((s) => s.user)
+  const isGlobal = searchParams.get('global') === '1'
   const [localQuery, setLocalQuery] = useState(searchParams.get('q') ?? '')
   const [showFilters, setShowFilters] = useState(false)
   const [inquiryOpen, setInquiryOpen] = useState(false)
-  const [savedSearches, setSavedSearches] = useState(getSavedSearches)
+  const [savedSearches, setSavedSearches] = useState<SavedSearch[]>([])
   const [viewMode, setViewMode] = useState<'list' | 'map'>('list')
   const [communityResults, setCommunityResults] = useState<CommunityResult[]>([])
   const [communityLoading, setCommunityLoading] = useState(false)
@@ -72,6 +110,12 @@ export default function Search() {
   const [dbLoading, setDbLoading] = useState(false)
   const [page, setPage] = useState(1)
   const PAGE_SIZE = 20
+
+  // Global search state
+  const [globalResults, setGlobalResults]   = useState<GlobalResult[]>([])
+  const [globalLoading, setGlobalLoading]   = useState(false)
+  const [globalSearched, setGlobalSearched] = useState(false)
+  const [globalTab, setGlobalTab]           = useState<GlobalTab>('all')
 
   useEffect(() => {
     const q    = searchParams.get('q') ?? ''
@@ -142,6 +186,33 @@ export default function Search() {
     return () => window.clearTimeout(timer)
   }, [searchParams, setSearchFilters])
 
+  // Global search — runs when in global mode and query changes
+  useEffect(() => {
+    const q = (searchParams.get('q') ?? '').trim()
+    if (!isGlobal || !q) { setGlobalResults([]); setGlobalSearched(false); return }
+    setGlobalLoading(true)
+    setGlobalSearched(true)
+
+    Promise.all([
+      supabase.from('services').select('id, title, category_id, area').ilike('title', `%${q}%`).eq('is_available', true).limit(20),
+      supabase.from('jobs').select('id, title, company_name, job_type').ilike('title', `%${q}%`).eq('is_active', true).limit(20),
+      supabase.from('properties').select('id, title, listing_type, area').ilike('title', `%${q}%`).eq('is_active', true).limit(20),
+      supabase.from('secondhand').select('id, title, category, area').ilike('title', `%${q}%`).eq('is_active', true).eq('is_sold', false).limit(20),
+      supabase.from('events').select('id, title, event_type, event_date').ilike('title', `%${q}%`).eq('is_active', true).limit(20),
+      supabase.from('community_posts').select('id, title, content, type, area').or(`title.ilike.%${q}%,content.ilike.%${q}%`).limit(20),
+    ]).then(([svc, jobs, props, sh, evts, comm]) => {
+      setGlobalResults([
+        ...(svc.data  ?? []).map((r: any) => ({ id: r.id, type: 'service'    as GlobalResultType, title: r.title, subtitle: [r.category_id, r.area].filter(Boolean).join(' · '), emoji: '🔧', path: `/service/${r.id}` })),
+        ...(jobs.data ?? []).map((r: any) => ({ id: r.id, type: 'job'        as GlobalResultType, title: r.title, subtitle: r.company_name ?? '', emoji: '💼', path: `/jobs/${r.id}` })),
+        ...(props.data ?? []).map((r: any) => ({ id: r.id, type: 'property'  as GlobalResultType, title: r.title, subtitle: (r.area ?? []).join('·'), emoji: '🏠', path: `/realestate/${r.id}` })),
+        ...(sh.data   ?? []).map((r: any) => ({ id: r.id, type: 'secondhand' as GlobalResultType, title: r.title, subtitle: (r.area ?? []).join('·'), emoji: '🛒', path: `/secondhand/${r.id}` })),
+        ...(evts.data ?? []).map((r: any) => ({ id: r.id, type: 'event'      as GlobalResultType, title: r.title, subtitle: r.event_date?.slice(0, 10) ?? '', emoji: '🎉', path: `/events/${r.id}` })),
+        ...(comm.data ?? []).map((r: any) => ({ id: r.id, type: 'community'  as GlobalResultType, title: r.title, subtitle: r.type, emoji: '🏘️', path: `/community/${r.id}` })),
+      ])
+      setGlobalLoading(false)
+    })
+  }, [searchParams, isGlobal])
+
   const handleSearch = () => {
     const params: Record<string, string> = {}
     if (localQuery) params.q = localQuery
@@ -153,6 +224,11 @@ export default function Search() {
   const query = searchParams.get('q') ?? ''
   const currentCategory = searchFilters.category
 
+  // Load saved searches (DB-backed for logged-in users, localStorage otherwise)
+  useEffect(() => {
+    void getSavedSearches().then(setSavedSearches)
+  }, [user])
+
   // Mark saved search as seen when the user lands on a matching query
   useEffect(() => {
     if (!query) return
@@ -160,10 +236,9 @@ export default function Search() {
       s => s.keyword.toLowerCase() === query.toLowerCase() && s.category === currentCategory
     )
     if (match && match.newCount > 0) {
-      markSearchSeen(match.id)
-      setSavedSearches(getSavedSearches())
+      void markSearchSeen(match.id).then(getSavedSearches).then(setSavedSearches)
     }
-  }, [query, currentCategory])
+  }, [query, currentCategory, savedSearches])
 
   const currentlySaved = savedSearches.some(
     s => s.keyword.toLowerCase() === query.toLowerCase() && s.category === currentCategory
@@ -175,12 +250,12 @@ export default function Search() {
       const match = savedSearches.find(
         s => s.keyword.toLowerCase() === query.toLowerCase() && s.category === currentCategory
       )
-      if (match) removeSavedSearch(match.id)
-      setSavedSearches(getSavedSearches())
+      if (match) await removeSavedSearch(match.id)
+      setSavedSearches(await getSavedSearches())
       toast('已取消订阅', 'success')
     } else {
-      saveSearch(query, currentCategory)
-      setSavedSearches(getSavedSearches())
+      await saveSearch(query, currentCategory)
+      setSavedSearches(await getSavedSearches())
       toast('搜索已订阅，有新结果时在通知中心提醒你', 'success')
       // Request push permission and subscribe if user is logged in
       if (user && 'Notification' in window) {
@@ -272,8 +347,28 @@ export default function Search() {
             </button>
           </div>
 
-          {/* L2 category tab bar */}
-          <div className="flex gap-2 overflow-x-auto pb-1 pt-2 scrollbar-hide -mx-1 px-1">
+          {/* Mode toggle: 服务搜索 ↔ 全站搜索 */}
+          <div className="flex items-center gap-1 bg-gray-100 rounded-xl p-0.5 mt-2 self-start">
+            <button
+              onClick={() => setSearchParams(p => { const n = new URLSearchParams(p); n.delete('global'); return n }, { replace: true })}
+              className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                !isGlobal ? 'bg-white text-primary-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              <Wrench size={12} />服务搜索
+            </button>
+            <button
+              onClick={() => setSearchParams(p => { const n = new URLSearchParams(p); n.set('global', '1'); return n }, { replace: true })}
+              className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                isGlobal ? 'bg-white text-primary-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              <Users size={12} />全站搜索
+            </button>
+          </div>
+
+          {/* L2 category tab bar — only shown in service mode */}
+          <div className={`flex gap-2 overflow-x-auto pb-1 pt-2 scrollbar-hide -mx-1 px-1 ${isGlobal ? 'hidden' : ''}`}>
             <button
               onClick={() => handleCategorySelect(undefined)}
               className={`flex-shrink-0 text-xs font-semibold px-3 py-1.5 rounded-full transition-colors ${
@@ -300,8 +395,8 @@ export default function Search() {
             ))}
           </div>
 
-          {/* Filter panel */}
-          {showFilters && (
+          {/* Filter panel — only shown in service mode */}
+          {showFilters && !isGlobal && (
             <motion.div
               initial={{ height: 0, opacity: 0 }}
               animate={{ height: 'auto', opacity: 1 }}
@@ -366,7 +461,81 @@ export default function Search() {
         </div>
       </div>
 
-      <div className="max-w-2xl mx-auto px-4 py-4">
+      {/* ── Global search results ── */}
+      {isGlobal && (
+        <div className="max-w-2xl mx-auto px-4 py-4">
+          {/* Tab filter */}
+          {globalSearched && (
+            <div className="flex gap-1 bg-gray-100 rounded-2xl p-1 mb-4 overflow-x-auto scrollbar-hide">
+              {(['all', 'service', 'job', 'property', 'secondhand', 'event', 'community'] as GlobalTab[]).map(t => {
+                const count = t === 'all' ? globalResults.length : globalResults.filter(r => r.type === t).length
+                return (
+                  <button key={t} onClick={() => setGlobalTab(t)}
+                    className={`flex items-center gap-1 flex-shrink-0 px-3 py-2 rounded-xl text-xs font-semibold transition-all ${
+                      globalTab === t ? 'bg-white text-primary-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+                    }`}>
+                    {t === 'all' ? '全部' : GLOBAL_TYPE_META[t as GlobalResultType].label}
+                    {count > 0 && (
+                      <span className={`text-xs px-1.5 py-0.5 rounded-full font-bold ${
+                        globalTab === t ? 'bg-primary-100 text-primary-600' : 'bg-gray-200 text-gray-500'
+                      }`}>{count}</span>
+                    )}
+                  </button>
+                )
+              })}
+            </div>
+          )}
+
+          {globalLoading ? (
+            <GlobalSearchSkeleton count={6} />
+          ) : !globalSearched ? (
+            <div className="text-center py-20 text-gray-300">
+              <SearchIcon size={40} className="mx-auto mb-3 opacity-40" />
+              <p className="text-sm">输入关键词，搜索全站内容</p>
+            </div>
+          ) : (() => {
+            const filtered = globalTab === 'all' ? globalResults : globalResults.filter(r => r.type === globalTab)
+            return filtered.length === 0 ? (
+              <div className="text-center py-20 text-gray-400">
+                <p className="text-sm">未找到相关结果</p>
+                <p className="text-xs text-gray-300 mt-1">试试其他关键词，或切换"服务搜索"查看专项结果</p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <p className="text-xs text-gray-400 mb-3">共 {filtered.length} 条结果</p>
+                <AnimatePresence>
+                  {filtered.map((item, i) => {
+                    const meta = GLOBAL_TYPE_META[item.type]
+                    return (
+                      <motion.button
+                        key={`${item.type}-${item.id}`}
+                        initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: Math.min(i, 8) * 0.02 }}
+                        onClick={() => navigate(item.path)}
+                        className="w-full bg-white rounded-2xl border border-gray-100 shadow-sm flex items-center gap-3 px-4 py-3.5 text-left hover:border-primary-200 hover:shadow-md transition-all"
+                      >
+                        <span className="text-xl flex-shrink-0">{item.emoji}</span>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold text-gray-800 truncate">
+                            <Highlight text={item.title} keyword={searchParams.get('q') ?? ''} />
+                          </p>
+                          {item.subtitle && <p className="text-xs text-gray-400 mt-0.5 truncate">{item.subtitle}</p>}
+                        </div>
+                        <span className={`flex-shrink-0 flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded-full ${meta.color}`}>
+                          {meta.icon}{meta.label}
+                        </span>
+                      </motion.button>
+                    )
+                  })}
+                </AnimatePresence>
+              </div>
+            )
+          })()}
+        </div>
+      )}
+
+      {/* ── Service search results ── */}
+      {!isGlobal && <div className="max-w-2xl mx-auto px-4 py-4">
         {!userLocation && searchFilters.sortBy === 'distance' && (
           <p className="text-xs text-amber-600 mb-3">
             搜索或切换到距离排序时会请求位置权限，用于展示附近结果。
@@ -433,7 +602,7 @@ export default function Search() {
             )}
           </>
         ) : isSearching ? (
-          <div className="py-12 text-center text-gray-400 text-sm">搜索中…</div>
+          <ServiceListSkeleton count={5} />
         ) : results.length === 0 && communityResults.length === 0 ? (
           <SearchEmptyState
             query={localQuery.trim()}
@@ -530,7 +699,9 @@ export default function Search() {
                   <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">论坛相关帖子</h3>
                 </div>
                 {communityLoading ? (
-                  <div className="text-xs text-gray-400 py-3 text-center">搜索中…</div>
+                  <div className="flex flex-col gap-2">
+                    {[1, 2, 3].map(i => <CommunityPostSkeleton key={i} />)}
+                  </div>
                 ) : (
                   <div className="flex flex-col gap-2">
                     {communityResults.map((post) => {
@@ -568,7 +739,7 @@ export default function Search() {
             )}
           </>
         )}
-      </div>
+      </div>}
     </div>
   )
 }

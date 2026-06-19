@@ -1,16 +1,13 @@
 // ─── Job List Page ────────────────────────────────────────────────────────────
 // Route: /jobs
-// Desktop (≥ lg): masonry list on left + detail panel on right
-// Mobile  (< lg): masonry grid, detail opens in bottom drawer
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Search, SlidersHorizontal, MapPin, X, Briefcase,
   Phone, MessageCircle, Copy, DollarSign, Clock, User, ExternalLink,
 } from 'lucide-react'
-import Header from '../../components/Header/Header'
-import PostFAB from '../../components/PostFAB/PostFAB'
+import ListPageShell from '../../components/ListPageShell/ListPageShell'
 import { useJobStore } from '../../store/jobStore'
 import { useAuthStore } from '../../store/authStore'
 import { useReadStore } from '../../store/readStore'
@@ -21,7 +18,6 @@ import {
 import { toast } from '../../lib/toast'
 import ImgFallback from '../../components/ImgFallback/ImgFallback'
 import { useUrlFilters } from '../../lib/useUrlFilters'
-import PageMeta from '../../components/PageMeta/PageMeta'
 
 const GTA_AREAS = [
   '多伦多市区', '北约克', '士嘉堡', '密西沙加', '万锦',
@@ -34,17 +30,16 @@ export default function JobList() {
   const { fetchJobs, setFilters, clearFilters, getFilteredJobs, filters, isReady } = useJobStore()
   const readSet    = useReadStore((s) => s.read)
   const markRead   = useReadStore((s) => s.markRead)
+
   const [listingType,  setListingType]  = useState<ListingType>('hiring')
   const [showFilters,  setShowFilters]  = useState(false)
   const [localKeyword, setLocalKeyword] = useState(filters.keyword ?? '')
   const [selectedId,   setSelectedId]   = useState<string | null>(null)
   const [mobileOpen,   setMobileOpen]   = useState(false)
-  const detailRef = useRef<HTMLDivElement>(null)
 
   useUrlFilters(filters, setFilters, ['listing_type', 'keyword', 'category', 'job_type', 'area'])
 
   useEffect(() => { fetchJobs() }, [])
-
   useEffect(() => {
     setFilters({ listing_type: listingType })
     setSelectedId(null)
@@ -53,10 +48,6 @@ export default function JobList() {
 
   const jobs        = getFilteredJobs()
   const selectedJob = jobs.find((j) => j.id === selectedId) ?? null
-
-  useEffect(() => {
-    detailRef.current?.scrollTo({ top: 0, behavior: 'smooth' })
-  }, [selectedId])
 
   const handleSearch = () => setFilters({ keyword: localKeyword || undefined })
 
@@ -75,249 +66,197 @@ export default function JobList() {
           ? `$${job.salary_min} 起${SALARY_TYPE_LABEL[job.salary_type]}`
           : '薪资面议'
 
-  return (
-    <div className="flex flex-col h-screen bg-gray-50 overflow-hidden">
-      <PageMeta title="华人招聘" description="华人社区工作机会：全职、兼职、实习一站查询，本地雇主直招" />
-      <Header />
-
-      {/* ── Search / filter bar ─────────────────────────────────────────────── */}
-      <div className="bg-white border-b border-gray-100 py-3 flex-shrink-0 z-20">
-        <div className="w-full px-3 md:w-[85%] md:px-0 lg:w-[70%] mx-auto space-y-3">
-
-          <div>
-            <h1 className="text-lg font-bold text-gray-900">招聘求职</h1>
-            <p className="text-xs text-gray-400">华林 · 职位</p>
-          </div>
-
-          <div className="flex bg-gray-100 rounded-xl p-1 gap-1">
-            <SubTab active={listingType === 'hiring'} onClick={() => setListingType('hiring')}
-              emoji="💼" label="招聘" />
-            <SubTab active={listingType === 'seeking'} onClick={() => setListingType('seeking')}
-              emoji="🙋" label="求职" />
-          </div>
-
-          <div className="flex items-center gap-2">
-            <div className="flex-1 flex items-center gap-2 bg-gray-100 rounded-xl px-3 py-2.5">
-              <Search size={15} className="text-gray-400 flex-shrink-0" />
-              <input
-                value={localKeyword}
-                onChange={(e) => setLocalKeyword(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                placeholder="搜索职位、公司..."
-                className="flex-1 bg-transparent outline-none text-sm text-gray-900 placeholder-gray-400"
-              />
-              {localKeyword && (
-                <button onClick={() => { setLocalKeyword(''); setFilters({ keyword: undefined }) }}>
-                  <X size={14} className="text-gray-400" />
-                </button>
-              )}
-            </div>
-            <button onClick={handleSearch}
-              className="flex-shrink-0 whitespace-nowrap bg-primary-600 text-white text-sm font-medium px-4 py-2.5 rounded-xl hover:bg-primary-700 transition-colors">
-              搜索
-            </button>
-            <button
-              onClick={() => setShowFilters((v) => !v)}
-              className={`p-2.5 rounded-xl border transition-colors ${
-                showFilters || filters.category || filters.job_type || filters.area
-                  ? 'border-primary-400 text-primary-600 bg-primary-50'
-                  : 'border-gray-200 text-gray-500 bg-white'
-              }`}
-            >
-              <SlidersHorizontal size={16} />
-            </button>
-          </div>
-
-          <AnimatePresence>
-            {showFilters && (
-              <motion.div
-                initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }}
-                exit={{ height: 0, opacity: 0 }} className="overflow-hidden"
-              >
-                <div className="space-y-3 pt-1">
-                  <FilterRow label="职位类型">
-                    <Chip active={!filters.category} onClick={() => setFilters({ category: undefined })}>全部</Chip>
-                    {(Object.keys(JOB_CATEGORY_CONFIG) as JobCategory[]).map((k) => (
-                      <Chip key={k} active={filters.category === k}
-                        onClick={() => setFilters({ category: filters.category === k ? undefined : k })}>
-                        {JOB_CATEGORY_CONFIG[k].emoji} {JOB_CATEGORY_CONFIG[k].label}
-                      </Chip>
-                    ))}
-                  </FilterRow>
-                  <FilterRow label="工作性质">
-                    <Chip active={!filters.job_type} onClick={() => setFilters({ job_type: undefined })}>全部</Chip>
-                    {(Object.keys(JOB_TYPE_CONFIG) as JobType[]).map((k) => (
-                      <Chip key={k} active={filters.job_type === k}
-                        onClick={() => setFilters({ job_type: filters.job_type === k ? undefined : k })}>
-                        {JOB_TYPE_CONFIG[k].label}
-                      </Chip>
-                    ))}
-                  </FilterRow>
-                  <FilterRow label="地区">
-                    <Chip active={!filters.area} onClick={() => setFilters({ area: undefined })}>全部</Chip>
-                    {GTA_AREAS.map((a) => (
-                      <Chip key={a} active={filters.area === a}
-                        onClick={() => setFilters({ area: filters.area === a ? undefined : a })}>
-                        {a}
-                      </Chip>
-                    ))}
-                  </FilterRow>
-                  <button onClick={() => { clearFilters(); setLocalKeyword('') }}
-                    className="text-xs text-gray-400 hover:text-red-500 transition-colors">
-                    清除所有筛选
-                  </button>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
+  const topBar = (
+    <>
+      <div>
+        <h1 className="text-lg font-bold text-gray-900">招聘求职</h1>
+        <p className="text-xs text-gray-400">华林 · 职位</p>
       </div>
 
-      {/* ── Content area ────────────────────────────────────────────────────── */}
-      <div className="flex-1 overflow-hidden w-full px-3 md:w-[85%] md:px-0 lg:w-[70%] mx-auto flex gap-0 py-3">
+      <div className="flex bg-gray-100 rounded-xl p-1 gap-1">
+        <SubTab active={listingType === 'hiring'} onClick={() => setListingType('hiring')}
+          emoji="💼" label="招聘" />
+        <SubTab active={listingType === 'seeking'} onClick={() => setListingType('seeking')}
+          emoji="🙋" label="求职" />
+      </div>
 
-        {/* ── Left: job masonry ────────────────────────────────────────────── */}
-        <div className={`flex flex-col overflow-hidden
-          ${selectedJob ? 'hidden lg:flex lg:w-[420px] lg:flex-shrink-0' : 'w-full'}`}>
-          <p className="text-xs text-gray-400 mb-2 flex-shrink-0">共 {jobs.length} 个职位</p>
-
-          <div className="flex-1 overflow-y-auto pr-0.5">
-            {!isReady ? (
-              <div style={{ columns: '200px', columnGap: '10px' }}>
-                {[1, 2, 3, 4].map((i) => (
-                  <div key={i} className="break-inside-avoid mb-2.5 bg-white rounded-2xl overflow-hidden animate-pulse"
-                    style={{ height: i % 2 === 0 ? 200 : 230 }}>
-                    <div className="w-full h-1/2 bg-gray-100" />
-                    <div className="p-3 space-y-2">
-                      <div className="h-3.5 bg-gray-100 rounded w-3/4" />
-                      <div className="h-3 bg-gray-100 rounded w-1/2" />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : jobs.length === 0 ? (
-              filters.keyword || filters.category || filters.job_type || filters.area ? (
-                <div className="text-center py-20 text-gray-400">
-                  <Search size={40} className="mx-auto mb-3 opacity-30" />
-                  <p className="text-sm font-medium text-gray-500">没有找到相关职位</p>
-                  {filters.keyword && <p className="text-xs text-gray-400 mt-1">"{filters.keyword}"</p>}
-                  <button onClick={clearFilters}
-                    className="mt-4 text-xs text-primary-600 bg-primary-50 border border-primary-100 rounded-xl px-4 py-2 font-medium">
-                    清除筛选条件
-                  </button>
-                </div>
-              ) : (
-                <div className="text-center py-20 text-gray-400">
-                  <Briefcase size={40} className="mx-auto mb-3 opacity-30" />
-                  <p className="text-sm">暂无职位</p>
-                  <button onClick={() => navigate('/jobs/post')}
-                    className="text-xs text-primary-600 underline mt-1">发布第一个职位</button>
-                </div>
-              )
-            ) : (
-              <div style={{ columns: '200px', columnGap: '10px' }}>
-                {jobs.map((job, i) => (
-                  <motion.div key={job.id}
-                    initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: i * 0.02 }}
-                    onClick={() => handleJobClick(job)}
-                    className={`break-inside-avoid mb-2.5 bg-white rounded-2xl overflow-hidden
-                      cursor-pointer transition-all duration-150
-                      ${readSet.has(`job:${job.id}`) ? 'opacity-75' : ''}
-                      ${selectedId === job.id
-                        ? 'ring-2 ring-primary-400 shadow-md'
-                        : 'shadow-sm hover:shadow-md'
-                      }`}
-                  >
-                    {/* Cover — gradient placeholder with category emoji */}
-                    <div className="w-full py-7 flex items-center justify-center bg-gradient-to-br from-primary-50 to-primary-100">
-                      <span className="text-4xl">{JOB_CATEGORY_CONFIG[job.category].emoji}</span>
-                    </div>
-
-                    {/* Content */}
-                    <div className="p-3">
-                      <div className="flex items-start justify-between gap-1 mb-1.5">
-                        <h3 className={`font-semibold text-sm leading-snug line-clamp-2 flex-1
-                          ${readSet.has(`job:${job.id}`) ? 'text-gray-400' : 'text-gray-900'}`}>
-                          {job.title}
-                        </h3>
-                        <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full flex-shrink-0 ml-1 ${JOB_TYPE_CONFIG[job.job_type].color}`}>
-                          {JOB_TYPE_CONFIG[job.job_type].label}
-                        </span>
-                      </div>
-                      <p
-                        className="text-xs text-gray-500 mb-1.5 truncate hover:text-primary-600 cursor-pointer"
-                        onClick={(e) => { e.stopPropagation(); job.poster && navigate(`/provider/${job.poster.id}`) }}
-                      >
-                        {job.company_name ?? job.poster?.name ?? '雇主'}
-                      </p>
-                      <p className="text-sm font-bold text-primary-600 mb-1.5">{salaryLabel(job)}</p>
-                      <div className="flex items-center gap-1 text-[11px] text-gray-400">
-                        {job.area && job.area.length > 0 && (
-                          <span className="flex items-center gap-0.5 flex-1 min-w-0 truncate">
-                            <MapPin size={10} className="flex-shrink-0" /> {job.area[0]}
-                          </span>
-                        )}
-                        <span className="flex-shrink-0">
-                          {new Date(job.created_at).toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' })}
-                        </span>
-                      </div>
-                    </div>
-                  </motion.div>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* ── Right: detail panel (desktop only) ───────────────────────────── */}
-        <AnimatePresence mode="wait">
-          {selectedJob && (
-            <motion.div key={selectedJob.id}
-              ref={detailRef}
-              initial={{ opacity: 0, x: 16 }} animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0 }} transition={{ duration: 0.18 }}
-              className="hidden lg:flex flex-col flex-1 overflow-y-auto ml-4"
-            >
-              <DetailPanel job={selectedJob} salaryLabel={salaryLabel(selectedJob)}
-                onClose={() => setSelectedId(null)} />
-            </motion.div>
+      <div className="flex items-center gap-2">
+        <div className="flex-1 flex items-center gap-2 bg-gray-100 rounded-xl px-3 py-2.5">
+          <Search size={15} className="text-gray-400 flex-shrink-0" />
+          <input
+            value={localKeyword}
+            onChange={(e) => setLocalKeyword(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+            placeholder="搜索职位、公司..."
+            className="flex-1 bg-transparent outline-none text-sm text-gray-900 placeholder-gray-400"
+          />
+          {localKeyword && (
+            <button onClick={() => { setLocalKeyword(''); setFilters({ keyword: undefined }) }}>
+              <X size={14} className="text-gray-400" />
+            </button>
           )}
-        </AnimatePresence>
+        </div>
+        <button onClick={handleSearch}
+          className="flex-shrink-0 whitespace-nowrap bg-primary-600 text-white text-sm font-medium px-4 py-2.5 rounded-xl hover:bg-primary-700 transition-colors">
+          搜索
+        </button>
+        <button
+          onClick={() => setShowFilters((v) => !v)}
+          className={`p-2.5 rounded-xl border transition-colors ${
+            showFilters || filters.category || filters.job_type || filters.area
+              ? 'border-primary-400 text-primary-600 bg-primary-50'
+              : 'border-gray-200 text-gray-500 bg-white'
+          }`}
+        >
+          <SlidersHorizontal size={16} />
+        </button>
       </div>
 
-      {/* ── Mobile bottom drawer ─────────────────────────────────────────────── */}
       <AnimatePresence>
-        {mobileOpen && selectedJob && (
+        {showFilters && (
           <motion.div
-            className="fixed inset-0 z-50 lg:hidden"
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            onClick={() => setMobileOpen(false)}
+            initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }} className="overflow-hidden"
           >
-            <div className="absolute inset-0 bg-black/40" />
-            <motion.div
-              initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
-              transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-              className="absolute bottom-0 left-0 right-0 bg-white rounded-t-3xl max-h-[90vh] overflow-y-auto"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="flex justify-center pt-3 pb-2">
-                <div className="w-10 h-1 bg-gray-300 rounded-full" />
-              </div>
-              <DetailPanel job={selectedJob} salaryLabel={salaryLabel(selectedJob)}
-                onClose={() => setMobileOpen(false)} />
-            </motion.div>
+            <div className="space-y-3 pt-1">
+              <FilterRow label="职位类型">
+                <Chip active={!filters.category} onClick={() => setFilters({ category: undefined })}>全部</Chip>
+                {(Object.keys(JOB_CATEGORY_CONFIG) as JobCategory[]).map((k) => (
+                  <Chip key={k} active={filters.category === k}
+                    onClick={() => setFilters({ category: filters.category === k ? undefined : k })}>
+                    {JOB_CATEGORY_CONFIG[k].emoji} {JOB_CATEGORY_CONFIG[k].label}
+                  </Chip>
+                ))}
+              </FilterRow>
+              <FilterRow label="工作性质">
+                <Chip active={!filters.job_type} onClick={() => setFilters({ job_type: undefined })}>全部</Chip>
+                {(Object.keys(JOB_TYPE_CONFIG) as JobType[]).map((k) => (
+                  <Chip key={k} active={filters.job_type === k}
+                    onClick={() => setFilters({ job_type: filters.job_type === k ? undefined : k })}>
+                    {JOB_TYPE_CONFIG[k].label}
+                  </Chip>
+                ))}
+              </FilterRow>
+              <FilterRow label="地区">
+                <Chip active={!filters.area} onClick={() => setFilters({ area: undefined })}>全部</Chip>
+                {GTA_AREAS.map((a) => (
+                  <Chip key={a} active={filters.area === a}
+                    onClick={() => setFilters({ area: filters.area === a ? undefined : a })}>
+                    {a}
+                  </Chip>
+                ))}
+              </FilterRow>
+              <button onClick={() => { clearFilters(); setLocalKeyword('') }}
+                className="text-xs text-gray-400 hover:text-red-500 transition-colors">
+                清除所有筛选
+              </button>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
+    </>
+  )
 
-      {/* FAB */}
-      {user && <PostFAB onClick={() => navigate(`/jobs/post?type=${listingType}`)} />}
+  const cardList = !isReady ? (
+    <div style={{ columns: '200px', columnGap: '10px' }}>
+      {[1, 2, 3, 4].map((i) => (
+        <div key={i} className="break-inside-avoid mb-2.5 bg-white rounded-2xl overflow-hidden animate-pulse"
+          style={{ height: i % 2 === 0 ? 200 : 230 }}>
+          <div className="w-full h-1/2 bg-gray-100" />
+          <div className="p-3 space-y-2">
+            <div className="h-3.5 bg-gray-100 rounded w-3/4" />
+            <div className="h-3 bg-gray-100 rounded w-1/2" />
+          </div>
+        </div>
+      ))}
     </div>
+  ) : jobs.length === 0 ? (
+    filters.keyword || filters.category || filters.job_type || filters.area ? (
+      <div className="text-center py-20 text-gray-400">
+        <Search size={40} className="mx-auto mb-3 opacity-30" />
+        <p className="text-sm font-medium text-gray-500">没有找到相关职位</p>
+        {filters.keyword && <p className="text-xs text-gray-400 mt-1">"{filters.keyword}"</p>}
+        <button onClick={clearFilters}
+          className="mt-4 text-xs text-primary-600 bg-primary-50 border border-primary-100 rounded-xl px-4 py-2 font-medium">
+          清除筛选条件
+        </button>
+      </div>
+    ) : (
+      <div className="text-center py-20 text-gray-400">
+        <Briefcase size={40} className="mx-auto mb-3 opacity-30" />
+        <p className="text-sm">暂无职位</p>
+        <button onClick={() => navigate('/jobs/post')}
+          className="text-xs text-primary-600 underline mt-1">发布第一个职位</button>
+      </div>
+    )
+  ) : (
+    <div style={{ columns: '200px', columnGap: '10px' }}>
+      {jobs.map((job, i) => (
+        <motion.div key={job.id}
+          initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: i * 0.02 }}
+          onClick={() => handleJobClick(job)}
+          className={`break-inside-avoid mb-2.5 bg-white rounded-2xl overflow-hidden
+            cursor-pointer transition-all duration-150
+            ${readSet.has(`job:${job.id}`) ? 'opacity-75' : ''}
+            ${selectedId === job.id ? 'ring-2 ring-primary-400 shadow-md' : 'shadow-sm hover:shadow-md'}`}
+        >
+          <div className="w-full py-7 flex items-center justify-center bg-gradient-to-br from-primary-50 to-primary-100">
+            <span className="text-4xl">{JOB_CATEGORY_CONFIG[job.category].emoji}</span>
+          </div>
+          <div className="p-3">
+            <div className="flex items-start justify-between gap-1 mb-1.5">
+              <h3 className={`font-semibold text-sm leading-snug line-clamp-2 flex-1
+                ${readSet.has(`job:${job.id}`) ? 'text-gray-400' : 'text-gray-900'}`}>
+                {job.title}
+              </h3>
+              <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full flex-shrink-0 ml-1 ${JOB_TYPE_CONFIG[job.job_type].color}`}>
+                {JOB_TYPE_CONFIG[job.job_type].label}
+              </span>
+            </div>
+            <p
+              className="text-xs text-gray-500 mb-1.5 truncate hover:text-primary-600 cursor-pointer"
+              onClick={(e) => { e.stopPropagation(); if (job.poster) navigate(`/provider/${job.poster.id}`) }}
+            >
+              {job.company_name ?? job.poster?.name ?? '雇主'}
+            </p>
+            <p className="text-sm font-bold text-primary-600 mb-1.5">{salaryLabel(job)}</p>
+            <div className="flex items-center gap-1 text-[11px] text-gray-400">
+              {job.area && job.area.length > 0 && (
+                <span className="flex items-center gap-0.5 flex-1 min-w-0 truncate">
+                  <MapPin size={10} className="flex-shrink-0" /> {job.area[0]}
+                </span>
+              )}
+              <span className="flex-shrink-0">
+                {new Date(job.created_at).toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' })}
+              </span>
+            </div>
+          </div>
+        </motion.div>
+      ))}
+    </div>
+  )
+
+  return (
+    <ListPageShell
+      pageTitle="华人招聘"
+      pageDescription="华人社区工作机会：全职、兼职、实习一站查询，本地雇主直招"
+      topBar={topBar}
+      countText={`共 ${jobs.length} 个职位`}
+      selectedId={selectedId}
+      mobileOpen={mobileOpen}
+      onCloseMobile={() => setMobileOpen(false)}
+      detailDesktop={selectedJob ? <DetailPanel job={selectedJob} salaryLabel={salaryLabel(selectedJob)} onClose={() => setSelectedId(null)} /> : null}
+      detailMobile={selectedJob ? <DetailPanel job={selectedJob} salaryLabel={salaryLabel(selectedJob)} onClose={() => setMobileOpen(false)} /> : null}
+      leftColWidth={420}
+      fabPath={`/jobs/post?type=${listingType}`}
+    >
+      {cardList}
+    </ListPageShell>
   )
 }
 
-// ─── Inline detail panel (desktop right column + mobile drawer) ───────────────
+// ─── Detail panel ─────────────────────────────────────────────────────────────
 function DetailPanel({ job, salaryLabel, onClose }: { job: Job; salaryLabel: string; onClose: () => void }) {
   const navigate = useNavigate()
   const user     = useAuthStore((s) => s.user)
@@ -336,7 +275,6 @@ function DetailPanel({ job, salaryLabel, onClose }: { job: Job; salaryLabel: str
 
   return (
     <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-4">
-      {/* Title + type */}
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1">
           <h1 className="text-xl font-bold text-gray-900 leading-tight mb-1">{job.title}</h1>
@@ -349,7 +287,6 @@ function DetailPanel({ job, salaryLabel, onClose }: { job: Job; salaryLabel: str
         </span>
       </div>
 
-      {/* Info pills */}
       <div className="flex flex-wrap gap-2">
         <InfoPill icon={<Briefcase size={12} />}
           text={`${JOB_CATEGORY_CONFIG[job.category].emoji} ${JOB_CATEGORY_CONFIG[job.category].label}`} />
@@ -361,7 +298,6 @@ function DetailPanel({ job, salaryLabel, onClose }: { job: Job; salaryLabel: str
           text={new Date(job.created_at).toLocaleDateString('zh-CN')} />
       </div>
 
-      {/* Contact */}
       <div className="flex gap-2 pt-1">
         <a href={`tel:${job.contact_phone}`}
           className="flex-1 flex items-center justify-center gap-2 bg-primary-600 hover:bg-primary-700
@@ -379,7 +315,6 @@ function DetailPanel({ job, salaryLabel, onClose }: { job: Job; salaryLabel: str
         )}
       </div>
 
-      {/* Description */}
       <Section title="职位描述">
         <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{job.description}</p>
       </Section>
@@ -396,7 +331,6 @@ function DetailPanel({ job, salaryLabel, onClose }: { job: Job; salaryLabel: str
         </Section>
       )}
 
-      {/* Poster */}
       <Section title="发布者">
         <div className="flex items-center gap-3">
           <div
@@ -436,7 +370,7 @@ function DetailPanel({ job, salaryLabel, onClose }: { job: Job; salaryLabel: str
   )
 }
 
-// ─── Small helpers ────────────────────────────────────────────────────────────
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div className="pt-4 border-t border-gray-100">

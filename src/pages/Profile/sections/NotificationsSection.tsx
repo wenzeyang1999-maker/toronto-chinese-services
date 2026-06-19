@@ -65,7 +65,11 @@ export default function NotificationsSection() {
   const [loading, setLoading] = useState(true)
   const [saving,  setSaving]  = useState(false)
   const [permState, setPermState] = useState<NotificationPermission | 'unsupported'>('default')
-  const [savedSearches, setSavedSearches] = useState<SavedSearch[]>(() => getSavedSearches())
+  const [savedSearches, setSavedSearches] = useState<SavedSearch[]>([])
+
+  useEffect(() => {
+    void getSavedSearches().then(setSavedSearches)
+  }, [user])
 
   useEffect(() => {
     if (typeof window !== 'undefined' && 'Notification' in window) {
@@ -100,9 +104,9 @@ export default function NotificationsSection() {
     }
   }
 
-  function handleRemoveSavedSearch(id: string) {
-    removeSavedSearch(id)
-    setSavedSearches(getSavedSearches())
+  async function handleRemoveSavedSearch(id: string) {
+    await removeSavedSearch(id)
+    setSavedSearches(await getSavedSearches())
     toast('已取消订阅', 'success')
   }
 

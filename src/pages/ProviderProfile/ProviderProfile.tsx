@@ -1,77 +1,26 @@
 // ─── Provider Public Profile Page ─────────────────────────────────────────────
 // Route: /provider/:id
-// Shows a provider's public info + all their active listings.
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ArrowLeft, CheckCircle2, Clock, ExternalLink, MessageSquare, Phone, ShieldCheck, Star, MapPin, BadgeCheck, Wifi } from 'lucide-react'
+import { ArrowLeft } from 'lucide-react'
 import { toast } from '../../lib/toast'
-import { motion, AnimatePresence } from 'framer-motion'
 import { supabase } from '../../lib/supabase'
 import { useAuthStore } from '../../store/authStore'
-import { getCategoryById } from '../../data/categories'
-import MembershipBadge, { type MemberLevel } from '../../components/MembershipBadge/MembershipBadge'
-import CreditStars from '../../components/CreditStars/CreditStars'
-import FollowButton from '../../components/FollowButton/FollowButton'
-import ReplyTimeBadge from '../../components/ReplyTimeBadge/ReplyTimeBadge'
-import { JOB_CATEGORY_CONFIG, JOB_TYPE_CONFIG, SALARY_TYPE_LABEL, getCategoryLabel } from '../Jobs/types'
-import type { Job } from '../Jobs/types'
-import { LISTING_TYPE_CONFIG as RE_LISTING_TYPE_CONFIG, PROPERTY_TYPE_CONFIG, getPriceLabel as getPropertyPriceLabel } from '../RealEstate/types'
-import type { Property } from '../RealEstate/types'
-import { SECONDHAND_CATEGORY_CONFIG, ITEM_CONDITION_CONFIG, getPriceLabel as getItemPriceLabel } from '../Secondhand/types'
-import type { SecondhandItem } from '../Secondhand/types'
-import { EVENT_TYPE_CONFIG, getPriceLabel as getEventPriceLabel, formatEventDate, isUpcoming } from '../Events/types'
-import type { Event } from '../Events/types'
-import { SOCIAL_PLATFORMS } from '../../lib/socialPlatforms'
+import type { MemberLevel } from '../../components/MembershipBadge/MembershipBadge'
 import { ProviderProfileSkeleton } from '../../components/Skeleton/Skeleton'
-import ImgFallback from '../../components/ImgFallback/ImgFallback'
 import PageMeta from '../../components/PageMeta/PageMeta'
-
-interface ProviderUser {
-  id: string
-  name: string
-  avatar_url: string | null
-  email: string
-  phone: string | null
-  wechat: string | null
-  bio: string | null
-  is_email_verified: boolean
-  phone_verified: boolean
-  social_links: Record<string, string>
-  created_at: string
-  membership_level: MemberLevel
-  business_verified: boolean
-  avg_reply_hours: number | null
-  last_seen_at: string | null
-  is_online: boolean
-  business_type: 'individual' | 'business'
-  skill_tags: string[]
-  qualification_note: string
-  qualification_images: string[]
-  credit_penalty: number
-}
-
-interface ProviderReview {
-  id: string
-  rating: number
-  comment: string | null
-  created_at: string
-  service: { id: string; title: string } | null
-  reviewer: { id: string; name: string; avatar_url: string | null } | null
-  reply: string | null
-}
-
-interface ServiceRow {
-  id: string
-  title: string
-  description: string
-  category_id: string
-  price: number | null
-  price_type: string | null
-  area: string | null
-  images: string[]
-  avgRating: number | null
-  reviewCount: number
-}
+import type { Job } from '../Jobs/types'
+import type { Property } from '../RealEstate/types'
+import type { SecondhandItem } from '../Secondhand/types'
+import type { Event } from '../Events/types'
+import type { ProviderUser, ProviderReview, ServiceRow } from './types'
+import ProfileCard from './components/ProfileCard'
+import ServicesGrid from './components/ServicesGrid'
+import JobsSection from './components/JobsSection'
+import PropertiesSection from './components/PropertiesSection'
+import SecondhandSection from './components/SecondhandSection'
+import EventsSection from './components/EventsSection'
+import ReviewsSection from './components/ReviewsSection'
 
 export default function ProviderProfile() {
   const { id }   = useParams<{ id: string }>()
@@ -81,9 +30,7 @@ export default function ProviderProfile() {
   const [provider,        setProvider]       = useState<ProviderUser | null>(null)
   const [services,        setServices]       = useState<ServiceRow[]>([])
   const [providerReviews, setProviderReviews] = useState<ProviderReview[]>([])
-  const [reviewStarFilter, setReviewStarFilter] = useState<number>(0) // 0 = all
   const [jobs,            setJobs]           = useState<Job[]>([])
-  const [jobTab,          setJobTab]         = useState<'hiring' | 'seeking'>('hiring')
   const [properties,      setProperties]     = useState<Property[]>([])
   const [secondhandItems, setSecondhandItems] = useState<SecondhandItem[]>([])
   const [events,          setEvents]         = useState<Event[]>([])
@@ -259,7 +206,7 @@ export default function ProviderProfile() {
     )
   }
 
-  const joinedMonth = provider.created_at.slice(0, 7)
+  const joinedMonth  = provider.created_at.slice(0, 7)
   const isOwnProfile = user?.id === provider.id
 
   return (
@@ -269,7 +216,6 @@ export default function ProviderProfile() {
         description={provider.bio ?? `查看 ${provider.name} 的服务、招聘、房源和闲置信息`}
       />
 
-      {/* Top bar */}
       <div className="sticky top-0 z-20 bg-white border-b border-gray-200 px-4 h-14 flex items-center gap-3">
         <button onClick={() => navigate(-1)} className="text-gray-500 hover:text-gray-800">
           <ArrowLeft size={22} />
@@ -278,632 +224,30 @@ export default function ProviderProfile() {
       </div>
 
       <div className="max-w-2xl lg:max-w-4xl mx-auto px-4 py-5 space-y-4">
+        <ProfileCard
+          provider={provider}
+          followerCount={followerCount}
+          isOwnProfile={isOwnProfile}
+          joinedMonth={joinedMonth}
+          onMessage={handleMessage}
+          onCopyWechat={copyWechat}
+        />
 
-        {/* ── Profile card ─────────────────────────────────────────────────── */}
-        <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }}
-          className="bg-white rounded-3xl border border-gray-100 shadow-sm p-6">
+        <ServicesGrid
+          services={services}
+          isOwnProfile={isOwnProfile}
+          onMessageService={handleMessageService}
+        />
 
-          {/* Avatar + name row */}
-          <div className="flex items-center gap-4">
-            {provider.avatar_url ? (
-              <ImgFallback
-                src={provider.avatar_url}
-                alt={provider.name}
-                className="w-20 h-20 rounded-full object-cover flex-shrink-0 border border-gray-100"
-                fallback={
-                  <div className="w-20 h-20 rounded-full bg-gradient-to-br from-primary-400 to-primary-600
-                                  flex items-center justify-center text-white font-bold text-3xl flex-shrink-0">
-                    {provider.name.charAt(0)}
-                  </div>
-                }
-              />
-            ) : (
-              <div className="w-20 h-20 rounded-full bg-gradient-to-br from-primary-400 to-primary-600
-                              flex items-center justify-center text-white font-bold text-3xl flex-shrink-0">
-                {provider.name.charAt(0)}
-              </div>
-            )}
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 flex-wrap">
-                <h1 className="text-xl font-bold text-gray-900 truncate">{provider.name}</h1>
-                <MembershipBadge level={provider.membership_level} size="md" />
-              </div>
-              <div className="mt-1">
-                <CreditStars
-                  input={{
-                    emailVerified:        provider.is_email_verified,
-                    phoneVerified:        provider.phone_verified,
-                    idOrBusinessVerified: provider.business_verified,
-                    creditPenalty:        provider.credit_penalty,
-                  }}
-                />
-              </div>
-              <div className="flex items-center gap-1.5 mt-1 text-xs text-gray-400">
-                <Clock size={12} />
-                <span>加入于 {joinedMonth}</span>
-              </div>
-              <div className="mt-1.5">
-                <ReplyTimeBadge
-                  avgReplyHours={provider.avg_reply_hours}
-                  joinedAt={provider.created_at}
-                  lastSeenAt={provider.last_seen_at}
-                />
-              </div>
+        {jobs.length > 0 && <JobsSection jobs={jobs} />}
 
-              {/* Status badges row */}
-              <div className="flex flex-wrap gap-2 mt-2">
-                {provider.is_online && (
-                  <span className="flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-semibold text-green-700 bg-green-50 border border-green-200">
-                    <Wifi size={10} />
-                    在线接单
-                  </span>
-                )}
-                <span className={`flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-medium
-                  ${provider.business_type === 'business' ? 'text-blue-700 bg-blue-50 border border-blue-200' : 'text-gray-500 bg-gray-100'}`}>
-                  {provider.business_type === 'business' ? '🏢 企业商户' : '👤 个人服务商'}
-                </span>
-              </div>
+        {properties.length > 0 && <PropertiesSection properties={properties} />}
 
-              {/* Trust bar — positive signals only, matches ServiceCard badge colours */}
-              {(provider.business_verified || provider.phone_verified ||
-                provider.is_email_verified || provider.qualification_images.length > 0) && (
-                <div className="mt-2.5 pt-2.5 border-t border-gray-100">
-                  <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-1.5">
-                    认证信息
-                  </p>
-                  <div className="flex flex-wrap gap-1.5">
-                    {provider.business_verified && (
-                      <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-full bg-amber-50 text-amber-700 border border-amber-200">
-                        <BadgeCheck size={11} /> 商户认证
-                      </span>
-                    )}
-                    {provider.phone_verified && (
-                      <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-full bg-sky-50 text-sky-600 border border-sky-200">
-                        <Phone size={11} /> 手机已验证
-                      </span>
-                    )}
-                    {provider.is_email_verified && (
-                      <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-600 border border-emerald-200">
-                        <CheckCircle2 size={11} /> 邮箱已验证
-                      </span>
-                    )}
-                    {provider.qualification_images.length > 0 && (
-                      <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-full bg-violet-50 text-violet-600 border border-violet-200">
-                        <ShieldCheck size={11} /> {provider.qualification_images.length} 张资质证书
-                      </span>
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
+        {secondhandItems.length > 0 && <SecondhandSection items={secondhandItems} />}
 
-          {/* Bio */}
-          {provider.bio && (
-            <p className="mt-4 text-sm text-gray-600 leading-relaxed whitespace-pre-wrap">{provider.bio}</p>
-          )}
+        {events.length > 0 && <EventsSection events={events} />}
 
-          {/* Skill tags */}
-          {provider.skill_tags.length > 0 && (
-            <div className="mt-5">
-              <p className="text-sm font-bold text-gray-700 mb-2.5">业务范围</p>
-              <div className="flex flex-wrap gap-2">
-                {provider.skill_tags.map((tag) => (
-                  <span key={tag}
-                    className="text-sm px-4 py-2 rounded-xl bg-primary-100 text-primary-700 border border-primary-200 font-semibold">
-                    # {tag}
-                  </span>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Qualification & equipment — note + photos */}
-          {(provider.qualification_note.trim() || provider.qualification_images.length > 0) && (
-            <div className="mt-4">
-              <p className="text-xs font-semibold text-gray-400 mb-2">资质与设备</p>
-              {provider.qualification_note.trim() && (
-                <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap mb-2">
-                  {provider.qualification_note}
-                </p>
-              )}
-              {provider.qualification_images.length > 0 && (
-                <div className="grid grid-cols-3 gap-2">
-                  {provider.qualification_images.map((url, i) => (
-                    <a
-                      key={i}
-                      href={url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="relative aspect-square rounded-xl overflow-hidden border border-gray-200 bg-gray-50 hover:opacity-90 transition-opacity"
-                    >
-                      <img src={url} alt={`资质与设备 ${i + 1}`} loading="lazy" className="w-full h-full object-cover"
-                        onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
-                    </a>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Contact info */}
-          {(provider.email || provider.phone || provider.wechat) && (
-            <div className="mt-5 pt-4 border-t border-gray-100 space-y-2.5">
-              {provider.email && (
-                <a href={`mailto:${provider.email}`}
-                  className="flex items-center gap-2.5 text-sm text-gray-700 hover:text-primary-600 transition-colors">
-                  <span className="text-lg">📧</span>
-                  <span className="truncate">{provider.email}</span>
-                </a>
-              )}
-              {provider.phone && (
-                <a href={`tel:${provider.phone}`}
-                  className="flex items-center gap-2.5 text-sm text-gray-700 hover:text-primary-600 transition-colors">
-                  <Phone size={16} className="text-primary-400 flex-shrink-0" />
-                  <span>{provider.phone}</span>
-                </a>
-              )}
-              {provider.wechat && (
-                <button onClick={copyWechat}
-                  className="flex items-center gap-2.5 text-sm text-gray-700 hover:text-primary-600 transition-colors w-full text-left">
-                  <span className="text-lg">💬</span>
-                  <span>{provider.wechat}</span>
-                  <span className="text-xs text-gray-400 ml-1">（点击复制）</span>
-                </button>
-              )}
-            </div>
-          )}
-
-          {/* Social links */}
-          {SOCIAL_PLATFORMS.some(p => provider.social_links[p.key]?.trim()) && (
-            <div className="mt-3 flex flex-wrap gap-2">
-              {SOCIAL_PLATFORMS.filter(p => provider.social_links[p.key]?.trim()).map(p => {
-                const url = p.getUrl(provider.social_links[p.key])
-                return url ? (
-                  <a key={p.key} href={url} target="_blank" rel="noopener noreferrer"
-                    className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full border font-medium ${p.color}`}>
-                    <span>{p.icon}</span>
-                    <span>{p.label}</span>
-                    <ExternalLink size={10} />
-                  </a>
-                ) : (
-                  <span key={p.key}
-                    className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full border font-medium ${p.color}`}>
-                    <span>{p.icon}</span>
-                    <span>{provider.social_links[p.key]}</span>
-                  </span>
-                )
-              })}
-            </div>
-          )}
-
-          {/* Follower count */}
-          {followerCount > 0 && (
-            <p className="mt-3 text-xs text-gray-400 flex items-center gap-1">
-              <span className="font-semibold text-gray-600">{followerCount}</span> 位粉丝关注
-            </p>
-          )}
-
-          {/* Action buttons — only for other users */}
-          {!isOwnProfile && (
-            <div className="mt-5 flex gap-3">
-              <button onClick={handleMessage}
-                className="flex-1 flex items-center justify-center gap-2 bg-primary-600 text-white
-                           py-3 rounded-2xl font-medium hover:bg-primary-700 active:scale-[0.98] transition-all">
-                <MessageSquare size={18} />
-                发消息
-              </button>
-              <FollowButton providerId={provider.id} />
-            </div>
-          )}
-        </motion.div>
-
-        {/* ── Services ─────────────────────────────────────────────────────── */}
-        <div>
-          <h2 className="text-sm font-semibold text-gray-500 mb-3 px-1">
-            发布的服务（{services.length}）
-          </h2>
-
-          {services.length === 0 && (
-            <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-10 text-center text-gray-400 text-sm">
-              暂无发布的服务
-            </div>
-          )}
-
-          <div className="grid grid-cols-2 gap-3">
-            {services.map((svc, i) => {
-              const cat = getCategoryById(svc.category_id as never)
-              const priceLabel =
-                svc.price_type === 'hourly'  ? `$${svc.price}/小时` :
-                svc.price_type === 'fixed'   ? `$${svc.price} 起`  : '价格面议'
-
-              return (
-                <motion.div key={svc.id}
-                  initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: i * 0.05 }}
-                  className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden"
-                >
-                  {/* Image */}
-                  {svc.images.length > 0 && (
-                    <button onClick={() => navigate(`/service/${svc.id}`)} className="w-full text-left block">
-                      <div className="w-full aspect-square overflow-hidden">
-                        <ImgFallback
-                          src={svc.images[0]}
-                          alt={svc.title}
-                          className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
-                          loading="lazy"
-                          fallback={<div className="w-full h-full bg-gray-100 flex items-center justify-center text-3xl">🔧</div>}
-                        />
-                      </div>
-                    </button>
-                  )}
-
-                  <div className="p-4">
-                    {/* Category + price row */}
-                    <div className="flex items-center gap-2 mb-2">
-                      {cat && (
-                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${cat.color} ${cat.bgColor}`}>
-                          {cat.label}
-                        </span>
-                      )}
-                      {svc.area && (
-                        <span className="text-xs text-gray-400">{svc.area}</span>
-                      )}
-                      <span className="ml-auto text-primary-600 font-bold text-sm">{priceLabel}</span>
-                    </div>
-
-                    {/* Title */}
-                    <button onClick={() => navigate(`/service/${svc.id}`)}
-                      className="text-sm font-semibold text-gray-900 text-left hover:text-primary-600 transition-colors w-full line-clamp-2 leading-snug">
-                      {svc.title}
-                    </button>
-
-                    {/* Description */}
-                    <p className="text-xs text-gray-500 mt-1.5 line-clamp-2 leading-relaxed">
-                      {svc.description}
-                    </p>
-
-                    {/* Stars + action row */}
-                    <div className="flex items-center justify-between mt-3">
-                      <div className="flex items-center gap-0.5">
-                        {svc.reviewCount === 0 ? (
-                          <span className="text-xs text-gray-400">暂无评价</span>
-                        ) : (
-                          <>
-                            {[1,2,3,4,5].map(s => (
-                              <Star key={s} size={13}
-                                className={s <= Math.round(svc.avgRating ?? 0)
-                                  ? 'text-yellow-400 fill-yellow-400'
-                                  : 'text-gray-200 fill-gray-200'} />
-                            ))}
-                            <span className="text-[11px] text-gray-400 ml-0.5">({svc.reviewCount})</span>
-                          </>
-                        )}
-                      </div>
-                      <div className="flex gap-2">
-                        <button onClick={() => navigate(`/service/${svc.id}`)}
-                          className="text-xs px-3 py-1.5 rounded-xl border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors">
-                          查看详情
-                        </button>
-                        {!isOwnProfile && (
-                          <button onClick={() => handleMessageService(svc.id)}
-                            className="text-xs px-3 py-1.5 rounded-xl bg-primary-600 text-white hover:bg-primary-700 transition-colors">
-                            发消息
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </motion.div>
-              )
-            })}
-          </div>
-        </div>
-
-        {/* ── Jobs ─────────────────────────────────────────────────────────── */}
-        {jobs.length > 0 && (
-          <div>
-            <h2 className="text-sm font-semibold text-gray-500 mb-3 px-1">
-              发布的职位（{jobs.length}）
-            </h2>
-
-            {/* Hiring / Seeking sub-tabs */}
-            {jobs.some(j => j.listing_type === 'hiring') && jobs.some(j => j.listing_type === 'seeking') && (
-              <div className="flex bg-gray-100 rounded-xl p-1 gap-1 mb-3">
-                {(['hiring', 'seeking'] as const).map(t => (
-                  <button key={t} onClick={() => setJobTab(t)}
-                    className={`flex-1 py-2 rounded-lg text-sm font-semibold transition-all ${
-                      jobTab === t ? 'bg-white text-primary-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'
-                    }`}
-                  >
-                    {t === 'hiring' ? '💼 招聘' : '🙋 求职'}
-                  </button>
-                ))}
-              </div>
-            )}
-
-            <div className="space-y-2">
-              {jobs
-                .filter(j => {
-                  const hasBoth = jobs.some(x => x.listing_type === 'hiring') && jobs.some(x => x.listing_type === 'seeking')
-                  return hasBoth ? j.listing_type === jobTab : true
-                })
-                .map((job, i) => {
-                  const salaryLabel = job.salary_type === 'negotiable'
-                    ? '薪资面议'
-                    : job.salary_min && job.salary_max
-                      ? `$${job.salary_min}–$${job.salary_max}${SALARY_TYPE_LABEL[job.salary_type]}`
-                      : job.salary_min ? `$${job.salary_min} 起${SALARY_TYPE_LABEL[job.salary_type]}` : '薪资面议'
-
-                  return (
-                    <motion.div key={job.id}
-                      initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: i * 0.04 }}
-                      onClick={() => navigate(`/jobs/${job.id}`)}
-                      className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 cursor-pointer
-                                 hover:border-primary-200 hover:shadow-md transition-all"
-                    >
-                      <div className="flex items-start justify-between gap-2 mb-1">
-                        <h3 className="font-semibold text-gray-900 text-sm leading-snug flex-1">{job.title}</h3>
-                        <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full flex-shrink-0 ${JOB_TYPE_CONFIG[job.job_type].color}`}>
-                          {JOB_TYPE_CONFIG[job.job_type].label}
-                        </span>
-                      </div>
-                      <div className="flex flex-wrap items-center gap-2 mt-2">
-                        <span className="text-[11px] px-2 py-0.5 rounded-full bg-gray-100 text-gray-600">
-                          {JOB_CATEGORY_CONFIG[job.category].emoji} {getCategoryLabel(job)}
-                        </span>
-                        <span className="text-sm font-bold text-primary-600">{salaryLabel}</span>
-                        {job.area && job.area.length > 0 && (
-                          <span className="flex items-center gap-0.5 text-[11px] text-gray-500">
-                            <MapPin size={10} />{job.area.join('·')}
-                          </span>
-                        )}
-                      </div>
-                    </motion.div>
-                  )
-                })
-              }
-            </div>
-          </div>
-        )}
-
-        {/* ── Properties ───────────────────────────────────────────────────── */}
-        {properties.length > 0 && (
-          <div>
-            <h2 className="text-sm font-semibold text-gray-500 mb-3 px-1">
-              发布的房源（{properties.length}）
-            </h2>
-            <div className="space-y-2">
-              {properties.map((p, i) => (
-                <motion.div key={p.id}
-                  initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: i * 0.04 }}
-                  onClick={() => navigate(`/realestate/${p.id}`)}
-                  className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden
-                             cursor-pointer hover:border-primary-200 hover:shadow-md transition-all flex gap-3"
-                >
-                  <div className="w-20 h-20 flex-shrink-0 bg-gray-100 overflow-hidden">
-                    {p.images.length > 0
-                      ? <ImgFallback
-                          src={p.images[0]}
-                          alt={p.title}
-                          className="w-full h-full object-cover"
-                          loading="lazy"
-                          fallback={<div className="w-full h-full flex items-center justify-center text-2xl">{PROPERTY_TYPE_CONFIG[p.property_type].emoji}</div>}
-                        />
-                      : <div className="w-full h-full flex items-center justify-center text-2xl">{PROPERTY_TYPE_CONFIG[p.property_type].emoji}</div>
-                    }
-                  </div>
-                  <div className="flex-1 min-w-0 py-3 pr-3">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${RE_LISTING_TYPE_CONFIG[p.listing_type].color}`}>
-                        {RE_LISTING_TYPE_CONFIG[p.listing_type].label}
-                      </span>
-                      <span className="text-sm font-bold text-primary-600">{getPropertyPriceLabel(p)}</span>
-                    </div>
-                    <p className="text-sm font-semibold text-gray-900 line-clamp-1">{p.title}</p>
-                    {p.area && p.area.length > 0 && (
-                      <p className="text-[11px] text-gray-400 mt-0.5 flex items-center gap-0.5">
-                        <MapPin size={10} />{p.area.join('·')}
-                      </p>
-                    )}
-                  </div>
-                </motion.div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* ── Secondhand ────────────────────────────────────────────────────── */}
-        {secondhandItems.length > 0 && (
-          <div>
-            <h2 className="text-sm font-semibold text-gray-500 mb-3 px-1">
-              发布的闲置（{secondhandItems.length}）
-            </h2>
-            <div className="grid grid-cols-2 gap-3">
-              {secondhandItems.map((item, i) => (
-                <motion.div key={item.id}
-                  initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: i * 0.04 }}
-                  onClick={() => navigate(`/secondhand/${item.id}`)}
-                  className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden
-                             cursor-pointer hover:border-primary-200 hover:shadow-md transition-all"
-                >
-                  <div className="aspect-square bg-gray-100 overflow-hidden">
-                    {item.images.length > 0
-                      ? <ImgFallback
-                          src={item.images[0]}
-                          alt={item.title}
-                          className="w-full h-full object-cover"
-                          loading="lazy"
-                          fallback={<div className="w-full h-full flex items-center justify-center text-3xl">{SECONDHAND_CATEGORY_CONFIG[item.category].emoji}</div>}
-                        />
-                      : <div className="w-full h-full flex items-center justify-center text-3xl">
-                          {SECONDHAND_CATEGORY_CONFIG[item.category].emoji}
-                        </div>
-                    }
-                  </div>
-                  <div className="p-3">
-                    <p className="text-sm font-bold text-primary-600 mb-0.5">{getItemPriceLabel(item)}</p>
-                    <p className="text-sm font-semibold text-gray-900 line-clamp-2 leading-snug">{item.title}</p>
-                    <span className={`inline-block mt-1.5 text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${ITEM_CONDITION_CONFIG[item.condition].color}`}>
-                      {ITEM_CONDITION_CONFIG[item.condition].label}
-                    </span>
-                  </div>
-                </motion.div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* ── Events ───────────────────────────────────────────────────────── */}
-        {events.length > 0 && (
-          <div>
-            <h2 className="text-sm font-semibold text-gray-500 mb-3 px-1">
-              发布的活动（{events.length}）
-            </h2>
-            <div className="space-y-2">
-              {events.map((ev, i) => {
-                const cfg = EVENT_TYPE_CONFIG[ev.event_type]
-                const past = !isUpcoming(ev)
-                return (
-                  <motion.div key={ev.id}
-                    initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: i * 0.04 }}
-                    onClick={() => navigate(`/events/${ev.id}`)}
-                    className={`bg-white rounded-2xl border border-gray-100 shadow-sm p-4 cursor-pointer
-                               hover:border-primary-200 hover:shadow-md transition-all flex gap-3 items-start
-                               ${past ? 'opacity-60' : ''}`}
-                  >
-                    <div className="flex-shrink-0 w-12 flex flex-col items-center bg-primary-50 rounded-xl py-1.5 px-1 text-center">
-                      <span className="text-[10px] font-bold text-primary-400 leading-none">
-                        {new Date(ev.event_date + 'T00:00:00').toLocaleString('zh-CN', { month: 'short' })}
-                      </span>
-                      <span className="text-xl font-extrabold text-primary-700 leading-tight">
-                        {new Date(ev.event_date + 'T00:00:00').getDate()}
-                      </span>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-start justify-between gap-2 mb-1">
-                        <p className="text-sm font-semibold text-gray-900 leading-snug line-clamp-1 flex-1">{ev.title}</p>
-                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full flex-shrink-0 ${cfg.color}`}>
-                          {cfg.emoji} {cfg.label}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <p className="text-xs text-gray-400">{formatEventDate(ev.event_date)}</p>
-                        <p className={`text-xs font-bold ${ev.price ? 'text-primary-600' : 'text-green-600'}`}>
-                          {getEventPriceLabel(ev)}
-                        </p>
-                        {past && <span className="text-[10px] text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded-full">已结束</span>}
-                      </div>
-                    </div>
-                  </motion.div>
-                )
-              })}
-            </div>
-          </div>
-        )}
-
-        {/* ── All Reviews ──────────────────────────────────────────────────── */}
-        <div>
-          <div className="flex items-center justify-between mb-3 px-1">
-            <h2 className="text-sm font-semibold text-gray-500">
-              收到的评价（{providerReviews.length}）
-              {providerReviews.length > 0 && (
-                <span className="ml-2 text-yellow-500 font-bold">
-                  {'★ ' + (providerReviews.reduce((s, r) => s + r.rating, 0) / providerReviews.length).toFixed(1)}
-                </span>
-              )}
-            </h2>
-          </div>
-
-          {/* Star filter tabs */}
-          {providerReviews.length > 0 && (
-            <div className="flex gap-1.5 mb-3 flex-wrap">
-              {[0, 5, 4, 3, 2, 1].map(star => {
-                const count = star === 0
-                  ? providerReviews.length
-                  : providerReviews.filter(r => r.rating === star).length
-                if (star !== 0 && count === 0) return null
-                return (
-                  <button key={star} onClick={() => setReviewStarFilter(star)}
-                    className={`flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold transition-all ${
-                      reviewStarFilter === star
-                        ? 'bg-yellow-400 text-white shadow-sm'
-                        : 'bg-white border border-gray-200 text-gray-600 hover:border-yellow-300'
-                    }`}>
-                    {star === 0 ? `全部 (${count})` : `${'★'.repeat(star)} (${count})`}
-                  </button>
-                )
-              })}
-            </div>
-          )}
-
-          {providerReviews.length === 0 ? (
-            <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-8 text-center text-gray-400 text-sm">
-              暂无评价
-            </div>
-          ) : (
-            <div className="bg-white rounded-3xl border border-gray-100 shadow-sm divide-y divide-gray-50">
-              <AnimatePresence>
-                {providerReviews
-                  .filter(r => reviewStarFilter === 0 || r.rating === reviewStarFilter)
-                  .map((r, i) => (
-                  <motion.div key={r.id}
-                    initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: i * 0.04 }}
-                    className="flex gap-3 p-4"
-                  >
-                    {r.reviewer?.avatar_url ? (
-                      <img src={r.reviewer.avatar_url} alt={r.reviewer.name}
-                        className="w-9 h-9 rounded-full object-cover flex-shrink-0 border border-gray-100" />
-                    ) : (
-                      <div className="w-9 h-9 rounded-full bg-gradient-to-br from-primary-400 to-primary-600
-                                      flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
-                        {r.reviewer?.name?.charAt(0) ?? '?'}
-                      </div>
-                    )}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-sm font-semibold text-gray-800">
-                          {r.reviewer?.name ?? '匿名用户'}
-                        </span>
-                        <div className="flex items-center gap-0.5">
-                          {[1,2,3,4,5].map(s => (
-                            <Star key={s} size={12}
-                              className={s <= r.rating ? 'text-yellow-400 fill-yellow-400' : 'text-gray-200 fill-gray-200'} />
-                          ))}
-                        </div>
-                        <span className="text-xs text-gray-400 ml-auto">{r.created_at.slice(0, 10)}</span>
-                      </div>
-                      {r.service && (
-                        <button onClick={() => navigate(`/service/${r.service!.id}`)}
-                          className="text-xs text-primary-500 hover:underline mt-0.5">
-                          {r.service.title}
-                        </button>
-                      )}
-                      {r.comment && (
-                        <p className="text-sm text-gray-600 mt-1 leading-relaxed">{r.comment}</p>
-                      )}
-                      {r.reply && (
-                        <div className="mt-2 flex gap-1.5">
-                          <div className="w-0.5 bg-primary-200 rounded-full flex-shrink-0" />
-                          <div className="bg-primary-50 rounded-lg px-3 py-2 flex-1">
-                            <p className="text-xs font-semibold text-primary-600 mb-0.5">🏪 商家回复</p>
-                            <p className="text-xs text-gray-600 leading-relaxed">{r.reply}</p>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </motion.div>
-                ))}
-              </AnimatePresence>
-            </div>
-          )}
-        </div>
-
+        <ReviewsSection reviews={providerReviews} />
       </div>
     </div>
   )

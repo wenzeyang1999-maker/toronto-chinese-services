@@ -38,13 +38,11 @@ export default function PostCommunity() {
   const [showTypePicker, setShowTypePicker] = useState(false)
   const [showAreaPicker, setShowAreaPicker] = useState(false)
 
-  if (!user) { navigate('/login'); return null }
-
   const totalImages = keptUrls.length + newImages.length
 
   // Load existing post when in edit mode
   useEffect(() => {
-    if (!editId) return
+    if (!editId || !user) return
     supabase
       .from('community_posts')
       .select('id, title, content, type, area, images, author_id')
@@ -61,6 +59,9 @@ export default function PostCommunity() {
         setLoading(false)
       })
   }, [editId])
+
+  // Auth guard — placed after all hooks so hook order stays stable across renders.
+  if (!user) { navigate('/login'); return null }
 
   async function handleImageChange(e: React.ChangeEvent<HTMLInputElement>) {
     const files = Array.from(e.target.files ?? [])
