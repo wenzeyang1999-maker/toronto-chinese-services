@@ -8,7 +8,9 @@ import ErrorBoundary from './components/ErrorBoundary/ErrorBoundary'
 import App from './App'
 import './index.css'
 import { registerServiceWorker } from './lib/pwa'
+import { initSentry } from './lib/sentry'
 
+initSentry()
 registerServiceWorker()
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
