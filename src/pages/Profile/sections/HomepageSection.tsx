@@ -217,7 +217,7 @@ export default function HomepageSection() {
       for (const file of toProcess) {
         const compressed = await compressImage(file)
         const path = `qualifications/${user!.id}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.jpg`
-        const { error } = await supabase.storage.from('service-images').upload(path, compressed, { upsert: true })
+        const { error } = await supabase.storage.from('service-images').upload(path, compressed, { upsert: false })
         if (error) throw error
         const { data: { publicUrl } } = supabase.storage.from('service-images').getPublicUrl(path)
         uploaded.push(publicUrl)

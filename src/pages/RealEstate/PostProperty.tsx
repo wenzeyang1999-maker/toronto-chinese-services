@@ -150,7 +150,7 @@ export default function PostProperty() {
       const path = `realestate/${user.id}/${Date.now()}-${file.name}`
       const { error: uploadErr } = await supabase.storage
         .from('service-images')
-        .upload(path, file, { upsert: true })
+        .upload(path, file, { upsert: false })
       if (uploadErr) {
         setSubmitError('图片上传失败，请检查网络后重试')
         setSubmitting(false)
