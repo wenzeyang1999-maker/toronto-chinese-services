@@ -25,7 +25,7 @@ export default function RecommendedServices({ excludeIds }: Props) {
     if (services.length === 0) return []
 
     // Category affinity from browse history (ordered by recency)
-    let recentCats: string[] = []
+    const recentCats: string[] = []
     try {
       const entries: BrowseEntry[] = JSON.parse(localStorage.getItem('tcs_browse_history') ?? '[]')
       const seen = new Set<string>()

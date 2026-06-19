@@ -72,7 +72,7 @@ export default function PostRequest() {
   const minDatetime = useMemo(() => toDatetimeLocal(new Date()), [])
 
   // Auto-request location on mount since default is checked
-  useEffect(() => { toggleShareLocation(true) }, [])  // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { toggleShareLocation(true) }, [])   
 
   function toggleShareLocation(checked: boolean) {
     setShareLocation(checked)

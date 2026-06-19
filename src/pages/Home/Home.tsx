@@ -369,7 +369,7 @@ export default function Home() {
           const kw = requestSearch.trim()
 
           // Step 1: fuzzy search — handles synonyms, typos, cross-language matching
-          let filtered = fuzzyFilterRequests(serviceRequests, kw)
+          const filtered = fuzzyFilterRequests(serviceRequests, kw)
 
           // Step 2: skill-tag filter for map (keeps all for card grid)
           const tagFiltered = mySkillTags.length > 0

@@ -60,7 +60,7 @@ export default function AdminPage() {
   }
 
   async function loadStats() {
-    const [users, services, jobs, properties, secondhand, events, reports, contentReportsCount, verifs] = await Promise.all([
+    const [users, services, jobs, properties, secondhand, events, reports, contentReportsCount, verifs, userReportsCount, promoReqCount] = await Promise.all([
       supabase.from('users').select('id', { count: 'exact', head: true }),
       supabase.from('services').select('id', { count: 'exact', head: true }),
       supabase.from('jobs').select('id', { count: 'exact', head: true }),
@@ -68,8 +68,10 @@ export default function AdminPage() {
       supabase.from('secondhand').select('id', { count: 'exact', head: true }),
       supabase.from('events').select('id', { count: 'exact', head: true }),
       supabase.from('review_reports').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
-      supabase.from('content_reports').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
+      supabase.from('content_reports').select('id', { count: 'exact', head: true }).eq('status', 'pending').neq('content_type', 'user'),
       supabase.from('users').select('id', { count: 'exact', head: true }).eq('verification_status', 'pending'),
+      supabase.from('content_reports').select('id', { count: 'exact', head: true }).eq('status', 'pending').eq('content_type', 'user'),
+      supabase.from('promo_requests').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
     ])
     setStats({
       users:                  users.count ?? 0,
@@ -81,6 +83,8 @@ export default function AdminPage() {
       pending_reports:        reports.count ?? 0,
       pending_content_reports: contentReportsCount.count ?? 0,
       pending_verifications:  verifs.count ?? 0,
+      pending_user_reports:   userReportsCount.count ?? 0,
+      pending_promo_requests: promoReqCount.count ?? 0,
     })
   }
 
@@ -145,11 +149,11 @@ export default function AdminPage() {
 
   const TABS: { key: Tab; label: string }[] = [
     { key: 'reports',          label: `举报${stats ? ` (${stats.pending_reports})` : ''}` },
-    { key: 'userReports',      label: '用户投诉' },
+    { key: 'userReports',      label: `用户投诉${stats && stats.pending_user_reports > 0 ? ` (${stats.pending_user_reports})` : ''}` },
     { key: 'communityReports', label: `内容举报${stats ? ` (${stats.pending_content_reports})` : ''}` },
     { key: 'verification',     label: `认证审核${stats ? ` (${stats.pending_verifications})` : ''}` },
     { key: 'promoted',         label: '置顶推广' },
-    { key: 'promoRequests',    label: '置顶申请' },
+    { key: 'promoRequests',    label: `置顶申请${stats && stats.pending_promo_requests > 0 ? ` (${stats.pending_promo_requests})` : ''}` },
     { key: 'community',        label: '社区帖子' },
     { key: 'inquiries',        label: '询价' },
     { key: 'overview',         label: '数据概览' },

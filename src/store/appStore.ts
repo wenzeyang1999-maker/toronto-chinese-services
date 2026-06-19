@@ -298,7 +298,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   // Returns services for a single category, sorted by distance or rating
   getServicesByCategory: (category) => {
     const { services, userLocation } = get()
-    let result = services
+    const result = services
       .filter((s) => s.available && s.category === category)
       .map((s) =>
         userLocation && s.location.lat != null && s.location.lng != null
