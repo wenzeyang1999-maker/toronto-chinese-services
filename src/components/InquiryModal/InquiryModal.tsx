@@ -3,6 +3,7 @@
 // Two modes: AI mode (free-text → LLM extraction) and manual mode (form).
 import { useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { ensurePhoneVerified } from '../../lib/requirePhoneVerified'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X, ChevronDown, Sparkles, UserCheck, Clock3, ShieldCheck, Pencil, MapPin, Mic, MicOff } from 'lucide-react'
 import InquiryResultPanel from '../InquiryResultPanel/InquiryResultPanel'
@@ -163,6 +164,7 @@ export default function InquiryModal({ open, onClose }: Props) {
       navigate('/login', { state: { from: '/' } })
       return
     }
+    if (!(await ensurePhoneVerified(navigate))) { onClose(); return }
 
     setSubmitting(true)
     setServerError('')

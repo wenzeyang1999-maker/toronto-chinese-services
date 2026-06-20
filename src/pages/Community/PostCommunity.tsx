@@ -3,6 +3,7 @@
 // Route: /community/post?edit=ID  → edit existing post (owner only)
 import { useEffect, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
+import { ensurePhoneVerified } from '../../lib/requirePhoneVerified'
 import { ArrowLeft, ImagePlus, X, MapPin, Tag } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { useAuthStore } from '../../store/authStore'
@@ -96,6 +97,7 @@ export default function PostCommunity() {
     setTitleError(te)
     setContentError(ce)
     if (te || ce) return
+    if (!(await ensurePhoneVerified(navigate))) return
     setSubmitError('')
     setSubmitting(true)
 

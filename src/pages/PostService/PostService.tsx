@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { ensurePhoneVerified } from '../../lib/requirePhoneVerified'
 import { ArrowLeft } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { useAppStore } from '../../store/appStore'
@@ -139,6 +140,7 @@ export default function PostService() {
     const errs = validate()
     if (Object.keys(errs).length > 0) { setErrors(errs); return }
     if (!user) { navigate('/login'); return }
+    if (!(await ensurePhoneVerified(navigate))) return
 
     setIsSubmitting(true)
     setSubmitError('')

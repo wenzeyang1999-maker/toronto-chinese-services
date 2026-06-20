@@ -3,6 +3,7 @@
 // ?type=hiring (default) | ?type=seeking
 import { useEffect, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
+import { ensurePhoneVerified } from '../../lib/requirePhoneVerified'
 import { motion } from 'framer-motion'
 import { ChevronLeft } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
@@ -114,6 +115,7 @@ export default function PostJob() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!user || !validate()) return
+    if (!(await ensurePhoneVerified(navigate))) return
     setSubmitError(null)
     setSubmitting(true)
 

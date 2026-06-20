@@ -2,6 +2,7 @@
 // Route: /realestate/post
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
+import { ensurePhoneVerified } from '../../lib/requirePhoneVerified'
 import { motion } from 'framer-motion'
 import { ChevronLeft, ImagePlus, X } from 'lucide-react'
 import PostFormCard from '../../components/PostForm/PostFormCard'
@@ -135,6 +136,7 @@ export default function PostProperty() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!user || !validate()) return
+    if (!(await ensurePhoneVerified(navigate))) return
     setSubmitError(null)
     setSubmitting(true)
 
