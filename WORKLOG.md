@@ -2,6 +2,19 @@
 
 ---
 
+## 2026-06-20
+
+### 邀请奖励规则核查 + 清理
+- **核查结论:线上已是正确规则,无需部署**。真正的部署源是 `supabase/migrations/`:`20260507120003` 建了触发器 `referral_reward_trg` + 函数 `grant_referral_reward`,`20260531130001` 已把该函数改写为「每累计 10 人 → 续 30 天黄金会员(L2),可叠加,不自动升 L3」。两个 migration 均已 apply 到远端(`supabase migration list` 确认),所以「10人→1个月」早已生效
+- **清理 legacy footgun**:删除了 `database/` 下两个过期且互相冲突的邀请触发器文件(`referral_reward_trigger.sql` / `referral_rewards_trigger.sql`)。`database/` 是 migration 之前的旧手动工作流,已被 `supabase/migrations/` 取代,保留它们只会误导后续部署
+- **文案对齐**:MembershipSection 横幅与 ReferralSection 的「10人→1个月」口径一致;L3 不再误导为「邀请可解锁」(改为仅特别贡献用户开放)
+
+### 全量复核 2026-04-26 设计/后端审计
+- 逐项对照当前代码,确认约 60 项审计**几乎全部已在 V5.x 提交中实现**(详见 TODOLIST.md 复核结论)。基础体验已达 ~8.x,审计清单关闭
+- 产品决策:本轮会员**暂不做实际权益**(L2/L3 仍为身份徽章),精力投向体验与缺口
+
+---
+
 ## 2026-03-28
 
 ### 即时通讯系统（实时聊天）

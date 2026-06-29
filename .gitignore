@@ -29,3 +29,6 @@ Thumbs.db
 npm-debug.log*
 
 .vercel
+
+# Supabase CLI scratch files (auto-generated, not source)
+supabase/.temp/

@@ -114,12 +114,12 @@
 
 - [ ] **手机号验证**（Supabase Phone Auth 或第三方短信）
 - [ ] **服务商新帖通知**（关注了的用户收到邮件）
-- [ ] **社区帖子点赞去重**（目前 like_count 没有防重复点赞机制）
+- [x] ~~**社区帖子点赞去重**~~ — 已无需做：`community_likes` 表 PK(user_id, post_id) + 触发器维护 like_count，前端走该表 insert/delete，DB 层已防重复（2026-06-20 复核）
 
 ### 代码质量（不紧急，不影响线上功能）
-- [ ] **距离显示修复**：`src/store/appStore.ts` — 服务无坐标时用多伦多中心坐标填充，导致显示"0 km"；应改为不显示距离
-- [ ] **防止自问自答**：`database/qa_schema.sql` — 用户可在自己的服务上提问并回答刷 Q&A；RLS INSERT 策略加 `asker_id ≠ service.provider_id` 检查
-- [ ] **reviews 索引**：`database/schema.sql` — `reviews` 表缺 `reviewer_id` 索引，查询某用户所有评价时全表扫描；加 `CREATE INDEX idx_reviews_reviewer_id ON reviews (reviewer_id)`
+- [ ] **距离显示修复**：`src/store/appStore.ts` — 服务无坐标时用多伦多中心坐标填充，导致显示"0 km"；应改为不显示距离 ⚠️ 复核：appStore 已对 0,0 占位过滤，疑似已修，待二次确认
+- [x] ~~**防止自问自答**~~ — migration `20260620130001_low_priority_hardening.sql` 加了 RESTRICTIVE INSERT 策略（provider 不能在自己服务下提问），已 push 生效
+- [x] ~~**reviews 索引**~~ — 同上 migration 已加 `idx_reviews_reviewer_id`（idempotent），已 push 生效
 
 ---
 

@@ -37,7 +37,21 @@
 
 ---
 
-## Design & Backend Audit — 2026-04-26
+## ⚠️ 复核结论 — 2026-06-20
+
+下方 2026-04-26 的审计清单经过逐项对照当前代码,**几乎全部已在 V5.x 系列提交中实现完毕**:
+ProviderProfile/ServiceDetail 已用 `Promise.all`+join；ai-chat 已加 `AbortSignal.timeout(20s)`；
+坐标 0,0 占位已在 `appStore` 过滤；`useUrlFilters.ts` 已做筛选 URL 持久化；Home/Category/Search 已分页；
+全局 `alert()` 已清零(改 toast);ErrorBoundary、Skeleton、各空状态、社区帖编辑、聊天重发/拉黑举报、
+服务举报、全文搜索(fts migration)、报价请求追踪 等均已存在。**结论:基础体验已达 ~8.x,审计清单视为已关闭。**
+
+邀请奖励规则「每 10 人 → 送 1 个月黄金会员」**线上已生效**(`supabase/migrations/20260531130001`,已 apply)。
+本次只做清理:删除 `database/` 下两个过期冲突的 legacy 触发器文件 + 对齐 MembershipSection 文案。
+注意:部署源是 `supabase/migrations/`,不是 `database/`(后者是 migration 之前的旧手动工作流)。
+
+---
+
+## Design & Backend Audit — 2026-04-26 (已复核关闭,见上)
 
 ### CRITICAL — Performance & Correctness
 
