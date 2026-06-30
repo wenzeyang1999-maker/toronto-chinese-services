@@ -63,7 +63,7 @@ export default function RealEstateList() {
       <div className="flex bg-gray-100 rounded-xl p-1 gap-1">
         {(Object.keys(LISTING_TYPE_CONFIG) as RealEstateListingType[]).map((t) => (
           <button key={t}
-            onClick={() => setFilters({ listing_type: t })}
+            onClick={() => setFilters({ listing_type: t, max_price: undefined })}
             className={`flex-1 py-2 rounded-lg text-sm font-semibold transition-all ${
               filters.listing_type === t
                 ? 'bg-white text-primary-600 shadow-sm'

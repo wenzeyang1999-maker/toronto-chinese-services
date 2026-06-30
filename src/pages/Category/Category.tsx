@@ -111,7 +111,7 @@ export default function Category() {
           {[
             { value: 'distance', label: '距离优先' },
             { value: 'rating', label: '好评优先' },
-            { value: 'price', label: '价格优先' },
+            { value: 'price', label: '价格从低到高' },
           ].map((opt) => (
             <button
               key={opt.value}

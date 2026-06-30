@@ -1,4 +1,5 @@
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react'
+import { MapPin } from 'lucide-react'
 import { loadGoogleMaps } from '../../lib/googleMaps'
 
 export interface GoogleMapPoint {
@@ -41,6 +42,7 @@ const GoogleMapCanvas = forwardRef<GoogleMapCanvasHandle, Props>(function Google
   const overlaysRef = useRef<any[]>([])
   const infoWindowRef = useRef<any>(null)
   const [error, setError] = useState('')
+  const [ready, setReady] = useState(false)
 
   useImperativeHandle(ref, () => ({
     panToUser() {
@@ -70,6 +72,7 @@ const GoogleMapCanvas = forwardRef<GoogleMapCanvasHandle, Props>(function Google
           })
           infoWindowRef.current = new maps.InfoWindow()
         }
+        setReady(true)
       })
       .catch((err) => {
         if (active) setError(err instanceof Error ? err.message : 'Failed to load Google Maps')
@@ -193,6 +196,12 @@ const GoogleMapCanvas = forwardRef<GoogleMapCanvasHandle, Props>(function Google
   return (
     <>
       <div ref={containerRef} className="h-full w-full" />
+      {!ready && !error && (
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-gray-100 animate-pulse text-sm text-gray-400">
+          <MapPin size={24} className="opacity-40" />
+          地图加载中…
+        </div>
+      )}
       {error && (
         <div className="absolute inset-0 flex items-center justify-center bg-gray-100 text-center text-sm text-gray-500 px-4">
           {error}
