@@ -78,16 +78,13 @@ export default function CommunityPage() {
     const countMap: Record<string, number> = {}
     counts?.forEach((c: any) => { countMap[c.post_id] = (countMap[c.post_id] ?? 0) + 1 })
 
+    // Keep newest-first order from the query — a stable feed lets users find
+    // a post where they last saw it (random shuffle made positions jump every load).
     const mapped = data.map((p: any) => ({
       ...p,
       author:        Array.isArray(p.author) ? p.author[0] : p.author,
       comment_count: countMap[p.id] ?? 0,
     }))
-    // Shuffle so feed looks different on each visit
-    for (let i = mapped.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [mapped[i], mapped[j]] = [mapped[j], mapped[i]]
-    }
     setPosts(mapped)
     setLoading(false)
   }, [typeFilter, areaFilter])

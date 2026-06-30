@@ -6,6 +6,10 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ArrowLeft, Heart, MessageCircle, Send, Trash2, Flag, Share2, Check, Pencil } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
+import {
+  CONTENT_REPORT_REASONS as REPORT_REASONS,
+  CONTENT_REPORT_LABEL as REPORT_REASON_LABEL,
+} from '../../constants/reportReasons'
 import { notifyAdminCommunityReport } from '../../lib/notify'
 import { toast } from '../../lib/toast'
 import { useAuthStore } from '../../store/authStore'
@@ -34,16 +38,6 @@ interface Comment {
   author_id: string
   author: { id: string; name: string; avatar_url: string | null } | null
 }
-
-const REPORT_REASONS = [
-  { key: 'irrelevant', label: '内容无关' },
-  { key: 'malicious',  label: '恶意攻击' },
-  { key: 'fake',       label: '虚假信息' },
-  { key: 'spam',       label: '垃圾广告' },
-  { key: 'other',      label: '其他' },
-] as const
-
-const REPORT_REASON_LABEL = Object.fromEntries(REPORT_REASONS.map((item) => [item.key, item.label])) as Record<string, string>
 
 export default function CommunityDetail() {
   const { id }    = useParams<{ id: string }>()

@@ -60,7 +60,7 @@ export default function AccountSection({ user, name, phone, onNameChange, onPhon
   }
 
   async function changePassword() {
-    if (newPwd.length < 6) { setPwdMsg({ ok: false, text: '密码至少 6 位' }); return }
+    if (newPwd.length < 8) { setPwdMsg({ ok: false, text: '密码至少 8 位' }); return }
     if (newPwd !== confirmPwd) { setPwdMsg({ ok: false, text: '两次密码不一致' }); return }
     setPwdBusy(true)
     const { error } = await supabase.auth.updateUser({ password: newPwd })
@@ -162,7 +162,7 @@ export default function AccountSection({ user, name, phone, onNameChange, onPhon
           </button>
           {showPwd && (
             <div className="px-5 pb-5 space-y-3 border-t border-gray-100">
-              <input type="password" placeholder="新密码（至少 6 位）" value={newPwd}
+              <input type="password" placeholder="新密码（至少 8 位）" value={newPwd}
                 onChange={e => setNewPwd(e.target.value)}
                 className="w-full text-sm border border-gray-200 rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-primary-300 mt-3" />
               <input type="password" placeholder="确认新密码" value={confirmPwd}

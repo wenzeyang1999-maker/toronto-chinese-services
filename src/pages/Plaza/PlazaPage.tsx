@@ -86,15 +86,13 @@ export default function PlazaPage() {
       .from('community_comments').select('post_id').in('post_id', ids)
     const countMap: Record<string, number> = {}
     counts?.forEach((c: any) => { countMap[c.post_id] = (countMap[c.post_id] ?? 0) + 1 })
+    // Keep newest-first order from the query — stable feed (no random shuffle)
+    // so a post stays where the user last saw it.
     const mapped = data.map((p: any) => ({
       ...p,
       author:        Array.isArray(p.author) ? p.author[0] : p.author,
       comment_count: countMap[p.id] ?? 0,
     }))
-    for (let i = mapped.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [mapped[i], mapped[j]] = [mapped[j], mapped[i]]
-    }
     setPosts(mapped)
     setPostLoad(false)
   }, [typeFilter, areaFilter])

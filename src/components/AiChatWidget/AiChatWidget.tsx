@@ -12,6 +12,7 @@ import { Bot, Send, ChevronDown, RotateCcw, ArrowLeft } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import { useAuthStore } from '../../store/authStore'
+import { COMPLAINT_REASON_TAGS as REPORT_REASON_TAGS } from '../../constants/reportReasons'
 import type { ChatSession } from '../../pages/Profile/types'
 
 const SUPABASE_URL      = import.meta.env.VITE_SUPABASE_URL as string
@@ -48,7 +49,6 @@ const QUICK_REPLIES = [
   '有现金工吗',
 ]
 
-const REPORT_REASON_TAGS = ['虚假信息', '骚扰/辱骂', '诈骗', '违法内容', '政治敏感', '侵权', '其他']
 type ChatMode = 'chat' | 'report' | 'complaint'
 
 // ─────────────────────────────────────────────────────────────────────────────

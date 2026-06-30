@@ -14,14 +14,7 @@ import PageMeta from '../../components/PageMeta/PageMeta'
 import ViewCount from '../../components/ViewCount/ViewCount'
 import SecondhandComments from './components/SecondhandComments'
 import { toast } from '../../lib/toast'
-
-const REPORT_REASONS = [
-  { key: 'fake',       label: '虚假信息' },
-  { key: 'spam',       label: '垃圾广告' },
-  { key: 'malicious',  label: '欺诈/恶意' },
-  { key: 'irrelevant', label: '内容无关' },
-  { key: 'other',      label: '其他' },
-] as const
+import { CONTENT_REPORT_REASONS as REPORT_REASONS } from '../../constants/reportReasons'
 
 interface Review {
   id: string

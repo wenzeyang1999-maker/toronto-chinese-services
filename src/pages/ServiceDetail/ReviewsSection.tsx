@@ -12,6 +12,7 @@ import { supabase } from '../../lib/supabase'
 import { useAuthStore } from '../../store/authStore'
 import { notifyNewReview } from '../../lib/notify'
 import { toast } from '../../lib/toast'
+import { REVIEW_REPORT_REASONS as REPORT_REASONS } from '../../constants/reportReasons'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -33,14 +34,6 @@ interface Reply {
   created_at: string
   updated_at: string
 }
-
-const REPORT_REASONS: { key: string; label: string }[] = [
-  { key: 'malicious',  label: '恶意差评 / 竞争对手' },
-  { key: 'fake',       label: '虚假评价 / 未使用过服务' },
-  { key: 'irrelevant', label: '内容无关 / 跑题' },
-  { key: 'spam',       label: '垃圾广告' },
-  { key: 'other',      label: '其他原因' },
-]
 
 interface Props { serviceId: string; providerId: string }
 

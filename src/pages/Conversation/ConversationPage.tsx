@@ -121,8 +121,9 @@ export default function ConversationPage() {
     setSending(true)
     if (!textOverride) setInput('')
 
-    // Optimistic update — show immediately without waiting for realtime
-    const tempId = `temp-${Date.now()}`
+    // Optimistic update — show immediately without waiting for realtime.
+    // Random suffix avoids a collision when two messages are sent in the same ms.
+    const tempId = `temp-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
     const optimistic: Message = {
       id: tempId,
       sender_id: user.id,

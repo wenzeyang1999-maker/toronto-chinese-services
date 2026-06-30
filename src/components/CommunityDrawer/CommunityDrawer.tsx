@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X, Heart, MessageCircle, Send, Trash2, Flag, Share2, Check, Pencil, ExternalLink } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
+import { CONTENT_REPORT_REASONS as REPORT_REASONS } from '../../constants/reportReasons'
 import { notifyAdminCommunityReport } from '../../lib/notify'
 import { toast } from '../../lib/toast'
 import { useAuthStore } from '../../store/authStore'
@@ -34,13 +35,6 @@ interface Comment {
   author: { id: string; name: string; avatar_url: string | null } | null
 }
 
-const REPORT_REASONS = [
-  { key: 'irrelevant', label: '内容无关' },
-  { key: 'malicious',  label: '恶意攻击' },
-  { key: 'fake',       label: '虚假信息' },
-  { key: 'spam',       label: '垃圾广告' },
-  { key: 'other',      label: '其他' },
-] as const
 
 interface Props {
   postId: string

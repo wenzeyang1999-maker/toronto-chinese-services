@@ -121,3 +121,68 @@ ProviderProfile/ServiceDetail 已用 `Promise.all`+join；ai-chat 已加 `AbortS
 - [ ] **"共 X 家" counter in map legend double-counts**: `mapped.length` counts all services with coordinates, not unique providers. If one provider has 3 services they count as 3. Show "共 X 项服务" or deduplicate by provider.
 - [ ] **Service card "距您 X km" uses straight-line distance**: The distance shown is Haversine (bird's-eye). Label it "直线距离" or switch to Google Maps Distance Matrix API for driving distance.
 - [ ] **No 404 page for `/provider/:id` when provider doesn't exist**: Visiting a dead provider link shows an infinite spinner. Add a `Not Found` state when the Supabase query returns null.
+
+---
+
+## 🎯 全模块 UX/UI 评审 — 2026-06-29(严格评分:8=优秀,6=能用但平庸)
+
+平台整体 ≈ **6.5/10**。功能完整、能跑、信任信号有想法,但离「最好」差在:**系统性的一致性、几个低级 bug、空洞的会员体系**。
+
+### 模块评分总表
+
+| 区块 | 模块 | 分数 | 一句话短板 |
+|---|---|---|---|
+| 发现 | 首页 Home | 6.5 | 首屏无骨架、技能词 `.includes()` 误匹配 |
+| 发现 | 分类页 Category | 6.0 | 默认按距离排但没定位 → 乱序 |
+| 发现 | 搜索 Search | 5.5 | 无防抖、技能词精确匹配("维"搜不到"维修")、竞态 |
+| 发现 | 地图 Map/ServiceMap | 7.0 | 输入无防抖、`geoAutoRequested` 全局变量污染 |
+| 发现 | 推荐/Banner/微件 | 7.5 | 普遍较好 |
+| 找服务 | 服务详情 ServiceDetail | 7.5 | 文案冗长、phone/wechat 展示不一致 |
+| 找服务 | 发布服务 PostService | 6.5 | 表单 14 字段偏长、图片失败提示弱 |
+| 找服务 | 服务卡 ServiceCard | 7.0 | 信任信号只显 1 个、头像 16px 太小 |
+| 找服务 | 询价 InquiryModal | 7.0 | AI 解析失败无重试、流程重复填写 |
+| 找服务 | 评价系统 | 7.5 | 信用分含义模糊、已评价用户入口隐蔽 |
+| 找服务 | 服务商主页 ProviderProfile | 7.0 | 信息过载、多品类无 tab、一次性 8 查询 |
+| 垂直版块 | 二手 Secondhand | 8.0 | 全平台标杆(图片/评价/直连私信) |
+| 垂直版块 | 招聘 Jobs | 7.5 | 无排序、求职模式字段不对称 |
+| 垂直版块 | 活动 Events | 7.0 | 类型 8 种过多、往届不清理 |
+| 垂直版块 | 租房 RealEstate | 6.5 | 房型 7 种过细、价格筛选没实现 |
+| 垂直版块 | 广场 Plaza | 6.0 | 随机洗牌排序、Tab 状态割裂 |
+| 社区沟通 | 社区 Community | 6.5 | 每次随机洗牌、已读只存前端刷新即丢 |
+| 社区沟通 | 私信 Conversation | 7.0 | 重置了全部未读、tempId 高频冲突 |
+| 社区沟通 | Q&A 问答 | 4.0 | 形同虚设,跟普通帖无差别 |
+| 社区沟通 | 通知 Notifications | 6.0 | 无实时同步、管理员通知无历史 |
+| 社区沟通 | AI 客服 | 5.5 | 对话明文存 localStorage、20s 易超时 |
+| 账户后台 | 注册登录 Auth | 7.0 | 密码 8 位 vs 改密 6 位不统一 |
+| 账户后台 | 个人中心 Profile | 6.5 | 模式切换 feature flag 残留、退出无确认 |
+| 账户后台 | 认证 Verification | 6.5 | OTP 发送失败也进入 60s 冷却 |
+| 账户后台 | 数据面板 Stats | 6.0 | 无实时、无相对数据(只有绝对值) |
+| 账户后台 | 会员 Membership | 5.5 | L1 权益空白、L2/L3 权益空洞 |
+| 账户后台 | 邀请 Referral | 6.5 | 生成失败兜底差、文案"叠加"vs"续期"不一 |
+| 账户后台 | 我的发布 Services | 6.0 | 图片新旧混乱、5 类型逻辑各写各的 |
+| 账户后台 | 报价 Inquiries(双侧) | 6.0 | 接单方无推送提醒、无评价入口 |
+| 账户后台 | 管理后台 Admin | 5.5 | 13 tab 拥挤、无搜索/批量/撤销 |
+
+### 完善路线(可勾选)
+
+**P0 — 立刻改,小而确定,见效大**
+- [ ] 干掉 Community + Plaza 的**随机洗牌排序**,改 `created_at` 倒序(可加「最新/热度」切换)
+- [ ] 私信进会话只重置**当前会话**未读(不是全部);tempId 加随机后缀防高频连发冲突
+- [ ] 全站搜索 / 地图 / 社区搜索加 ~300ms **防抖**
+- [ ] 统一密码位数(注册 8 / 改密 6 → 统一);抽 `formatTime()` 相对时间;统一举报原因常量(社区/AI/二手三份合一)
+
+**P1 — 一周内,补硬伤**
+- [ ] provider 技能词搜索改**模糊匹配**(ILIKE),"维"能搜到"维修"
+- [ ] 社区**已读状态落库**(新建 `user_post_reads` 表,登录后恢复)
+- [ ] 抽 `formatPrice()` + 通用 `FilterPanel` + `useImageUpload`,四个垂直版块复用(消除各造轮子)
+- [ ] 关键空状态 + **骨架屏统一组件化**(消除 ViewCount/Follow/Save 挂载抖动)
+- [ ] 移动端键盘遮挡修复(发帖标签选择器 / 聊天输入 / AI 输入,补 safe-area)
+
+**P2 — 战略级,需产品决策**
+- [ ] 🔴 **给 L2/L3 配真权益**(搜索靠前/曝光位/商家工具)—— 否则邀请增长引擎在空转,奖励的是没价值的徽章
+- [ ] Q&A 要么做成真问答(最佳答案/投票/已解决状态),要么并入社区不再单列
+- [ ] 移动端详情交互四版块统一(抽屉 or 路由,二选一;现在 Jobs/二手用抽屉、租房/活动用路由)
+- [ ] 后台加搜索 / 批量操作 / 撤销窗口;13 tab 分组
+- [ ] InquiryModal AI 解析失败加重试;接单方被选中加推送提醒;报价完成加评价入口
+
+> 注:以上行号/细节由多 agent 评审汇总,实施前以当时代码为准复核。
