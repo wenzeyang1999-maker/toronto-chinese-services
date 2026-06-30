@@ -274,7 +274,7 @@ export default function ConversationPage() {
   // Show skeleton until conv metadata arrives
   if (!conv) return (
     <div className="min-h-[100dvh] bg-gray-100 lg:flex lg:items-start lg:justify-center lg:py-6">
-    <div className="bg-gray-50 flex flex-col min-h-[100dvh] lg:min-h-0 lg:h-[90vh] lg:w-full lg:max-w-2xl lg:rounded-2xl lg:shadow-xl lg:overflow-hidden">
+    <div className="bg-gray-50 flex flex-col h-[var(--app-vh,100dvh)] lg:min-h-0 lg:h-[90vh] lg:w-full lg:max-w-2xl lg:rounded-2xl lg:shadow-xl lg:overflow-hidden">
       <div className="bg-white border-b border-gray-100 px-4 h-14 flex items-center gap-3 sticky top-0 z-10 animate-pulse">
         <button onClick={() => navigate(-1)} className="text-gray-500"><ChevronLeft size={22} /></button>
         <div className="flex-1 space-y-1.5">
@@ -298,7 +298,7 @@ export default function ConversationPage() {
   return (
     <>
     <div className="min-h-[100dvh] bg-gray-100 lg:flex lg:items-start lg:justify-center lg:py-6">
-    <div className="bg-gray-50 flex flex-col min-h-[100dvh] lg:min-h-0 lg:h-[90vh] lg:w-full lg:max-w-2xl lg:rounded-2xl lg:shadow-xl lg:overflow-hidden">
+    <div className="bg-gray-50 flex flex-col h-[var(--app-vh,100dvh)] lg:min-h-0 lg:h-[90vh] lg:w-full lg:max-w-2xl lg:rounded-2xl lg:shadow-xl lg:overflow-hidden">
       {/* Header */}
       <div className="bg-white border-b border-gray-100 px-4 h-14 flex items-center gap-3 sticky top-0 z-10">
         <button onClick={() => window.history.length > 1 ? navigate(-1) : navigate('/profile?section=messages')} className="text-gray-500 hover:text-gray-800">

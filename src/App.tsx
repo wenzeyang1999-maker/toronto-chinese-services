@@ -66,6 +66,7 @@ import { supabase } from './lib/supabase'
 import { unsubscribeFromWebPush } from './lib/webPush'
 import { useRequestMatchAlerts } from './hooks/useRequestMatchAlerts'
 import { useReadSync } from './lib/useReadSync'
+import { useViewportHeight } from './lib/useViewportHeight'
 import ProviderInquiryAlerts from './components/InquiryRaceAlert/ProviderInquiryAlerts'
 
 function SearchAllRedirect() {
@@ -76,6 +77,7 @@ function SearchAllRedirect() {
 export default function App() {
   useRequestMatchAlerts()
   useReadSync()
+  useViewportHeight()
   const isLoadingDone = useAppStore((s) => s.isLoadingDone)
   const setLoadingDone = useAppStore((s) => s.setLoadingDone)
   const fetchServices = useAppStore((s) => s.fetchServices)

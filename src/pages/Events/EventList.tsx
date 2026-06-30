@@ -35,6 +35,7 @@ export default function EventList() {
   const [showFilters,  setShowFilters]  = useState(false)
   const [localKeyword, setLocalKeyword] = useState(filters.keyword ?? '')
   const [selectedId,   setSelectedId]   = useState<string | null>(null)
+  const [mobileOpen,   setMobileOpen]   = useState(false)
 
   useUrlFilters(filters, setFilters, ['keyword', 'event_type', 'area', 'upcoming_only'], { boolKeys: ['upcoming_only'] })
 
@@ -47,11 +48,10 @@ export default function EventList() {
 
   function handleItemClick(ev: Event) {
     markRead('event', ev.id)
-    if (window.innerWidth < 1024) {
-      navigate(`/events/${ev.id}`)
-    } else {
-      setSelectedId(ev.id)
-    }
+    setSelectedId(ev.id)
+    // Mobile: open the bottom drawer (consistent with Jobs/Secondhand/RealEstate)
+    // instead of navigating to a separate page.
+    if (window.innerWidth < 1024) setMobileOpen(true)
   }
 
   const topBar = (
@@ -285,7 +285,10 @@ export default function EventList() {
       topBar={topBar}
       countText={`共 ${events.length} 个活动`}
       selectedId={selectedId}
+      mobileOpen={mobileOpen}
+      onCloseMobile={() => setMobileOpen(false)}
       detailDesktop={selectedEvent ? <DetailPanel ev={selectedEvent} onClose={() => setSelectedId(null)} /> : null}
+      detailMobile={selectedEvent ? <DetailPanel ev={selectedEvent} onClose={() => setMobileOpen(false)} /> : null}
       rightPlaceholder={rightPlaceholder}
       fabPath="/events/post"
     >
