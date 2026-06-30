@@ -58,6 +58,7 @@ export interface ServiceRow {
 
 interface AppState {
   services: Service[]
+  servicesLoaded: boolean
   serviceRequests: ServiceRequest[]
   userLocation: { lat: number; lng: number } | null
   searchFilters: SearchFilters
@@ -153,6 +154,7 @@ function mapRequestRow(row: any): ServiceRequest {
 
 export const useAppStore = create<AppState>((set, get) => ({
   services: [],
+  servicesLoaded: false,
   serviceRequests: [],
   userLocation: readCachedLocation(),
   searchFilters: { sortBy: 'rating' },
@@ -207,7 +209,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       .range(offset, offset + SERVICES_PAGE_SIZE - 1)
 
     if (error || !data) {
-      set({ servicesLoadingMore: false })
+      set({ servicesLoadingMore: false, servicesLoaded: true })
       return
     }
     const mapped = (data as ServiceRow[]).map(mapRow)
@@ -215,6 +217,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       services: append ? [...current, ...mapped] : mapped,
       servicesHasMore: data.length === SERVICES_PAGE_SIZE,
       servicesLoadingMore: false,
+      servicesLoaded: true,
     })
   },
 

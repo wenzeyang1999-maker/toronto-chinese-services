@@ -233,21 +233,49 @@ export default function ProviderProfile() {
           onCopyWechat={copyWechat}
         />
 
-        <ServicesGrid
-          services={services}
-          isOwnProfile={isOwnProfile}
-          onMessageService={handleMessageService}
-        />
+        {/* Category quick-nav — sticky jump bar, only when 2+ content types exist */}
+        {(() => {
+          const tabs = [
+            { key: 'services',   label: '服务', show: services.length > 0 },
+            { key: 'jobs',       label: '招聘', show: jobs.length > 0 },
+            { key: 'properties', label: '房源', show: properties.length > 0 },
+            { key: 'secondhand', label: '闲置', show: secondhandItems.length > 0 },
+            { key: 'events',     label: '活动', show: events.length > 0 },
+            { key: 'reviews',    label: '评价', show: providerReviews.length > 0 },
+          ].filter(t => t.show)
+          if (tabs.length < 2) return null
+          return (
+            <div className="sticky top-14 z-10 -mx-4 px-4 py-2 bg-white/95 backdrop-blur border-b border-gray-100 flex gap-2 overflow-x-auto scrollbar-hide">
+              {tabs.map(t => (
+                <button key={t.key}
+                  onClick={() => document.getElementById(`pp-${t.key}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+                  className="flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-600 hover:bg-primary-100 hover:text-primary-600 transition-colors">
+                  {t.label}
+                </button>
+              ))}
+            </div>
+          )
+        })()}
 
-        {jobs.length > 0 && <JobsSection jobs={jobs} />}
+        <div id="pp-services" className="scroll-mt-28">
+          <ServicesGrid
+            services={services}
+            isOwnProfile={isOwnProfile}
+            onMessageService={handleMessageService}
+          />
+        </div>
 
-        {properties.length > 0 && <PropertiesSection properties={properties} />}
+        {jobs.length > 0 && <div id="pp-jobs" className="scroll-mt-28"><JobsSection jobs={jobs} /></div>}
 
-        {secondhandItems.length > 0 && <SecondhandSection items={secondhandItems} />}
+        {properties.length > 0 && <div id="pp-properties" className="scroll-mt-28"><PropertiesSection properties={properties} /></div>}
 
-        {events.length > 0 && <EventsSection events={events} />}
+        {secondhandItems.length > 0 && <div id="pp-secondhand" className="scroll-mt-28"><SecondhandSection items={secondhandItems} /></div>}
 
-        <ReviewsSection reviews={providerReviews} />
+        {events.length > 0 && <div id="pp-events" className="scroll-mt-28"><EventsSection events={events} /></div>}
+
+        <div id="pp-reviews" className="scroll-mt-28">
+          <ReviewsSection reviews={providerReviews} />
+        </div>
       </div>
     </div>
   )

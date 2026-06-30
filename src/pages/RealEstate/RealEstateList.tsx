@@ -141,6 +141,18 @@ export default function RealEstateList() {
                   </Chip>
                 ))}
               </FilterRow>
+              <FilterRow label="价格上限">
+                <Chip active={filters.max_price == null} onClick={() => setFilters({ max_price: undefined })}>不限</Chip>
+                {(filters.listing_type === 'sale'
+                  ? [{ v: 500000, l: '$50万' }, { v: 800000, l: '$80万' }, { v: 1000000, l: '$100万' }, { v: 1500000, l: '$150万' }]
+                  : [{ v: 1500, l: '$1500/月' }, { v: 2000, l: '$2000/月' }, { v: 2500, l: '$2500/月' }, { v: 3000, l: '$3000/月' }]
+                ).map((opt) => (
+                  <Chip key={opt.v} active={filters.max_price === opt.v}
+                    onClick={() => setFilters({ max_price: filters.max_price === opt.v ? undefined : opt.v })}>
+                    ≤{opt.l}
+                  </Chip>
+                ))}
+              </FilterRow>
               <button onClick={() => { clearFilters(); setLocalKeyword('') }}
                 className="text-xs text-gray-400 hover:text-red-500 transition-colors">
                 清除筛选

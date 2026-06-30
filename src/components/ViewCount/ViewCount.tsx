@@ -27,7 +27,16 @@ export default function ViewCount({ type, id, className = '' }: Props) {
     recordView(type, id, user?.id)
   }, [type, id])
 
-  if (count === undefined) return null
+  // Reserve space with a small skeleton while the count loads, so the row
+  // doesn't shift when the number pops in.
+  if (count === undefined) {
+    return (
+      <span className={`inline-flex items-center gap-1 text-xs text-gray-300 ${className}`} aria-hidden>
+        <Eye size={12} />
+        <span className="inline-block w-8 h-3 bg-gray-100 rounded animate-pulse" />
+      </span>
+    )
+  }
 
   return (
     <span className={`inline-flex items-center gap-1 text-xs text-gray-400 ${className}`}>

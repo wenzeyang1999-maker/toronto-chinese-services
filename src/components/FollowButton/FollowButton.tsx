@@ -27,6 +27,9 @@ export default function FollowButton({ providerId, className = '' }: Props) {
   // Don't show button on own profile
   if (user?.id === providerId) return null
 
+  // Until the follows store loads, the real state is unknown — keep the button
+  // neutral/dimmed so a followed provider doesn't flash 「关注」→「已关注」.
+  const loading  = !!user && !isReady
   const followed = user ? isFollowing(providerId) : false
 
   async function handleClick() {
@@ -37,10 +40,13 @@ export default function FollowButton({ providerId, className = '' }: Props) {
   return (
     <button
       onClick={handleClick}
+      disabled={loading}
       className={`flex items-center gap-1.5 text-sm font-semibold px-4 py-2 rounded-xl transition-all active:scale-95 ${
-        followed
-          ? 'bg-gray-100 text-gray-500 hover:bg-red-50 hover:text-red-500'
-          : 'bg-primary-600 text-white hover:bg-primary-700'
+        loading
+          ? 'bg-gray-100 text-gray-400 opacity-60'
+          : followed
+            ? 'bg-gray-100 text-gray-500 hover:bg-red-50 hover:text-red-500'
+            : 'bg-primary-600 text-white hover:bg-primary-700'
       } ${className}`}
     >
       {followed

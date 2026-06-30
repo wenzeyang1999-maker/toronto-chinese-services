@@ -27,7 +27,11 @@ export default function SaveButton({ type, id, size = 20, className = '' }: Prop
     }
   }, [user?.id, isReady, fetchSaves])
 
-  const saved = user ? isSaved(type, id) : false
+  // While the saves store is still loading we don't know the real state yet —
+  // show a dimmed neutral heart instead of a definitive "unsaved" that would
+  // flip to red once data arrives (the mount flicker).
+  const loading = !!user && !isReady
+  const saved   = user ? isSaved(type, id) : false
 
   async function handleClick(e: React.MouseEvent) {
     e.stopPropagation()
@@ -45,9 +49,11 @@ export default function SaveButton({ type, id, size = 20, className = '' }: Prop
       <Heart
         size={size}
         className={`transition-colors ${
-          saved
-            ? 'fill-red-500 text-red-500'
-            : 'text-gray-400 hover:text-red-400'
+          loading
+            ? 'text-gray-300 opacity-50'
+            : saved
+              ? 'fill-red-500 text-red-500'
+              : 'text-gray-400 hover:text-red-400'
         }`}
       />
     </button>
