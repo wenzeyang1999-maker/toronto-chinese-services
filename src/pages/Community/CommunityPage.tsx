@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { Heart, MessageCircle } from 'lucide-react'
+import { Heart, MessageCircle, Share2, Check } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { useAuthStore } from '../../store/authStore'
 import { useReadStore } from '../../store/readStore'
@@ -36,6 +36,25 @@ export default function CommunityPage() {
   const [loading,    setLoading]    = useState(true)
   const [typeFilter, setTypeFilter] = useState<string>('all')
   const [areaFilter, setAreaFilter] = useState<string>('all')
+  const [copiedId,   setCopiedId]   = useState<string | null>(null)
+
+  // Share a specific post from the list card (mirrors CommunityDetail.sharePost,
+  // but targets the post's own URL instead of window.location). stopPropagation
+  // keeps the card's navigate-to-detail click from firing.
+  async function sharePost(e: React.MouseEvent, post: Post) {
+    e.stopPropagation()
+    const url = `${window.location.origin}/community/${post.id}`
+    const snippet = post.content.slice(0, 120) + (post.content.length > 120 ? '…' : '')
+    const shareText = [`📢 ${post.title}`, snippet, `👉 华林 · 社区论坛`].filter(Boolean).join('\n\n')
+
+    if (navigator.share) {
+      try { await navigator.share({ title: post.title, text: shareText, url }) } catch { /* cancelled */ }
+    } else {
+      try { await navigator.clipboard.writeText(`${shareText}\n${url}`) } catch { /* ignore */ }
+      setCopiedId(post.id)
+      setTimeout(() => setCopiedId((cur) => (cur === post.id ? null : cur)), 2000)
+    }
+  }
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -216,6 +235,15 @@ export default function CommunityPage() {
                         <MessageCircle size={11} className="text-gray-300" />
                         {post.comment_count}
                       </span>
+                      <button
+                        onClick={(e) => sharePost(e, post)}
+                        aria-label="分享"
+                        className="flex items-center justify-center flex-shrink-0 text-gray-300 hover:text-primary-500 transition-colors active:scale-90"
+                      >
+                        {copiedId === post.id
+                          ? <Check size={12} className="text-green-500" />
+                          : <Share2 size={12} />}
+                      </button>
                     </div>
                   </div>
                 </motion.div>
