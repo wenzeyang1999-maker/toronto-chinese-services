@@ -142,7 +142,15 @@ export default function AiChatWidget({ grouped }: Props) {
     ]
 
     abortRef.current = new AbortController()
-    const timeoutId = window.setTimeout(() => abortRef.current?.abort(), 20_000)
+    // Idle timeout, not a total cap: only abort if NO data arrives for 30s.
+    // A long-but-progressing stream resets the timer on each chunk, so valid
+    // answers are never cut off mid-stream (the old fixed 20s total did that).
+    const IDLE_MS = 30_000
+    let timeoutId = window.setTimeout(() => abortRef.current?.abort(), IDLE_MS)
+    const resetIdle = () => {
+      window.clearTimeout(timeoutId)
+      timeoutId = window.setTimeout(() => abortRef.current?.abort(), IDLE_MS)
+    }
 
     try {
       const res = await fetch(EDGE_FN_URL, {
@@ -168,6 +176,7 @@ export default function AiChatWidget({ grouped }: Props) {
       while (true) {
         const { done, value } = await reader.read()
         if (done) break
+        resetIdle()   // data flowing — push the idle-abort deadline back
 
         buffer += decoder.decode(value, { stream: true })
         const lines = buffer.split('\n')

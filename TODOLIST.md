@@ -155,7 +155,7 @@ ProviderProfile/ServiceDetail 已用 `Promise.all`+join；ai-chat 已加 `AbortS
 | 社区沟通 | 社区 Community | 7.0 | ⬆️ 原 6.5;洗牌**已修** + "已读只存前端"是**误报**(早已落库) |
 | 社区沟通 | 私信 Conversation | 7.5 | ⬆️ 原 7.0;tempId**已修** + "重置全部未读"是**误报** |
 | 社区沟通 | 通知 Notifications | 6.5 | ⬆️ 管理员通知**已加「加载更多」历史**;prefs 无实时(次要)仍在 |
-| 社区沟通 | AI 客服 | 5.5 | 对话存 localStorage、20s 易超时 |
+| 社区沟通 | AI 客服 | 6.5 | ⬆️ **超时改空闲超时**(30s 无数据才中止,长回答不再被切);localStorage 经判断非真漏洞(用户自己浏览器自己的对话,已封顶20段) |
 | 账户后台 | 注册登录 Auth | 7.0 | 密码位数**已统一** |
 | 账户后台 | 个人中心 Profile | 7.0 | ⬆️ **退出登录加二次确认**;模式切换 feature flag 残留(次要)仍在 |
 | 账户后台 | 认证 Verification | 7.0 | ⬆️ **OTP 冷却 bug 已修**(成功后才倒计时) |
