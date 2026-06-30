@@ -158,7 +158,7 @@ ProviderProfile/ServiceDetail 已用 `Promise.all`+join；ai-chat 已加 `AbortS
 | 社区沟通 | AI 客服 | 7.0 | ⬆️ 空闲超时 + **失败/超时加「重试」**(干净重发,不污染历史);localStorage 非真漏洞 |
 | 账户后台 | 注册登录 Auth | 7.0 | 密码位数**已统一** |
 | 账户后台 | 个人中心 Profile | 7.0 | ⬆️ **退出登录加二次确认**;模式切换 feature flag 残留(次要)仍在 |
-| 账户后台 | 认证 Verification | 7.0 | ⬆️ **OTP 冷却 bug 已修**(成功后才倒计时) |
+| 账户后台 | 认证 Verification | 7.5 | ⬆️ OTP 冷却已修;**资质上传内嵌进认证 Tab**(选图/上传/提交一站搞定,不再跳「我的主页」) |
 | 账户后台 | 数据面板 Stats | 7.0 | ⬆️ **加「对比同类」**(分类基准 RPC:浏览/评分 vs 同类平均 ±%);无实时仍次要 |
 | 账户后台 | 会员 Membership | 5.5 | DB tagline **已修**;但 L2/L3 权益空洞(战略缺口)仍压分,需产品决策 |
 | 账户后台 | 邀请 Referral | 7.0 | ⬆️ 生成失败**改友好文案 + 重试按钮**(原来叫用户"执行修复 SQL") |

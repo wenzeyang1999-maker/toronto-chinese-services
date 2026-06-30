@@ -4,14 +4,17 @@
 //             telegram / website  — stored in users.social_links JSONB
 // • 商户资质 : upload docs to avatars/{uid}/verify-doc.*
 import { useRef, useState, useEffect, useCallback } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Mail, Phone, ShieldCheck, ImagePlus, BadgeCheck, Clock3,
   AlertCircle, CheckCircle2, Send, RefreshCw, Pencil, Check, X,
 } from 'lucide-react'
 import { supabase } from '../../../lib/supabase'
+import { compressImage, validateImageFile } from '../../../lib/compressImage'
+import { toast } from '../../../lib/toast'
 import type { User as SupabaseUser } from '@supabase/supabase-js'
+
+const MAX_QUAL_IMAGES = 6
 
 interface Props { user: SupabaseUser }
 
@@ -76,14 +79,52 @@ export default function VerificationSection({ user }: Props) {
   const [linksMsg,     setLinksMsg]     = useState<{ ok: boolean; text: string } | null>(null)
 
   // ── merchant verification state (now driven by 资质与设备 photos) ──────────
-  const navigate = useNavigate()
   const [verifStatus,     setVerifStatus]     = useState<'none' | 'pending' | 'approved' | 'rejected'>('none')
   const [businessVerified, setBusinessVerified] = useState(false)
-  const [qualCount,       setQualCount]       = useState(0)
+  const [qualImages,      setQualImages]      = useState<string[]>([])
+  const [uploadingQual,   setUploadingQual]   = useState(false)
   const [submitting,      setSubmitting]      = useState(false)
   const [verifMsg,        setVerifMsg]        = useState<{ ok: boolean; text: string } | null>(null)
+  const qualInput = useRef<HTMLInputElement>(null)
 
+  const qualCount = qualImages.length
   const emailVerified = !!user.email_confirmed_at
+
+  // ── Inline qualification image upload (same storage path as HomepageSection)
+  async function handleQualUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(e.target.files ?? [])
+    e.target.value = ''
+    if (!files.length) return
+    const toProcess = files.slice(0, MAX_QUAL_IMAGES - qualImages.length)
+    for (const f of toProcess) {
+      const err = validateImageFile(f)
+      if (err) { toast(err, 'error'); return }
+    }
+    setUploadingQual(true)
+    try {
+      const uploaded: string[] = []
+      for (const file of toProcess) {
+        const compressed = await compressImage(file)
+        const path = `qualifications/${user.id}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.jpg`
+        const { error } = await supabase.storage.from('service-images').upload(path, compressed, { upsert: false })
+        if (error) throw error
+        uploaded.push(supabase.storage.from('service-images').getPublicUrl(path).data.publicUrl)
+      }
+      const next = [...qualImages, ...uploaded]
+      await supabase.from('users').update({ qualification_images: next }).eq('id', user.id)
+      setQualImages(next)
+    } catch (err) {
+      toast('图片上传失败：' + (err instanceof Error ? err.message : '请重试'), 'error')
+    } finally {
+      setUploadingQual(false)
+    }
+  }
+
+  async function removeQualImage(idx: number) {
+    const next = qualImages.filter((_, i) => i !== idx)
+    await supabase.from('users').update({ qualification_images: next }).eq('id', user.id)
+    setQualImages(next)
+  }
 
   // ── load data on mount ────────────────────────────────────────────────────
   useEffect(() => {
@@ -111,7 +152,7 @@ export default function VerificationSection({ user }: Props) {
         const st = data.verification_status
         setVerifStatus(st === 'pending' || st === 'approved' || st === 'rejected' ? st : 'none')
         setBusinessVerified(data.business_verified ?? false)
-        setQualCount(((data.qualification_images as string[] | null) ?? []).length)
+        setQualImages(((data.qualification_images as string[] | null) ?? []))
       })
   }, [user.id])
 
@@ -408,7 +449,7 @@ export default function VerificationSection({ user }: Props) {
         <div className="px-5 pt-5 pb-3">
           <h3 className="text-sm font-semibold text-gray-700">商户资质认证</h3>
           <p className="text-xs text-gray-400 mt-0.5">
-            审核基于你在「我的主页 → 资质与设备」上传的图片，通过后服务将显示
+            上传资质图片并提交审核，通过后你的服务将显示
             <span className="text-blue-600 font-medium"> ✓ 已认证</span> 标志
           </p>
         </div>
@@ -431,50 +472,45 @@ export default function VerificationSection({ user }: Props) {
                 <p className="text-xs text-amber-600 mt-0.5">我们正在审核你的资质图片，预计 1-3 个工作日</p>
               </div>
             </div>
-          ) : qualCount === 0 ? (
-            // No qualification images yet — guide to homepage
-            <div>
-              <div className="flex items-start gap-3 bg-gray-50 border border-gray-200 rounded-2xl p-4 mb-3">
-                <ImagePlus size={20} className="text-gray-400 flex-shrink-0 mt-0.5" />
-                <p className="text-sm text-gray-600">
-                  你还没上传资质图片。请先到「我的主页 → 资质与设备」上传营业执照、资格证书等
-                  （敏感信息如注册号、地址可自行打码）。
-                </p>
-              </div>
-              <button
-                onClick={() => navigate('/profile?section=homepage')}
-                className="w-full py-3 rounded-2xl bg-primary-600 text-white text-sm font-semibold hover:bg-primary-700 transition-colors"
-              >
-                去我的主页上传资质
-              </button>
-            </div>
           ) : (
-            // Has images, ready to submit (or resubmit after rejection)
+            // Upload qualification images right here, then submit — one place,
+            // no jumping to another section.
             <div>
               {verifStatus === 'rejected' && (
                 <div className="flex items-start gap-2 bg-red-50 border border-red-200 rounded-2xl p-3 mb-3">
                   <AlertCircle size={16} className="text-red-500 flex-shrink-0 mt-0.5" />
-                  <p className="text-xs text-red-600">上次审核未通过。请到「我的主页」更新资质图片后重新提交。</p>
+                  <p className="text-xs text-red-600">上次审核未通过。请更新资质图片后重新提交。</p>
                 </div>
               )}
-              <div className="flex items-center gap-3 bg-gray-50 border border-gray-200 rounded-2xl p-4 mb-3">
-                <ImagePlus size={20} className="text-emerald-500 flex-shrink-0" />
-                <p className="text-sm text-gray-600 flex-1">
-                  已上传 <strong className="text-gray-800">{qualCount}</strong> 张资质图片
-                </p>
-                <button
-                  onClick={() => navigate('/profile?section=homepage')}
-                  className="text-xs text-primary-600 underline flex-shrink-0"
-                >
-                  管理图片
-                </button>
+              <p className="text-xs text-gray-500 mb-2 leading-relaxed">
+                上传营业执照、资格证书等（敏感信息如注册号、地址可自行打码），最多 {MAX_QUAL_IMAGES} 张
+              </p>
+              <input ref={qualInput} type="file" accept="image/*" multiple className="hidden" onChange={handleQualUpload} />
+              <div className="flex flex-wrap gap-2 mb-3">
+                {qualImages.map((url, i) => (
+                  <div key={i} className="relative w-20 h-20 rounded-xl overflow-hidden border border-gray-200 flex-shrink-0">
+                    <img src={url} alt="" className="w-full h-full object-cover" />
+                    <button type="button" onClick={() => removeQualImage(i)}
+                      className="absolute top-1 right-1 w-5 h-5 bg-black/50 rounded-full flex items-center justify-center text-white">
+                      <X size={10} />
+                    </button>
+                  </div>
+                ))}
+                {qualImages.length < MAX_QUAL_IMAGES && (
+                  <button type="button" onClick={() => qualInput.current?.click()} disabled={uploadingQual}
+                    className="w-20 h-20 rounded-xl border-2 border-dashed border-gray-300 flex flex-col items-center justify-center gap-1 text-gray-400 hover:border-primary-400 hover:text-primary-500 transition-colors disabled:opacity-60 flex-shrink-0">
+                    {uploadingQual
+                      ? <span className="w-4 h-4 border-2 border-gray-300 border-t-transparent rounded-full animate-spin" />
+                      : <><ImagePlus size={18} /><span className="text-[10px]">添加</span></>}
+                  </button>
+                )}
               </div>
               <button
                 onClick={submitForReview}
-                disabled={submitting}
+                disabled={submitting || qualImages.length === 0}
                 className="w-full py-3 rounded-2xl bg-primary-600 text-white text-sm font-semibold hover:bg-primary-700 transition-colors disabled:opacity-60"
               >
-                {submitting ? '提交中…' : '申请商户认证'}
+                {submitting ? '提交中…' : qualImages.length === 0 ? '请先上传资质图片' : '申请商户认证'}
               </button>
             </div>
           )}
