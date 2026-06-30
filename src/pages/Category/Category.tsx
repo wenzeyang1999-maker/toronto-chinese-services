@@ -37,9 +37,12 @@ export default function Category() {
   const category = getCategoryById(id as ServiceCategory)
   const services = getServicesByCategory(id as ServiceCategory)
 
+  // Without a user location, "距离" can't sort meaningfully (every distance is
+  // undefined), so fall back to rating until location arrives, then it re-sorts.
+  const effectiveSort = sortBy === 'distance' && !userLocation ? 'rating' : sortBy
   const sorted = [...services].sort((a, b) => {
-    if (sortBy === 'rating') return b.provider.rating - a.provider.rating
-    if (sortBy === 'price') return parseFloat(a.price) - parseFloat(b.price)
+    if (effectiveSort === 'rating') return b.provider.rating - a.provider.rating
+    if (effectiveSort === 'price') return parseFloat(a.price) - parseFloat(b.price)
     return (a.distance ?? 99) - (b.distance ?? 99)
   })
 

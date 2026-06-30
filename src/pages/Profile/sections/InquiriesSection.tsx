@@ -83,6 +83,13 @@ export default function InquiriesSection() {
     return () => { isActive = false }
   }, [user])
 
+  async function closeInquiry(id: string) {
+    if (!user) return
+    const { error } = await supabase.from('inquiries')
+      .update({ status: 'closed' }).eq('id', id).eq('user_id', user.id)
+    if (!error) setItems(prev => prev.map(it => it.id === id ? { ...it, status: 'closed' } : it))
+  }
+
   if (loading) return (
     <div className="flex-1 space-y-3 p-4">
       {[1, 2, 3].map((i) => (
@@ -213,6 +220,17 @@ export default function InquiriesSection() {
                                 <Clock size={14} className="text-amber-500 flex-shrink-0 animate-pulse" />
                                 <p className="text-xs text-amber-700">等待服务商接单，请留意电话和微信消息</p>
                               </div>
+                            )}
+
+                            {/* Let the user close an unresolved request they no longer need */}
+                            {item.status !== 'closed' && !isAssigned && (
+                              <button
+                                onClick={() => closeInquiry(item.id)}
+                                className="w-full flex items-center justify-center gap-1.5 text-xs text-gray-400
+                                           hover:text-red-500 py-1.5 transition-colors"
+                              >
+                                <X size={13} /> 关闭此请求
+                              </button>
                             )}
                           </div>
                         </motion.div>

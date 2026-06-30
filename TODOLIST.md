@@ -136,7 +136,7 @@ ProviderProfile/ServiceDetail 已用 `Promise.all`+join；ai-chat 已加 `AbortS
 | 区块 | 模块 | 分数 | 状态 / 一句话短板 |
 |---|---|---|---|
 | 发现 | 首页 Home | 7.0 | ⬆️ **首屏空状态/骨架已修**(加 servicesLoaded);技能词 `.includes()` 次要 |
-| 发现 | 分类页 Category | 6.5 | ⬆️ 原 6.0;"默认按距离→乱序"是**误报**(默认 `rating`) |
+| 发现 | 分类页 Category | 7.0 | ⬆️ 无定位时距离档**自动回退好评排**(不再全部并列);默认本就是 rating |
 | 发现 | 搜索 Search | 7.0 | ⬆️ 原 5.5;"无防抖"**误报**(gate 在提交)、技能词模糊**已修** |
 | 发现 | 地图 Map/ServiceMap | 7.0 | `geoAutoRequested` 全局变量污染(内存过滤无需防抖) |
 | 发现 | 推荐/Banner/微件 | 7.5 | 普遍较好;Save/Follow/ViewCount **挂载抖动已修**(淡灰就绪态/占位骨架) |
@@ -161,9 +161,9 @@ ProviderProfile/ServiceDetail 已用 `Promise.all`+join；ai-chat 已加 `AbortS
 | 账户后台 | 认证 Verification | 7.0 | ⬆️ **OTP 冷却 bug 已修**(成功后才倒计时) |
 | 账户后台 | 数据面板 Stats | 6.0 | 无实时、无相对数据(需聚合 RPC,未做) |
 | 账户后台 | 会员 Membership | 5.5 | DB tagline **已修**;但 L2/L3 权益空洞(战略缺口)仍压分,需产品决策 |
-| 账户后台 | 邀请 Referral | 6.5 | 生成失败兜底差;文案核实后基本一致(非误报但极小) |
+| 账户后台 | 邀请 Referral | 7.0 | ⬆️ 生成失败**改友好文案 + 重试按钮**(原来叫用户"执行修复 SQL") |
 | 账户后台 | 我的发布 Services | 6.5 | ⬆️ 编辑图片**已加新旧标识 + 新增角标**;5 类型各写各的(大重构)仍在 |
-| 账户后台 | 报价 Inquiries(双侧) | 6.5 | ⬆️ **已加评价入口**;"接单方无推送"是**误报**(notifyInquirySelected 早已发) |
+| 账户后台 | 报价 Inquiries(双侧) | 7.0 | ⬆️ 评价入口 + **手动关闭请求**已加;"接单方无推送"是**误报** |
 | 账户后台 | 管理后台 Admin | 6.5 | ⬆️ 原 5.5;"无搜索"是**误报**(UsersTab 有搜索);批量/撤销仍缺 |
 
 ### 完善路线(可勾选)

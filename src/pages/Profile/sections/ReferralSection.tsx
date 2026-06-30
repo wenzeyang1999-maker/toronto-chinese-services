@@ -16,6 +16,7 @@ export default function ReferralSection({ user }: Props) {
   const [copied,        setCopied]        = useState(false)
   const [loading,       setLoading]       = useState(true)
   const [error,         setError]         = useState<string | null>(null)
+  const [reloadKey,     setReloadKey]     = useState(0)
 
   async function loadReferralData(code: string) {
     setReferralCode(code)
@@ -52,7 +53,7 @@ export default function ReferralSection({ user }: Props) {
         const { data: repairedCode, error: repairError } = await supabase.rpc('ensure_my_referral_code')
         if (!active) return
         if (repairError) {
-          setError('你的分享码暂时还没生成，请联系管理员执行邀请码修复 SQL')
+          setError('分享码暂时生成失败，请点下方「重试」或稍后再试')
           setLoading(false)
           return
         }
@@ -60,7 +61,7 @@ export default function ReferralSection({ user }: Props) {
       }
 
       if (!code) {
-        setError('你的分享码暂时还没生成，请联系管理员执行邀请码修复 SQL')
+        setError('分享码暂时生成失败，请点下方「重试」或稍后再试')
         setLoading(false)
         return
       }
@@ -80,7 +81,7 @@ export default function ReferralSection({ user }: Props) {
     return () => {
       active = false
     }
-  }, [user.id])
+  }, [user.id, reloadKey])
 
   const shareBaseUrl = typeof window !== 'undefined' ? window.location.origin : BASE_URL
   const shareUrl  = referralCode ? `${shareBaseUrl}/register?ref=${referralCode}` : ''
@@ -148,9 +149,13 @@ export default function ReferralSection({ user }: Props) {
             {referralCode ?? '------'}
           </p>
           {error && (
-            <p className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">
-              {error}
-            </p>
+            <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700 flex items-center justify-between gap-2">
+              <span>{error}</span>
+              <button onClick={() => setReloadKey((k) => k + 1)}
+                className="flex-shrink-0 font-semibold text-amber-700 underline hover:text-amber-800">
+                重试
+              </button>
+            </div>
           )}
           <button
             onClick={copyLink}
