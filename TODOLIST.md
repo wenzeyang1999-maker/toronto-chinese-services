@@ -141,7 +141,7 @@ ProviderProfile/ServiceDetail 已用 `Promise.all`+join；ai-chat 已加 `AbortS
 | 发现 | 地图 Map/ServiceMap | 7.0 | `geoAutoRequested` 全局变量污染(内存过滤无需防抖) |
 | 发现 | 推荐/Banner/微件 | 7.5 | 普遍较好;Save/Follow/ViewCount **挂载抖动已修**(淡灰就绪态/占位骨架) |
 | 找服务 | 服务详情 ServiceDetail | 7.5 | 文案冗长、phone/wechat 展示不一致 |
-| 找服务 | 发布服务 PostService | 6.5 | 表单 14 字段偏长、图片失败提示弱 |
+| 找服务 | 发布服务 PostService | 7.0 | ⬆️ 图片上传**改并行提速**;失败已列文件名;表单偏长属设计取舍 |
 | 找服务 | 服务卡 ServiceCard | 7.0 | 信任信号只显 1 个、头像 16px 太小 |
 | 找服务 | 询价 InquiryModal | 7.0 | AI 解析失败无重试、流程重复填写 |
 | 找服务 | 评价系统 | 7.5 | 信用分含义模糊、已评价用户入口隐蔽 |
@@ -151,7 +151,7 @@ ProviderProfile/ServiceDetail 已用 `Promise.all`+join；ai-chat 已加 `AbortS
 | 垂直版块 | 招聘 Jobs | 7.5 | 无排序、求职模式字段不对称 |
 | 垂直版块 | 活动 Events | 7.0 | 类型 8 种过多、往届不清理 |
 | 垂直版块 | 租房 RealEstate | 7.0 | ⬆️ **价格筛选 UI 已加**(按租/售自适应档位);房型 7 种过细仍可精简 |
-| 垂直版块 | 广场 Plaza | 6.5 | ⬆️ 原 6.0;随机洗牌**已修**;Tab 状态割裂仍在 |
+| 垂直版块 | 广场 Plaza | 7.0 | ⬆️ 随机洗牌已修;"Tab 状态割裂"经核实是**误报**(切 tab 不卸载,筛选保留) |
 | 社区沟通 | 社区 Community | 7.0 | ⬆️ 原 6.5;洗牌**已修** + "已读只存前端"是**误报**(早已落库) |
 | 社区沟通 | 私信 Conversation | 7.5 | ⬆️ 原 7.0;tempId**已修** + "重置全部未读"是**误报** |
 | 社区沟通 | 通知 Notifications | 6.5 | ⬆️ 管理员通知**已加「加载更多」历史**;prefs 无实时(次要)仍在 |
