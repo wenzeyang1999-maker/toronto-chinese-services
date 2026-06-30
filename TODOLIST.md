@@ -143,7 +143,7 @@ ProviderProfile/ServiceDetail 已用 `Promise.all`+join；ai-chat 已加 `AbortS
 | 找服务 | 服务详情 ServiceDetail | 7.5 | 文案冗长、phone/wechat 展示不一致 |
 | 找服务 | 发布服务 PostService | 7.0 | ⬆️ 图片上传**改并行提速**;失败已列文件名;表单偏长属设计取舍 |
 | 找服务 | 服务卡 ServiceCard | 7.0 | 信任信号只显 1 个、头像 16px 太小 |
-| 找服务 | 询价 InquiryModal | 7.0 | AI 解析失败无重试、流程重复填写 |
+| 找服务 | 询价 InquiryModal | 7.5 | ⬆️ 选定服务商加确认 toast;复核:"切模式丢数据/公开发布隐没/AI无重试"**均为误报**(切换不重置、勾选是高亮卡片默认开、失败可再点解析) |
 | 找服务 | 评价系统 | 7.5 | 信用分含义模糊、已评价用户入口隐蔽 |
 | 找服务 | 服务商主页 ProviderProfile | 7.5 | ⬆️ **多品类 sticky tab 已加**;8 查询已并发(拆波非必要);信息过载仍可优化 |
 | 找服务 | Q&A 问答(服务) | 7.0 | ⬆️ 原 4.0;**重大误报**——服务详情有成熟 `QASection`,真缺口仅「无最佳答案/投票」 |

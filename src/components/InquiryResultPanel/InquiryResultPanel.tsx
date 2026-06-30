@@ -151,6 +151,9 @@ export default function InquiryResultPanel({ inquiryId, categoryId, categoryLabe
     setSelecting(null)
     if (!error) {
       setSelected(providerId)
+      // Confirm the action — the view switches instantly, so a toast makes it
+      // clear the choice landed and sets the expectation of who contacts whom.
+      toast('已选定服务商，已通知对方，TA 会主动联系你 ✓', 'success')
       // Notify the selected provider
       void notifyInquirySelected({
         recipientUserId: providerId,
@@ -159,6 +162,8 @@ export default function InquiryResultPanel({ inquiryId, categoryId, categoryLabe
         wechat:          customerWechat,
         categoryLabel,
       })
+    } else {
+      toast('选择失败，请重试', 'error')
     }
   }
 
