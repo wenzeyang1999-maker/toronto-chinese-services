@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
-import { BadgeCheck, ExternalLink, X } from 'lucide-react'
+import { BadgeCheck, ExternalLink, X, CheckSquare, Square } from 'lucide-react'
 import { supabase } from '../../../lib/supabase'
 import { type VerificationRow } from '../types'
 import { useAdminContext } from '../AdminContext'
@@ -13,6 +13,33 @@ export default function VerificationTab() {
   const [verifications,    setVerifications]    = useState<VerificationRow[]>([])
   const [showVerifHistory, setShowVerifHistory] = useState(false)
   const [verifHistory,     setVerifHistory]     = useState<VerificationRow[]>([])
+  const [selected,         setSelected]         = useState<Set<string>>(new Set())
+
+  function toggleSelect(id: string) {
+    setSelected(prev => {
+      const next = new Set(prev)
+      next.has(id) ? next.delete(id) : next.add(id)
+      return next
+    })
+  }
+
+  // Approve / reject everything currently selected, one RPC call per row.
+  async function bulkReview(approved: boolean) {
+    if (selected.size === 0 || acting) return
+    const ids = [...selected]
+    setActing('bulk')
+    const succeeded: string[] = []
+    for (const id of ids) {
+      const { error } = await supabase.rpc('admin_review_verification', { target_user_id: id, approved })
+      if (!error) succeeded.push(id)
+    }
+    setVerifications(prev => prev.filter(v => !succeeded.includes(v.id)))
+    setSelected(new Set())
+    setActing(null)
+    const failed = ids.length - succeeded.length
+    showNotice(failed ? 'error' : 'success',
+      `已${approved ? '批准' : '拒绝'} ${succeeded.length} 个认证${failed ? `，${failed} 个失败` : ''}`)
+  }
 
   async function loadVerifications() {
     const { data, error } = await supabase
@@ -125,12 +152,42 @@ export default function VerificationTab() {
         </div>
       ) : (
         <div className="space-y-3">
+          {/* Bulk-action bar — select multiple, approve/reject in one go */}
+          <div className="flex items-center gap-2 sticky top-0 z-10 bg-gray-50/95 backdrop-blur py-1.5">
+            <button
+              onClick={() => setSelected(prev =>
+                prev.size === verifications.length ? new Set() : new Set(verifications.map(v => v.id)))}
+              className="flex items-center gap-1.5 text-xs font-medium text-gray-500 hover:text-gray-700 px-2 py-1.5">
+              {selected.size === verifications.length && verifications.length > 0
+                ? <CheckSquare size={15} className="text-primary-500" />
+                : <Square size={15} />}
+              全选
+            </button>
+            {selected.size > 0 && (
+              <div className="flex items-center gap-2 ml-auto">
+                <span className="text-xs text-gray-400">已选 {selected.size}</span>
+                <button onClick={() => bulkReview(false)} disabled={!!acting}
+                  className="text-xs font-semibold text-gray-600 border border-gray-200 rounded-lg px-3 py-1.5 hover:bg-gray-100 disabled:opacity-50">
+                  批量拒绝
+                </button>
+                <button onClick={() => bulkReview(true)} disabled={!!acting}
+                  className="text-xs font-semibold text-white bg-green-500 hover:bg-green-600 rounded-lg px-3 py-1.5 disabled:opacity-50">
+                  {acting === 'bulk' ? '处理中…' : '批量批准'}
+                </button>
+              </div>
+            )}
+          </div>
           {verifications.map(v => (
           <motion.div key={v.id}
             initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
-            className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4"
+            className={`bg-white rounded-2xl border shadow-sm p-4 transition-colors ${
+              selected.has(v.id) ? 'border-primary-300 ring-1 ring-primary-200' : 'border-gray-100'
+            }`}
           >
             <div className="flex items-center gap-3 mb-3">
+              <button onClick={() => toggleSelect(v.id)} className="flex-shrink-0 text-gray-400 hover:text-primary-500">
+                {selected.has(v.id) ? <CheckSquare size={18} className="text-primary-500" /> : <Square size={18} />}
+              </button>
               <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary-400 to-primary-600
                               flex items-center justify-center text-white font-bold flex-shrink-0">
                 {v.name.charAt(0)}
