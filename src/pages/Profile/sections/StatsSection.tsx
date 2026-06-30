@@ -3,9 +3,11 @@
 // Aggregates across all active services belonging to the user.
 import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
-import { Eye, Heart, MessageSquare, Star, TrendingUp, Briefcase } from 'lucide-react'
+import { Eye, Heart, MessageSquare, Star, TrendingUp, Briefcase, ArrowUp, ArrowDown, Minus } from 'lucide-react'
 import { supabase } from '../../../lib/supabase'
 import { useAuthStore } from '../../../store/authStore'
+import { getCategoryById } from '../../../data/categories'
+import type { ServiceCategory } from '../../../types'
 
 interface StatCard {
   label: string
@@ -19,10 +21,21 @@ interface StatCard {
 interface ServiceStat {
   id: string
   title: string
+  category_id: string
   views: number
   saves: number
   reviews: number
   avg_rating: number
+}
+
+interface CategoryComparison {
+  category_id: string
+  label: string
+  myServices: number
+  myAvgViews: number
+  catAvgViews: number
+  myAvgRating: number | null
+  catAvgRating: number | null
 }
 
 export default function StatsSection() {
@@ -34,6 +47,7 @@ export default function StatsSection() {
   const [totalReviews,  setTotalReviews]  = useState(0)
   const [avgRating,     setAvgRating]     = useState(0)
   const [serviceStats,  setServiceStats]  = useState<ServiceStat[]>([])
+  const [comparisons,   setComparisons]   = useState<CategoryComparison[]>([])
   const [loading,       setLoading]       = useState(true)
 
   useEffect(() => {
@@ -48,7 +62,7 @@ export default function StatsSection() {
     // Fetch user's active services
     const { data: services } = await supabase
       .from('services')
-      .select('id, title')
+      .select('id, title, category_id')
       .eq('provider_id', user.id)
       .eq('is_available', true)
 
@@ -100,17 +114,50 @@ export default function StatsSection() {
     })
 
     const stats: ServiceStat[] = services.map(s => ({
-      id:         s.id,
-      title:      s.title,
-      views:      viewCount[s.id] ?? 0,
-      saves:      saveCount[s.id] ?? 0,
-      reviews:    reviewCount[s.id] ?? 0,
-      avg_rating: reviewCount[s.id]
+      id:          s.id,
+      title:       s.title,
+      category_id: s.category_id,
+      views:       viewCount[s.id] ?? 0,
+      saves:       saveCount[s.id] ?? 0,
+      reviews:     reviewCount[s.id] ?? 0,
+      avg_rating:  reviewCount[s.id]
         ? Math.round((ratingSum[s.id] / reviewCount[s.id]) * 10) / 10
         : 0,
     }))
     stats.sort((a, b) => b.views - a.views)
     setServiceStats(stats)
+
+    // ── 对比同类:per-category platform benchmarks vs this provider's averages ──
+    const { data: benchmarks } = await supabase.rpc('category_service_benchmarks')
+    const benchMap: Record<string, { avg_views: number; avg_rating: number | null }> = {}
+    ;(benchmarks ?? []).forEach((b: any) => {
+      benchMap[b.category_id] = {
+        avg_views:  Number(b.avg_views ?? 0),
+        avg_rating: b.avg_rating != null ? Number(b.avg_rating) : null,
+      }
+    })
+
+    const byCat: Record<string, ServiceStat[]> = {}
+    stats.forEach((s) => { (byCat[s.category_id] ??= []).push(s) })
+
+    const cmps: CategoryComparison[] = Object.entries(byCat).map(([catId, list]) => {
+      const myAvgViews = list.reduce((sum, s) => sum + s.views, 0) / list.length
+      const rated      = list.filter((s) => s.reviews > 0)
+      const myAvgRating = rated.length
+        ? rated.reduce((sum, s) => sum + s.avg_rating, 0) / rated.length
+        : null
+      const bench = benchMap[catId]
+      return {
+        category_id:  catId,
+        label:        getCategoryById(catId as ServiceCategory)?.label ?? catId,
+        myServices:   list.length,
+        myAvgViews,
+        catAvgViews:  bench?.avg_views ?? 0,
+        myAvgRating,
+        catAvgRating: bench?.avg_rating ?? null,
+      }
+    })
+    setComparisons(cmps)
     setLoading(false)
   }
 
@@ -166,6 +213,52 @@ export default function StatsSection() {
               </motion.div>
             ))}
           </div>
+
+          {/* 对比同类 — how this provider stacks up against the category average */}
+          {comparisons.length > 0 && (
+            <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
+              <div className="px-5 pt-4 pb-2 flex items-center gap-1.5">
+                <TrendingUp size={13} className="text-primary-500" />
+                <p className="text-xs font-semibold text-gray-500">对比同类服务</p>
+              </div>
+              <div className="divide-y divide-gray-50">
+                {comparisons.map((c) => {
+                  const diff = c.catAvgViews > 0 ? (c.myAvgViews - c.catAvgViews) / c.catAvgViews : 0
+                  const pct  = Math.round(Math.abs(diff) * 100)
+                  const up   = diff > 0.05
+                  const down = diff < -0.05
+                  return (
+                    <div key={c.category_id} className="px-5 py-3">
+                      <div className="flex items-center justify-between mb-1.5">
+                        <p className="text-sm font-semibold text-gray-800 truncate">{c.label}</p>
+                        <span className={`flex items-center gap-0.5 text-[11px] font-semibold px-2 py-0.5 rounded-full flex-shrink-0 ${
+                          up ? 'bg-green-50 text-green-600' : down ? 'bg-amber-50 text-amber-600' : 'bg-gray-100 text-gray-500'
+                        }`}>
+                          {up ? <ArrowUp size={11} /> : down ? <ArrowDown size={11} /> : <Minus size={11} />}
+                          {up ? `高于同类 ${pct}%` : down ? `低于同类 ${pct}%` : '与同类持平'}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-4 flex-wrap text-xs text-gray-500">
+                        <span className="flex items-center gap-1">
+                          <Eye size={11} className="text-blue-400" />
+                          你 {c.myAvgViews.toFixed(1)} · 同类 {c.catAvgViews.toFixed(1)} 浏览/服务
+                        </span>
+                        {c.myAvgRating != null && c.catAvgRating != null && (
+                          <span className="flex items-center gap-1">
+                            <Star size={11} className="text-yellow-400" />
+                            你 {c.myAvgRating.toFixed(1)} · 同类 {c.catAvgRating.toFixed(1)} 星
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+              <p className="px-5 py-2 text-[10px] text-gray-300 border-t border-gray-50">
+                同类平均为该分类全平台在架服务的均值,仅供参考
+              </p>
+            </div>
+          )}
 
           {/* Per-service breakdown */}
           <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
