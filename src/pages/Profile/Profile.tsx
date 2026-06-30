@@ -73,6 +73,7 @@ export default function Profile() {
   const [memberLevel,     setMemberLevel]     = useState<MemberLevel>('L1')
   const [memberExpiresAt, setMemberExpiresAt] = useState<string | null>(null)
   const [uploading,       setUploading]       = useState(false)
+  const [confirmLogout,   setConfirmLogout]   = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
 
   const [browse, setBrowse] = useState<BrowseEntry[]>([])
@@ -326,14 +327,31 @@ export default function Profile() {
         <a href="mailto:support@huarenq.com" className="hover:text-gray-600 hover:underline">联系我们</a>
       </div>
 
-      {/* Logout */}
-      <button onClick={async () => { await supabase.auth.signOut(); navigate('/') }}
-        className="w-full flex items-center justify-center gap-2 bg-white border border-gray-200
-                   text-red-500 rounded-2xl py-3.5 text-sm font-medium hover:bg-red-50
-                   transition-colors shadow-sm">
-        <LogOut size={16} />
-        退出登录
-      </button>
+      {/* Logout — two-step inline confirm to avoid accidental sign-out */}
+      {confirmLogout ? (
+        <div className="flex gap-2">
+          <button onClick={() => setConfirmLogout(false)}
+            className="flex-1 bg-white border border-gray-200 text-gray-500 rounded-2xl py-3.5
+                       text-sm font-medium hover:bg-gray-50 transition-colors shadow-sm">
+            取消
+          </button>
+          <button onClick={async () => { await supabase.auth.signOut(); navigate('/') }}
+            className="flex-1 flex items-center justify-center gap-2 bg-red-500 border border-red-500
+                       text-white rounded-2xl py-3.5 text-sm font-medium hover:bg-red-600
+                       transition-colors shadow-sm">
+            <LogOut size={16} />
+            确认退出
+          </button>
+        </div>
+      ) : (
+        <button onClick={() => setConfirmLogout(true)}
+          className="w-full flex items-center justify-center gap-2 bg-white border border-gray-200
+                     text-red-500 rounded-2xl py-3.5 text-sm font-medium hover:bg-red-50
+                     transition-colors shadow-sm">
+          <LogOut size={16} />
+          退出登录
+        </button>
+      )}
     </div>
   )
 

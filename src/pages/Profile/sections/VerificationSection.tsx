@@ -151,8 +151,8 @@ export default function VerificationSection({ user }: Props) {
       return
     }
     const formatted = `+1${digits}`
-    // Start cooldown immediately — prevents spam regardless of success/failure
-    startCountdown()
+    // `sending` already disables the button during the request, so a failed send
+    // shouldn't lock the user out — only start the resend cooldown once it succeeds.
     setSending(true); setPhoneMsg(null)
     const { error } = await supabase.functions.invoke('send-otp', { body: { phone: formatted } })
     setSending(false)
@@ -161,6 +161,7 @@ export default function VerificationSection({ user }: Props) {
       setPhoneMsg({ ok: false, text: msg })
       return
     }
+    startCountdown()
     setStep('otp')
     setPhoneMsg({ ok: true, text: `验证码已发送至 ${formatted}` })
   }
