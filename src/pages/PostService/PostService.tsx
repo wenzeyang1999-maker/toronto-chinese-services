@@ -159,21 +159,19 @@ export default function PostService() {
       }).eq('id', user.id)
       if (upsertError) throw upsertError
 
-      // 2. Upload images
-      const imageUrls: string[] = []
-      const imageUploadErrors: string[] = []
-      for (const file of images) {
+      // 2. Upload images — in parallel (each path has a random suffix, so no
+      //    collision). Order is preserved by Promise.all; failures are collected.
+      const uploadResults = await Promise.all(images.map(async (file) => {
         const compressed = await compressImage(file)
         const ext = compressed.name.split('.').pop()
         const path = `${user.id}/${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`
         const { error: uploadError } = await supabase.storage.from('service-images').upload(path, compressed, { upsert: false })
-        if (uploadError) {
-          imageUploadErrors.push(file.name)
-        } else {
-          const { data: { publicUrl } } = supabase.storage.from('service-images').getPublicUrl(path)
-          imageUrls.push(publicUrl)
-        }
-      }
+        if (uploadError) return { ok: false as const, name: file.name }
+        const { data: { publicUrl } } = supabase.storage.from('service-images').getPublicUrl(path)
+        return { ok: true as const, url: publicUrl }
+      }))
+      const imageUrls          = uploadResults.flatMap((r) => (r.ok ? [r.url] : []))
+      const imageUploadErrors  = uploadResults.flatMap((r) => (r.ok ? [] : [r.name]))
 
       const baseTags = form.tags ? form.tags.split(/[,，\s]+/).filter(Boolean) : []
       const allTags  = confirmedCustom ? [...baseTags, `类型:${confirmedCustom}`] : baseTags
