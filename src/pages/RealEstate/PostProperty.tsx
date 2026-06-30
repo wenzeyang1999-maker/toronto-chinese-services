@@ -14,7 +14,7 @@ import PostFormSuccess from '../../components/PostForm/PostFormSuccess'
 import { supabase } from '../../lib/supabase'
 import { useAuthStore } from '../../store/authStore'
 import { useRealEstateStore } from '../../store/realestateStore'
-import { compressImage, validateImageFile } from '../../lib/compressImage'
+import { useImageUpload } from '../../lib/useImageUpload'
 import {
   LISTING_TYPE_CONFIG, PROPERTY_TYPE_CONFIG, PRICE_TYPE_LABEL,
   type RealEstateListingType, type PropertyType, type PriceType, type Property,
@@ -67,11 +67,12 @@ export default function PostProperty() {
 
   const initType = (searchParams.get('type') ?? 'rent') as RealEstateListingType
   const [form,         setForm]        = useState<FormState>({ ...INITIAL, listing_type: initType })
-  const [images,       setImages]      = useState<File[]>([])
-  const [previews,     setPreviews]    = useState<string[]>([])
+  const {
+    images, previews, uploading: uploadingImg, error: imageError,
+    handleChange: handleImageChange, remove: removeImage, reset: resetImages,
+  } = useImageUpload(MAX_IMAGES)
   const [errors,       setErrors]      = useState<Partial<Record<keyof FormState | 'images', string>>>({})
   const [submitting,   setSubmitting]  = useState(false)
-  const [uploadingImg, setUploadingImg] = useState(false)
   const [done,         setDone]        = useState(false)
   const [submitError,  setSubmitError] = useState<string | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
@@ -92,34 +93,9 @@ export default function PostProperty() {
       })
   }, [user])
 
-  useEffect(() => () => previews.forEach(URL.revokeObjectURL), [previews])
-
   const set = <K extends keyof FormState>(k: K, v: FormState[K]) => {
     setForm((f) => ({ ...f, [k]: v }))
     setErrors((e) => ({ ...e, [k]: undefined }))
-  }
-
-  async function handleImageChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const files = Array.from(e.target.files ?? [])
-    if (!files.length) return
-    e.target.value = ''
-    const toProcess = files.slice(0, MAX_IMAGES - images.length)
-    for (const file of toProcess) {
-      const err = validateImageFile(file)
-      if (err) { setErrors((prev) => ({ ...prev, images: err })); return }
-    }
-    setUploadingImg(true)
-    const compressed = await Promise.all(toProcess.map((f) => compressImage(f)))
-    setImages((prev) => [...prev, ...compressed])
-    setPreviews((prev) => [...prev, ...compressed.map((f) => URL.createObjectURL(f))])
-    setErrors((e) => ({ ...e, images: undefined }))
-    setUploadingImg(false)
-  }
-
-  function removeImage(idx: number) {
-    URL.revokeObjectURL(previews[idx])
-    setImages((prev) => prev.filter((_, i) => i !== idx))
-    setPreviews((prev) => prev.filter((_, i) => i !== idx))
   }
 
   function validate(): boolean {
@@ -234,7 +210,7 @@ export default function PostProperty() {
         viewListLabel="查看房源列表"
         onViewList={() => navigate('/realestate')}
         postAnotherLabel="继续发布"
-        onPostAnother={() => { previews.forEach(URL.revokeObjectURL); setForm(INITIAL); setImages([]); setPreviews([]); setDone(false) }}
+        onPostAnother={() => { resetImages(); setForm(INITIAL); setDone(false) }}
       />
     )
   }
@@ -291,7 +267,7 @@ export default function PostProperty() {
           </div>
           <input ref={fileRef} type="file" accept="image/*" multiple className="hidden"
             onChange={handleImageChange} />
-          {errors.images && <p className="text-xs text-red-500 mt-1">{errors.images}</p>}
+          {imageError && <p className="text-xs text-red-500 mt-1">{imageError}</p>}
         </Card>
 
         {/* ── 基本信息 ─────────────────────────────────────────────────────── */}

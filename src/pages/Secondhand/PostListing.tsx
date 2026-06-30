@@ -15,7 +15,7 @@ import PostFormAreaPicker from '../../components/PostForm/PostFormAreaPicker'
 import PostFormContact from '../../components/PostForm/PostFormContact'
 import PostFormSuccess from '../../components/PostForm/PostFormSuccess'
 import type { LocationResult } from '../../components/LocationInput/LocationInput'
-import { compressImage, validateImageFile } from '../../lib/compressImage'
+import { useImageUpload } from '../../lib/useImageUpload'
 import {
   SECONDHAND_CATEGORY_CONFIG, ITEM_CONDITION_CONFIG,
   type SecondhandCategory, type ItemCondition, type SecondhandItem,
@@ -56,11 +56,12 @@ export default function PostListing() {
 
   const [form,        setForm]        = useState<FormState>(INITIAL)
   const [location,    setLocation]    = useState<LocationResult | null>(null)
-  const [images,      setImages]      = useState<File[]>([])
-  const [previews,    setPreviews]    = useState<string[]>([])
+  const {
+    images, previews, uploading: uploadingImg, error: imageError,
+    handleChange: handleImageChange, remove: removeImage, reset: resetImages,
+  } = useImageUpload(MAX_IMAGES)
   const [errors,      setErrors]      = useState<Partial<Record<keyof FormState | 'images', string>>>({})
   const [submitting,  setSubmitting]  = useState(false)
-  const [uploadingImg, setUploadingImg] = useState(false)
   const [done,        setDone]        = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
@@ -82,42 +83,9 @@ export default function PostListing() {
       })
   }, [user])
 
-  // Revoke object URLs on unmount
-  useEffect(() => {
-    return () => previews.forEach(URL.revokeObjectURL)
-  }, [previews])
-
   const set = <K extends keyof FormState>(k: K, v: FormState[K]) => {
     setForm((f) => ({ ...f, [k]: v }))
     setErrors((e) => ({ ...e, [k]: undefined }))
-  }
-
-  async function handleImageChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const files = Array.from(e.target.files ?? [])
-    if (!files.length) return
-    e.target.value = ''
-
-    const remaining = MAX_IMAGES - images.length
-    const toProcess = files.slice(0, remaining)
-
-    for (const file of toProcess) {
-      const err = validateImageFile(file)
-      if (err) { setErrors((prev) => ({ ...prev, images: err })); return }
-    }
-
-    setUploadingImg(true)
-    const compressed = await Promise.all(toProcess.map((f) => compressImage(f)))
-    const newPreviews = compressed.map((f) => URL.createObjectURL(f))
-    setImages((prev) => [...prev, ...compressed])
-    setPreviews((prev) => [...prev, ...newPreviews])
-    setErrors((e) => ({ ...e, images: undefined }))
-    setUploadingImg(false)
-  }
-
-  function removeImage(idx: number) {
-    URL.revokeObjectURL(previews[idx])
-    setImages((prev) => prev.filter((_, i) => i !== idx))
-    setPreviews((prev) => prev.filter((_, i) => i !== idx))
   }
 
   function validate(): boolean {
@@ -237,7 +205,7 @@ export default function PostListing() {
         viewListLabel="查看二手列表"
         onViewList={() => navigate('/secondhand')}
         postAnotherLabel="继续发布"
-        onPostAnother={() => { previews.forEach(URL.revokeObjectURL); setForm(INITIAL); setImages([]); setPreviews([]); setDone(false) }}
+        onPostAnother={() => { resetImages(); setForm(INITIAL); setDone(false) }}
       />
     )
   }
@@ -281,7 +249,7 @@ export default function PostListing() {
           </div>
           <input ref={fileRef} type="file" accept="image/*" multiple className="hidden"
             onChange={handleImageChange} />
-          {errors.images && <p className="text-xs text-red-500 mt-1">{errors.images}</p>}
+          {imageError && <p className="text-xs text-red-500 mt-1">{imageError}</p>}
           <p className="text-xs text-gray-400 mt-1">建议上传清晰实物照，首张图作为封面</p>
         </Card>
 
