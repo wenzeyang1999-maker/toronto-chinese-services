@@ -238,17 +238,24 @@ export default function AdminPage() {
           <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-sm space-y-4">
             <h3 className="text-base font-bold text-gray-900">确认删除账号</h3>
             <p className="text-sm text-gray-500">
-              将彻底删除 <span className="font-semibold text-gray-800">{deleteTarget.name}</span>（{deleteTarget.email}）的所有数据，且无法恢复。
+              将彻底删除 <span className="font-semibold text-gray-800">{deleteTarget.name}</span>（{deleteTarget.email}），<span className="font-semibold text-red-600">此操作不可撤销</span>，并连带删除该用户的：
             </p>
+            <ul className="text-xs text-gray-500 list-disc pl-5 space-y-0.5">
+              <li>发布的服务 / 招聘 / 房源 / 闲置 / 活动</li>
+              <li>评价、问答、社区帖子与评论</li>
+              <li>私信会话与消息记录</li>
+            </ul>
             <div className="space-y-1">
-              <label className="text-xs text-gray-500 font-medium">passcode：</label>
+              <label className="text-xs text-gray-500 font-medium">
+                请输入该用户的名字 <span className="font-semibold text-gray-700">「{deleteTarget.name}」</span> 以确认：
+              </label>
               <input
-                type="password"
+                type="text"
                 autoComplete="off"
                 value={deleteConfirm}
                 onChange={e => { setDeleteConfirm(e.target.value); setDeleteError('') }}
                 onKeyDown={e => e.key === 'Enter' && deleteUser(deleteTarget.id, deleteTarget.name)}
-                placeholder=""
+                placeholder={deleteTarget.name}
                 className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-red-300"
               />
               {deleteError && <p className="text-xs text-red-500">{deleteError}</p>}

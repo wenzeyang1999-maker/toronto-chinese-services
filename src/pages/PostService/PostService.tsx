@@ -138,7 +138,18 @@ export default function PostService() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     const errs = validate()
-    if (Object.keys(errs).length > 0) { setErrors(errs); return }
+    if (Object.keys(errs).length > 0) {
+      setErrors(errs)
+      // Scroll to the section holding the first error so the user isn't left
+      // staring at a submit button that "did nothing".
+      const ref =
+        (errs.title || errs.description || errs.price) ? serviceInfoRef :
+        (errs.name || errs.phone)                      ? contactRef :
+        errs.area                                      ? areaRef : null
+      if (ref) scrollTo(ref)
+      else window.scrollTo({ top: 0, behavior: 'smooth' })
+      return
+    }
     if (!user) { navigate('/login'); return }
     if (!(await ensurePhoneVerified(navigate))) return
 
@@ -304,8 +315,11 @@ export default function PostService() {
                   }))
                 }}
                 disabled={aiGenerating}
-                className="text-xs font-semibold px-3 py-1.5 rounded-full bg-primary-50 text-primary-600 hover:bg-primary-100 disabled:opacity-60 transition-colors"
+                className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full bg-primary-50 text-primary-600 hover:bg-primary-100 disabled:opacity-60 transition-colors"
               >
+                {aiGenerating && (
+                  <span className="w-3 h-3 border-2 border-primary-300 border-t-transparent rounded-full animate-spin" />
+                )}
                 {aiGenerating ? 'AI 生成中…' : 'AI 辅助写文案'}
               </button>
             </div>

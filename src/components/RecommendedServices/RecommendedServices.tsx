@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
+import { Sparkles } from 'lucide-react'
 import { useAppStore } from '../../store/appStore'
 import { useAuthStore } from '../../store/authStore'
 import ServiceCard from '../ServiceCard/ServiceCard'
@@ -110,6 +111,11 @@ export default function RecommendedServices({ excludeIds }: Props) {
       transition={{ delay: 0.25 }}
       className="mb-6"
     >
+      <div className="flex items-center gap-1.5 mb-3 px-0.5">
+        <Sparkles size={16} className="text-primary-500" />
+        <h2 className="text-base font-bold text-gray-900">猜你喜欢</h2>
+        <span className="text-xs text-gray-400">根据你的浏览推荐</span>
+      </div>
       <div className="columns-2 md:columns-3 lg:columns-4 xl:columns-5 2xl:columns-6 gap-3">
         {items.map((item, idx) =>
           item.type === 'cta' ? (

@@ -58,6 +58,7 @@ export default function ServicesSection() {
   const [promoServiceId, setPromoServiceId] = useState<string | null>(null)
   const [promoNote,      setPromoNote]      = useState('')
   const [promoSending,   setPromoSending]   = useState(false)
+  const [pendingPromo,   setPendingPromo]   = useState<Set<string>>(new Set())
   const [promoSent,      setPromoSent]      = useState(false)
 
   // Service edit state
@@ -74,6 +75,11 @@ export default function ServicesSection() {
     supabase.from('services').select('id,title,description,price,price_type,area,category_id,is_available,created_at,images')
       .eq('provider_id', user.id).order('created_at', { ascending: false })
       .then(({ data }) => { if (data) setServices(data.map(r => ({ ...r, images: r.images ?? [] }))) })
+
+    // Which services already have a pending promotion request — shown as a label
+    // so the provider knows why a re-apply is blocked.
+    supabase.from('promo_requests').select('service_id').eq('provider_id', user.id).eq('status', 'pending')
+      .then(({ data }) => { if (data) setPendingPromo(new Set(data.map((r: { service_id: string }) => r.service_id))) })
 
     supabase.from('jobs').select('*').eq('poster_id', user.id).order('created_at', { ascending: false })
       .then(({ data }) => { if (data) setJobs(data.map(j => ({ ...j, listing_type: j.listing_type ?? 'hiring' })) as Job[]) })
@@ -247,11 +253,18 @@ export default function ServicesSection() {
             </button>
           )}
 
-          <button onClick={() => { setPromoServiceId(id); setPromoNote(''); setPromoSent(false) }}
-            className="w-9 h-9 flex items-center justify-center rounded-xl text-gray-400 hover:bg-amber-50 hover:text-amber-500 transition-colors flex-shrink-0"
-            title="申请置顶推广">
-            <Zap size={16} />
-          </button>
+          {pendingPromo.has(id) ? (
+            <span className="flex items-center gap-1 text-[11px] font-semibold px-2 py-1 rounded-full bg-amber-50 text-amber-600 flex-shrink-0"
+              title="置顶申请审核中">
+              <Zap size={11} className="fill-amber-400" /> 待审核
+            </span>
+          ) : (
+            <button onClick={() => { setPromoServiceId(id); setPromoNote(''); setPromoSent(false) }}
+              className="w-9 h-9 flex items-center justify-center rounded-xl text-gray-400 hover:bg-amber-50 hover:text-amber-500 transition-colors flex-shrink-0"
+              title="申请置顶推广">
+              <Zap size={16} />
+            </button>
+          )}
           <button onClick={() => setConfirmDel(id)}
             className="w-9 h-9 flex items-center justify-center rounded-xl text-gray-400 hover:bg-red-50 hover:text-red-500 transition-colors flex-shrink-0">
             <Trash2 size={16} />
@@ -389,6 +402,7 @@ export default function ServicesSection() {
                             toast('提交失败，请稍后再试', 'error')
                           }
                         } else {
+                          if (promoServiceId) setPendingPromo(prev => new Set(prev).add(promoServiceId))
                           setPromoSent(true)
                           notifyAdminPromoRequest({
                             serviceName:  svc.title,

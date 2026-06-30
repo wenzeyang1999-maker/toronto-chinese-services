@@ -128,7 +128,14 @@ export default function StatsSection() {
     setServiceStats(stats)
 
     // ── 对比同类:per-category platform benchmarks vs this provider's averages ──
-    const { data: benchmarks } = await supabase.rpc('category_service_benchmarks')
+    const { data: benchmarks, error: benchErr } = await supabase.rpc('category_service_benchmarks')
+    if (benchErr || !benchmarks) {
+      // Benchmarks unavailable — hide the comparison card rather than showing a
+      // misleading "持平" computed from a zeroed-out baseline.
+      setComparisons([])
+      setLoading(false)
+      return
+    }
     const benchMap: Record<string, { avg_views: number; avg_rating: number | null }> = {}
     ;(benchmarks ?? []).forEach((b: any) => {
       benchMap[b.category_id] = {
@@ -140,22 +147,23 @@ export default function StatsSection() {
     const byCat: Record<string, ServiceStat[]> = {}
     stats.forEach((s) => { (byCat[s.category_id] ??= []).push(s) })
 
-    const cmps: CategoryComparison[] = Object.entries(byCat).map(([catId, list]) => {
+    const cmps: CategoryComparison[] = Object.entries(byCat).flatMap(([catId, list]) => {
+      const bench = benchMap[catId]
+      if (!bench) return []   // no platform baseline for this category — skip it
       const myAvgViews = list.reduce((sum, s) => sum + s.views, 0) / list.length
       const rated      = list.filter((s) => s.reviews > 0)
       const myAvgRating = rated.length
         ? rated.reduce((sum, s) => sum + s.avg_rating, 0) / rated.length
         : null
-      const bench = benchMap[catId]
-      return {
+      return [{
         category_id:  catId,
         label:        getCategoryById(catId as ServiceCategory)?.label ?? catId,
         myServices:   list.length,
         myAvgViews,
-        catAvgViews:  bench?.avg_views ?? 0,
+        catAvgViews:  bench.avg_views,
         myAvgRating,
-        catAvgRating: bench?.avg_rating ?? null,
-      }
+        catAvgRating: bench.avg_rating,
+      }]
     })
     setComparisons(cmps)
     setLoading(false)

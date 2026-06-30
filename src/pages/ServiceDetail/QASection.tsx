@@ -252,8 +252,9 @@ export default function QASection({ serviceId, providerId }: Props) {
                   exit={{ opacity: 0, x: -16 }} transition={{ delay: qi * 0.03 }}
                   className="border border-gray-100 rounded-2xl overflow-hidden"
                 >
-                  {/* Question row */}
-                  <div className="flex items-start gap-3 px-4 py-3 bg-white">
+                  {/* Question row — whole row toggles the answers */}
+                  <div onClick={() => toggleExpand(q.id)}
+                    className="flex items-start gap-3 px-4 py-3 bg-white cursor-pointer hover:bg-gray-50 transition-colors">
                     {/* Avatar */}
                     <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0 mt-0.5 border border-gray-100 bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center text-white text-xs font-bold">
                       {q.asker?.avatar_url ? (
@@ -268,7 +269,7 @@ export default function QASection({ serviceId, providerId }: Props) {
                         <span className="text-xs font-semibold text-gray-700">{q.asker?.name ?? '匿名'}</span>
                         <span className="text-[11px] text-gray-400">{q.created_at.slice(0, 10)}</span>
                         {isMyQuestion && (
-                          <button onClick={() => deleteQuestion(q.id)}
+                          <button onClick={(e) => { e.stopPropagation(); deleteQuestion(q.id) }}
                             className="ml-auto text-[11px] text-gray-300 hover:text-red-400 transition-colors flex items-center gap-0.5">
                             <Trash2 size={11} /> 删除
                           </button>
@@ -277,11 +278,10 @@ export default function QASection({ serviceId, providerId }: Props) {
                       <p className="text-sm text-gray-800 mt-0.5 leading-relaxed">{q.content}</p>
                     </div>
 
-                    {/* Expand toggle */}
-                    <button onClick={() => toggleExpand(q.id)}
-                      className="flex-shrink-0 text-gray-400 hover:text-gray-600 transition-colors mt-0.5">
+                    {/* Expand indicator — whole row is the click target */}
+                    <span className="flex-shrink-0 text-gray-400 mt-0.5">
                       {q.expanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-                    </button>
+                    </span>
                   </div>
 
                   {/* Answers + reply form */}

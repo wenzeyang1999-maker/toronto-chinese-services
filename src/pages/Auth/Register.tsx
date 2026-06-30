@@ -77,6 +77,16 @@ export default function Register() {
   const [serverError, setServerError]           = useState<string | null>(null)
   const [emailExists, setEmailExists]           = useState(false)
   const [success, setSuccess]                   = useState(false)
+  const [resending, setResending]               = useState(false)
+  const [resendMsg, setResendMsg]               = useState<string | null>(null)
+
+  async function resendVerification() {
+    setResending(true)
+    setResendMsg(null)
+    const { error } = await supabase.auth.resend({ type: 'signup', email: form.email })
+    setResending(false)
+    setResendMsg(error ? '发送失败，请稍后再试' : '验证邮件已重新发送 ✓')
+  }
 
   const update = (field: keyof RegisterForm, value: string) => {
     setForm((f) => ({ ...f, [field]: value }))
@@ -145,9 +155,21 @@ export default function Register() {
             我们已发送一封验证邮件到 <span className="font-medium text-gray-700">{form.email}</span>，
             请查收并点击链接激活账号。
           </p>
-          <p className="text-xs text-gray-400 mb-6">
-            若未收到邮件，请检查垃圾邮件文件夹。
+          <p className="text-xs text-gray-400 mb-4">
+            若未收到邮件，请检查垃圾邮件文件夹，或点击下方重新发送。
           </p>
+          {resendMsg && (
+            <p className={`text-xs mb-3 ${resendMsg.includes('✓') ? 'text-green-600' : 'text-red-500'}`}>
+              {resendMsg}
+            </p>
+          )}
+          <button
+            onClick={resendVerification}
+            disabled={resending}
+            className="w-full border border-gray-200 text-gray-600 py-3 rounded-2xl font-medium text-sm hover:bg-gray-50 disabled:opacity-60 transition-colors mb-2"
+          >
+            {resending ? '发送中…' : '重新发送验证邮件'}
+          </button>
           <button
             onClick={() => navigate('/')}
             className="w-full bg-primary-600 text-white py-3 rounded-2xl font-medium text-sm hover:bg-primary-700 transition-colors"
