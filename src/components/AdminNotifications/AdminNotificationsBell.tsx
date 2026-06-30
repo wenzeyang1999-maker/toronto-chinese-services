@@ -41,6 +41,7 @@ export default function AdminNotificationsBell({ compact = false }: AdminNotific
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [notifications, setNotifications] = useState<NotificationRow[]>([])
+  const [limit, setLimit] = useState(12)
 
   const unreadCount = useMemo(
     () => notifications.filter((item) => !item.read_at).length,
@@ -62,7 +63,7 @@ export default function AdminNotificationsBell({ compact = false }: AdminNotific
         .select('id, title, body, link_url, read_at, created_at, type')
         .eq('recipient_id', user.id)
         .order('created_at', { ascending: false })
-        .limit(12),
+        .limit(limit),
     ])
 
     setRole(profile?.role ?? null)
@@ -75,7 +76,7 @@ export default function AdminNotificationsBell({ compact = false }: AdminNotific
 
     setNotifications((data ?? []) as NotificationRow[])
     setLoading(false)
-  }, [user])
+  }, [user, limit])
 
   useEffect(() => {
     void loadNotifications()
@@ -206,6 +207,14 @@ export default function AdminNotificationsBell({ compact = false }: AdminNotific
                 </div>
               </button>
             ))}
+            {notifications.length >= limit && (
+              <button
+                onClick={() => setLimit((n) => n + 20)}
+                className="w-full px-4 py-3 text-center text-xs font-semibold text-primary-600 hover:bg-gray-50 transition-colors"
+              >
+                {loading ? '加载中…' : '加载更多历史'}
+              </button>
+            )}
           </div>
         </div>
       )}

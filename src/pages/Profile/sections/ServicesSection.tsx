@@ -489,7 +489,10 @@ export default function ServicesSection() {
                           <button onClick={cancelEdit} className="text-gray-400 hover:text-gray-600"><X size={16} /></button>
                         </div>
                         <div>
-                          <label className="text-xs text-gray-500 mb-2 block">图片（最多 3 张）</label>
+                          <label className="text-xs text-gray-500 mb-2 block">
+                            图片（最多 3 张）
+                            <span className="text-gray-400">— 灰框为现有图片（保留），蓝框为本次新增</span>
+                          </label>
                           <div className="flex flex-wrap gap-2">
                             {editForm.images.map((url, i) => (
                               <div key={`ex-${i}`} className="relative w-20 h-20 rounded-xl overflow-hidden border border-gray-200 flex-shrink-0">
@@ -501,8 +504,9 @@ export default function ServicesSection() {
                               </div>
                             ))}
                             {newPreviews.map((src, i) => (
-                              <div key={`new-${i}`} className="relative w-20 h-20 rounded-xl overflow-hidden border border-blue-200 flex-shrink-0">
+                              <div key={`new-${i}`} className="relative w-20 h-20 rounded-xl overflow-hidden border-2 border-blue-300 flex-shrink-0">
                                 <img src={src} alt="" className="w-full h-full object-cover" />
+                                <span className="absolute bottom-0 inset-x-0 bg-blue-500/80 text-white text-[9px] text-center font-semibold leading-tight py-0.5">新增</span>
                                 <button type="button" onClick={() => { URL.revokeObjectURL(newPreviews[i]); setNewImgFiles(p => p.filter((_,j) => j !== i)); setNewPreviews(p => p.filter((_,j) => j !== i)) }}
                                   className="absolute top-1 right-1 w-5 h-5 bg-black/50 rounded-full flex items-center justify-center text-white">
                                   <X size={10} />

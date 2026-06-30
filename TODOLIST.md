@@ -154,7 +154,7 @@ ProviderProfile/ServiceDetail 已用 `Promise.all`+join；ai-chat 已加 `AbortS
 | 垂直版块 | 广场 Plaza | 6.5 | ⬆️ 原 6.0;随机洗牌**已修**;Tab 状态割裂仍在 |
 | 社区沟通 | 社区 Community | 7.0 | ⬆️ 原 6.5;洗牌**已修** + "已读只存前端"是**误报**(早已落库) |
 | 社区沟通 | 私信 Conversation | 7.5 | ⬆️ 原 7.0;tempId**已修** + "重置全部未读"是**误报** |
-| 社区沟通 | 通知 Notifications | 6.0 | 无实时同步、管理员通知无历史 |
+| 社区沟通 | 通知 Notifications | 6.5 | ⬆️ 管理员通知**已加「加载更多」历史**;prefs 无实时(次要)仍在 |
 | 社区沟通 | AI 客服 | 5.5 | 对话存 localStorage、20s 易超时 |
 | 账户后台 | 注册登录 Auth | 7.0 | 密码位数**已统一** |
 | 账户后台 | 个人中心 Profile | 6.5 | 模式切换 feature flag 残留、退出无确认 |
@@ -162,8 +162,8 @@ ProviderProfile/ServiceDetail 已用 `Promise.all`+join；ai-chat 已加 `AbortS
 | 账户后台 | 数据面板 Stats | 6.0 | 无实时、无相对数据(只有绝对值) |
 | 账户后台 | 会员 Membership | 5.5 | L2/L3 权益空洞(真问题)+ DB tagline 文案过期 |
 | 账户后台 | 邀请 Referral | 6.5 | 生成失败兜底差、文案"叠加"vs"续期"不一 |
-| 账户后台 | 我的发布 Services | 6.0 | 图片新旧混乱、5 类型逻辑各写各的 |
-| 账户后台 | 报价 Inquiries(双侧) | 6.0 | 接单方无推送提醒、无评价入口 |
+| 账户后台 | 我的发布 Services | 6.5 | ⬆️ 编辑图片**已加新旧标识 + 新增角标**;5 类型各写各的(大重构)仍在 |
+| 账户后台 | 报价 Inquiries(双侧) | 6.5 | ⬆️ **已加评价入口**;"接单方无推送"是**误报**(notifyInquirySelected 早已发) |
 | 账户后台 | 管理后台 Admin | 6.5 | ⬆️ 原 5.5;"无搜索"是**误报**(UsersTab 有搜索);批量/撤销仍缺 |
 
 ### 完善路线(可勾选)
