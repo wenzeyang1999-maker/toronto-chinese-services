@@ -172,8 +172,8 @@ ProviderProfile/ServiceDetail 已用 `Promise.all`+join；ai-chat 已加 `AbortS
 - [ ] 统一密码位数(注册 8 / 改密 6 → 统一);抽 `formatTime()` 相对时间;统一举报原因常量(社区/AI/二手三份合一)
 
 **P1 — 一周内,补硬伤**
-- [ ] provider 技能词搜索改**模糊匹配**(ILIKE),"维"能搜到"维修"
-- [ ] 社区**已读状态落库**(新建 `user_post_reads` 表,登录后恢复)
+- [x] ~~provider 技能词搜索改**模糊匹配**~~ — 2026-06-29 完成:RPC `search_providers_by_keyword`(unnest+ILIKE,只返回公开列),"维"能搜到"维修",migration `20260629120001` 已应用线上
+- [x] ~~社区**已读状态落库**~~ — 复核发现早已实现:`useReadStore` + `user_read_posts` 表(migration `20260531120001`)+ `useReadSync()`(App.tsx:78 挂载时 hydrate),localStorage 抗刷新 + Supabase 跨设备。**原审计是误报**
 - [ ] 抽 `formatPrice()` + 通用 `FilterPanel` + `useImageUpload`,四个垂直版块复用(消除各造轮子)
 - [ ] 关键空状态 + **骨架屏统一组件化**(消除 ViewCount/Follow/Save 挂载抖动)
 - [ ] 移动端键盘遮挡修复(发帖标签选择器 / 聊天输入 / AI 输入,补 safe-area)

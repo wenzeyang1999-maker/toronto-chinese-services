@@ -155,12 +155,10 @@ export default function Search() {
         setCommunityLoading(false)
       })
 
-    // Search providers by skill_tags — exact tag containment (uses GIN index)
+    // Search providers — fuzzy partial match on skill_tags + name (RPC unnest + ILIKE),
+    // so "维" matches a provider tagged "维修". Exact containment missed partial terms.
     supabase
-      .from('users')
-      .select('id, name, avatar_url, bio, is_online, business_type, skill_tags')
-      .filter('skill_tags', 'cs', `{"${kw}"}`)
-      .limit(6)
+      .rpc('search_providers_by_keyword', { kw })
       .then(({ data }) => setProviderResults((data as ProviderResult[]) ?? []))
 
     // DB-level keyword search — runs when store services haven't loaded yet
