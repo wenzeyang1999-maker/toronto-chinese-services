@@ -24,6 +24,7 @@ interface Message {
   role: 'user' | 'assistant'
   content: string
   streaming?: boolean   // true while tokens are still arriving
+  failed?: boolean      // the request errored/timed out — show a retry affordance
 }
 
 function saveChatSession(messages: Message[]) {
@@ -123,21 +124,34 @@ export default function AiChatWidget({ grouped }: Props) {
   }, [open, messages])
 
   // ── Send a user message and stream the response ──────────────────────────
-  async function send(text: string) {
+  // Re-run the last user turn after a failure — drops the failed assistant
+  // bubble + its user turn and re-sends, so the API history stays clean
+  // (no error text, no duplicate/role-broken turns).
+  function retryLast() {
+    if (busy) return
+    let prior = [...messages]
+    if (prior[prior.length - 1]?.role === 'assistant') prior = prior.slice(0, -1)
+    const last = prior[prior.length - 1]
+    if (last?.role !== 'user') return
+    void send(last.content, prior.slice(0, -1))
+  }
+
+  async function send(text: string, priorOverride?: Message[]) {
     const trimmed = text.trim()
     if (!trimmed || busy) return
 
     setInput('')
     setBusy(true)
 
-    const userMsg: Message  = { role: 'user', content: trimmed }
-    const botMsg:  Message  = { role: 'assistant', content: '', streaming: true }
+    const prior   = priorOverride ?? messages
+    const userMsg: Message = { role: 'user', content: trimmed }
+    const botMsg:  Message = { role: 'assistant', content: '', streaming: true }
 
-    setMessages(prev => [...prev, userMsg, botMsg])
+    setMessages([...prior, userMsg, botMsg])
 
     // Build history for the API (exclude the in-progress bot placeholder)
     const history: { role: 'user' | 'assistant'; content: string }[] = [
-      ...messages.map(m => ({ role: m.role, content: m.content })),
+      ...prior.map(m => ({ role: m.role, content: m.content })),
       { role: 'user', content: trimmed },
     ]
 
@@ -207,8 +221,8 @@ export default function AiChatWidget({ grouped }: Props) {
         setMessages(prev => {
           const copy = [...prev]
           const last = copy[copy.length - 1]
-          if (last?.role === 'assistant' && !last.content) {
-            copy[copy.length - 1] = { ...last, content: '响应超时，请重试' }
+          if (last?.role === 'assistant') {
+            copy[copy.length - 1] = { ...last, content: last.content || '响应超时，请重试', failed: true }
           }
           return copy
         })
@@ -219,7 +233,7 @@ export default function AiChatWidget({ grouped }: Props) {
         const copy = [...prev]
         const last = copy[copy.length - 1]
         if (last?.role === 'assistant') {
-          copy[copy.length - 1] = { ...last, content: msg }
+          copy[copy.length - 1] = { ...last, content: msg, failed: true }
         }
         return copy
       })
@@ -501,7 +515,16 @@ export default function AiChatWidget({ grouped }: Props) {
                     }
                     {isLastBot && (
                       <div className="flex flex-wrap gap-2 pl-10 mt-2">
-                        {query && (
+                        {m.failed && (
+                          <button
+                            onClick={retryLast}
+                            className="text-xs bg-amber-50 border border-amber-200 text-amber-700
+                                       rounded-full px-3 py-1.5 hover:bg-amber-100 active:scale-95 transition-all"
+                          >
+                            ↻ 重试
+                          </button>
+                        )}
+                        {query && !m.failed && (
                           <button
                             onClick={() => { setOpen(false); navigate(`/search?q=${encodeURIComponent(query)}`) }}
                             className="text-xs bg-primary-50 border border-primary-200 text-primary-700

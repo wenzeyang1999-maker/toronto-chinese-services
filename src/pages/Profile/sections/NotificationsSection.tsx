@@ -90,6 +90,21 @@ export default function NotificationsSection() {
       })
   }, [user])
 
+  // Keep prefs in sync if changed from another tab / device.
+  useEffect(() => {
+    if (!user) return
+    const channel = supabase
+      .channel(`notif-prefs-${user.id}`)
+      .on('postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'users', filter: `id=eq.${user.id}` },
+        (payload) => {
+          const np = (payload.new as { notification_prefs?: Partial<NotifPrefs> })?.notification_prefs
+          if (np) setPrefs({ ...DEFAULT_PREFS, ...np })
+        })
+      .subscribe()
+    return () => { supabase.removeChannel(channel) }
+  }, [user])
+
   async function toggle(key: keyof NotifPrefs) {
     const next = { ...prefs, [key]: !prefs[key] }
     setPrefs(next)
