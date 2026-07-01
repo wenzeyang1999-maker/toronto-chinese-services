@@ -52,6 +52,7 @@ export interface ServiceProvider {
   verified: boolean
   phoneVerified: boolean
   businessVerified: boolean
+  membershipLevel: 'L1' | 'L2' | 'L3'
   joinedAt: string
   lastSeenAt?: string | null
   languages: string[]

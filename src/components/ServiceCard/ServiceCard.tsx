@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { Star, MapPin, ShieldCheck, Zap, BadgeCheck, Phone } from 'lucide-react'
+import { Star, MapPin, ShieldCheck, Zap, BadgeCheck, Phone, Crown } from 'lucide-react'
 import type { Service } from '../../types'
 import { getCategoryById } from '../../data/categories'
 import { useReadStore } from '../../store/readStore'
@@ -67,6 +67,22 @@ export default function ServiceCard({ service, layout = 'list' }: Props) {
     </span>
   ) : null
 
+  // ── Membership badge: 黄金 / 至尊 商家 (paid-tier trust + visibility signal) ──
+  const MembershipBadge = () => {
+    const lvl = service.provider.membershipLevel
+    if (lvl === 'L3') return (
+      <span className="inline-flex items-center gap-1 rounded-full border border-zinc-700 bg-zinc-900 px-2 py-0.5 text-[10px] font-semibold text-amber-300">
+        <Crown size={9} className="fill-amber-300" /> 至尊商家
+      </span>
+    )
+    if (lvl === 'L2') return (
+      <span className="inline-flex items-center gap-1 rounded-full border border-amber-300 bg-gradient-to-r from-amber-50 to-yellow-50 px-2 py-0.5 text-[10px] font-semibold text-amber-700">
+        <Crown size={9} className="fill-amber-400" /> 黄金商家
+      </span>
+    )
+    return null
+  }
+
   // ── Rating row helper ─────────────────────────────────────────────────────
   const RatingBadge = () => hasReviews ? (
     <div className="flex items-center gap-0.5">
@@ -124,6 +140,7 @@ export default function ServiceCard({ service, layout = 'list' }: Props) {
           <p className="text-xs text-gray-500 leading-relaxed line-clamp-3">{service.description}</p>
 
           <div className="flex flex-wrap gap-1.5">
+            <MembershipBadge />
             <TrustBadge />
             {activeLabel && (
               <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">
@@ -198,7 +215,8 @@ export default function ServiceCard({ service, layout = 'list' }: Props) {
 
         {/* Badges */}
         <div className="mb-1.5 flex flex-wrap gap-1.5">
-          <TrustBadge />
+          <MembershipBadge />
+            <TrustBadge />
           {activeLabel && (
             <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">
               {activeLabel}

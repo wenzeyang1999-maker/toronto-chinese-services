@@ -68,6 +68,12 @@ export default function RecommendedServices({ excludeIds }: Props) {
         // Promoted
         if (s.isPromoted) score += 20
 
+        // Membership visibility boost (方案A 曝光优先) — a soft nudge on the same
+        // scale as trust/freshness, so paid tiers rank higher *among similar*
+        // services without overriding a clearly better-rated competitor.
+        if (s.provider.membershipLevel === 'L3') score += 30
+        else if (s.provider.membershipLevel === 'L2') score += 15
+
         return { s, score }
       })
       .sort((a, b) => b.score - a.score)
