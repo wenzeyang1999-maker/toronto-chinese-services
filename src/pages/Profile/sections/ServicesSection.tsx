@@ -59,6 +59,19 @@ export default function ServicesSection() {
   const [promoNote,      setPromoNote]      = useState('')
   const [promoSending,   setPromoSending]   = useState(false)
   const [pendingPromo,   setPendingPromo]   = useState<Set<string>>(new Set())
+  const [freePromoLeft,  setFreePromoLeft]  = useState(0)
+
+  async function useFreePromo(serviceId: string) {
+    if (promoSending) return
+    setPromoSending(true)
+    const { data, error } = await supabase.rpc('use_free_promotion', { p_service_id: serviceId, p_days: 3 })
+    setPromoSending(false)
+    const res = data as { ok?: boolean; error?: string; remaining?: number } | null
+    if (error || !res?.ok) { toast(res?.error ?? '置顶失败，请重试', 'error'); return }
+    setFreePromoLeft(res.remaining ?? 0)
+    setPromoServiceId(null)
+    toast(`已免费置顶 3 天，本月还剩 ${res.remaining ?? 0} 次`, 'success')
+  }
   const [promoSent,      setPromoSent]      = useState(false)
 
   // Service edit state
@@ -80,6 +93,10 @@ export default function ServicesSection() {
     // so the provider knows why a re-apply is blocked.
     supabase.from('promo_requests').select('service_id').eq('provider_id', user.id).eq('status', 'pending')
       .then(({ data }) => { if (data) setPendingPromo(new Set(data.map((r: { service_id: string }) => r.service_id))) })
+
+    // Free promotion quota left this month (0 for non-members)
+    supabase.rpc('my_free_promo_remaining')
+      .then(({ data }) => setFreePromoLeft(typeof data === 'number' ? data : 0))
 
     supabase.from('jobs').select('*').eq('poster_id', user.id).order('created_at', { ascending: false })
       .then(({ data }) => { if (data) setJobs(data.map(j => ({ ...j, listing_type: j.listing_type ?? 'hiring' })) as Job[]) })
@@ -369,10 +386,24 @@ export default function ServicesSection() {
                       <p className="text-sm font-semibold text-gray-800 truncate">{svc.title}</p>
                     </div>
 
+                    {/* Free instant promotion for 黄金/至尊 members */}
+                    {freePromoLeft > 0 && (
+                      <button
+                        onClick={() => useFreePromo(promoServiceId)}
+                        disabled={promoSending}
+                        className="w-full mb-4 py-3 rounded-2xl bg-gradient-to-r from-amber-400 to-yellow-500 text-white
+                                   text-sm font-bold hover:opacity-95 disabled:opacity-60 transition-opacity
+                                   flex items-center justify-center gap-2"
+                      >
+                        <Zap size={15} className="fill-white" />
+                        {promoSending ? '置顶中…' : `会员免费立即置顶 3 天（本月剩 ${freePromoLeft} 次）`}
+                      </button>
+                    )}
+
                     {/* Note input */}
                     <div className="mb-4">
                       <p className="text-xs text-gray-500 mb-2 leading-relaxed">
-                        管理员审核通过后服务将置顶展示。可填写补充说明（可选）：
+                        {freePromoLeft > 0 ? '或提交申请由管理员安排更长时间的置顶。' : '管理员审核通过后服务将置顶展示。'}可填写补充说明（可选）：
                       </p>
                       <textarea
                         value={promoNote}
