@@ -189,6 +189,8 @@ export default function InquiryModal({ open, onClose }: Props) {
         phone:       form.phone.trim(),
         wechat:      form.wechat.trim() || null,
         user_id:     user.id,
+        lat:         userLocation?.lat ?? null,
+        lng:         userLocation?.lng ?? null,
         status:      'open',
       }).select('id').single()
       if (error) throw error

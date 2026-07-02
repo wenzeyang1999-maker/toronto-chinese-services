@@ -124,7 +124,7 @@ Deno.serve(async (req) => {
     // Verify inquiry exists and has not been matched already (prevents duplicate sends)
     const { data: inquiry, error: inquiryError } = await admin
       .from('inquiries')
-      .select('id, status')
+      .select('id, status, lat, lng')
       .eq('id', payload.inquiryId)
       .single()
     if (inquiryError || !inquiry) throw new Error('Inquiry not found')
@@ -136,7 +136,7 @@ Deno.serve(async (req) => {
 
     const { data: rows, error } = await admin
       .from('services')
-      .select('provider_id, provider:provider_id(id, name, email, last_seen_at, is_online), reviews(rating)')
+      .select('provider_id, lat, lng, provider:provider_id(id, name, email, last_seen_at, is_online), reviews(rating)')
       .eq('category_id', payload.categoryId)
       .eq('is_available', true)
 
@@ -146,8 +146,20 @@ Deno.serve(async (req) => {
       })
     }
 
+    // Straight-line distance (km) between the customer and a provider's service.
+    const iLat = typeof inquiry.lat === 'number' ? inquiry.lat : null
+    const iLng = typeof inquiry.lng === 'number' ? inquiry.lng : null
+    function distanceKm(lat: number | null, lng: number | null): number | null {
+      if (iLat === null || iLng === null || typeof lat !== 'number' || typeof lng !== 'number') return null
+      if ((lat === 0 && lng === 0)) return null
+      const R = 6371, toRad = (d: number) => (d * Math.PI) / 180
+      const dLat = toRad(lat - iLat), dLng = toRad(lng - iLng)
+      const a = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(iLat)) * Math.cos(toRad(lat)) * Math.sin(dLng / 2) ** 2
+      return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+    }
+
     const seen = new Set<string>()
-    const providers: { id: string; name: string; email: string; rating: number; isOnline: boolean; activeRecently: boolean }[] = []
+    const providers: { id: string; name: string; email: string; rating: number; isOnline: boolean; activeRecently: boolean; distance: number | null }[] = []
     const cutoff = Date.now() - 24 * 60 * 60 * 1000
 
     for (const row of rows as ProviderRow[]) {
@@ -171,13 +183,22 @@ Deno.serve(async (req) => {
         rating,
         isOnline,
         activeRecently,
+        distance: distanceKm((row as { lat: number | null }).lat, (row as { lng: number | null }).lng),
       })
     }
 
-    // Sort priority: 1) is_online (上线接单) 2) active in last 24h 3) rating
+    // Sort priority: 1) is_online 2) active 24h 3) NEARBY first (unknown-distance
+    // last, so a far/no-coord provider drops off the MAX_NOTIFY list when closer
+    // ones exist) 4) rating. Soft geo — never hard-excludes.
     providers.sort((a, b) => {
       if (a.isOnline !== b.isOnline) return a.isOnline ? -1 : 1
       if (a.activeRecently !== b.activeRecently) return a.activeRecently ? -1 : 1
+      const ad = a.distance, bd = b.distance
+      if (ad !== bd) {
+        if (ad === null) return 1
+        if (bd === null) return -1
+        if (Math.abs(ad - bd) > 1) return ad - bd   // >1km apart → nearer first
+      }
       return b.rating - a.rating
     })
 
