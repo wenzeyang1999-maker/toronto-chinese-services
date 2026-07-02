@@ -83,17 +83,14 @@ function buildProviderInquiryEmail(recipientName: string, data: InquiryPayload) 
     <div style="padding:28px 32px;">
       <p style="font-size:17px;font-weight:700;color:#111827;margin:0 0 20px;">您有一条新的客户询价</p>
       <p>您好 <strong>${h(recipientName)}</strong>，</p>
-      <p>有客户通过平台发布了一条服务需求，与您提供的「<strong>${h(data.categoryLabel)}</strong>」服务匹配，请及时联系客户：</p>
+      <p>有客户通过平台发布了一条服务需求，与您提供的「<strong>${h(data.categoryLabel)}</strong>」服务匹配。登录抢单，<strong>客户选定您后即可获得联系方式</strong>：</p>
       <table style="width:100%;border-collapse:collapse;font-size:14px;margin:16px 0;">
-        <tr style="background:#f9fafb;"><td style="padding:10px 14px;color:#6b7280;width:90px;font-weight:600;">客户姓名</td><td style="padding:10px 14px;color:#111827;">${h(data.name)}</td></tr>
-        <tr><td style="padding:10px 14px;color:#6b7280;font-weight:600;">联系电话</td><td style="padding:10px 14px;color:#111827;font-weight:700;">${h(data.phone)}</td></tr>
-        <tr style="background:#f9fafb;"><td style="padding:10px 14px;color:#6b7280;font-weight:600;">微信号</td><td style="padding:10px 14px;color:#111827;">${data.wechat ? h(data.wechat) : '未提供'}</td></tr>
-        <tr><td style="padding:10px 14px;color:#6b7280;font-weight:600;">服务类型</td><td style="padding:10px 14px;color:#111827;">${h(data.categoryLabel)}</td></tr>
-        <tr style="background:#f9fafb;"><td style="padding:10px 14px;color:#6b7280;font-weight:600;">需求描述</td><td style="padding:10px 14px;color:#374151;">${h(data.description)}</td></tr>
-        <tr><td style="padding:10px 14px;color:#6b7280;font-weight:600;">预算</td><td style="padding:10px 14px;color:#111827;">${data.budget ? `$${h(data.budget)}` : '未指定'}</td></tr>
-        <tr style="background:#f9fafb;"><td style="padding:10px 14px;color:#6b7280;font-weight:600;">希望时间</td><td style="padding:10px 14px;color:#111827;">${h(data.timing)}</td></tr>
+        <tr style="background:#f9fafb;"><td style="padding:10px 14px;color:#6b7280;width:90px;font-weight:600;">服务类型</td><td style="padding:10px 14px;color:#111827;">${h(data.categoryLabel)}</td></tr>
+        <tr><td style="padding:10px 14px;color:#6b7280;font-weight:600;">需求描述</td><td style="padding:10px 14px;color:#374151;">${h(data.description)}</td></tr>
+        <tr style="background:#f9fafb;"><td style="padding:10px 14px;color:#6b7280;font-weight:600;">预算</td><td style="padding:10px 14px;color:#111827;">${data.budget ? `$${h(data.budget)}` : '未指定'}</td></tr>
+        <tr><td style="padding:10px 14px;color:#6b7280;font-weight:600;">希望时间</td><td style="padding:10px 14px;color:#111827;">${h(data.timing)}</td></tr>
       </table>
-      <p style="color:#6b7280;font-size:13px;">⚡ 先到先得！最多 5 名服务商可抢到此单，请尽快登录抢单。</p>
+      <p style="color:#6b7280;font-size:13px;">⚡ 先到先得！最多 5 名服务商可抢到此单。抢单后若被客户选中，即可看到客户联系方式。</p>
       <a href="${SITE}/inquiries/${h(data.inquiryId)}/claim" style="display:inline-block;margin-top:8px;background:#e63946;color:#fff !important;text-decoration:none;padding:12px 28px;border-radius:10px;font-weight:700;font-size:14px;">🔥 立即抢单</a>
     </div>
   </div>
