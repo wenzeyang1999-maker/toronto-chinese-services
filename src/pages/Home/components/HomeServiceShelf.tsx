@@ -51,7 +51,9 @@ export default function HomeServiceShelf({
 
   const q = query.trim()
 
-  const filteredList = q ? fuzzyFilterServices(services, q)    : services
+  // When searching, list and map query the SAME full pool (allServices) so their
+  // results match; with no query the list shows the curated nearby `services`.
+  const filteredList = q ? fuzzyFilterServices(allServices, q) : services
   const filteredMap  = q ? fuzzyFilterServices(allServices, q) : defaultMapServices
 
   function handleSearch(e: React.FormEvent) {
