@@ -7,6 +7,7 @@ import { Heart, MessageCircle, Share2, Check } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { useAuthStore } from '../../store/authStore'
 import { useReadStore } from '../../store/readStore'
+import { useFollowsStore } from '../../store/followsStore'
 import Header from '../../components/Header/Header'
 import PostFAB from '../../components/PostFAB/PostFAB'
 import { POST_TYPE_CONFIG, AREA_CONFIG } from './config'
@@ -36,7 +37,13 @@ export default function CommunityPage() {
   const [loading,    setLoading]    = useState(true)
   const [typeFilter, setTypeFilter] = useState<string>('all')
   const [areaFilter, setAreaFilter] = useState<string>('all')
+  const [followMode, setFollowMode] = useState(false)
   const [copiedId,   setCopiedId]   = useState<string | null>(null)
+
+  const following    = useFollowsStore((s) => s.following)
+  const fetchFollows = useFollowsStore((s) => s.fetchFollows)
+  const followsReady = useFollowsStore((s) => s.isReady)
+  useEffect(() => { if (user && !followsReady) fetchFollows(user.id) }, [user?.id, followsReady, fetchFollows])
 
   // Share a specific post from the list card (mirrors CommunityDetail.sharePost,
   // but targets the post's own URL instead of window.location). stopPropagation
@@ -58,6 +65,10 @@ export default function CommunityPage() {
 
   const load = useCallback(async () => {
     setLoading(true)
+    // "关注" mode: only posts from authors the user follows.
+    const followAuthorIds = followMode ? [...following] : null
+    if (followAuthorIds && followAuthorIds.length === 0) { setPosts([]); setLoading(false); return }
+
     let q = supabase
       .from('community_posts')
       .select('id, title, content, type, area, like_count, created_at, images, author:author_id(id, name, avatar_url)')
@@ -66,6 +77,7 @@ export default function CommunityPage() {
 
     if (typeFilter !== 'all') q = q.eq('type', typeFilter)
     if (areaFilter !== 'all') q = q.eq('area', areaFilter)
+    if (followAuthorIds) q = q.in('author_id', followAuthorIds)
 
     const { data } = await q
     if (!data) { setLoading(false); return }
@@ -87,7 +99,7 @@ export default function CommunityPage() {
     }))
     setPosts(mapped)
     setLoading(false)
-  }, [typeFilter, areaFilter])
+  }, [typeFilter, areaFilter, followMode, following])
 
   useEffect(() => { load() }, [load])
 
@@ -99,6 +111,13 @@ export default function CommunityPage() {
       <div className="bg-white border-b border-gray-100">
         <div className="w-full px-3 md:w-[85%] md:px-0 lg:w-[70%] mx-auto py-2.5 space-y-2">
           <div className="flex gap-2 overflow-x-auto scrollbar-hide">
+            {user && (
+              <button onClick={() => setFollowMode((v) => !v)}
+                className={`flex-shrink-0 flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-semibold border transition-all
+                            ${followMode ? 'bg-primary-600 text-white border-primary-600' : 'bg-white text-primary-600 border-primary-300 hover:bg-primary-50'}`}>
+                ❤️ 关注
+              </button>
+            )}
             {[['all', '全部', '📋'], ...Object.entries(POST_TYPE_CONFIG).map(([k, v]) => [k, v.label, v.emoji])].map(([key, label, emoji]) => (
               <button key={key} onClick={() => setTypeFilter(key)}
                 className={`flex-shrink-0 flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-semibold

@@ -15,6 +15,7 @@ import { toast } from '../../lib/toast'
 import { useAuthStore } from '../../store/authStore'
 import { useReadStore } from '../../store/readStore'
 import SaveButton from '../../components/SaveButton/SaveButton'
+import FollowButton from '../../components/FollowButton/FollowButton'
 import PageMeta from '../../components/PageMeta/PageMeta'
 import { POST_TYPE_CONFIG, AREA_CONFIG } from './config'
 
@@ -405,6 +406,7 @@ export default function CommunityDetail() {
                 <p className="text-sm font-semibold text-gray-800">{post.author?.name ?? '匿名'}</p>
                 <p className="text-xs text-gray-400">{post.created_at.slice(0, 10)} · 📍 {AREA_CONFIG[post.area] ?? post.area}</p>
               </div>
+              {post.author_id && <FollowButton providerId={post.author_id} className="!px-3 !py-1.5 !text-xs" />}
               <span className={`flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full border ${tc?.color}`}>
                 {tc?.emoji} {tc?.label}
               </span>
