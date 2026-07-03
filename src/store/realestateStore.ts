@@ -12,6 +12,9 @@ interface PropertyRow {
   property_type: string
   bedrooms: number | null
   bathrooms: number | null
+  sqft: number | null
+  lat: number | null
+  lng: number | null
   description: string
   price: number | null
   price_type: string
@@ -44,6 +47,9 @@ function mapRow(row: PropertyRow): Property {
     property_type:      row.property_type as Property['property_type'],
     bedrooms:           row.bedrooms,
     bathrooms:          row.bathrooms,
+    sqft:               row.sqft ?? null,
+    lat:                row.lat ?? null,
+    lng:                row.lng ?? null,
     description:        row.description,
     price:              row.price,
     price_type:         row.price_type as Property['price_type'],

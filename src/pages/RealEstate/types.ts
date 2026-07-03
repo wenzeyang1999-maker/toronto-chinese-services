@@ -20,6 +20,9 @@ export interface Property {
   property_type: PropertyType
   bedrooms: number | null
   bathrooms: number | null
+  sqft: number | null
+  lat: number | null
+  lng: number | null
   description: string
 
   price: number | null

@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { ChevronLeft, MapPin, Phone, MessageCircle, Copy, Home, User, ExternalLink, BedDouble, Bath, Car, PawPrint, Zap } from 'lucide-react'
+import { ChevronLeft, MapPin, Phone, MessageCircle, Copy, Home, User, ExternalLink, BedDouble, Bath, Car, PawPrint, Zap, Maximize2 } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { useAuthStore } from '../../store/authStore'
 import { useReadStore } from '../../store/readStore'
@@ -169,6 +169,11 @@ export default function RealEstateDetail() {
                     <Bath size={11} />{prop.bathrooms} 卫
                   </span>
                 )}
+                {prop.sqft != null && (
+                  <span className="flex items-center gap-1 text-xs px-2.5 py-1 rounded-full bg-gray-100 text-gray-600">
+                    <Maximize2 size={11} />{prop.sqft} 尺²
+                  </span>
+                )}
                 {prop.area && prop.area.length > 0 && (
                   <span className="flex items-center gap-1 text-xs px-2.5 py-1 rounded-full bg-gray-100 text-gray-600">
                     <MapPin size={11} />{prop.area.join('·')}
@@ -201,6 +206,13 @@ export default function RealEstateDetail() {
                 <div className="text-sm text-gray-600 space-y-1 mb-4">
                   {prop.available_date && <p>📅 可入住：{new Date(prop.available_date).toLocaleDateString('zh-CN')}</p>}
                   {prop.address && <p>📍 {prop.address}</p>}
+                  {prop.lat != null && prop.lng != null && (
+                    <a href={`https://www.google.com/maps/search/?api=1&query=${prop.lat},${prop.lng}`}
+                      target="_blank" rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 text-primary-600 hover:underline">
+                      <MapPin size={13} /> 在地图查看
+                    </a>
+                  )}
                 </div>
               )}
 

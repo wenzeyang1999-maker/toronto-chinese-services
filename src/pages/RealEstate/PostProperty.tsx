@@ -10,6 +10,7 @@ import PostFormField from '../../components/PostForm/PostFormField'
 import { postFormInput } from '../../components/PostForm/postFormInput'
 import PostFormAreaPicker from '../../components/PostForm/PostFormAreaPicker'
 import PostFormContact from '../../components/PostForm/PostFormContact'
+import LocationInput, { type LocationResult } from '../../components/LocationInput/LocationInput'
 import PostFormSuccess from '../../components/PostForm/PostFormSuccess'
 import { supabase } from '../../lib/supabase'
 import { useAuthStore } from '../../store/authStore'
@@ -35,6 +36,7 @@ interface FormState {
   property_type: PropertyType
   bedrooms: string
   bathrooms: string
+  sqft: string
   description: string
   price: string
   price_type: PriceType
@@ -52,7 +54,7 @@ interface FormState {
 const INITIAL: FormState = {
   listing_type: 'rent',
   title: '', property_type: 'apartment',
-  bedrooms: '', bathrooms: '',
+  bedrooms: '', bathrooms: '', sqft: '',
   description: '', price: '', price_type: 'monthly',
   pet_friendly: false, parking: false, utilities_included: false,
   area: [], address: '', available_date: '',
@@ -67,6 +69,7 @@ export default function PostProperty() {
 
   const initType = (searchParams.get('type') ?? 'rent') as RealEstateListingType
   const [form,         setForm]        = useState<FormState>({ ...INITIAL, listing_type: initType })
+  const [location,     setLocation]    = useState<LocationResult | null>(null)
   const {
     images, previews, uploading: uploadingImg, error: imageError,
     handleChange: handleImageChange, remove: removeImage, reset: resetImages,
@@ -145,6 +148,7 @@ export default function PostProperty() {
       property_type:      form.property_type,
       bedrooms:           form.bedrooms !== '' ? parseInt(form.bedrooms) : null,
       bathrooms:          form.bathrooms !== '' ? parseFloat(form.bathrooms) : null,
+      sqft:               form.sqft !== '' ? parseInt(form.sqft) : null,
       description:        form.description.trim(),
       price:              form.price_type !== 'negotiable' && form.price ? parseFloat(form.price) : null,
       price_type:         form.price_type,
@@ -154,7 +158,9 @@ export default function PostProperty() {
       images:             imageUrls,
       area:               form.area.length > 0 ? form.area : null,
       city:               'Toronto',
-      address:            form.address.trim() || null,
+      address:            location?.address ?? (form.address.trim() || null),
+      lat:                (location && !(location.lat === 0 && location.lng === 0)) ? location.lat : null,
+      lng:                (location && !(location.lat === 0 && location.lng === 0)) ? location.lng : null,
       available_date:     form.available_date || null,
       contact_name:       form.contact_name.trim(),
       contact_phone:      form.contact_phone.trim(),
@@ -210,7 +216,7 @@ export default function PostProperty() {
         viewListLabel="查看房源列表"
         onViewList={() => navigate('/realestate')}
         postAnotherLabel="继续发布"
-        onPostAnother={() => { resetImages(); setForm(INITIAL); setDone(false) }}
+        onPostAnother={() => { resetImages(); setForm(INITIAL); setLocation(null); setDone(false) }}
       />
     )
   }
@@ -319,6 +325,12 @@ export default function PostProperty() {
             </Field>
           </div>
 
+          <Field label="室内面积（平方英尺，选填）">
+            <input type="number" inputMode="numeric" min={0} value={form.sqft}
+              onChange={(e) => set('sqft', e.target.value)}
+              placeholder="例：750" className={input(false)} />
+          </Field>
+
           {/* Area */}
           <Field label="地区" required error={errors.area}>
             <PostFormAreaPicker selected={form.area} onChange={(areas) => set('area', areas)} error={errors.area} />
@@ -328,6 +340,10 @@ export default function PostProperty() {
             <input value={form.address} onChange={(e) => set('address', e.target.value)}
               placeholder="例：Jane & Finch 附近，无需填写门牌号"
               className={input(false)} />
+          </Field>
+
+          <Field label="地图定位（选填，方便租客在地图上找到）">
+            <LocationInput onChange={setLocation} />
           </Field>
 
           <Field label="可入住日期（选填）">
