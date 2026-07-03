@@ -57,7 +57,7 @@ export default function SecondhandList() {
     <>
       <div>
         <h1 className="text-lg font-bold text-gray-900">二手交易</h1>
-        <p className="text-xs text-gray-400">华林 · 闲置转让</p>
+        <p className="text-xs text-gray-400">华邻 · 闲置转让</p>
       </div>
 
       {/* Category tab bar */}

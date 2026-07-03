@@ -205,7 +205,7 @@ export default function Register() {
           {/* Header */}
           <div className="mb-6">
             <h1 className="text-2xl font-bold text-gray-900 mb-1">创建账号</h1>
-            <p className="text-sm text-gray-500">加入华林</p>
+            <p className="text-sm text-gray-500">加入华邻</p>
           </div>
 
           {/* OAuth buttons */}

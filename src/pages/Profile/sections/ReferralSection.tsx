@@ -85,7 +85,7 @@ export default function ReferralSection({ user }: Props) {
 
   const shareBaseUrl = typeof window !== 'undefined' ? window.location.origin : BASE_URL
   const shareUrl  = referralCode ? `${shareBaseUrl}/register?ref=${referralCode}` : ''
-  const shareText = `我在华林找到了很多靠谱的本地服务商！用我的邀请码 ${referralCode} 注册：`
+  const shareText = `我在华邻找到了很多靠谱的本地服务商！用我的邀请码 ${referralCode} 注册：`
 
   async function copyLink() {
     if (!shareUrl) return

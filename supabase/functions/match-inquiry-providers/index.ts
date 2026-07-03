@@ -77,7 +77,7 @@ function buildProviderInquiryEmail(recipientName: string, data: InquiryPayload) 
 <body style="margin:0;padding:0;background:#f5f5f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
   <div style="max-width:520px;margin:32px auto;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,0.08);">
     <div style="background:linear-gradient(135deg,#e63946,#c1121f);padding:28px 32px;">
-      <h1 style="margin:0;color:#fff;font-size:20px;font-weight:700;">华林</h1>
+      <h1 style="margin:0;color:#fff;font-size:20px;font-weight:700;">华邻</h1>
       <p style="margin:4px 0 0;color:rgba(255,255,255,0.8);font-size:13px;">海外华人生活一站式服务平台</p>
     </div>
     <div style="padding:28px 32px;">

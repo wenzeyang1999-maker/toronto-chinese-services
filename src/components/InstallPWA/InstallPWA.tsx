@@ -49,7 +49,7 @@ export default function InstallPWA() {
             <Download size={18} className="text-primary-600" />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold text-gray-900 leading-tight">把 NCC 装到主屏幕</p>
+            <p className="text-sm font-semibold text-gray-900 leading-tight">把 华邻 装到主屏幕</p>
             <p className="text-xs text-gray-500 mt-0.5">收消息更及时，打开更快</p>
           </div>
           <button onClick={install}
@@ -71,7 +71,7 @@ export default function InstallPWA() {
           <div className="bg-white rounded-t-3xl lg:rounded-3xl w-full lg:max-w-sm p-5 space-y-4"
             onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between">
-              <h3 className="text-base font-bold text-gray-900">安装 NCC</h3>
+              <h3 className="text-base font-bold text-gray-900">安装 华邻</h3>
               <button onClick={dismiss} className="text-gray-400">
                 <X size={18} />
               </button>

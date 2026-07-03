@@ -276,7 +276,7 @@ export default function CommunityDetail() {
       `📢 ${post.title}`,
       snippet,
       firstImage ? `🖼 ${firstImage}` : null,
-      `👉 华林 · 社区论坛`,
+      `👉 华邻 · 社区论坛`,
     ].filter(Boolean).join('\n\n')
 
     if (navigator.share) {

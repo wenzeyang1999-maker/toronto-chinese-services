@@ -10,7 +10,7 @@ export default function TermsOfService() {
 
   useEffect(() => {
     window.scrollTo(0, 0)
-    document.title = '服务条款 — 华林'
+    document.title = '服务条款 — 华邻'
   }, [])
 
   return (
@@ -26,7 +26,7 @@ export default function TermsOfService() {
         <div>
           <p className="text-xs text-gray-400">最后更新：{LAST_UPDATED}</p>
           <p className="mt-3">
-            欢迎使用华林（"本平台"）。注册账户或使用本平台即表示您同意以下服务条款。请在使用前仔细阅读。
+            欢迎使用华邻（"本平台"）。注册账户或使用本平台即表示您同意以下服务条款。请在使用前仔细阅读。
           </p>
         </div>
 

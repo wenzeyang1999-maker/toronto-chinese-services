@@ -22,14 +22,14 @@ const SLIDES: { type: 'image' | 'video'; src: string; title: string; subtitle: s
   {
     type: 'image',
     src: '/images/slides/slide1.svg',
-    title: '华林 — 海外华人生活服务',
+    title: '华邻 — 海外华人生活服务',
     subtitle: '搬家、保洁、接送、装修，一键找到靠谱服务',
   },
   {
     type: 'image',
     src: '/images/slides/slide2.svg',
     title: '日常事务，一键搞定',
-    subtitle: '海外生活不孤单，华林就在身边',
+    subtitle: '海外生活不孤单，华邻就在身边',
   },
   {
     type: 'image',

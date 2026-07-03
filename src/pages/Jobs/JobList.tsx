@@ -70,7 +70,7 @@ export default function JobList() {
     <>
       <div>
         <h1 className="text-lg font-bold text-gray-900">招聘求职</h1>
-        <p className="text-xs text-gray-400">华林 · 职位</p>
+        <p className="text-xs text-gray-400">华邻 · 职位</p>
       </div>
 
       <div className="flex bg-gray-100 rounded-xl p-1 gap-1">

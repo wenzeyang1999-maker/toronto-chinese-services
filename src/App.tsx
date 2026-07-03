@@ -125,7 +125,7 @@ export default function App() {
         supabase.from('users').insert({
           id:         authUser.id,
           email:      authUser.email ?? '',
-          name:       meta.full_name ?? meta.name ?? '华林用户',
+          name:       meta.full_name ?? meta.name ?? '华邻用户',
           avatar_url: meta.avatar_url ?? meta.picture ?? null,
         }).then(() => {}, () => {})
       }

@@ -52,7 +52,7 @@ export default function CommunityPage() {
     e.stopPropagation()
     const url = `${window.location.origin}/community/${post.id}`
     const snippet = post.content.slice(0, 120) + (post.content.length > 120 ? '…' : '')
-    const shareText = [`📢 ${post.title}`, snippet, `👉 华林 · 社区论坛`].filter(Boolean).join('\n\n')
+    const shareText = [`📢 ${post.title}`, snippet, `👉 华邻 · 社区论坛`].filter(Boolean).join('\n\n')
 
     if (navigator.share) {
       try { await navigator.share({ title: post.title, text: shareText, url }) } catch { /* cancelled */ }

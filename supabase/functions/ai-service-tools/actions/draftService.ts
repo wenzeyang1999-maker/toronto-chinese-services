@@ -15,7 +15,7 @@ export async function handleDraftService(payload: ActionPayload): Promise<Respon
     : []
 
   const raw = await askModel(
-    `你要帮华林平台的服务商生成发布文案。
+    `你要帮华邻平台的服务商生成发布文案。
 服务分类：${categoryLabel}
 当前标题：${title || '未填写'}
 关键词/补充说明：${keywords || '未填写'}

@@ -20,7 +20,7 @@ export default function InstallAppButton() {
     if (canInstall) {
       const outcome = await triggerInstall()
       if (outcome === 'accepted') {
-        toast('安装成功！可以在桌面/主屏幕找到 NCC', 'success')
+        toast('安装成功！可以在桌面/主屏幕找到 华邻', 'success')
       }
       return
     }

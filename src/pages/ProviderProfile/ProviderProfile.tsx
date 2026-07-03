@@ -212,7 +212,7 @@ export default function ProviderProfile() {
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
       <PageMeta
-        title={`${provider.name} — 华林服务商`}
+        title={`${provider.name} — 华邻服务商`}
         description={provider.bio ?? `查看 ${provider.name} 的服务、招聘、房源和闲置信息`}
       />
 

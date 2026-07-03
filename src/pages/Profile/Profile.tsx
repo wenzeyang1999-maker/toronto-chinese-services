@@ -170,7 +170,7 @@ export default function Profile() {
         <div>
           <h2 className="text-xl font-bold text-gray-900 mb-2">登录后解锁完整功能</h2>
           <p className="text-sm text-gray-500 leading-relaxed max-w-xs mx-auto">
-            加入华林，一键发现大多伦多华人生活服务
+            加入华邻，一键发现大多伦多华人生活服务
           </p>
         </div>
         <div className="w-full max-w-sm bg-white rounded-2xl border border-gray-100 shadow-sm divide-y divide-gray-100">

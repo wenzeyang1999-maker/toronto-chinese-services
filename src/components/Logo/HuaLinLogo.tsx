@@ -1,8 +1,8 @@
 // ─── HuaLinLogo ───────────────────────────────────────────────────────────────
-// 华林品牌标志。
+// 华邻品牌标志。
 // Badge: 两棵白色树形 (象征"林"字) + 蓝色渐变背景
 // variant="icon"  → badge only
-// variant="full"  → badge + "华林" wordmark + tagline
+// variant="full"  → badge + "华邻" wordmark + tagline
 // theme="light"   → dark text (白底)
 // theme="dark"    → all-white (深色背景)
 
@@ -62,14 +62,14 @@ export default function HuaLinLogo({
 
   if (variant === 'icon') {
     return (
-      <span className={className} aria-label="华林">
+      <span className={className} aria-label="华邻">
         <Badge />
       </span>
     )
   }
 
   return (
-    <span className={`inline-flex items-center gap-2 ${className}`} aria-label="华林 — 海外华人生活一站式服务平台">
+    <span className={`inline-flex items-center gap-2 ${className}`} aria-label="华邻 — 海外华人生活一站式服务平台">
       <Badge />
       <span className="flex flex-col leading-none select-none">
         <span
@@ -82,7 +82,7 @@ export default function HuaLinLogo({
             lineHeight:  1,
           }}
         >
-          华林
+          华邻
         </span>
         <span
           style={{

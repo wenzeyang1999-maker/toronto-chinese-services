@@ -52,7 +52,7 @@ function template(title: string, body: string, ctaText: string, ctaUrl: string):
 <body>
 <div class="wrap">
   <div class="header">
-    <h1>华林</h1>
+    <h1>华邻</h1>
     <p>海外华人生活一站式服务平台</p>
   </div>
   <div class="body">
@@ -180,7 +180,7 @@ function buildEmail(type: string, recipientName: string, data: Record<string, st
 
     case 'new_community_post':
       return {
-        subject: `📝 ${h(data.authorName)} 在华林社区发了新帖`,
+        subject: `📝 ${h(data.authorName)} 在华邻社区发了新帖`,
         html: template(
           `您关注的人发布了新帖子`,
           `<p>您好 <strong>${h(recipientName)}</strong>，</p>
@@ -267,11 +267,11 @@ function buildEmail(type: string, recipientName: string, data: Record<string, st
 
     case 'welcome':
       return {
-        subject: `🎉 欢迎加入华林！`,
+        subject: `🎉 欢迎加入华邻！`,
         html: template(
           `欢迎加入华人圈！`,
           `<p>您好 <strong>${h(recipientName)}</strong>，</p>
-           <p>感谢您注册<strong>华林</strong>！</p>
+           <p>感谢您注册<strong>华邻</strong>！</p>
            <p>您现在可以：</p>
            <ul style="color:#374151;font-size:14px;line-height:2;">
              <li>🔧 浏览和联系本地华人服务商</li>

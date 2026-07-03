@@ -282,7 +282,7 @@ export default function EventList() {
   return (
     <ListPageShell
       pageTitle="社区活动"
-      pageDescription="多伦多华人社区活动：聚会、课程、讲座、演出，尽在华林"
+      pageDescription="多伦多华人社区活动：聚会、课程、讲座、演出，尽在华邻"
       topBar={topBar}
       countText={`共 ${events.length} 个活动`}
       selectedId={selectedId}

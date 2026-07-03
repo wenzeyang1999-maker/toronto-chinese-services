@@ -307,7 +307,7 @@ export default function AiChatWidget({ grouped }: Props) {
                   <Bot size={18} />
                 </div>
                 <div>
-                  <p className="text-sm font-semibold leading-tight">华林智能助手</p>
+                  <p className="text-sm font-semibold leading-tight">华邻智能助手</p>
                   <p className="text-xs text-blue-200 leading-tight">在线 · 即时回复</p>
                 </div>
               </div>
@@ -464,7 +464,7 @@ export default function AiChatWidget({ grouped }: Props) {
               {/* Welcome message */}
               {messages.length === 0 && (
                 <div className="space-y-3">
-                  <BotBubble text="您好！我是 华林智能助手 👋 我可以帮您找到适合的服务，解答平台使用问题。请问有什么可以帮您？" />
+                  <BotBubble text="您好！我是 华邻智能助手 👋 我可以帮您找到适合的服务，解答平台使用问题。请问有什么可以帮您？" />
                   {/* Quick reply chips */}
                   <div className="flex flex-wrap gap-2 pl-8">
                     {QUICK_REPLIES.map(q => (

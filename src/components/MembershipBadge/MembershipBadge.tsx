@@ -41,9 +41,15 @@ export const LEVEL_CONFIG = {
   },
 } as const
 
+// Buyer-facing merchant label (shown on service cards) — clearer than "L3".
+const MERCHANT_LABEL: Record<MemberLevel, string | null> = { L1: null, L2: '黄金商家', L3: '至尊商家' }
+
 interface Props {
   level?: MemberLevel | null
   size?:  'sm' | 'md' | 'lg'
+  // 'chip'  → tappable "♛ L3" tier chip (default, provider header)
+  // 'label' → static "黄金商家" trust label (service cards); same palette, no popup
+  variant?: 'chip' | 'label'
 }
 
 const SIZE = {
@@ -52,7 +58,7 @@ const SIZE = {
   lg: 'text-sm    px-3   py-1   gap-1.5 rounded-full',
 }
 
-export default function MembershipBadge({ level = 'L1', size = 'sm' }: Props) {
+export default function MembershipBadge({ level = 'L1', size = 'sm', variant = 'chip' }: Props) {
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLSpanElement>(null)
 
@@ -71,6 +77,18 @@ export default function MembershipBadge({ level = 'L1', size = 'sm' }: Props) {
 
   if (!level) return null
   const cfg = LEVEL_CONFIG[level]
+
+  // Static merchant label (service cards) — same palette, no tap/popup.
+  if (variant === 'label') {
+    const label = MERCHANT_LABEL[level]
+    if (!label) return null
+    return (
+      <span className={`inline-flex items-center font-bold tracking-wide ${cfg.bg} ${cfg.text} ${cfg.ring} ${cfg.shadow} ${SIZE[size]}`}>
+        <span>{cfg.icon}</span>
+        <span>{label}</span>
+      </span>
+    )
+  }
 
   return (
     <span ref={ref} className="relative inline-flex">
