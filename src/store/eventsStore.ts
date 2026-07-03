@@ -19,6 +19,7 @@ interface EventRow {
   area: string[] | null
   price: number | null
   max_attendees: number | null
+  attendee_count: number | null
   images: string[] | null
   contact_name: string
   contact_phone: string
@@ -46,6 +47,7 @@ function mapRow(row: EventRow): Event {
     area:           row.area,
     price:          row.price,
     max_attendees:  row.max_attendees,
+    attendee_count: row.attendee_count ?? 0,
     images:         row.images ?? [],
     contact_name:   row.contact_name,
     contact_phone:  row.contact_phone,

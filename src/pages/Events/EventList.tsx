@@ -10,6 +10,7 @@ import {
   Phone, MessageCircle, Copy, User, ExternalLink,
 } from 'lucide-react'
 import ListPageShell from '../../components/ListPageShell/ListPageShell'
+import EventRsvpButton from '../../components/EventRsvp/EventRsvpButton'
 import { useEventsStore } from '../../store/eventsStore'
 import { useAuthStore } from '../../store/authStore'
 import { useReadStore } from '../../store/readStore'
@@ -411,8 +412,10 @@ function DetailPanel({ ev, onClose }: { ev: Event; onClose: () => void }) {
               ))}
             </div>
           )}
-          {ev.max_attendees && (
-            <p className="text-xs text-gray-500">👥 名额限制：{ev.max_attendees} 人</p>
+          {isUpcoming(ev) && (
+            <div className="pt-3 border-t border-gray-100">
+              <EventRsvpButton eventId={ev.id} maxAttendees={ev.max_attendees} attendeeCount={ev.attendee_count} />
+            </div>
           )}
         </div>
 

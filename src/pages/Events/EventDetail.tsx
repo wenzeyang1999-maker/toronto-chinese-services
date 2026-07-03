@@ -7,6 +7,7 @@ import { ChevronLeft, MapPin, Phone, MessageCircle, Copy, Calendar, User, Extern
 import { supabase } from '../../lib/supabase'
 import { useAuthStore } from '../../store/authStore'
 import { useReadStore } from '../../store/readStore'
+import EventRsvpButton from '../../components/EventRsvp/EventRsvpButton'
 import {
   EVENT_TYPE_CONFIG, getPriceLabel, formatEventDate, formatEventTime, isUpcoming,
   type Event,
@@ -195,10 +196,14 @@ export default function EventDetail() {
                     ))}
                   </div>
                 )}
-                {ev.max_attendees && (
-                  <p className="text-xs text-gray-500">👥 名额限制：{ev.max_attendees} 人</p>
-                )}
               </div>
+
+              {/* RSVP — only for upcoming events */}
+              {isUpcoming(ev) && (
+                <div className="pt-4 border-t border-gray-100">
+                  <EventRsvpButton eventId={ev.id} maxAttendees={ev.max_attendees} attendeeCount={ev.attendee_count} />
+                </div>
+              )}
 
               <div className="pt-4 border-t border-gray-100">
                 <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">活动详情</p>

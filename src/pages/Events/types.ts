@@ -36,6 +36,7 @@ export interface Event {
   price: number | null      // null = free
 
   max_attendees: number | null
+  attendee_count: number
 
   images: string[]
 

@@ -8,6 +8,7 @@ import { supabase } from '../../lib/supabase'
 import { toast } from '../../lib/toast'
 import { useReadStore } from '../../store/readStore'
 import SaveButton from '../SaveButton/SaveButton'
+import EventRsvpButton from '../EventRsvp/EventRsvpButton'
 import {
   EVENT_TYPE_CONFIG, getPriceLabel, formatEventDate, formatEventTime, isUpcoming,
   type Event,
@@ -250,10 +251,10 @@ export default function EventDrawer({ eventId, onClose }: Props) {
                         ))}
                       </div>
                     )}
-                    {ev.max_attendees && (
-                      <p className="text-xs text-gray-500 flex items-center gap-1">
-                        <Users size={11} /> 名额限制：{ev.max_attendees} 人
-                      </p>
+                    {isUpcoming(ev) && (
+                      <div className="pt-3 border-t border-gray-100">
+                        <EventRsvpButton eventId={ev.id} maxAttendees={ev.max_attendees} attendeeCount={ev.attendee_count} />
+                      </div>
                     )}
                   </div>
 
