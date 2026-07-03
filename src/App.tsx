@@ -67,7 +67,6 @@ import { unsubscribeFromWebPush } from './lib/webPush'
 import { useRequestMatchAlerts } from './hooks/useRequestMatchAlerts'
 import { useReadSync } from './lib/useReadSync'
 import { useViewportHeight } from './lib/useViewportHeight'
-import ProviderInquiryAlerts from './components/InquiryRaceAlert/ProviderInquiryAlerts'
 
 function SearchAllRedirect() {
   const q = new URLSearchParams(window.location.search).get('q') ?? ''
@@ -221,7 +220,10 @@ export default function App() {
       {isLoadingDone && <MessageToast />}
       {isLoadingDone && <InstallPWA />}
       {isLoadingDone && <GeofenceBanner />}
-      {isLoadingDone && <ProviderInquiryAlerts />}
+      {/* Provider inquiry alerts removed: it subscribed the provider's browser to
+          the whole inquiries table (which carries customer name/phone/wechat),
+          a PII-over-realtime risk. Providers are notified via email + the public
+          service_requests alert (useRequestMatchAlerts) instead — no PII. */}
       <ToastContainer />
     </>
   )

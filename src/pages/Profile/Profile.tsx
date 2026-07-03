@@ -6,7 +6,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import {
   ChevronLeft, ChevronRight, Camera, LogOut,
-  ShieldCheck, Clock, MessageSquare, BadgeCheck, Crown, Heart, UserCheck, Gift, LayoutDashboard, ClipboardList, Bell, Store, User as UserIcon,
+  ShieldCheck, Clock, MessageSquare, BadgeCheck, Crown, Heart, UserCheck, Gift, LayoutDashboard, ClipboardList, Bell, Store, Calendar, User as UserIcon,
 } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { useAuthStore } from '../../store/authStore'
@@ -29,6 +29,7 @@ import HomepageSection    from './sections/HomepageSection'
 import InquiriesSection        from './sections/InquiriesSection'
 import ClaimedInquiriesSection from './sections/ClaimedInquiriesSection'
 import NotificationsSection    from './sections/NotificationsSection'
+import MyEventsSection          from './sections/MyEventsSection'
 import { toast } from '../../lib/toast'
 import InstallAppButton from '../../components/InstallAppButton/InstallAppButton'
 import CreditStars from '../../components/CreditStars/CreditStars'
@@ -43,6 +44,7 @@ const MENU: MenuItem[] = [
   { key: 'account',      icon: <ShieldCheck   size={18} />, label: '帐号和安全',        sub: '个人信息、密码修改', modes: ['client', 'provider'] },
   { key: 'messages',     icon: <MessageSquare  size={18} />, label: '我的消息',     sub: '与商家的对话记录', modes: ['client', 'provider'] },
   { key: 'membership',   icon: <Crown         size={18} />, label: '会员等级',           sub: '查看商家会员权益', modes: ['client', 'provider'] },
+  { key: 'my_events',      icon: <Calendar      size={18} />, label: '我报名的活动', sub: '已报名的同城活动', modes: ['client', 'provider'] },
   { key: 'referral',       icon: <Gift          size={18} />, label: '邀请好友',    sub: '我的分享码 · 已邀请人数', modes: ['client', 'provider'] },
   { key: 'notifications',  icon: <Bell          size={18} />, label: '通知设置',    sub: '管理推送通知偏好', modes: ['client', 'provider'] },
 ]
@@ -371,6 +373,7 @@ export default function Profile() {
       case 'inquiries':          return <InquiriesSection />
       case 'claimed_inquiries':  return <ClaimedInquiriesSection />
       case 'notifications':      return <NotificationsSection />
+      case 'my_events':          return <MyEventsSection />
       case 'messages':       return <MessagesSection />
       case 'browse':       return <BrowseSection items={browse} onClear={() => { localStorage.removeItem('tcs_browse_history'); setBrowse([]) }} />
       default:             return null
