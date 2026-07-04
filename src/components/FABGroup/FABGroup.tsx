@@ -18,18 +18,8 @@ export default function FABGroup() {
 
   return (
     <>
-      {/* Mobile-only: 发布需求 FAB (above bottom nav) */}
-      {!hideMobileFAB && <div className="md:hidden fixed bottom-20 right-4 z-50">
-        <button
-          onClick={() => user ? navigate('/requests/post') : navigate('/login', { state: { from: '/requests/post' } })}
-          className="flex items-center gap-2 bg-orange-500 text-white rounded-full
-                     px-4 py-3 active:scale-95 transition-all duration-200 text-sm font-semibold whitespace-nowrap"
-          style={{ boxShadow: '0 8px 28px rgba(249,115,22,0.50), 0 2px 8px rgba(249,115,22,0.30)' }}
-        >
-          <PlusCircle size={18} strokeWidth={2.2} />
-          发布需求
-        </button>
-      </div>}
+      {/* Mobile publish is now the BottomNav「+」→ PublishSheet (single entry).
+          Only the desktop FAB stack remains here. */}
 
       {/* Desktop: full FAB stack */}
       {!hideMobileFAB && <div className="hidden md:flex fixed bottom-6 right-5 lg:bottom-6 lg:right-16 z-50 flex-col items-end gap-3">

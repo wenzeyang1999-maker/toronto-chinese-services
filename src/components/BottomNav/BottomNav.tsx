@@ -3,12 +3,14 @@ import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuthStore } from '../../store/authStore'
 import { useCallback, useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabase'
+import PublishSheet from '../PublishSheet/PublishSheet'
 
 export default function BottomNav() {
   const navigate = useNavigate()
   const { pathname, search } = useLocation()
   const user = useAuthStore((s) => s.user)
   const [unread, setUnread] = useState(0)
+  const [publishOpen, setPublishOpen] = useState(false)
 
   const hidden =
     /^\/(login|register|forgot-password|reset-password|map)$/.test(pathname) ||
@@ -61,11 +63,11 @@ export default function BottomNav() {
           onClick={() => navigate('/search')}
         />
 
-        {/* Center FAB */}
+        {/* Center FAB — opens the publish fan-out sheet */}
         <button
-          onClick={() => navigate(user ? '/post' : '/login')}
+          onClick={() => setPublishOpen(true)}
           className="flex flex-col items-center -mt-5 gap-0.5"
-          aria-label="发布服务"
+          aria-label="发布"
         >
           <div className="w-14 h-14 bg-primary-600 rounded-full flex items-center justify-center
                           shadow-lg shadow-primary-200 active:scale-95 transition-transform">
@@ -98,6 +100,7 @@ export default function BottomNav() {
           onClick={() => navigate(user ? '/profile' : '/login')}
         />
       </div>
+      <PublishSheet open={publishOpen} onClose={() => setPublishOpen(false)} />
     </nav>
   )
 }
