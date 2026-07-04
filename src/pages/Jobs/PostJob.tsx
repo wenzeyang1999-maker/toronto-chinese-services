@@ -4,6 +4,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { ensurePhoneVerified } from '../../lib/requirePhoneVerified'
+import PhoneVerifyBanner from '../../components/PhoneVerifyBanner/PhoneVerifyBanner'
 import { motion } from 'framer-motion'
 import { ChevronLeft } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
@@ -213,6 +214,7 @@ export default function PostJob() {
       </div>
 
       <form onSubmit={handleSubmit} className="max-w-2xl mx-auto px-4 py-5 space-y-4">
+        <PhoneVerifyBanner />
 
         {/* ── 招聘 / 求职 切换 ──────────────────────────────────────────────── */}
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-2 flex gap-1">

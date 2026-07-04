@@ -4,6 +4,7 @@
 import { useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ensurePhoneVerified } from '../../lib/requirePhoneVerified'
+import PhoneVerifyBanner from '../PhoneVerifyBanner/PhoneVerifyBanner'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X, ChevronDown, Sparkles, UserCheck, Clock3, ShieldCheck, Pencil, MapPin, Mic, MicOff } from 'lucide-react'
 import InquiryResultPanel from '../InquiryResultPanel/InquiryResultPanel'
@@ -400,6 +401,7 @@ export default function InquiryModal({ open, onClose }: Props) {
                 />
               ) : (
                 <form onSubmit={handleSubmit} className="px-5 py-4 space-y-4 pb-8">
+                  <PhoneVerifyBanner />
 
                   {aiMode ? (
                     /* ── AI MODE ─────────────────────────────────────────── */

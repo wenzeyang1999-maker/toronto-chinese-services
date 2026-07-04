@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ensurePhoneVerified } from '../../lib/requirePhoneVerified'
+import PhoneVerifyBanner from '../../components/PhoneVerifyBanner/PhoneVerifyBanner'
 import { motion } from 'framer-motion'
 import { ChevronLeft, ImagePlus, X } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
@@ -221,6 +222,7 @@ export default function PostListing() {
       </div>
 
       <form onSubmit={handleSubmit} className="max-w-2xl mx-auto px-4 py-5 space-y-4">
+        <PhoneVerifyBanner />
 
         {/* ── 图片 ─────────────────────────────────────────────────────────── */}
         <Card title={`物品图片（最多 ${MAX_IMAGES} 张）`}>

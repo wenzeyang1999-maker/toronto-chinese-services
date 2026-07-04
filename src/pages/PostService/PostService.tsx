@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ensurePhoneVerified } from '../../lib/requirePhoneVerified'
+import PhoneVerifyBanner from '../../components/PhoneVerifyBanner/PhoneVerifyBanner'
 import { ArrowLeft } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { useAppStore } from '../../store/appStore'
@@ -279,6 +280,7 @@ export default function PostService() {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
+        <PhoneVerifyBanner />
           {/* ── Category picker ───────────────────────────────────────────────── */}
           <CategoryPicker
             value={form.category}

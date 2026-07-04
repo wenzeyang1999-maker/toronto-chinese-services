@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { ensurePhoneVerified } from '../../lib/requirePhoneVerified'
+import PhoneVerifyBanner from '../../components/PhoneVerifyBanner/PhoneVerifyBanner'
 import { motion } from 'framer-motion'
 import { ChevronLeft, ImagePlus, X } from 'lucide-react'
 import PostFormCard from '../../components/PostForm/PostFormCard'
@@ -231,6 +232,7 @@ export default function PostProperty() {
       </div>
 
       <form onSubmit={handleSubmit} className="max-w-2xl mx-auto px-4 py-5 space-y-4">
+        <PhoneVerifyBanner />
 
         {/* ── 出租/出售/合租 ─────────────────────────────────────────────────── */}
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-2 flex gap-1">

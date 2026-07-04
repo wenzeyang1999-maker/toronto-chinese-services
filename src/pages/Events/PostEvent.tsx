@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ensurePhoneVerified } from '../../lib/requirePhoneVerified'
+import PhoneVerifyBanner from '../../components/PhoneVerifyBanner/PhoneVerifyBanner'
 import { motion } from 'framer-motion'
 import { ChevronLeft, ImagePlus, X } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
@@ -219,6 +220,7 @@ export default function PostEvent() {
       </div>
 
       <form onSubmit={handleSubmit} className="max-w-xl mx-auto px-4 py-4 space-y-4">
+        <PhoneVerifyBanner />
 
         {/* Event type */}
         <Card title="活动类型">
