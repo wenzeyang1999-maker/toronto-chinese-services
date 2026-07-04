@@ -47,12 +47,15 @@ export interface SecondhandItem {
   updated_at: string
 }
 
+export type SortBy = 'newest' | 'price_low' | 'price_high'
+
 export interface SecondhandFilters {
   keyword?: string
   category?: SecondhandCategory
   condition?: ItemCondition
   area?: string
   max_price?: number
+  sortBy?: SortBy
 }
 
 // ─── Display helpers ──────────────────────────────────────────────────────────

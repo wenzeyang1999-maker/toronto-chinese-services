@@ -8,6 +8,7 @@ import {
   Phone, MessageCircle, Copy, DollarSign, Clock, User, ExternalLink,
 } from 'lucide-react'
 import ListPageShell from '../../components/ListPageShell/ListPageShell'
+import SortChips from '../../components/SortChips/SortChips'
 import { useJobStore } from '../../store/jobStore'
 import { useAuthStore } from '../../store/authStore'
 import { useReadStore } from '../../store/readStore'
@@ -37,7 +38,7 @@ export default function JobList() {
   const [selectedId,   setSelectedId]   = useState<string | null>(null)
   const [mobileOpen,   setMobileOpen]   = useState(false)
 
-  useUrlFilters(filters, setFilters, ['listing_type', 'keyword', 'category', 'job_type', 'area'])
+  useUrlFilters(filters, setFilters, ['listing_type', 'keyword', 'category', 'job_type', 'area', 'sortBy'])
 
   useEffect(() => { fetchJobs() }, [])
   useEffect(() => {
@@ -111,6 +112,8 @@ export default function JobList() {
           <SlidersHorizontal size={16} />
         </button>
       </div>
+
+      <SortChips value={filters.sortBy ?? 'newest'} onChange={(s) => setFilters({ sortBy: s })} priceLabel="薪资" />
 
       <AnimatePresence>
         {showFilters && (

@@ -127,6 +127,14 @@ export const useJobStore = create<JobState>((set, get) => ({
       )
     }
 
+    const s = filters.sortBy ?? 'newest'
+    if (s === 'price_low' || s === 'price_high') {
+      const val = (j: Job) => j.salary_min ?? (s === 'price_low' ? Infinity : -Infinity)
+      result = [...result].sort((a, b) => s === 'price_low' ? val(a) - val(b) : val(b) - val(a))
+    } else {
+      result = [...result].sort((a, b) => b.created_at.localeCompare(a.created_at))
+    }
+
     return result
   },
 

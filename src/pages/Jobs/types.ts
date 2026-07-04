@@ -58,12 +58,15 @@ export interface Job {
   updated_at: string
 }
 
+export type SortBy = 'newest' | 'price_low' | 'price_high'
+
 export interface JobFilters {
   listing_type?: ListingType
   keyword?: string
   category?: JobCategory
   job_type?: JobType
   area?: string
+  sortBy?: SortBy
 }
 
 // ─── Display helpers ──────────────────────────────────────────────────────────

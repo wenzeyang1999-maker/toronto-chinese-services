@@ -112,6 +112,15 @@ export const useSecondhandStore = create<SecondhandState>((set, get) => ({
       )
     }
 
+    const s = filters.sortBy ?? 'newest'
+    if (s === 'price_low' || s === 'price_high') {
+      // Free items sort as price 0.
+      const val = (i: SecondhandItem) => i.is_free ? 0 : (i.price ?? (s === 'price_low' ? Infinity : -Infinity))
+      result = [...result].sort((a, b) => s === 'price_low' ? val(a) - val(b) : val(b) - val(a))
+    } else {
+      result = [...result].sort((a, b) => b.created_at.localeCompare(a.created_at))
+    }
+
     return result
   },
 

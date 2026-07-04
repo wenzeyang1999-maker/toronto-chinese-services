@@ -9,6 +9,7 @@ import {
 } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import ListPageShell from '../../components/ListPageShell/ListPageShell'
+import SortChips from '../../components/SortChips/SortChips'
 import ImgFallback from '../../components/ImgFallback/ImgFallback'
 import { useSecondhandStore } from '../../store/secondhandStore'
 import { useAuthStore } from '../../store/authStore'
@@ -38,7 +39,7 @@ export default function SecondhandList() {
   const [selectedId,   setSelectedId]   = useState<string | null>(null)
   const [mobileOpen,   setMobileOpen]   = useState(false)
 
-  useUrlFilters(filters, setFilters, ['keyword', 'category', 'condition', 'area', 'max_price'], { numericKeys: ['max_price'] })
+  useUrlFilters(filters, setFilters, ['keyword', 'category', 'condition', 'area', 'max_price', 'sortBy'], { numericKeys: ['max_price'] })
 
   useEffect(() => { fetchItems() }, [])
 
@@ -115,6 +116,8 @@ export default function SecondhandList() {
           <SlidersHorizontal size={16} />
         </button>
       </div>
+
+      <SortChips value={filters.sortBy ?? 'newest'} onChange={(s) => setFilters({ sortBy: s })} />
 
       <AnimatePresence>
         {showFilters && (

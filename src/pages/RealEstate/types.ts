@@ -50,6 +50,8 @@ export interface Property {
   updated_at: string
 }
 
+export type SortBy = 'newest' | 'price_low' | 'price_high'
+
 export interface RealEstateFilters {
   listing_type?: RealEstateListingType
   keyword?: string
@@ -57,6 +59,7 @@ export interface RealEstateFilters {
   area?: string
   max_price?: number
   bedrooms?: number
+  sortBy?: SortBy
 }
 
 // ─── Display helpers ──────────────────────────────────────────────────────────

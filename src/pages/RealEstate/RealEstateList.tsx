@@ -10,6 +10,7 @@ import {
 } from 'lucide-react'
 import ImgFallback from '../../components/ImgFallback/ImgFallback'
 import ListPageShell from '../../components/ListPageShell/ListPageShell'
+import SortChips from '../../components/SortChips/SortChips'
 import { useRealEstateStore } from '../../store/realestateStore'
 import { useAuthStore } from '../../store/authStore'
 import { useReadStore } from '../../store/readStore'
@@ -37,7 +38,7 @@ export default function RealEstateList() {
   const [selectedId,   setSelectedId]   = useState<string | null>(null)
   const [mobileOpen,   setMobileOpen]   = useState(false)
 
-  useUrlFilters(filters, setFilters, ['listing_type', 'keyword', 'property_type', 'area', 'max_price', 'bedrooms'], { numericKeys: ['max_price', 'bedrooms'] })
+  useUrlFilters(filters, setFilters, ['listing_type', 'keyword', 'property_type', 'area', 'max_price', 'bedrooms', 'sortBy'], { numericKeys: ['max_price', 'bedrooms'] })
 
   useEffect(() => { fetchProperties() }, [])
   useEffect(() => { setSelectedId(null); setMobileOpen(false) }, [filters.listing_type])
@@ -106,6 +107,8 @@ export default function RealEstateList() {
           <SlidersHorizontal size={16} />
         </button>
       </div>
+
+      <SortChips value={filters.sortBy ?? 'newest'} onChange={(s) => setFilters({ sortBy: s })} />
 
       <AnimatePresence>
         {showFilters && (
