@@ -7,6 +7,7 @@ import { ClipboardList, ChevronDown, ChevronUp, Users, CheckCircle, Clock, X, St
 import { supabase } from '../../../lib/supabase'
 import { useAuthStore } from '../../../store/authStore'
 import { useAppStore } from '../../../store/appStore'
+import { toast } from '../../../lib/toast'
 import { CATEGORIES } from '../../../data/categories'
 import InquiryResultPanel from '../../../components/InquiryResultPanel/InquiryResultPanel'
 
@@ -67,6 +68,7 @@ export default function InquiriesSection() {
         .from('inquiries')
         .select('id, category_id, description, budget, timing, status, race_status, accepted_provider_ids, assigned_provider_id, name, phone, wechat, created_at')
         .eq('user_id', userId)
+        .neq('status', 'closed')   // hide closed — mirror the map (closed = gone)
         .order('created_at', { ascending: false })
 
       if (isActive) {
@@ -88,8 +90,9 @@ export default function InquiriesSection() {
     if (!user) return
     const { error } = await supabase.from('inquiries')
       .update({ status: 'closed' }).eq('id', id).eq('user_id', user.id)
-    if (error) return
-    setItems(prev => prev.map(it => it.id === id ? { ...it, status: 'closed' } : it))
+    if (error) { toast('关闭失败，请重试', 'error'); return }
+    // Closed = gone: drop it from the list so it mirrors the map (no lingering).
+    setItems(prev => prev.filter(it => it.id !== id))
     // Cascade to the linked public demand post: close it + drop its map pin,
     // then refresh the in-memory feed so it disappears from 「发现客户」.
     await supabase.from('service_requests')
