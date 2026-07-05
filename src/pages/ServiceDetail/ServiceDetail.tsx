@@ -247,7 +247,8 @@ export default function ServiceDetail() {
   const handleMessage = async () => {
     if (!user) { navigate('/login'); return }
     const providerId = service.provider.id
-    if (!providerId || providerId === user.id) return
+    if (!providerId) { toast('服务商信息缺失，暂时无法发起对话', 'error'); return }
+    if (providerId === user.id) { toast('这是你自己发布的服务，不能给自己发消息'); return }
     // Upsert conversation (unique on client+provider+service)
     const { data, error } = await supabase
       .from('conversations')

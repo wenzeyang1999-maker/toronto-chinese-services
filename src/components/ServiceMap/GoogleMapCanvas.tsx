@@ -81,6 +81,24 @@ const GoogleMapCanvas = forwardRef<GoogleMapCanvasHandle, Props>(function Google
     return () => { active = false }
   }, [])
 
+  // Keep the map correctly sized when its container grows — e.g. a collapsible
+  // wrapper that animates from height 0. Google Maps measures the container once
+  // at init, so a map created inside a 0-height box renders blank and never
+  // re-measures; a resize trigger on growth fixes it.
+  useEffect(() => {
+    const el = containerRef.current
+    if (!el || typeof ResizeObserver === 'undefined') return
+    const ro = new ResizeObserver(() => {
+      const g = (window as unknown as { google?: any }).google
+      const map = mapRef.current
+      if (!map || !g?.maps || el.offsetHeight === 0) return
+      g.maps.event.trigger(map, 'resize')
+      map.setCenter(center)
+    })
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [ready, center.lat, center.lng])
+
   useEffect(() => {
     if (!mapRef.current) return
 
