@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom'
 import SearchBar from '../../../components/SearchBar/SearchBar'
 import { useAppStore } from '../../../store/appStore'
 import { getCategoryById } from '../../../data/categories'
+import { useDelayedLoading } from '../../../hooks/useDelayedLoading'
 
 const HISTORY_KEY = 'tcs_search_history'
 const MAX_HISTORY = 5
@@ -37,6 +38,8 @@ export default function HomeActionHero({
 }: Props) {
   const navigate = useNavigate()
   const services = useAppStore((s) => s.services)
+  const servicesLoaded = useAppStore((s) => s.servicesLoaded)
+  const showSkeleton = useDelayedLoading(!servicesLoaded)
   const [history, setHistory] = useState<string[]>(getHistory)
   const [showHistory, setShowHistory] = useState(false)
   const searchWrapRef = useRef<HTMLDivElement>(null)
@@ -194,13 +197,16 @@ export default function HomeActionHero({
                 </div>
               </div>
 
-              {/* Ticker */}
+              {/* Ticker — skeleton only if the load is genuinely slow (>300ms);
+                  a fast load fills in directly, an empty-but-loaded panel shows nothing. */}
               {ticker.length === 0 ? (
-                <div className="space-y-2">
-                  {Array.from({ length: 4 }).map((_, i) => (
-                    <div key={i} className="h-14 rounded-xl bg-gray-100 animate-pulse" />
-                  ))}
-                </div>
+                (!servicesLoaded && showSkeleton) ? (
+                  <div className="space-y-2">
+                    {Array.from({ length: 4 }).map((_, i) => (
+                      <div key={i} className="h-14 rounded-xl bg-gray-100 animate-pulse" />
+                    ))}
+                  </div>
+                ) : null
               ) : (
                 <div
                   className="relative overflow-hidden rounded-xl"
