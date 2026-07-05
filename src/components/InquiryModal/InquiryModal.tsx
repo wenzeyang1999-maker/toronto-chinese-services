@@ -82,13 +82,21 @@ export default function InquiryModal({ open, onClose }: Props) {
   useEffect(() => {
     if (!open || !user) return
     let cancelled = false
+    const meta = (user.user_metadata ?? {}) as { name?: string; phone?: string }
+    // Auth-object fallbacks (registration metadata / Supabase auth phone) fill in
+    // even before the users-table row is fetched.
+    setForm((f) => ({
+      ...f,
+      name:  f.name.trim()  ? f.name  : (meta.name ?? ''),
+      phone: f.phone.trim() ? f.phone : (meta.phone ?? user.phone ?? ''),
+    }))
     supabase.from('users').select('name, phone, wechat').eq('id', user.id).single()
       .then(({ data }) => {
         if (cancelled || !data) return
         setForm((f) => ({
           ...f,
-          name:   f.name.trim()   ? f.name   : (data.name   ?? ''),
-          phone:  f.phone.trim()  ? f.phone  : (data.phone  ?? ''),
+          name:   f.name.trim()   ? f.name   : (data.name   ?? meta.name  ?? ''),
+          phone:  f.phone.trim()  ? f.phone  : (data.phone  ?? meta.phone ?? user.phone ?? ''),
           wechat: f.wechat.trim() ? f.wechat : (data.wechat ?? ''),
         }))
       })
