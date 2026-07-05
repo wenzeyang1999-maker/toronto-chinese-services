@@ -1,7 +1,7 @@
 // ─── InquiryModal ─────────────────────────────────────────────────────────────
 // "获取报价" feature: user posts a need, service providers reach out to them.
 // Two modes: AI mode (free-text → LLM extraction) and manual mode (form).
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ensurePhoneVerified } from '../../lib/requirePhoneVerified'
 import PhoneVerifyBanner from '../PhoneVerifyBanner/PhoneVerifyBanner'
@@ -75,6 +75,25 @@ export default function InquiryModal({ open, onClose }: Props) {
   const [postPublic,  setPostPublic]  = useState(true)
   const [isListening, setIsListening] = useState(false)
   const recognitionRef = useRef<any>(null)
+
+  // Auto-fill contact from the logged-in user's saved profile (name / phone /
+  // wechat) when the modal opens — fills empty fields only, never overwrites what
+  // the user or the AI parse already put in.
+  useEffect(() => {
+    if (!open || !user) return
+    let cancelled = false
+    supabase.from('users').select('name, phone, wechat').eq('id', user.id).single()
+      .then(({ data }) => {
+        if (cancelled || !data) return
+        setForm((f) => ({
+          ...f,
+          name:   f.name.trim()   ? f.name   : (data.name   ?? ''),
+          phone:  f.phone.trim()  ? f.phone  : (data.phone  ?? ''),
+          wechat: f.wechat.trim() ? f.wechat : (data.wechat ?? ''),
+        }))
+      })
+    return () => { cancelled = true }
+  }, [open, user])
   const voiceSupported = typeof window !== 'undefined' &&
     ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window)
 
@@ -668,6 +687,7 @@ export default function InquiryModal({ open, onClose }: Props) {
                         </label>
                         <input
                           type="text"
+                          autoComplete="name"
                           value={form.name}
                           onChange={e => update('name', e.target.value)}
                           placeholder="您的称呼"
@@ -683,6 +703,7 @@ export default function InquiryModal({ open, onClose }: Props) {
                         </label>
                         <input
                           type="tel"
+                          autoComplete="tel"
                           value={form.phone}
                           onChange={e => update('phone', e.target.value)}
                           placeholder="647-xxx-xxxx"
