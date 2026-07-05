@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuthStore } from '../../store/authStore'
 import { useCallback, useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabase'
+import { useLeadAlertsStore } from '../../store/leadAlertsStore'
 import PublishSheet from '../PublishSheet/PublishSheet'
 
 export default function BottomNav() {
@@ -10,6 +11,7 @@ export default function BottomNav() {
   const { pathname, search } = useLocation()
   const user = useAuthStore((s) => s.user)
   const [unread, setUnread] = useState(0)
+  const leadCount = useLeadAlertsStore((s) => s.count)
   const [publishOpen, setPublishOpen] = useState(false)
 
   const hidden =
@@ -94,7 +96,17 @@ export default function BottomNav() {
         />
 
         <NavTab
-          icon={<User size={22} />}
+          icon={
+            <div className="relative">
+              <User size={22} />
+              {leadCount > 0 && (
+                <span className="absolute -top-1 -right-1.5 min-w-[16px] h-[15px] bg-red-500 rounded-full
+                                 text-white text-[9px] font-bold flex items-center justify-center px-[3px]">
+                  {leadCount > 9 ? '9+' : leadCount}
+                </span>
+              )}
+            </div>
+          }
           label="我的"
           active={onProfile}
           onClick={() => navigate(user ? '/profile' : '/login')}

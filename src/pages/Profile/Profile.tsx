@@ -10,6 +10,7 @@ import {
 } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { useAuthStore } from '../../store/authStore'
+import { useLeadAlertsStore } from '../../store/leadAlertsStore'
 import { compressImage } from '../../lib/compressImage'
 import type { BrowseEntry, Section } from './types'
 import type { MemberLevel } from '../../components/MembershipBadge/MembershipBadge'
@@ -60,6 +61,7 @@ export default function Profile() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const user     = useAuthStore((s) => s.user)
+  const leadCount = useLeadAlertsStore((s) => s.count)
 
   const VALID_SECTIONS = MENU.map((m) => m.key)
 
@@ -105,6 +107,13 @@ export default function Profile() {
     }
     setSection(param)
   }, [searchParams, mode])
+
+  // Opening 「我接的单」 clears the lead badge + marks those notifications read.
+  useEffect(() => {
+    if (section === 'claimed_inquiries' && user) {
+      void useLeadAlertsStore.getState().markSeen(user.id)
+    }
+  }, [section, user])
 
   function switchMode(next: 'client' | 'provider') {
     setMode(next)
@@ -306,8 +315,13 @@ export default function Profile() {
                 {item.icon}
               </span>
               <div className="flex-1 min-w-0">
-                <p className={`text-sm font-medium ${active ? 'text-primary-700' : 'text-gray-800'}`}>
+                <p className={`text-sm font-medium flex items-center gap-2 ${active ? 'text-primary-700' : 'text-gray-800'}`}>
                   {item.label}
+                  {item.key === 'claimed_inquiries' && leadCount > 0 && (
+                    <span className="min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center">
+                      {leadCount > 9 ? '9+' : leadCount}
+                    </span>
+                  )}
                 </p>
                 <p className="text-xs text-gray-400 mt-0.5">{item.sub}</p>
               </div>
