@@ -39,7 +39,7 @@ export default function RelatedServices({ currentId, categoryId }: Props) {
           onClick={() => navigate(`/search?category=${categoryId}`)}
           className="text-xs text-primary-600 flex items-center gap-0.5 hover:underline"
         >
-          查看全部 <ChevronRight size={14} />
+          查看所有服务 <ChevronRight size={14} />
         </button>
       </div>
 

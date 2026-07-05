@@ -41,7 +41,7 @@ export default function Home() {
   const [searchQuery, setSearchQuery]  = useState('')
   const [viewMode, setViewMode] = useState<'list' | 'map'>(() => {
     const saved = localStorage.getItem('tcs_view_mode')
-    return saved === 'list' || saved === 'map' ? saved : 'list'
+    return saved === 'list' || saved === 'map' ? saved : 'map'
   })
   const searchRef = useRef<HTMLDivElement>(null)
 

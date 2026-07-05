@@ -166,11 +166,17 @@ export const useAppStore = create<AppState>((set, get) => ({
   serviceRequests: [],
   userLocation: readCachedLocation(),
   searchFilters: { sortBy: 'rating' },
-  isLoadingDone: false,
+  // Branded splash shows only on the very first visit; reloads skip straight in.
+  isLoadingDone: (() => {
+    try { return !!window.localStorage.getItem('tcs_splash_seen') } catch { return false }
+  })(),
   servicesHasMore: true,
   servicesLoadingMore: false,
 
-  setLoadingDone: () => set({ isLoadingDone: true }),
+  setLoadingDone: () => {
+    try { window.localStorage.setItem('tcs_splash_seen', '1') } catch { /* ignore */ }
+    set({ isLoadingDone: true })
+  },
 
   setUserLocation: (loc) => {
     set({ userLocation: loc })

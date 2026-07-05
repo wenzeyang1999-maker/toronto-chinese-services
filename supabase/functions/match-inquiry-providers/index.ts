@@ -24,6 +24,12 @@ const SITE = 'https://toronto-chinese-services.vercel.app'
 // Race mode: notify all matching providers, they race to claim the first 5 slots.
 const MAX_NOTIFY = 20
 
+// Cold-start mode:供给还少时跳过「抢单」竞争,直接把匹配到的前 ≤DIRECT_LIMIT 家
+// 锁定为接单商家,双方立即互通联系方式。等商家密度上来,把 DIRECT_DISPATCH 翻成
+// false 即可恢复"抢单先到先得"(RPC / 名额逻辑全保留)。
+const DIRECT_DISPATCH = true
+const DIRECT_LIMIT = 5
+
 // Escape user-supplied strings before interpolating them into the email HTML.
 // Without this, a malicious inquiry description like `<img src=x onerror=...>`
 // would render (and possibly execute) in the recipient's email client.
@@ -69,6 +75,21 @@ interface ProviderRow {
 }
 
 function buildProviderInquiryEmail(recipientName: string, data: InquiryPayload) {
+  // Direct-dispatch: the merchant is already matched — invite them to contact the
+  // customer. Race mode: invite them to "抢单".
+  const cta = DIRECT_DISPATCH
+    ? {
+        line: '您已被匹配到这条需求，<strong>可直接查看客户联系方式并主动联系 TA</strong>：',
+        note: '📩 客户已收到通知，知道需求发给了包括您在内的几位服务商。请尽快联系，先联系先得。',
+        btn: '查看客户联系方式',
+        href: `${SITE}/profile?section=claimed_inquiries`,
+      }
+    : {
+        line: '登录抢单，<strong>客户选定您后即可获得联系方式</strong>：',
+        note: '⚡ 先到先得！最多 5 名服务商可抢到此单。抢单后若被客户选中，即可看到客户联系方式。',
+        btn: '🔥 立即抢单',
+        href: `${SITE}/inquiries/${h(data.inquiryId)}/claim`,
+      }
   return {
     subject: `🔔 有客户正在寻找「${h(data.categoryLabel)}」服务`,
     html: `<!DOCTYPE html>
@@ -83,15 +104,15 @@ function buildProviderInquiryEmail(recipientName: string, data: InquiryPayload) 
     <div style="padding:28px 32px;">
       <p style="font-size:17px;font-weight:700;color:#111827;margin:0 0 20px;">您有一条新的客户询价</p>
       <p>您好 <strong>${h(recipientName)}</strong>，</p>
-      <p>有客户通过平台发布了一条服务需求，与您提供的「<strong>${h(data.categoryLabel)}</strong>」服务匹配。登录抢单，<strong>客户选定您后即可获得联系方式</strong>：</p>
+      <p>有客户通过平台发布了一条服务需求，与您提供的「<strong>${h(data.categoryLabel)}</strong>」服务匹配。${cta.line}</p>
       <table style="width:100%;border-collapse:collapse;font-size:14px;margin:16px 0;">
         <tr style="background:#f9fafb;"><td style="padding:10px 14px;color:#6b7280;width:90px;font-weight:600;">服务类型</td><td style="padding:10px 14px;color:#111827;">${h(data.categoryLabel)}</td></tr>
         <tr><td style="padding:10px 14px;color:#6b7280;font-weight:600;">需求描述</td><td style="padding:10px 14px;color:#374151;">${h(data.description)}</td></tr>
         <tr style="background:#f9fafb;"><td style="padding:10px 14px;color:#6b7280;font-weight:600;">预算</td><td style="padding:10px 14px;color:#111827;">${data.budget ? `$${h(data.budget)}` : '未指定'}</td></tr>
         <tr><td style="padding:10px 14px;color:#6b7280;font-weight:600;">希望时间</td><td style="padding:10px 14px;color:#111827;">${h(data.timing)}</td></tr>
       </table>
-      <p style="color:#6b7280;font-size:13px;">⚡ 先到先得！最多 5 名服务商可抢到此单。抢单后若被客户选中，即可看到客户联系方式。</p>
-      <a href="${SITE}/inquiries/${h(data.inquiryId)}/claim" style="display:inline-block;margin-top:8px;background:#e63946;color:#fff !important;text-decoration:none;padding:12px 28px;border-radius:10px;font-weight:700;font-size:14px;">🔥 立即抢单</a>
+      <p style="color:#6b7280;font-size:13px;">${cta.note}</p>
+      <a href="${cta.href}" style="display:inline-block;margin-top:8px;background:#e63946;color:#fff !important;text-decoration:none;padding:12px 28px;border-radius:10px;font-weight:700;font-size:14px;">${cta.btn}</a>
     </div>
   </div>
 </body>
@@ -202,8 +223,9 @@ Deno.serve(async (req) => {
       return b.rating - a.rating
     })
 
-    // Race mode: notify all providers (up to MAX_NOTIFY), they click "抢单" to claim.
-    const targets = providers.slice(0, MAX_NOTIFY)
+    // Direct-dispatch: assign the top ≤5. Race mode: notify up to MAX_NOTIFY who
+    // then compete to claim.
+    const targets = providers.slice(0, DIRECT_DISPATCH ? DIRECT_LIMIT : MAX_NOTIFY)
 
     await Promise.all(targets.map(async (provider) => {
       const email = buildProviderInquiryEmail(provider.name, payload)
@@ -232,18 +254,38 @@ Deno.serve(async (req) => {
           email_sent: true,
         }))
       )
-      // Set race_status = 'open' (not immediately 'matched' — providers race to fill slots)
-      await admin.from('inquiries').update({ race_status: 'open' }).eq('id', payload.inquiryId)
+      if (DIRECT_DISPATCH) {
+        // Auto-assign the matched providers — both sides get contact immediately,
+        // no grab step. race_status='filled' also blocks a duplicate re-dispatch.
+        await admin.from('inquiries').update({
+          accepted_provider_ids: targets.map((p) => p.id),
+          race_status: 'filled',
+        }).eq('id', payload.inquiryId)
+
+        // In-app lead notification to each matched merchant (they also got email).
+        await admin.from('notifications').insert(
+          targets.map((provider) => ({
+            recipient_id: provider.id,
+            type:  'new_inquiry_lead',
+            title: '匹配到一条新客户需求',
+            body:  `客户在找「${data.categoryLabel}」服务，点开查看联系方式并主动联系`,
+            link_url: '/profile?section=claimed_inquiries',
+          }))
+        )
+      } else {
+        // Race mode: open the slots, providers compete to claim.
+        await admin.from('inquiries').update({ race_status: 'open' }).eq('id', payload.inquiryId)
+      }
 
       // Reassure the customer: a persistent in-app notification confirming the
-      // inquiry went out + how many merchants got it. Merchants contact the
-      // customer proactively; this lets them check progress / reach out if urgent.
+      // inquiry went out + how many merchants got it, and that they can view /
+      // contact them directly if urgent.
       if ((inquiry as { user_id?: string }).user_id) {
         await admin.from('notifications').insert({
           recipient_id: (inquiry as { user_id: string }).user_id,
           type:  'inquiry_dispatched',
           title: `询价已发给 ${targets.length} 位商家`,
-          body:  '他们会尽快主动联系你，急可点这里查看这几家',
+          body:  '他们会尽快主动联系你；急的话也可点这里查看这几家、自己先联系',
           link_url: '/profile?section=inquiries',
         })
       }

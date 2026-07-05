@@ -265,7 +265,7 @@ export default function CategoryButtons() {
                   className="w-full flex items-center justify-center gap-1 py-3 text-xs text-gray-400
                              hover:text-gray-600 border-t border-gray-100/80 transition-colors rounded-b-3xl"
                 >
-                  查看{activeSheet.label}全部 <ChevronRight size={12} />
+                  查看所有{activeSheet.label} <ChevronRight size={12} />
                 </button>
               )}
             </motion.div>
