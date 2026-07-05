@@ -126,6 +126,9 @@ export const useRealEstateStore = create<RealEstateState>((set, get) => ({
     if (filters.bedrooms != null) {
       result = result.filter((p) => p.bedrooms === filters.bedrooms)
     }
+    if (filters.min_sqft != null) {
+      result = result.filter((p) => p.sqft != null && p.sqft >= filters.min_sqft!)
+    }
     if (filters.max_price != null) {
       result = result.filter((p) => p.price_type === 'negotiable' || (p.price != null && p.price <= filters.max_price!))
     }

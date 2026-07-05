@@ -4,6 +4,7 @@
 // data (service title, request title, provider name, skill tags) cannot
 // execute as HTML.
 import type { Service, ServiceRequest, OnlineProvider } from '../types'
+import type { Property } from '../pages/RealEstate/types'
 import { formatRequestTime } from './formatRequestTime'
 
 function div(text: string, cssText: string): HTMLDivElement {
@@ -69,6 +70,50 @@ export function buildServiceInfo(service: Service, onDetail: () => void, onProvi
   row.appendChild(providerBtn)
 
   wrapper.appendChild(row)
+  return wrapper
+}
+
+export function buildPropertyInfo(
+  property: Property,
+  priceLabel: string,
+  metaLabel: string,
+  onDetail: () => void,
+): HTMLElement {
+  const wrapper = document.createElement('div')
+  wrapper.className = 'min-w-[190px] max-w-[220px] p-1'
+
+  if (property.images?.[0]) {
+    const img = document.createElement('img')
+    img.src = property.images[0]
+    img.alt = property.title
+    img.className = 'w-full h-24 object-cover rounded-lg mb-2'
+    wrapper.appendChild(img)
+  }
+
+  const price = document.createElement('p')
+  price.className = 'text-sm font-bold text-primary-600 mb-0.5'
+  price.textContent = priceLabel
+  wrapper.appendChild(price)
+
+  const title = document.createElement('p')
+  title.className = 'font-semibold text-gray-900 text-sm leading-tight mb-1'
+  title.textContent = property.title
+  wrapper.appendChild(title)
+
+  if (metaLabel) {
+    const meta = document.createElement('p')
+    meta.className = 'text-xs text-gray-500 mb-2'
+    meta.textContent = metaLabel
+    wrapper.appendChild(meta)
+  }
+
+  const detailBtn = document.createElement('button')
+  detailBtn.type = 'button'
+  detailBtn.className = 'w-full bg-primary-600 hover:bg-primary-700 text-white text-xs font-semibold py-2 rounded-lg transition-colors'
+  detailBtn.textContent = '查看房源'
+  detailBtn.onclick = (e) => { e.stopPropagation(); onDetail() }
+  wrapper.appendChild(detailBtn)
+
   return wrapper
 }
 

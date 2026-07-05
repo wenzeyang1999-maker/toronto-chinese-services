@@ -59,6 +59,7 @@ export interface RealEstateFilters {
   area?: string
   max_price?: number
   bedrooms?: number
+  min_sqft?: number
   sortBy?: SortBy
 }
 

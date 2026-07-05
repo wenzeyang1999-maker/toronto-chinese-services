@@ -6,11 +6,12 @@ import { motion, AnimatePresence } from 'framer-motion'
 import {
   Search, SlidersHorizontal, X,
   Phone, MessageCircle, Copy, Home, User, ExternalLink,
-  BedDouble, Bath, Car, PawPrint, Zap, MapPin, Ruler,
+  BedDouble, Bath, Car, PawPrint, Zap, MapPin, Ruler, List, Map as MapIcon,
 } from 'lucide-react'
 import ImgFallback from '../../components/ImgFallback/ImgFallback'
 import ListPageShell from '../../components/ListPageShell/ListPageShell'
 import ErrorState from '../../components/ErrorState/ErrorState'
+import PropertyMap from '../../components/PropertyMap/PropertyMap'
 import SortChips from '../../components/SortChips/SortChips'
 import { useRealEstateStore } from '../../store/realestateStore'
 import { useAuthStore } from '../../store/authStore'
@@ -38,8 +39,9 @@ export default function RealEstateList() {
   const [localKeyword, setLocalKeyword] = useState(filters.keyword ?? '')
   const [selectedId,   setSelectedId]   = useState<string | null>(null)
   const [mobileOpen,   setMobileOpen]   = useState(false)
+  const [viewMode,     setViewMode]     = useState<'list' | 'map'>('list')
 
-  useUrlFilters(filters, setFilters, ['listing_type', 'keyword', 'property_type', 'area', 'max_price', 'bedrooms', 'sortBy'], { numericKeys: ['max_price', 'bedrooms'] })
+  useUrlFilters(filters, setFilters, ['listing_type', 'keyword', 'property_type', 'area', 'max_price', 'bedrooms', 'min_sqft', 'sortBy'], { numericKeys: ['max_price', 'bedrooms', 'min_sqft'] })
 
   useEffect(() => { fetchProperties() }, [])
   useEffect(() => { setSelectedId(null); setMobileOpen(false) }, [filters.listing_type])
@@ -100,7 +102,7 @@ export default function RealEstateList() {
         <button
           onClick={() => setShowFilters((v) => !v)}
           className={`p-2.5 rounded-xl border transition-colors ${
-            showFilters || filters.property_type || filters.area || filters.bedrooms != null
+            showFilters || filters.property_type || filters.area || filters.bedrooms != null || filters.min_sqft != null
               ? 'border-primary-400 text-primary-600 bg-primary-50'
               : 'border-gray-200 text-gray-500 bg-white'
           }`}
@@ -109,7 +111,29 @@ export default function RealEstateList() {
         </button>
       </div>
 
-      <SortChips value={filters.sortBy ?? 'newest'} onChange={(s) => setFilters({ sortBy: s })} />
+      <div className="flex items-center gap-2">
+        <div className="flex-1 min-w-0">
+          <SortChips value={filters.sortBy ?? 'newest'} onChange={(s) => setFilters({ sortBy: s })} />
+        </div>
+        <div className="flex-shrink-0 flex items-center bg-gray-100 rounded-xl p-0.5">
+          <button
+            onClick={() => setViewMode('list')}
+            className={`flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-lg font-medium transition-colors ${
+              viewMode === 'list' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            <List size={14} /> 列表
+          </button>
+          <button
+            onClick={() => { setViewMode('map'); setSelectedId(null) }}
+            className={`flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-lg font-medium transition-colors ${
+              viewMode === 'map' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            <MapIcon size={14} /> 地图
+          </button>
+        </div>
+      </div>
 
       <AnimatePresence>
         {showFilters && (
@@ -142,6 +166,15 @@ export default function RealEstateList() {
                   <Chip key={a} active={filters.area === a}
                     onClick={() => setFilters({ area: filters.area === a ? undefined : a })}>
                     {a}
+                  </Chip>
+                ))}
+              </FilterRow>
+              <FilterRow label="最小面积">
+                <Chip active={filters.min_sqft == null} onClick={() => setFilters({ min_sqft: undefined })}>不限</Chip>
+                {[500, 800, 1000, 1500, 2000].map((n) => (
+                  <Chip key={n} active={filters.min_sqft === n}
+                    onClick={() => setFilters({ min_sqft: filters.min_sqft === n ? undefined : n })}>
+                    {n}呎+
                   </Chip>
                 ))}
               </FilterRow>
@@ -274,9 +307,13 @@ export default function RealEstateList() {
       detailDesktop={selectedProp ? <DetailPanel prop={selectedProp} onClose={() => setSelectedId(null)} /> : null}
       detailMobile={selectedProp ? <DetailPanel prop={selectedProp} onClose={() => setMobileOpen(false)} /> : null}
       fabPath={`/realestate/post?type=${filters.listing_type ?? 'rent'}`}
-      onRefresh={fetchProperties}
+      onRefresh={viewMode === 'list' ? fetchProperties : undefined}
     >
-      {cardList}
+      {viewMode === 'map'
+        ? (isReady && loadError && properties.length === 0
+            ? <ErrorState onRetry={fetchProperties} />
+            : <PropertyMap properties={properties} />)
+        : cardList}
     </ListPageShell>
   )
 }
