@@ -28,6 +28,12 @@ interface ConvInfo {
   other?: { name: string; phone: string | null; wechat: string | null } | null
 }
 
+// Compares two ISO timestamps safely (formats may differ: '…Z' vs '…+00:00').
+function seenAt(otherLastRead: string | null, createdAt: string): boolean {
+  if (!otherLastRead) return false
+  return new Date(otherLastRead).getTime() >= new Date(createdAt).getTime()
+}
+
 export default function ConversationPage() {
   const { id }   = useParams<{ id: string }>()
   const navigate = useNavigate()
@@ -35,6 +41,8 @@ export default function ConversationPage() {
 
   const [conv,         setConv]        = useState<ConvInfo | null>(null)
   const [messages,     setMessages]    = useState<Message[]>([])
+  // Timestamp the OTHER party last read this conversation (drives 已读/已送达).
+  const [otherLastRead, setOtherLastRead] = useState<string | null>(null)
   const [input,        setInput]       = useState('')
   const [sending,      setSending]     = useState(false)
   const [reportOpen,   setReportOpen]  = useState(false)
@@ -56,6 +64,7 @@ export default function ConversationPage() {
     supabase
       .from('conversations')
       .select(`id, client_id, provider_id, service_id,
+               client_last_read_at, provider_last_read_at,
                service:services(title),
                client:users!conversations_client_id_fkey(name, phone, wechat),
                provider:users!conversations_provider_id_fkey(name, phone, wechat)`)
@@ -71,10 +80,15 @@ export default function ConversationPage() {
             ? (Array.isArray(data.provider) ? data.provider[0] : data.provider)
             : (Array.isArray(data.client)   ? data.client[0]   : data.client),
         })
-        // Reset unread count for current user
-        const col = isClient ? 'client_unread' : 'provider_unread'
-        supabase.from('conversations').update({ [col]: 0 }).eq('id', id)
-          .then(({ error }) => { if (error) console.warn('[conv] unread reset failed:', error.message) })
+        // How far the other party has read (for my own messages' receipts).
+        setOtherLastRead((isClient ? data.provider_last_read_at : data.client_last_read_at) ?? null)
+        // Reset my unread count + stamp my last-read (this drives the OTHER
+        // party's receipts). One update, piggybacked on the existing reset.
+        const unreadCol   = isClient ? 'client_unread'        : 'provider_unread'
+        const lastReadCol = isClient ? 'client_last_read_at'  : 'provider_last_read_at'
+        supabase.from('conversations')
+          .update({ [unreadCol]: 0, [lastReadCol]: new Date().toISOString() }).eq('id', id)
+          .then(({ error }) => { if (error) console.warn('[conv] unread/read reset failed:', error.message) })
       })
 
     supabase
@@ -87,7 +101,7 @@ export default function ConversationPage() {
 
   // Realtime subscription
   useEffect(() => {
-    if (!id) return
+    if (!id || !user) return
     const channel = supabase
       .channel(`conv-${id}`)
       .on('postgres_changes', {
@@ -101,9 +115,21 @@ export default function ConversationPage() {
           prev.some(m => m.id === incoming.id) ? prev : [...prev, incoming]
         )
       })
+      // Read receipts: when the other side opens the chat, their last_read_at
+      // updates → flip my latest message to 已读 in real time.
+      .on('postgres_changes', {
+        event:  'UPDATE',
+        schema: 'public',
+        table:  'conversations',
+        filter: `id=eq.${id}`,
+      }, payload => {
+        const row = payload.new as { client_id: string; provider_last_read_at: string | null; client_last_read_at: string | null }
+        const isClient = row.client_id === user.id
+        setOtherLastRead((isClient ? row.provider_last_read_at : row.client_last_read_at) ?? null)
+      })
       .subscribe()
     return () => { supabase.removeChannel(channel) }
-  }, [id])
+  }, [id, user?.id])
 
   // Auto-scroll
   useEffect(() => {
@@ -272,6 +298,12 @@ export default function ConversationPage() {
   if (!user) return null
 
   // Show skeleton until conv metadata arrives
+  // The last of my own (successfully sent) messages carries the read receipt.
+  let lastMineId: string | null = null
+  for (let i = messages.length - 1; i >= 0; i--) {
+    if (messages[i].sender_id === user.id && !messages[i].failed) { lastMineId = messages[i].id; break }
+  }
+
   if (!conv) return (
     <div className="min-h-[100dvh] bg-gray-100 lg:flex lg:items-start lg:justify-center lg:py-6">
     <div className="bg-gray-50 flex flex-col h-[var(--app-vh,100dvh)] lg:min-h-0 lg:h-[90vh] lg:w-full lg:max-w-2xl lg:rounded-2xl lg:shadow-xl lg:overflow-hidden">
@@ -409,6 +441,11 @@ export default function ConversationPage() {
                     {new Date(msg.created_at).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}
                   </p>
                 </div>
+              )}
+              {isMine && !msg.failed && msg.id === lastMineId && (
+                <span className="mt-0.5 text-[11px] text-gray-400">
+                  {seenAt(otherLastRead, msg.created_at) ? '已读' : '已送达'}
+                </span>
               )}
               {msg.failed && (
                 <button
