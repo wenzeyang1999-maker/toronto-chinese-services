@@ -17,6 +17,7 @@ export default function RequestDetail() {
   const user       = useAuthStore((s) => s.user)
   const removeServiceRequest = useAppStore((s) => s.removeServiceRequest)
   const [req, setReq] = useState<ServiceRequest | null>(null)
+  const [inquiryId, setInquiryId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -35,6 +36,7 @@ export default function RequestDetail() {
       .then(({ data, error }) => {
         setLoading(false)
         if (error || !data) return
+        setInquiryId((data as { inquiry_id?: string }).inquiry_id ?? null)
         const expires = new Date(data.expires_at)
         const daysLeft = Math.max(0, Math.ceil((expires.getTime() - Date.now()) / 86_400_000))
         setReq({
@@ -91,6 +93,10 @@ export default function RequestDetail() {
     // Also wipe the coordinate so the demand pin drops off the map immediately
     // — the map filters out requests with null lat/lng.
     await supabase.from('service_requests').update({ status: 'closed', lat: null, lng: null }).eq('id', req.id)
+    // Cascade to the linked inquiry (「我的报价请求」) so it shows 已关闭 too.
+    if (inquiryId) {
+      await supabase.from('inquiries').update({ status: 'closed' }).eq('id', inquiryId).eq('user_id', user!.id)
+    }
     setReq((r) => r ? { ...r, status: 'closed', lat: undefined, lng: undefined } : r)
     // Drop it from the in-memory feed so the card + map pin disappear at once
     // (the Home feed reads this store, not the DB, until a full reload).

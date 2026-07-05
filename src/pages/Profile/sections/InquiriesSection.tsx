@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { ClipboardList, ChevronDown, ChevronUp, Users, CheckCircle, Clock, X, Star } from 'lucide-react'
 import { supabase } from '../../../lib/supabase'
 import { useAuthStore } from '../../../store/authStore'
+import { useAppStore } from '../../../store/appStore'
 import { CATEGORIES } from '../../../data/categories'
 import InquiryResultPanel from '../../../components/InquiryResultPanel/InquiryResultPanel'
 
@@ -28,7 +29,7 @@ interface Inquiry {
 const STATUS_CONFIG = {
   open:    { label: '待接单', color: 'bg-amber-100 text-amber-700' },
   matched: { label: '已选定', color: 'bg-green-100 text-green-700' },
-  closed:  { label: '已完成', color: 'bg-gray-100 text-gray-500' },
+  closed:  { label: '已关闭', color: 'bg-gray-100 text-gray-500' },
 } satisfies Record<Inquiry['status'], { label: string; color: string }>
 
 const TIMING_LABEL: Record<string, string> = {
@@ -87,7 +88,14 @@ export default function InquiriesSection() {
     if (!user) return
     const { error } = await supabase.from('inquiries')
       .update({ status: 'closed' }).eq('id', id).eq('user_id', user.id)
-    if (!error) setItems(prev => prev.map(it => it.id === id ? { ...it, status: 'closed' } : it))
+    if (error) return
+    setItems(prev => prev.map(it => it.id === id ? { ...it, status: 'closed' } : it))
+    // Cascade to the linked public demand post: close it + drop its map pin,
+    // then refresh the in-memory feed so it disappears from 「发现客户」.
+    await supabase.from('service_requests')
+      .update({ status: 'closed', lat: null, lng: null })
+      .eq('inquiry_id', id).eq('user_id', user.id)
+    void useAppStore.getState().fetchServiceRequests()
   }
 
   if (loading) return (

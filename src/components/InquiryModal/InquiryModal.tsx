@@ -248,6 +248,7 @@ export default function InquiryModal({ open, onClose }: Props) {
           .from('service_requests')
           .insert({
             user_id:     user.id,
+            inquiry_id:  inserted.id,
             title,
             description: publicDesc,
             category:    form.categoryId || 'other',
