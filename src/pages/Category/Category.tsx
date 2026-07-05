@@ -8,6 +8,7 @@ import { useAppStore } from '../../store/appStore'
 import { getCategoryById } from '../../data/categories'
 import type { ServiceCategory } from '../../types'
 import Header from '../../components/Header/Header'
+import ErrorState from '../../components/ErrorState/ErrorState'
 import { useGeolocation } from '../../hooks/useGeolocation'
 import PageMeta from '../../components/PageMeta/PageMeta'
 
@@ -22,6 +23,8 @@ export default function Category() {
   const [searchParams, setSearchParams] = useSearchParams()
   const getServicesByCategory = useAppStore((s) => s.getServicesByCategory)
   const userLocation = useAppStore((s) => s.userLocation)
+  const servicesError = useAppStore((s) => s.servicesError)
+  const fetchServices = useAppStore((s) => s.fetchServices)
   const [sortBy, setSortBy] = useState<'distance' | 'rating' | 'price'>(
     () => (searchParams.get('sort') as 'distance' | 'rating' | 'price') || 'rating'
   )
@@ -169,7 +172,9 @@ export default function Category() {
         )}
 
         {/* List view */}
-        {viewMode === 'list' && (sorted.length === 0 ? (
+        {viewMode === 'list' && (servicesError && sorted.length === 0 ? (
+          <ErrorState onRetry={() => fetchServices()} />
+        ) : sorted.length === 0 ? (
           <div className="text-center py-16 text-gray-400">
             <img src={category.image} alt={category.label} className="w-12 h-12 mx-auto mb-3 object-contain opacity-40"
               onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />

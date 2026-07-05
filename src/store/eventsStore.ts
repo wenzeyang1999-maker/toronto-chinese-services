@@ -63,6 +63,7 @@ interface EventsState {
   events: Event[]
   filters: EventFilters
   isReady: boolean
+  loadError: boolean
 
   fetchEvents: () => Promise<void>
   setFilters: (f: Partial<EventFilters>) => void
@@ -75,6 +76,7 @@ export const useEventsStore = create<EventsState>((set, get) => ({
   events:  [],
   filters: { upcoming_only: true },
   isReady: false,
+  loadError: false,
 
   fetchEvents: async () => {
     const { data, error } = await supabase
@@ -83,9 +85,9 @@ export const useEventsStore = create<EventsState>((set, get) => ({
       .eq('is_active', true)
       .order('event_date', { ascending: true })
     if (!error && data) {
-      set({ events: (data as EventRow[]).map(mapRow), isReady: true })
+      set({ events: (data as EventRow[]).map(mapRow), isReady: true, loadError: false })
     } else {
-      set({ isReady: true })
+      set({ isReady: true, loadError: true })
       toast('加载失败，请检查网络后重试', 'error')
     }
   },

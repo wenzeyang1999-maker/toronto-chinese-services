@@ -76,6 +76,7 @@ interface RealEstateState {
   properties: Property[]
   filters: RealEstateFilters
   isReady: boolean
+  loadError: boolean
 
   fetchProperties: () => Promise<void>
   setFilters: (f: Partial<RealEstateFilters>) => void
@@ -88,6 +89,7 @@ export const useRealEstateStore = create<RealEstateState>((set, get) => ({
   properties: [],
   filters:    { listing_type: 'rent' },
   isReady:    false,
+  loadError:  false,
 
   fetchProperties: async () => {
     const { data, error } = await supabase
@@ -96,9 +98,9 @@ export const useRealEstateStore = create<RealEstateState>((set, get) => ({
       .eq('is_active', true)
       .order('created_at', { ascending: false })
     if (!error && data) {
-      set({ properties: (data as PropertyRow[]).map(mapRow), isReady: true })
+      set({ properties: (data as PropertyRow[]).map(mapRow), isReady: true, loadError: false })
     } else {
-      set({ isReady: true })
+      set({ isReady: true, loadError: true })
       toast('加载失败，请检查网络后重试', 'error')
     }
   },

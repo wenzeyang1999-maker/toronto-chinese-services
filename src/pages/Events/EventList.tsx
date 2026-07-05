@@ -10,6 +10,7 @@ import {
   Phone, MessageCircle, Copy, User, ExternalLink,
 } from 'lucide-react'
 import ListPageShell from '../../components/ListPageShell/ListPageShell'
+import ErrorState from '../../components/ErrorState/ErrorState'
 import EventRsvpButton from '../../components/EventRsvp/EventRsvpButton'
 import { useEventsStore } from '../../store/eventsStore'
 import { useAuthStore } from '../../store/authStore'
@@ -29,7 +30,7 @@ const GTA_AREAS = [
 export default function EventList() {
   const navigate = useNavigate()
   const user     = useAuthStore((s) => s.user)
-  const { fetchEvents, setFilters, clearFilters, getFilteredEvents, filters, isReady } = useEventsStore()
+  const { fetchEvents, setFilters, clearFilters, getFilteredEvents, filters, isReady, loadError } = useEventsStore()
   const readSet  = useReadStore((s) => s.read)
   const markRead = useReadStore((s) => s.markRead)
 
@@ -58,8 +59,8 @@ export default function EventList() {
   const topBar = (
     <>
       <div>
-        <h1 className="text-lg font-bold text-gray-900">大多广场</h1>
-        <p className="text-xs text-gray-400">同城活动·集市摊位·公益慈善</p>
+        <h1 className="text-lg font-bold text-gray-900">同城活动</h1>
+        <p className="text-xs text-gray-400">聚会·课程·讲座·演出,可在线报名</p>
       </div>
 
       <div className="flex bg-gray-100 rounded-xl p-1 gap-1">
@@ -203,6 +204,8 @@ export default function EventList() {
         </div>
       ))}
     </div>
+  ) : loadError && events.length === 0 ? (
+    <ErrorState onRetry={fetchEvents} />
   ) : events.length === 0 ? (
     <div className="text-center py-20 text-gray-400">
       <Calendar size={40} className="mx-auto mb-3 opacity-30" />
@@ -281,8 +284,8 @@ export default function EventList() {
 
   return (
     <ListPageShell
-      pageTitle="社区活动"
-      pageDescription="多伦多华人社区活动：聚会、课程、讲座、演出，尽在华邻"
+      pageTitle="同城活动"
+      pageDescription="多伦多华人同城活动：聚会、课程、讲座、演出，可在线报名，尽在华邻"
       topBar={topBar}
       countText={`共 ${events.length} 个活动`}
       selectedId={selectedId}

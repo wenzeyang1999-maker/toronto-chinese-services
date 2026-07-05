@@ -8,6 +8,7 @@ import {
   Phone, MessageCircle, Copy, DollarSign, Clock, User, ExternalLink,
 } from 'lucide-react'
 import ListPageShell from '../../components/ListPageShell/ListPageShell'
+import ErrorState from '../../components/ErrorState/ErrorState'
 import SortChips from '../../components/SortChips/SortChips'
 import { useJobStore } from '../../store/jobStore'
 import { useAuthStore } from '../../store/authStore'
@@ -28,7 +29,7 @@ const GTA_AREAS = [
 export default function JobList() {
   const navigate       = useNavigate()
   const user           = useAuthStore((s) => s.user)
-  const { fetchJobs, setFilters, clearFilters, getFilteredJobs, filters, isReady } = useJobStore()
+  const { fetchJobs, setFilters, clearFilters, getFilteredJobs, filters, isReady, loadError } = useJobStore()
   const readSet    = useReadStore((s) => s.read)
   const markRead   = useReadStore((s) => s.markRead)
 
@@ -173,6 +174,8 @@ export default function JobList() {
         </div>
       ))}
     </div>
+  ) : loadError && jobs.length === 0 ? (
+    <ErrorState onRetry={fetchJobs} />
   ) : jobs.length === 0 ? (
     filters.keyword || filters.category || filters.job_type || filters.area ? (
       <div className="text-center py-20 text-gray-400">

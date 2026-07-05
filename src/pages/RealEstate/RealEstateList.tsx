@@ -6,10 +6,11 @@ import { motion, AnimatePresence } from 'framer-motion'
 import {
   Search, SlidersHorizontal, X,
   Phone, MessageCircle, Copy, Home, User, ExternalLink,
-  BedDouble, Bath, Car, PawPrint, Zap, MapPin,
+  BedDouble, Bath, Car, PawPrint, Zap, MapPin, Ruler,
 } from 'lucide-react'
 import ImgFallback from '../../components/ImgFallback/ImgFallback'
 import ListPageShell from '../../components/ListPageShell/ListPageShell'
+import ErrorState from '../../components/ErrorState/ErrorState'
 import SortChips from '../../components/SortChips/SortChips'
 import { useRealEstateStore } from '../../store/realestateStore'
 import { useAuthStore } from '../../store/authStore'
@@ -27,7 +28,7 @@ const GTA_AREAS = [
 ]
 
 export default function RealEstateList() {
-  const { fetchProperties, setFilters, clearFilters, getFilteredProperties, filters, isReady } = useRealEstateStore()
+  const { fetchProperties, setFilters, clearFilters, getFilteredProperties, filters, isReady, loadError } = useRealEstateStore()
   const readSet  = useReadStore((s) => s.read)
   const markRead = useReadStore((s) => s.markRead)
   const user     = useAuthStore((s) => s.user)
@@ -180,6 +181,8 @@ export default function RealEstateList() {
         </div>
       ))}
     </div>
+  ) : loadError && properties.length === 0 ? (
+    <ErrorState onRetry={fetchProperties} />
   ) : properties.length === 0 ? (
     filters.keyword || filters.property_type || filters.area || filters.bedrooms != null || filters.max_price ? (
       <div className="text-center py-20 text-gray-400">
@@ -245,6 +248,9 @@ export default function RealEstateList() {
               )}
               {p.bathrooms != null && (
                 <span className="flex items-center gap-0.5"><Bath size={11} />{p.bathrooms}卫</span>
+              )}
+              {p.sqft != null && p.sqft > 0 && (
+                <span className="flex items-center gap-0.5"><Ruler size={11} />{p.sqft}呎</span>
               )}
               {p.area && p.area.length > 0 && (
                 <span className="flex items-center gap-0.5"><MapPin size={10} />{p.area[0]}</span>

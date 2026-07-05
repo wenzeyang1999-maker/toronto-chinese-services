@@ -11,6 +11,7 @@ import { useFollowsStore } from '../../store/followsStore'
 import Header from '../../components/Header/Header'
 import PostFAB from '../../components/PostFAB/PostFAB'
 import PullIndicator from '../../components/PullToRefresh/PullIndicator'
+import ErrorState from '../../components/ErrorState/ErrorState'
 import { usePullToRefresh } from '../../hooks/usePullToRefresh'
 import { POST_TYPE_CONFIG, AREA_CONFIG } from './config'
 import ImgFallback from '../../components/ImgFallback/ImgFallback'
@@ -37,6 +38,7 @@ export default function CommunityPage() {
 
   const [posts,      setPosts]      = useState<Post[]>([])
   const [loading,    setLoading]    = useState(true)
+  const [loadError,  setLoadError]  = useState(false)
   const [typeFilter, setTypeFilter] = useState<string>('all')
   const [areaFilter, setAreaFilter] = useState<string>('all')
   const [followMode, setFollowMode] = useState(false)
@@ -67,6 +69,7 @@ export default function CommunityPage() {
 
   const load = useCallback(async () => {
     setLoading(true)
+    setLoadError(false)
     // "关注" mode: only posts from authors the user follows.
     const followAuthorIds = followMode ? [...following] : null
     if (followAuthorIds && followAuthorIds.length === 0) { setPosts([]); setLoading(false); return }
@@ -81,8 +84,8 @@ export default function CommunityPage() {
     if (areaFilter !== 'all') q = q.eq('area', areaFilter)
     if (followAuthorIds) q = q.in('author_id', followAuthorIds)
 
-    const { data } = await q
-    if (!data) { setLoading(false); return }
+    const { data, error } = await q
+    if (error || !data) { setLoadError(true); setPosts([]); setLoading(false); return }
 
     const ids = data.map((p: any) => p.id)
     if (!ids.length) { setPosts([]); setLoading(false); return }
@@ -168,6 +171,8 @@ export default function CommunityPage() {
               </div>
             ))}
           </div>
+        ) : loadError && posts.length === 0 ? (
+          <ErrorState onRetry={load} />
         ) : posts.length === 0 ? (
           <div className="text-center py-20 text-gray-400">
             <p className="text-4xl mb-3">🌱</p>

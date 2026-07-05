@@ -37,7 +37,6 @@ export default function AdminNotificationsBell({ compact = false }: AdminNotific
   const user = useAuthStore((s) => s.user)
   const navigate = useNavigate()
   const panelRef = useRef<HTMLDivElement>(null)
-  const [role, setRole] = useState<string | null>(null)
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [notifications, setNotifications] = useState<NotificationRow[]>([])
@@ -50,23 +49,18 @@ export default function AdminNotificationsBell({ compact = false }: AdminNotific
 
   const loadNotifications = useCallback(async () => {
     if (!user) {
-      setRole(null)
       setNotifications([])
       return
     }
 
     setLoading(true)
-    const [{ data: profile }, { data, error }] = await Promise.all([
-      supabase.from('users').select('role').eq('id', user.id).single(),
-      supabase
-        .from('notifications')
-        .select('id, title, body, link_url, read_at, created_at, type')
-        .eq('recipient_id', user.id)
-        .order('created_at', { ascending: false })
-        .limit(limit),
-    ])
+    const { data, error } = await supabase
+      .from('notifications')
+      .select('id, title, body, link_url, read_at, created_at, type')
+      .eq('recipient_id', user.id)
+      .order('created_at', { ascending: false })
+      .limit(limit)
 
-    setRole(profile?.role ?? null)
     if (error) {
       console.warn('[admin-notifications] load failed:', error.message)
       setNotifications([])
@@ -142,10 +136,10 @@ export default function AdminNotificationsBell({ compact = false }: AdminNotific
   async function openNotification(item: NotificationRow) {
     if (!item.read_at) await markAsRead(item.id)
     setOpen(false)
-    navigate(item.link_url || '/admin')
+    if (item.link_url) navigate(item.link_url)
   }
 
-  if (!user || role !== 'admin') return null
+  if (!user) return null
 
   return (
     <div className="relative" ref={panelRef}>
@@ -154,7 +148,7 @@ export default function AdminNotificationsBell({ compact = false }: AdminNotific
         className={`relative rounded-xl border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 transition-colors ${
           compact ? 'p-2' : 'px-3 py-2'
         }`}
-        aria-label="管理员提醒"
+        aria-label="通知提醒"
       >
         <Bell size={18} />
         {unreadCount > 0 && (
@@ -168,8 +162,8 @@ export default function AdminNotificationsBell({ compact = false }: AdminNotific
         <div className="absolute right-0 top-full mt-2 w-[340px] max-w-[calc(100vw-24px)] bg-white border border-gray-100 rounded-2xl shadow-xl overflow-hidden z-50">
           <div className="px-4 py-3 border-b border-gray-100 flex items-center gap-3">
             <div className="min-w-0 flex-1">
-              <p className="text-sm font-semibold text-gray-800">管理员提醒</p>
-              <p className="text-xs text-gray-400">社区举报和后台动作提醒会显示在这里</p>
+              <p className="text-sm font-semibold text-gray-800">通知提醒</p>
+              <p className="text-xs text-gray-400">关注的人有新动态、系统与后台提醒都在这里</p>
             </div>
             <button
               onClick={() => void markAllAsRead()}

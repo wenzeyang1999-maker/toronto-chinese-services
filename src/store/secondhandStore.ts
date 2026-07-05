@@ -56,6 +56,7 @@ interface SecondhandState {
   items: SecondhandItem[]
   filters: SecondhandFilters
   isReady: boolean
+  loadError: boolean
 
   fetchItems: () => Promise<void>
   setFilters: (f: Partial<SecondhandFilters>) => void
@@ -68,6 +69,7 @@ export const useSecondhandStore = create<SecondhandState>((set, get) => ({
   items:   [],
   filters: {},
   isReady: false,
+  loadError: false,
 
   fetchItems: async () => {
     const { data, error } = await supabase
@@ -77,9 +79,9 @@ export const useSecondhandStore = create<SecondhandState>((set, get) => ({
       .eq('is_sold', false)
       .order('created_at', { ascending: false })
     if (!error && data) {
-      set({ items: (data as ItemRow[]).map(mapRow), isReady: true })
+      set({ items: (data as ItemRow[]).map(mapRow), isReady: true, loadError: false })
     } else {
-      set({ isReady: true })
+      set({ isReady: true, loadError: true })
       toast('加载失败，请检查网络后重试', 'error')
     }
   },

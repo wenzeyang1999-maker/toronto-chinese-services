@@ -62,6 +62,7 @@ export interface ServiceRow {
 interface AppState {
   services: Service[]
   servicesLoaded: boolean
+  servicesError: boolean
   serviceRequests: ServiceRequest[]
   userLocation: { lat: number; lng: number } | null
   searchFilters: SearchFilters
@@ -161,6 +162,7 @@ function mapRequestRow(row: any): ServiceRequest {
 export const useAppStore = create<AppState>((set, get) => ({
   services: [],
   servicesLoaded: false,
+  servicesError: false,
   serviceRequests: [],
   userLocation: readCachedLocation(),
   searchFilters: { sortBy: 'rating' },
@@ -215,7 +217,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       .range(offset, offset + SERVICES_PAGE_SIZE - 1)
 
     if (error || !data) {
-      set({ servicesLoadingMore: false, servicesLoaded: true })
+      set({ servicesLoadingMore: false, servicesLoaded: true, servicesError: true })
       if (!append) toast('加载失败，请检查网络后重试', 'error')
       return
     }
@@ -225,6 +227,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       servicesHasMore: data.length === SERVICES_PAGE_SIZE,
       servicesLoadingMore: false,
       servicesLoaded: true,
+      servicesError: false,
     })
   },
 

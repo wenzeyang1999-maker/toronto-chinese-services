@@ -71,6 +71,7 @@ interface JobState {
   jobs: Job[]
   filters: JobFilters
   isReady: boolean
+  loadError: boolean
 
   fetchJobs: () => Promise<void>
   setFilters: (f: Partial<JobFilters>) => void
@@ -83,6 +84,7 @@ export const useJobStore = create<JobState>((set, get) => ({
   jobs:    [],
   filters: {},
   isReady: false,
+  loadError: false,
 
   fetchJobs: async () => {
     const { data, error } = await supabase
@@ -91,9 +93,9 @@ export const useJobStore = create<JobState>((set, get) => ({
       .eq('is_active', true)
       .order('created_at', { ascending: false })
     if (!error && data) {
-      set({ jobs: (data as JobRow[]).map(mapRow), isReady: true })
+      set({ jobs: (data as JobRow[]).map(mapRow), isReady: true, loadError: false })
     } else {
-      set({ isReady: true })
+      set({ isReady: true, loadError: true })
       toast('加载失败，请检查网络后重试', 'error')
     }
   },

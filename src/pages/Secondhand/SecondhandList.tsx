@@ -9,6 +9,7 @@ import {
 } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import ListPageShell from '../../components/ListPageShell/ListPageShell'
+import ErrorState from '../../components/ErrorState/ErrorState'
 import SortChips from '../../components/SortChips/SortChips'
 import ImgFallback from '../../components/ImgFallback/ImgFallback'
 import { useSecondhandStore } from '../../store/secondhandStore'
@@ -30,7 +31,7 @@ const GTA_AREAS = [
 export default function SecondhandList() {
   const navigate  = useNavigate()
   const user      = useAuthStore((s) => s.user)
-  const { fetchItems, setFilters, clearFilters, getFilteredItems, filters, isReady } = useSecondhandStore()
+  const { fetchItems, setFilters, clearFilters, getFilteredItems, filters, isReady, loadError } = useSecondhandStore()
   const readSet  = useReadStore((s) => s.read)
   const markRead = useReadStore((s) => s.markRead)
 
@@ -177,6 +178,8 @@ export default function SecondhandList() {
         </div>
       ))}
     </div>
+  ) : loadError && items.length === 0 ? (
+    <ErrorState onRetry={fetchItems} />
   ) : items.length === 0 ? (
     filters.keyword || filters.category || filters.condition || filters.area || filters.max_price ? (
       <div className="text-center py-20 text-gray-400">
