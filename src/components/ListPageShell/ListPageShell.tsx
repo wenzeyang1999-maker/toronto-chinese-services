@@ -3,6 +3,8 @@ import { motion, AnimatePresence } from 'framer-motion'
 import Header from '../Header/Header'
 import PostFAB from '../PostFAB/PostFAB'
 import PageMeta from '../PageMeta/PageMeta'
+import PullIndicator from '../PullToRefresh/PullIndicator'
+import { usePullToRefresh } from '../../hooks/usePullToRefresh'
 import { useAuthStore } from '../../store/authStore'
 import { useNavigate } from 'react-router-dom'
 
@@ -24,6 +26,8 @@ interface Props {
   rightPlaceholder?: React.ReactNode
   children: React.ReactNode
   fabPath?: string | null
+  /** When provided, enables pull-to-refresh on the mobile list column */
+  onRefresh?: () => Promise<unknown> | void
 }
 
 export default function ListPageShell({
@@ -40,10 +44,17 @@ export default function ListPageShell({
   rightPlaceholder,
   children,
   fabPath,
+  onRefresh,
 }: Props) {
   const navigate = useNavigate()
   const user = useAuthStore((s) => s.user)
   const detailRef = useRef<HTMLDivElement>(null)
+  const listScrollRef = useRef<HTMLDivElement>(null)
+  const { distance, refreshing, threshold } = usePullToRefresh(
+    onRefresh ?? (() => {}),
+    listScrollRef,
+    !!onRefresh,
+  )
 
   return (
     <div className="flex flex-col h-screen bg-gray-50 overflow-hidden">
@@ -70,8 +81,20 @@ export default function ListPageShell({
           style={selectedId && detailDesktop ? { width: leftColWidth } : undefined}
         >
           <p className="text-xs text-gray-400 mb-2 flex-shrink-0">{countText}</p>
-          <div className="flex-1 overflow-y-auto pr-0.5">
-            {children}
+          <div className="relative flex-1 overflow-hidden">
+            {onRefresh && (
+              <PullIndicator distance={distance} refreshing={refreshing} threshold={threshold} />
+            )}
+            <div
+              ref={listScrollRef}
+              className="h-full overflow-y-auto pr-0.5"
+              style={onRefresh ? {
+                transform: `translateY(${distance}px)`,
+                transition: distance === 0 ? 'transform 0.2s' : 'none',
+              } : undefined}
+            >
+              {children}
+            </div>
           </div>
         </div>
 

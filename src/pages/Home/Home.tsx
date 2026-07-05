@@ -12,6 +12,8 @@ import { useAuthStore } from '../../store/authStore'
 import HomeActionHero from './components/HomeActionHero'
 import HomeServiceShelf from './components/HomeServiceShelf'
 import HomeFollowingFeed from './components/HomeFollowingFeed'
+import PullIndicator from '../../components/PullToRefresh/PullIndicator'
+import { usePullToRefresh } from '../../hooks/usePullToRefresh'
 import { RADIUS_MIN_KM, RADIUS_MAX_KM } from '../../components/RadiusSlider/RadiusSlider'
 import { PlusCircle, Search as SearchIcon, ChevronRight, Sparkles, Megaphone, ArrowRight } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
@@ -32,6 +34,9 @@ export default function Home() {
   const navigate         = useNavigate()
   const user             = useAuthStore((s) => s.user)
   const [searchParams]   = useSearchParams()
+
+  // Pull-to-refresh (mobile) — re-fetch the services feed from the top.
+  const { distance, refreshing, threshold } = usePullToRefresh(() => fetchServices())
   const [inquiryOpen, setInquiryOpen]  = useState(false)
   const [searchQuery, setSearchQuery]  = useState('')
   const [viewMode, setViewMode] = useState<'list' | 'map'>(() => {
@@ -185,6 +190,9 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-[#f7f8fa]">
+      <div className="fixed top-14 left-0 right-0 z-[45] pointer-events-none">
+        <PullIndicator distance={distance} refreshing={refreshing} threshold={threshold} />
+      </div>
       <div className="sticky top-0 z-40">
         <HeroBanner />
       </div>

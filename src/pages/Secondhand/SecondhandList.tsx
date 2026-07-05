@@ -265,6 +265,7 @@ export default function SecondhandList() {
       detailMobile={selectedItem ? <DetailPanel item={selectedItem} onClose={() => setMobileOpen(false)} /> : null}
       leftColWidth={380}
       fabPath="/secondhand/post"
+      onRefresh={fetchItems}
     >
       {cardList}
     </ListPageShell>

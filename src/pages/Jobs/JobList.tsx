@@ -253,6 +253,7 @@ export default function JobList() {
       detailMobile={selectedJob ? <DetailPanel job={selectedJob} salaryLabel={salaryLabel(selectedJob)} onClose={() => setMobileOpen(false)} /> : null}
       leftColWidth={420}
       fabPath={`/jobs/post?type=${listingType}`}
+      onRefresh={fetchJobs}
     >
       {cardList}
     </ListPageShell>

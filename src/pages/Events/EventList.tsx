@@ -292,6 +292,7 @@ export default function EventList() {
       detailMobile={selectedEvent ? <DetailPanel ev={selectedEvent} onClose={() => setMobileOpen(false)} /> : null}
       rightPlaceholder={rightPlaceholder}
       fabPath="/events/post"
+      onRefresh={fetchEvents}
     >
       {cardList}
     </ListPageShell>

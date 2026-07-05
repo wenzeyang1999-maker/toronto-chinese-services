@@ -268,6 +268,7 @@ export default function RealEstateList() {
       detailDesktop={selectedProp ? <DetailPanel prop={selectedProp} onClose={() => setSelectedId(null)} /> : null}
       detailMobile={selectedProp ? <DetailPanel prop={selectedProp} onClose={() => setMobileOpen(false)} /> : null}
       fabPath={`/realestate/post?type=${filters.listing_type ?? 'rent'}`}
+      onRefresh={fetchProperties}
     >
       {cardList}
     </ListPageShell>

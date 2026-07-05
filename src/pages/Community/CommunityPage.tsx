@@ -10,6 +10,8 @@ import { useReadStore } from '../../store/readStore'
 import { useFollowsStore } from '../../store/followsStore'
 import Header from '../../components/Header/Header'
 import PostFAB from '../../components/PostFAB/PostFAB'
+import PullIndicator from '../../components/PullToRefresh/PullIndicator'
+import { usePullToRefresh } from '../../hooks/usePullToRefresh'
 import { POST_TYPE_CONFIG, AREA_CONFIG } from './config'
 import ImgFallback from '../../components/ImgFallback/ImgFallback'
 
@@ -103,8 +105,13 @@ export default function CommunityPage() {
 
   useEffect(() => { load() }, [load])
 
+  const { distance, refreshing, threshold } = usePullToRefresh(load)
+
   return (
     <div className="min-h-screen bg-gray-50 pb-24">
+      <div className="fixed top-14 left-0 right-0 z-[45] pointer-events-none">
+        <PullIndicator distance={distance} refreshing={refreshing} threshold={threshold} />
+      </div>
       <Header />
 
       {/* Filters */}
