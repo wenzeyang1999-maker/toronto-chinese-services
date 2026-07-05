@@ -17,7 +17,6 @@ interface RegisterForm {
   email: string
   phone: string
   password: string
-  confirmPassword: string
 }
 
 interface FormErrors {
@@ -25,7 +24,6 @@ interface FormErrors {
   email?: string
   phone?: string
   password?: string
-  confirmPassword?: string
 }
 
 const INITIAL: RegisterForm = {
@@ -33,7 +31,6 @@ const INITIAL: RegisterForm = {
   email: '',
   phone: '',
   password: '',
-  confirmPassword: '',
 }
 
 // ── Validation ────────────────────────────────────────────────────────────────
@@ -51,9 +48,23 @@ function validate(form: RegisterForm): FormErrors {
     errors.password = '请设置密码'
   else if (form.password.length < 8)
     errors.password = '密码至少 8 位'
-  if (form.confirmPassword !== form.password)
-    errors.confirmPassword = '两次密码不一致'
   return errors
+}
+
+// Live password strength — length + character variety. Purely advisory (the
+// hard rule stays "≥ 8 位" in validate()).
+function passwordStrength(pw: string): { score: number; label: string; color: string } {
+  if (!pw) return { score: 0, label: '', color: 'bg-gray-200' }
+  let s = 0
+  if (pw.length >= 8) s++
+  if (pw.length >= 12) s++
+  if (/[a-z]/.test(pw) && /[A-Z]/.test(pw)) s++
+  if (/\d/.test(pw)) s++
+  if (/[^A-Za-z0-9]/.test(pw)) s++
+  s = Math.min(4, s)
+  const labels = ['太弱', '较弱', '一般', '较强', '很强']
+  const colors = ['bg-red-400', 'bg-orange-400', 'bg-yellow-400', 'bg-lime-500', 'bg-green-500']
+  return { score: s, label: labels[s], color: colors[s] }
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────
@@ -70,7 +81,6 @@ export default function Register() {
   }, [searchParams])
   const [errors, setErrors]         = useState<FormErrors>({})
   const [showPassword, setShowPassword]         = useState(false)
-  const [showConfirm, setShowConfirm]           = useState(false)
   const [agreedToTerms, setAgreedToTerms]       = useState(false)
   const [termsError, setTermsError]             = useState(false)
   const [loading, setLoading]                   = useState(false)
@@ -276,26 +286,22 @@ export default function Register() {
                   {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
               </InputRow>
-            </Field>
-
-            {/* Confirm password */}
-            <Field label="确认密码" error={errors.confirmPassword}>
-              <InputRow icon={<Lock size={16} />}>
-                <input
-                  type={showConfirm ? 'text' : 'password'}
-                  value={form.confirmPassword}
-                  onChange={(e) => update('confirmPassword', e.target.value)}
-                  placeholder="再输入一次"
-                  className="flex-1 bg-transparent outline-none text-sm text-gray-900 placeholder-gray-400"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowConfirm((v) => !v)}
-                  className="text-gray-400 hover:text-gray-600 ml-2"
-                >
-                  {showConfirm ? <EyeOff size={16} /> : <Eye size={16} />}
-                </button>
-              </InputRow>
+              {/* Live strength meter */}
+              {form.password && (() => {
+                const st = passwordStrength(form.password)
+                return (
+                  <div className="mt-2 flex items-center gap-2">
+                    <div className="flex-1 flex gap-1">
+                      {[0, 1, 2, 3].map((i) => (
+                        <div key={i} className={`h-1 flex-1 rounded-full transition-colors ${
+                          i <= st.score ? st.color : 'bg-gray-200'
+                        }`} />
+                      ))}
+                    </div>
+                    <span className="text-[11px] text-gray-400 w-8 text-right">{st.label}</span>
+                  </div>
+                )
+              })()}
             </Field>
 
             {/* Referral code (optional) */}
