@@ -2,7 +2,8 @@
 // Shows the user's personal share code, referral count, and one-click share buttons.
 import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
-import { Copy, Check, Users, Gift } from 'lucide-react'
+import { Copy, Check, Users, Gift, Share2, QrCode } from 'lucide-react'
+import { QRCodeSVG } from 'qrcode.react'
 import { supabase } from '../../../lib/supabase'
 import type { User as SupabaseUser } from '@supabase/supabase-js'
 
@@ -14,6 +15,7 @@ export default function ReferralSection({ user }: Props) {
   const [referralCode,  setReferralCode]  = useState<string | null>(null)
   const [referralCount, setReferralCount] = useState<number>(0)
   const [copied,        setCopied]        = useState(false)
+  const [showQr,        setShowQr]        = useState(false)
   const [loading,       setLoading]       = useState(true)
   const [error,         setError]         = useState<string | null>(null)
   const [reloadKey,     setReloadKey]     = useState(0)
@@ -87,6 +89,21 @@ export default function ReferralSection({ user }: Props) {
   const shareUrl  = referralCode ? `${shareBaseUrl}/register?ref=${referralCode}` : ''
   const shareText = `我在华邻找到了很多靠谱的本地服务商！用我的邀请码 ${referralCode} 注册：`
 
+  const canNativeShare = typeof navigator !== 'undefined' && !!navigator.share
+
+  async function nativeShare() {
+    if (!shareUrl) return
+    // Native share sheet (mobile) — surfaces WeChat / Messages / etc. directly.
+    if (canNativeShare) {
+      try {
+        await navigator.share({ title: '华邻 — 邀请你加入', text: shareText, url: shareUrl })
+        return
+      } catch { /* user cancelled — fall through to nothing */ return }
+    }
+    // Desktop / unsupported: fall back to copying.
+    await copyForWeChat()
+  }
+
   async function copyLink() {
     if (!shareUrl) return
     await navigator.clipboard.writeText(shareUrl)
@@ -157,16 +174,58 @@ export default function ReferralSection({ user }: Props) {
               </button>
             </div>
           )}
-          <button
-            onClick={copyLink}
-            disabled={!shareUrl}
-            className="w-full flex items-center justify-center gap-2 bg-primary-600 hover:bg-primary-700
-                       disabled:bg-gray-300 disabled:cursor-not-allowed
-                       text-white text-sm font-semibold py-3 rounded-xl transition-colors active:scale-95"
-          >
-            {copied ? <Check size={15} /> : <Copy size={15} />}
-            {copied ? '已复制链接！' : '复制邀请链接'}
-          </button>
+          {/* Primary: native share sheet on mobile (WeChat / Messages / …) */}
+          {canNativeShare && (
+            <button
+              onClick={nativeShare}
+              disabled={!shareUrl}
+              className="w-full flex items-center justify-center gap-2 bg-primary-600 hover:bg-primary-700
+                         disabled:bg-gray-300 disabled:cursor-not-allowed
+                         text-white text-sm font-semibold py-3 rounded-xl transition-colors active:scale-95 mb-2"
+            >
+              <Share2 size={15} />
+              分享给朋友
+            </button>
+          )}
+          <div className="flex gap-2">
+            <button
+              onClick={copyLink}
+              disabled={!shareUrl}
+              className={`flex-1 flex items-center justify-center gap-2
+                         disabled:bg-gray-300 disabled:cursor-not-allowed text-sm font-semibold py-3 rounded-xl
+                         transition-colors active:scale-95 ${
+                           canNativeShare
+                             ? 'bg-white border border-primary-200 text-primary-700 hover:bg-primary-50'
+                             : 'bg-primary-600 hover:bg-primary-700 text-white'
+                         }`}
+            >
+              {copied ? <Check size={15} /> : <Copy size={15} />}
+              {copied ? '已复制！' : '复制链接'}
+            </button>
+            <button
+              onClick={() => setShowQr((v) => !v)}
+              disabled={!shareUrl}
+              className="flex-shrink-0 flex items-center justify-center gap-1.5 px-4
+                         bg-white border border-gray-200 text-gray-600 hover:bg-gray-50
+                         disabled:opacity-50 text-sm font-semibold rounded-xl transition-colors active:scale-95"
+            >
+              <QrCode size={15} />
+              二维码
+            </button>
+          </div>
+
+          {/* QR code — friends scan to open the referral link */}
+          {showQr && shareUrl && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }}
+              className="mt-3 flex flex-col items-center overflow-hidden"
+            >
+              <div className="bg-white p-3 rounded-2xl border border-gray-100 shadow-sm">
+                <QRCodeSVG value={shareUrl} size={168} level="M" marginSize={0} />
+              </div>
+              <p className="text-[11px] text-gray-400 mt-2">扫码即可用你的邀请码注册</p>
+            </motion.div>
+          )}
         </div>
       </div>
 
