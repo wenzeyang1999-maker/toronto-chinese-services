@@ -259,6 +259,7 @@ export default function ServiceDetail() {
     if (!error && data) {
       navigate(`/conversation/${data.id}`)
     } else if (error) {
+      console.error('[handleMessage] conversation upsert failed:', error)
       toast('发起对话失败，请稍后再试', 'error')
     }
   }
