@@ -86,8 +86,10 @@ export default function RequestDetail() {
 
   async function handleClose() {
     if (!req || req.userId !== user?.id) return
-    await supabase.from('service_requests').update({ status: 'closed' }).eq('id', req.id)
-    setReq((r) => r ? { ...r, status: 'closed' } : r)
+    // Also wipe the coordinate so the demand pin drops off the map immediately
+    // — the map filters out requests with null lat/lng.
+    await supabase.from('service_requests').update({ status: 'closed', lat: null, lng: null }).eq('id', req.id)
+    setReq((r) => r ? { ...r, status: 'closed', lat: undefined, lng: undefined } : r)
     toast('需求已关闭', 'success')
   }
 
