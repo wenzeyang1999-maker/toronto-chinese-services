@@ -124,7 +124,7 @@ Deno.serve(async (req) => {
     // Verify inquiry exists and has not been matched already (prevents duplicate sends)
     const { data: inquiry, error: inquiryError } = await admin
       .from('inquiries')
-      .select('id, status, lat, lng')
+      .select('id, status, lat, lng, user_id')
       .eq('id', payload.inquiryId)
       .single()
     if (inquiryError || !inquiry) throw new Error('Inquiry not found')
@@ -234,6 +234,19 @@ Deno.serve(async (req) => {
       )
       // Set race_status = 'open' (not immediately 'matched' — providers race to fill slots)
       await admin.from('inquiries').update({ race_status: 'open' }).eq('id', payload.inquiryId)
+
+      // Reassure the customer: a persistent in-app notification confirming the
+      // inquiry went out + how many merchants got it. Merchants contact the
+      // customer proactively; this lets them check progress / reach out if urgent.
+      if ((inquiry as { user_id?: string }).user_id) {
+        await admin.from('notifications').insert({
+          recipient_id: (inquiry as { user_id: string }).user_id,
+          type:  'inquiry_dispatched',
+          title: `询价已发给 ${targets.length} 位商家`,
+          body:  '他们会尽快主动联系你，急可点这里查看这几家',
+          link_url: '/profile?section=inquiries',
+        })
+      }
     }
 
     return new Response(JSON.stringify({ sent: targets.length, total: providers.length }), {
