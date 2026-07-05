@@ -26,8 +26,8 @@ self.addEventListener('push', (event) => {
   const title   = payload.title || '华林'
   const options = {
     body:    payload.body || '',
-    icon:    payload.icon || '/favicon.svg',
-    badge:   '/favicon.svg',
+    icon:    payload.icon || '/icon-192.png',
+    badge:   '/favicon-32.png',
     tag:     payload.tag,
     data:    { url: payload.url || '/' },
     renotify: true,

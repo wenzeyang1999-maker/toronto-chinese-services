@@ -1,6 +1,6 @@
 {
-  "name": "华林 — 海外华人生活一站式服务平台",
-  "short_name": "华林",
+  "name": "华邻 — 海外华人生活一站式服务平台",
+  "short_name": "华邻",
   "description": "海外华人生活一站式服务平台 — 找服务、招聘、租房、二手、活动、社区一站搞定",
   "start_url": "/",
   "scope": "/",
@@ -12,15 +12,21 @@
   "categories": ["lifestyle", "social", "shopping"],
   "icons": [
     {
-      "src": "/favicon.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/favicon.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
       "purpose": "maskable"
     }
   ],

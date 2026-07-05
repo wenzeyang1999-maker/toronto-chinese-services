@@ -34,7 +34,7 @@ function showSystemNotification(t: Toast, onClick: () => void) {
   try {
     const n = new Notification(`${t.senderName} 给你发了消息`, {
       body: t.content,
-      icon: t.senderAvatar ?? '/favicon.ico',
+      icon: t.senderAvatar ?? '/icon-192.png',
       tag:  `tcs-msg-${t.conversationId}`, // dedupe per conversation
       renotify: true,
     } as NotificationOptions & { renotify?: boolean })

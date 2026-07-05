@@ -101,7 +101,7 @@ export function useRequestMatchAlerts() {
           try {
             const n = new Notification('新需求匹配你的标签', {
               body: r.title + (r.area ? `  ·  ${r.area}` : ''),
-              icon: '/favicon.svg',
+              icon: '/icon-192.png',
               tag: `req-${r.id}`,
             })
             n.onclick = () => {

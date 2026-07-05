@@ -21,43 +21,17 @@ export default function HuaLinLogo({
 }: Props) {
   const textColor = theme === 'dark' ? '#ffffff' : '#111827'
   const subColor  = theme === 'dark' ? 'rgba(255,255,255,0.55)' : '#6b7280'
-  const r         = size * 0.28
 
+  // 「邻」字标 PNG(白底)。mix-blend-multiply 让白底在浅色背景下透出,只留蓝色 mark。
   const Badge = () => (
-    <svg
+    <img
+      src="/brand/logo-mark-nav.png"
       width={size}
       height={size}
-      viewBox="0 0 40 40"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
+      alt=""
       aria-hidden="true"
-    >
-      <defs>
-        <linearGradient id="hl-bg" x1="0" y1="0" x2="40" y2="40" gradientUnits="userSpaceOnUse">
-          <stop offset="0%"   stopColor="#1e40af" />
-          <stop offset="100%" stopColor="#0284c7" />
-        </linearGradient>
-        <linearGradient id="hl-shine" x1="0" y1="0" x2="0" y2="40" gradientUnits="userSpaceOnUse">
-          <stop offset="0%"   stopColor="#ffffff" stopOpacity="0.18" />
-          <stop offset="100%" stopColor="#ffffff" stopOpacity="0" />
-        </linearGradient>
-      </defs>
-
-      {/* Badge */}
-      <rect width="40" height="40" rx={r} fill="url(#hl-bg)" />
-      <rect width="40" height="40" rx={r} fill="url(#hl-shine)" />
-
-      {/* 左树 (前景，全白) */}
-      <polygon points="4,27 13,8 22,27" fill="white" />
-      <rect x="10.5" y="27" width="5" height="6" rx="1.5" fill="white" />
-
-      {/* 右树 (略透明，形成层次感) */}
-      <polygon points="18,27 27,8 36,27" fill="white" opacity="0.72" />
-      <rect x="24.5" y="27" width="5" height="6" rx="1.5" fill="white" opacity="0.72" />
-
-      {/* 地面基线 */}
-      <rect x="4" y="33" width="32" height="2" rx="1" fill="white" opacity="0.25" />
-    </svg>
+      style={{ mixBlendMode: 'multiply', objectFit: 'contain', display: 'block' }}
+    />
   )
 
   if (variant === 'icon') {
