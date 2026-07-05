@@ -276,19 +276,29 @@ Deno.serve(async (req) => {
         // Race mode: open the slots, providers compete to claim.
         await admin.from('inquiries').update({ race_status: 'open' }).eq('id', payload.inquiryId)
       }
+    }
 
-      // Reassure the customer: a persistent in-app notification confirming the
-      // inquiry went out + how many merchants got it, and that they can view /
-      // contact them directly if urgent.
-      if ((inquiry as { user_id?: string }).user_id) {
-        await admin.from('notifications').insert({
-          recipient_id: (inquiry as { user_id: string }).user_id,
-          type:  'inquiry_dispatched',
-          title: `询价已发给 ${targets.length} 位商家`,
-          body:  '他们会尽快主动联系你；急的话也可点这里查看这几家、自己先联系',
-          link_url: '/profile?section=inquiries',
-        })
-      }
+    // Reassure the customer — ALWAYS fire, even with 0 matches, so a posted
+    // inquiry never feels like it vanished into the void.
+    const customerId = (inquiry as { user_id?: string }).user_id
+    if (customerId) {
+      await admin.from('notifications').insert(
+        targets.length > 0
+          ? {
+              recipient_id: customerId,
+              type:  'inquiry_dispatched',
+              title: `询价已发给 ${targets.length} 位商家`,
+              body:  '他们会尽快主动联系你；急的话也可点这里查看这几家、自己先联系',
+              link_url: '/profile?section=inquiries',
+            }
+          : {
+              recipient_id: customerId,
+              type:  'inquiry_dispatched',
+              title: '需求已收到',
+              body:  '暂时没有匹配到合适的商家，你可以直接浏览服务、主动联系',
+              link_url: '/',
+            }
+      )
     }
 
     return new Response(JSON.stringify({ sent: targets.length, total: providers.length }), {
