@@ -93,9 +93,22 @@ export default function RequestDetail() {
     // Also wipe the coordinate so the demand pin drops off the map immediately
     // — the map filters out requests with null lat/lng.
     await supabase.from('service_requests').update({ status: 'closed', lat: null, lng: null }).eq('id', req.id)
-    // Cascade to the linked inquiry (「我的报价请求」) so it shows 已关闭 too.
+    // Cascade to the inquiry (「我的报价请求」) so it closes on both sides.
     if (inquiryId) {
+      // New data: close by the stored link.
       await supabase.from('inquiries').update({ status: 'closed' }).eq('id', inquiryId).eq('user_id', user!.id)
+    } else {
+      // Legacy data with no link: match by same user + category + a ±2 min
+      // window around this request's creation (the pair was written together).
+      const t  = new Date(req.createdAt).getTime()
+      const lo = new Date(t - 120_000).toISOString()
+      const hi = new Date(t + 120_000).toISOString()
+      await supabase.from('inquiries').update({ status: 'closed' })
+        .eq('user_id', user!.id)
+        .eq('category_id', req.category)
+        .eq('status', 'open')
+        .gte('created_at', lo)
+        .lte('created_at', hi)
     }
     setReq((r) => r ? { ...r, status: 'closed', lat: undefined, lng: undefined } : r)
     // Drop it from the in-memory feed so the card + map pin disappear at once
