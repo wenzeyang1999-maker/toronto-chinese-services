@@ -225,7 +225,9 @@ export default function InquiryModal({ open, onClose }: Props) {
       if (error) throw error
 
       if (user?.id && postPublic) {
-        const expiryDays = form.timing === 'asap' ? 7 : form.timing === 'next_week' ? 14 : 30
+        // Direct-dispatch means matched merchants reach out right away, so the
+        // public post only needs a short life. Keep it fresh: 3 days.
+        const expiryDays = 3
         const expiresAt  = new Date(Date.now() + expiryDays * 86_400_000).toISOString()
         const cat        = CATEGORIES.find((c) => c.id === form.categoryId)
         const rawText    = (aiMode ? rawInput : form.description).trim()
