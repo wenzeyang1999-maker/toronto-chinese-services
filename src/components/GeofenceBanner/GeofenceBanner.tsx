@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { MapPin, X } from 'lucide-react'
+import { useAppStore } from '../../store/appStore'
 
 // Toronto centre coordinates
 const TOR_LAT = 43.6532
@@ -21,20 +22,17 @@ const SESSION_KEY = 'tcs_geofence_dismissed'
 
 export default function GeofenceBanner() {
   const [show, setShow] = useState(false)
+  // Use the already-cached location only — never trigger a fresh geolocation
+  // request just for this banner (that re-prompted the user on every refresh).
+  // It shows only once the user has granted location elsewhere (map/search).
+  const userLocation = useAppStore((s) => s.userLocation)
 
   useEffect(() => {
     if (sessionStorage.getItem(SESSION_KEY)) return
-    if (!navigator.geolocation) return
-
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        const km = haversineKm(pos.coords.latitude, pos.coords.longitude, TOR_LAT, TOR_LNG)
-        if (km > MAX_KM) setShow(true)
-      },
-      () => { /* permission denied or error — do nothing */ },
-      { timeout: 8000, maximumAge: 300_000 },
-    )
-  }, [])
+    if (!userLocation) return
+    const km = haversineKm(userLocation.lat, userLocation.lng, TOR_LAT, TOR_LNG)
+    setShow(km > MAX_KM)
+  }, [userLocation])
 
   if (!show) return null
 
