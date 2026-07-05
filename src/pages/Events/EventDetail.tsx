@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { ChevronLeft, MapPin, Phone, MessageCircle, Copy, Calendar, User, ExternalLink, Clock } from 'lucide-react'
+import { ChevronLeft, MapPin, Phone, MessageCircle, Copy, Calendar, CalendarPlus, Navigation, User, ExternalLink, Clock } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { useAuthStore } from '../../store/authStore'
 import { useReadStore } from '../../store/readStore'
@@ -16,6 +16,7 @@ import SaveButton from '../../components/SaveButton/SaveButton'
 import ShareButton from '../../components/ShareButton/ShareButton'
 import PageMeta from '../../components/PageMeta/PageMeta'
 import ImageLightbox from '../../components/ImageLightbox/ImageLightbox'
+import { downloadIcs, mapNavUrl } from '../../lib/eventActions'
 import ViewCount from '../../components/ViewCount/ViewCount'
 import { toast } from '../../lib/toast'
 
@@ -201,6 +202,30 @@ export default function EventDetail() {
                       <span key={a} className="text-xs px-2 py-0.5 bg-white border border-gray-200 rounded-full text-gray-500">{a}</span>
                     ))}
                   </div>
+                )}
+              </div>
+
+              {/* Meetup trio: add to calendar (with reminder) + navigate */}
+              <div className="flex gap-2 mb-4">
+                <button
+                  onClick={() => downloadIcs(ev)}
+                  className="flex-1 flex items-center justify-center gap-1.5 text-sm font-semibold
+                             bg-primary-50 text-primary-700 border border-primary-100 hover:bg-primary-100
+                             py-2.5 rounded-xl transition-colors active:scale-95"
+                >
+                  <CalendarPlus size={15} /> 加入日历
+                </button>
+                {mapNavUrl(ev) && (
+                  <a
+                    href={mapNavUrl(ev)!}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex-1 flex items-center justify-center gap-1.5 text-sm font-semibold
+                               bg-gray-50 text-gray-700 border border-gray-200 hover:bg-gray-100
+                               py-2.5 rounded-xl transition-colors active:scale-95"
+                  >
+                    <Navigation size={15} /> 导航
+                  </a>
                 )}
               </div>
 
