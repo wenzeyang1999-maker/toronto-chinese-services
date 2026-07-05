@@ -248,7 +248,7 @@ export default function SecondhandDetail() {
                     {SECONDHAND_CATEGORY_CONFIG[item.category].emoji}
                   </div>
                 ) : (
-                  <img
+                  <img loading="lazy"
                     src={item.images[imgIdx]}
                     alt={item.title}
                     className="w-full h-full object-contain"
@@ -279,7 +279,7 @@ export default function SecondhandDetail() {
                           {SECONDHAND_CATEGORY_CONFIG[item.category].emoji}
                         </div>
                       ) : (
-                        <img
+                        <img loading="lazy"
                           src={img}
                           alt=""
                           className="w-full h-full object-cover"
@@ -431,7 +431,7 @@ export default function SecondhandDetail() {
                                cursor-pointer ring-2 ring-primary-200 hover:ring-primary-400 transition-all"
                   >
                     {item.seller?.avatar_url
-                      ? <img src={item.seller.avatar_url} alt={item.contact_name}
+                      ? <img loading="lazy" src={item.seller.avatar_url} alt={item.contact_name}
                           className="w-full h-full rounded-full object-cover"
                           onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
                       : <User size={18} className="text-primary-600" />
@@ -568,7 +568,7 @@ export default function SecondhandDetail() {
                     >
                       <div className="w-8 h-8 rounded-full bg-primary-100 overflow-hidden flex items-center justify-center flex-shrink-0 text-sm font-bold text-primary-600">
                         {r.reviewer?.avatar_url
-                          ? <img src={r.reviewer.avatar_url} alt="" className="w-full h-full object-cover"
+                          ? <img loading="lazy" src={r.reviewer.avatar_url} alt="" className="w-full h-full object-cover"
                               onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
                           : (r.reviewer?.name?.slice(0, 1) ?? '?')
                         }

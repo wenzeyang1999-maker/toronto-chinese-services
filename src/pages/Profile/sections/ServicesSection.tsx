@@ -499,7 +499,7 @@ export default function ServicesSection() {
                           <button onClick={() => navigate(`/service/${svc.id}`)}
                             className="flex gap-1.5 px-4 pt-3 hover:opacity-70 transition-opacity w-full text-left">
                             {svc.images.slice(0, 3).map((url, i) => (
-                              <img key={i} src={url} alt="" className="w-14 h-14 rounded-xl object-cover border border-gray-100" />
+                              <img loading="lazy" key={i} src={url} alt="" className="w-14 h-14 rounded-xl object-cover border border-gray-100" />
                             ))}
                           </button>
                         )}
@@ -541,7 +541,7 @@ export default function ServicesSection() {
                           <div className="flex flex-wrap gap-2">
                             {editForm.images.map((url, i) => (
                               <div key={`ex-${i}`} className="relative w-20 h-20 rounded-xl overflow-hidden border border-gray-200 flex-shrink-0">
-                                <img src={url} alt="" className="w-full h-full object-cover" />
+                                <img loading="lazy" src={url} alt="" className="w-full h-full object-cover" />
                                 <button type="button" onClick={() => setEditForm(f => ({ ...f, images: f.images.filter(u => u !== url) }))}
                                   className="absolute top-1 right-1 w-5 h-5 bg-black/50 rounded-full flex items-center justify-center text-white">
                                   <X size={10} />
@@ -550,7 +550,7 @@ export default function ServicesSection() {
                             ))}
                             {newPreviews.map((src, i) => (
                               <div key={`new-${i}`} className="relative w-20 h-20 rounded-xl overflow-hidden border-2 border-blue-300 flex-shrink-0">
-                                <img src={src} alt="" className="w-full h-full object-cover" />
+                                <img loading="lazy" src={src} alt="" className="w-full h-full object-cover" />
                                 <span className="absolute bottom-0 inset-x-0 bg-blue-500/80 text-white text-[9px] text-center font-semibold leading-tight py-0.5">新增</span>
                                 <button type="button" onClick={() => { URL.revokeObjectURL(newPreviews[i]); setNewImgFiles(p => p.filter((_,j) => j !== i)); setNewPreviews(p => p.filter((_,j) => j !== i)) }}
                                   className="absolute top-1 right-1 w-5 h-5 bg-black/50 rounded-full flex items-center justify-center text-white">

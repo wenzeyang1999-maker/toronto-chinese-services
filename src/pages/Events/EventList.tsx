@@ -347,7 +347,7 @@ function DetailPanel({ ev, onClose }: { ev: Event; onClose: () => void }) {
                 {cfg.emoji}
               </div>
             ) : (
-              <img
+              <img loading="lazy"
                 src={ev.images[imgIdx]}
                 alt={ev.title}
                 className="w-full h-full object-cover"
@@ -368,7 +368,7 @@ function DetailPanel({ ev, onClose }: { ev: Event; onClose: () => void }) {
                       {cfg.emoji}
                     </div>
                   ) : (
-                    <img src={img} alt="" className="w-full h-full object-cover"
+                    <img loading="lazy" src={img} alt="" className="w-full h-full object-cover"
                       onError={() => setFailedImgs((s) => new Set(s).add(i))} />
                   )}
                 </button>
@@ -437,7 +437,7 @@ function DetailPanel({ ev, onClose }: { ev: Event; onClose: () => void }) {
                          cursor-pointer ring-2 ring-primary-200 hover:ring-primary-400 transition-all"
             >
               {ev.poster?.avatar_url
-                ? <img src={ev.poster.avatar_url} alt={ev.contact_name} className="w-full h-full rounded-full object-cover"
+                ? <img loading="lazy" src={ev.poster.avatar_url} alt={ev.contact_name} className="w-full h-full rounded-full object-cover"
                     onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
                 : <User size={16} className="text-primary-600" />
               }

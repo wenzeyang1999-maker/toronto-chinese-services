@@ -376,7 +376,7 @@ export default function ConversationPage() {
                 <div className={`max-w-[75%] rounded-2xl overflow-hidden border shadow-sm
                   ${isMine ? 'rounded-tr-sm border-primary-200' : 'rounded-tl-sm border-gray-100'}`}
                 >
-                  <img
+                  <img loading="lazy"
                     src={msg.content.slice(7)}
                     alt="完工照片"
                     className="w-full max-w-[240px] object-cover cursor-pointer"

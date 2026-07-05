@@ -4,6 +4,15 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer utilities {
+  /* iOS safe-area helpers (viewport-fit=cover is set in index.html).
+     `env()` resolves to 0 on devices without insets, so these are no-ops there. */
+  .pt-safe { padding-top: env(safe-area-inset-top); }
+  .pb-safe { padding-bottom: env(safe-area-inset-bottom); }
+  /* Bottom nav: keep the tap row above the home indicator bar. */
+  .pb-safe-nav { padding-bottom: calc(env(safe-area-inset-bottom)); }
+}
+
 @layer base {
   * {
     box-sizing: border-box;

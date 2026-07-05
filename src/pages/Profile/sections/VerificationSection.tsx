@@ -489,7 +489,7 @@ export default function VerificationSection({ user }: Props) {
               <div className="flex flex-wrap gap-2 mb-3">
                 {qualImages.map((url, i) => (
                   <div key={i} className="relative w-20 h-20 rounded-xl overflow-hidden border border-gray-200 flex-shrink-0">
-                    <img src={url} alt="" className="w-full h-full object-cover" />
+                    <img loading="lazy" src={url} alt="" className="w-full h-full object-cover" />
                     <button type="button" onClick={() => removeQualImage(i)}
                       className="absolute top-1 right-1 w-5 h-5 bg-black/50 rounded-full flex items-center justify-center text-white">
                       <X size={10} />

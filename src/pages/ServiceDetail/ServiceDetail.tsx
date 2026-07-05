@@ -296,7 +296,7 @@ export default function ServiceDetail() {
           <div className="flex items-start gap-3 mb-4">
             <div className={`${cat?.bgColor ?? 'bg-gray-50'} w-14 h-14 rounded-2xl flex items-center justify-center flex-shrink-0`}>
               {cat?.image
-                ? <img src={cat.image} alt={cat.label} className="w-10 h-10 object-contain" />
+                ? <img loading="lazy" src={cat.image} alt={cat.label} className="w-10 h-10 object-contain" />
                 : <span className="text-2xl">{cat?.emoji ?? '✦'}</span>}
             </div>
             <div className="flex-1 min-w-0">
@@ -718,7 +718,7 @@ function ImageBlock({ images }: { images: string[] }) {
                 🔧
               </div>
             ) : (
-              <img
+              <img loading="lazy"
                 key={i}
                 src={img}
                 alt={`服务图片${i + 1}`}
@@ -753,7 +753,7 @@ function ImageBlock({ images }: { images: string[] }) {
               🔧
             </div>
           ) : (
-            <img
+            <img loading="lazy"
               key={i}
               src={img}
               alt={`服务图片${i + 1}`}

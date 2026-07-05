@@ -229,7 +229,7 @@ export default function PostListing() {
           <div className="flex flex-wrap gap-2">
             {previews.map((src, i) => (
               <div key={i} className="relative w-20 h-20 rounded-xl overflow-hidden border border-gray-200">
-                <img src={src} alt="" className="w-full h-full object-cover" />
+                <img loading="lazy" src={src} alt="" className="w-full h-full object-cover" />
                 <button type="button" onClick={() => removeImage(i)}
                   className="absolute top-0.5 right-0.5 w-5 h-5 bg-gray-900/60 rounded-full
                              flex items-center justify-center text-white hover:bg-red-500 transition-colors">

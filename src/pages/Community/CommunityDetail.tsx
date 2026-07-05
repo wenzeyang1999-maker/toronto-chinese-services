@@ -17,6 +17,7 @@ import { useReadStore } from '../../store/readStore'
 import SaveButton from '../../components/SaveButton/SaveButton'
 import FollowButton from '../../components/FollowButton/FollowButton'
 import PageMeta from '../../components/PageMeta/PageMeta'
+import ImageLightbox from '../../components/ImageLightbox/ImageLightbox'
 import { POST_TYPE_CONFIG, AREA_CONFIG } from './config'
 
 interface PostDetail {
@@ -51,6 +52,7 @@ export default function CommunityDetail() {
 
   const [post,     setPost]     = useState<PostDetail | null>(null)
   const [comments, setComments] = useState<Comment[]>([])
+  const [lightboxIdx, setLightboxIdx] = useState<number | null>(null)
   const [input,    setInput]    = useState('')
   const [sending,  setSending]  = useState(false)
   const [liked,    setLiked]    = useState(false)
@@ -363,6 +365,7 @@ export default function CommunityDetail() {
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       <PageMeta title={post.title} description={post.content.slice(0, 120)} />
+      <ImageLightbox images={post.images ?? []} openIndex={lightboxIdx} onClose={() => setLightboxIdx(null)} />
 
       {/* Header */}
       <div className="sticky top-0 z-20 bg-white border-b border-gray-100 px-4 h-14 flex items-center gap-3">
@@ -397,7 +400,7 @@ export default function CommunityDetail() {
             <div className="flex items-center gap-3 mb-4">
               <div className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0 border border-gray-100 bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center text-white font-bold">
                 {post.author?.avatar_url ? (
-                  <img src={post.author.avatar_url} alt={post.author.name}
+                  <img loading="lazy" src={post.author.avatar_url} alt={post.author.name}
                     className="w-full h-full object-cover"
                     onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
                 ) : (post.author?.name?.charAt(0) ?? '?')}
@@ -423,7 +426,8 @@ export default function CommunityDetail() {
               <div className="grid grid-cols-3 gap-2 mb-4">
                 {post.images.map((url, i) => (
                   <img key={i} src={url} alt="" loading="lazy"
-                    className="w-full aspect-square object-cover rounded-xl"
+                    onClick={() => setLightboxIdx(i)}
+                    className="w-full aspect-square object-cover rounded-xl cursor-zoom-in"
                     onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
                 ))}
               </div>
@@ -529,7 +533,7 @@ export default function CommunityDetail() {
                 >
                   <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0 border border-gray-100 bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center text-white text-xs font-bold">
                     {c.author?.avatar_url ? (
-                      <img src={c.author.avatar_url} alt={c.author.name}
+                      <img loading="lazy" src={c.author.avatar_url} alt={c.author.name}
                         className="w-full h-full object-cover"
                         onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
                     ) : (c.author?.name?.charAt(0) ?? '?')}

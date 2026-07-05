@@ -236,7 +236,7 @@ export default function PostCommunity() {
             {/* Kept existing images */}
             {keptUrls.map((url, idx) => (
               <div key={`kept-${idx}`} className="relative aspect-square rounded-2xl overflow-hidden bg-gray-100">
-                <img src={url} alt="" className="w-full h-full object-cover" />
+                <img loading="lazy" src={url} alt="" className="w-full h-full object-cover" />
                 <button onClick={() => removeKept(idx)}
                   className="absolute top-1.5 right-1.5 w-6 h-6 bg-black/50 text-white rounded-full
                              flex items-center justify-center hover:bg-black/70 transition-colors">
@@ -247,7 +247,7 @@ export default function PostCommunity() {
             {/* New image previews */}
             {newPreviews.map((src, idx) => (
               <div key={`new-${idx}`} className="relative aspect-square rounded-2xl overflow-hidden bg-gray-100">
-                <img src={src} alt="" className="w-full h-full object-cover" />
+                <img loading="lazy" src={src} alt="" className="w-full h-full object-cover" />
                 <button onClick={() => removeNew(idx)}
                   className="absolute top-1.5 right-1.5 w-6 h-6 bg-black/50 text-white rounded-full
                              flex items-center justify-center hover:bg-black/70 transition-colors">

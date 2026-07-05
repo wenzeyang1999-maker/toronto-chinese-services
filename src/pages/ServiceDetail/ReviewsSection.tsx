@@ -390,7 +390,7 @@ export default function ReviewsSection({ serviceId, providerId }: Props) {
                   {/* Avatar */}
                   <div className="w-9 h-9 rounded-full overflow-hidden flex-shrink-0 border border-gray-100 bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center text-white text-sm font-bold">
                     {r.reviewer?.avatar_url ? (
-                      <img src={r.reviewer.avatar_url} alt={r.reviewer.name}
+                      <img loading="lazy" src={r.reviewer.avatar_url} alt={r.reviewer.name}
                         className="w-full h-full object-cover"
                         onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
                     ) : (r.reviewer?.name?.charAt(0) ?? '?')}

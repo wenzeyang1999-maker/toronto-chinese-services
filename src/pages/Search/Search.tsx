@@ -656,7 +656,7 @@ export default function Search() {
                     >
                       <div className="flex items-center gap-2 mb-2">
                         {p.avatar_url ? (
-                          <img src={p.avatar_url} alt={p.name}
+                          <img loading="lazy" src={p.avatar_url} alt={p.name}
                             className="w-9 h-9 rounded-full object-cover flex-shrink-0 border border-gray-100"
                             onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
                         ) : (

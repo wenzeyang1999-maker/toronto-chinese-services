@@ -107,7 +107,7 @@ export default function FollowsSection() {
                 {/* Avatar */}
                 <button onClick={() => navigate(`/provider/${p.id}`)} className="flex-shrink-0">
                   {p.avatar_url ? (
-                    <img src={p.avatar_url} alt={p.name}
+                    <img loading="lazy" src={p.avatar_url} alt={p.name}
                       className="w-11 h-11 rounded-full object-cover border border-gray-100" />
                   ) : (
                     <div className="w-11 h-11 rounded-full bg-gradient-to-br from-primary-400 to-primary-600

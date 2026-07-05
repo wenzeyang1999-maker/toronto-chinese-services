@@ -19,7 +19,7 @@ export default function ImageUpload({ previews, count, onAdd, onRemove }: Props)
       <div className="flex gap-2">
         {previews.map((src, i) => (
           <div key={i} className="relative w-24 h-24 rounded-xl overflow-hidden border border-gray-200 flex-shrink-0">
-            <img src={src} alt="" className="w-full h-full object-cover" />
+            <img loading="lazy" src={src} alt="" className="w-full h-full object-cover" />
             <button
               type="button"
               onClick={() => onRemove(i)}

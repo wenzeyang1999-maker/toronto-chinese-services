@@ -9,7 +9,7 @@ interface Props {
   fallback: ReactNode
 }
 
-/** Drop-in <img> that renders `fallback` when the image URL fails to load. */
+/** Drop-in <img loading="lazy"> that renders `fallback` when the image URL fails to load. */
 export default function ImgFallback({ src, alt = '', className, loading = 'lazy', fallback }: Props) {
   const [failed, setFailed] = useState(false)
   if (failed) return <>{fallback}</>

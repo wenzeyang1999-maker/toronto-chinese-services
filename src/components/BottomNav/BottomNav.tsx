@@ -46,7 +46,7 @@ export default function BottomNav() {
   const onProfile  = pathname === '/profile' && !onMessages
 
   return (
-    <nav className="fixed bottom-0 inset-x-0 z-50 md:hidden bg-white border-t border-gray-100 shadow-[0_-1px_10px_rgba(0,0,0,0.07)]">
+    <nav className="fixed bottom-0 inset-x-0 z-50 md:hidden bg-white border-t border-gray-100 shadow-[0_-1px_10px_rgba(0,0,0,0.07)] pb-safe">
       <div className="flex items-end justify-around px-1 h-16 pb-1">
 
         <NavTab

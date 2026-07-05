@@ -258,7 +258,7 @@ export default function QASection({ serviceId, providerId }: Props) {
                     {/* Avatar */}
                     <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0 mt-0.5 border border-gray-100 bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center text-white text-xs font-bold">
                       {q.asker?.avatar_url ? (
-                        <img src={q.asker.avatar_url} alt={q.asker.name}
+                        <img loading="lazy" src={q.asker.avatar_url} alt={q.asker.name}
                           className="w-full h-full object-cover"
                           onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
                       ) : (q.asker?.name?.charAt(0) ?? '?')}

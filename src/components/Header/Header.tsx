@@ -92,8 +92,8 @@ export default function Header({ sticky = true }: HeaderProps) {
 
   return (
     <header className={sticky
-      ? 'sticky top-0 z-40 bg-white border-b border-gray-200'
-      : 'w-full bg-white border-b border-gray-200 relative'
+      ? 'sticky top-0 z-40 bg-white border-b border-gray-200 pt-safe'
+      : 'w-full bg-white border-b border-gray-200 relative pt-safe'
     }>
 
       {/* ── Main row ─────────────────────────────────────────────────────────── */}

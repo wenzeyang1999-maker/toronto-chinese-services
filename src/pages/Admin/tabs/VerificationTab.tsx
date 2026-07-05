@@ -208,7 +208,7 @@ export default function VerificationTab() {
                 {v.qualification_images.map((url, i) => (
                   <a key={i} href={url} target="_blank" rel="noopener noreferrer"
                     className="block aspect-square rounded-xl overflow-hidden border border-gray-100 bg-gray-50 hover:opacity-90 transition-opacity">
-                    <img src={url} alt={`资质 ${i + 1}`} className="w-full h-full object-cover" />
+                    <img loading="lazy" src={url} alt={`资质 ${i + 1}`} className="w-full h-full object-cover" />
                   </a>
                 ))}
               </div>

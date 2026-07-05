@@ -331,7 +331,7 @@ function DetailPanel({ item, onClose }: { item: SecondhandItem; onClose: () => v
                 {SECONDHAND_CATEGORY_CONFIG[item.category].emoji}
               </div>
             ) : (
-              <img
+              <img loading="lazy"
                 src={item.images[imgIdx]}
                 alt={item.title}
                 className="w-full h-full object-contain"
@@ -352,7 +352,7 @@ function DetailPanel({ item, onClose }: { item: SecondhandItem; onClose: () => v
                       {SECONDHAND_CATEGORY_CONFIG[item.category].emoji}
                     </div>
                   ) : (
-                    <img src={img} alt="" className="w-full h-full object-cover"
+                    <img loading="lazy" src={img} alt="" className="w-full h-full object-cover"
                       onError={() => setFailedImgs((s) => new Set(s).add(i))} />
                   )}
                 </button>
@@ -436,7 +436,7 @@ function DetailPanel({ item, onClose }: { item: SecondhandItem; onClose: () => v
                          cursor-pointer ring-2 ring-primary-200 hover:ring-primary-400 transition-all"
             >
               {item.seller?.avatar_url
-                ? <img src={item.seller.avatar_url} className="w-full h-full rounded-full object-cover" alt="" />
+                ? <img loading="lazy" src={item.seller.avatar_url} className="w-full h-full rounded-full object-cover" alt="" />
                 : <User size={16} className="text-primary-600" />
               }
             </div>

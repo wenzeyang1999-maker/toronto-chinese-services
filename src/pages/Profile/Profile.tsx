@@ -236,7 +236,7 @@ export default function Profile() {
         <div className="relative flex-shrink-0">
           <div className="w-[68px] h-[68px] rounded-full overflow-hidden bg-primary-100 flex items-center justify-center">
             {avatarUrl
-              ? <img src={avatarUrl} alt="avatar" className="w-full h-full object-cover"
+              ? <img loading="lazy" src={avatarUrl} alt="avatar" className="w-full h-full object-cover"
                   onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
               : <span className="text-2xl font-bold text-primary-600">{name.slice(0, 1)}</span>
             }

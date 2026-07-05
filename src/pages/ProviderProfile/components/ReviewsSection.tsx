@@ -64,7 +64,7 @@ export default function ReviewsSection({ reviews }: Props) {
                 className="flex gap-3 p-4"
               >
                 {r.reviewer?.avatar_url ? (
-                  <img src={r.reviewer.avatar_url} alt={r.reviewer.name}
+                  <img loading="lazy" src={r.reviewer.avatar_url} alt={r.reviewer.name}
                     className="w-9 h-9 rounded-full object-cover flex-shrink-0 border border-gray-100" />
                 ) : (
                   <div className="w-9 h-9 rounded-full bg-gradient-to-br from-primary-400 to-primary-600

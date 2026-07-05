@@ -102,7 +102,7 @@ export default function RealEstateDetail() {
                     {PROPERTY_TYPE_CONFIG[prop.property_type].emoji}
                   </div>
                 ) : (
-                  <img
+                  <img loading="lazy"
                     src={prop.images[imgIdx]}
                     alt={prop.title}
                     className="w-full h-full object-cover"
@@ -123,7 +123,7 @@ export default function RealEstateDetail() {
                           {PROPERTY_TYPE_CONFIG[prop.property_type].emoji}
                         </div>
                       ) : (
-                        <img
+                        <img loading="lazy"
                           src={img}
                           alt=""
                           className="w-full h-full object-cover"
@@ -236,7 +236,7 @@ export default function RealEstateDetail() {
                              cursor-pointer ring-2 ring-primary-200 hover:ring-primary-400 transition-all"
                 >
                   {prop.poster?.avatar_url
-                    ? <img src={prop.poster.avatar_url} alt={prop.contact_name} className="w-full h-full rounded-full object-cover"
+                    ? <img loading="lazy" src={prop.poster.avatar_url} alt={prop.contact_name} className="w-full h-full rounded-full object-cover"
                         onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
                     : <User size={18} className="text-primary-600" />
                   }

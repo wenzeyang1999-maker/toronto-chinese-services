@@ -168,7 +168,7 @@ export default function MessageToast() {
             >
               <div className="w-11 h-11 rounded-full bg-primary-100 flex items-center justify-center flex-shrink-0 overflow-hidden ring-2 ring-primary-100">
                 {t.senderAvatar
-                  ? <img src={t.senderAvatar} alt="" className="w-full h-full object-cover"
+                  ? <img loading="lazy" src={t.senderAvatar} alt="" className="w-full h-full object-cover"
                       onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
                   : <MessageSquare size={18} className="text-primary-500" />
                 }

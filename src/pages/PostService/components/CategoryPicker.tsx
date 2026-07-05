@@ -121,7 +121,7 @@ export default function CategoryPicker({
                   : 'border-gray-200 bg-white hover:border-gray-300'
               }`}
             >
-              <img src={cat.image} alt={cat.postLabel} className="hidden sm:block w-8 h-8 object-contain"
+              <img loading="lazy" src={cat.image} alt={cat.postLabel} className="hidden sm:block w-8 h-8 object-contain"
                 onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
               <span className={`text-xs font-medium ${value === cat.id && !confirmedCustom ? cat.color : 'text-gray-600'}`}>
                 {cat.postLabel}

@@ -83,7 +83,7 @@ export default function Category() {
 
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-3">
-              <img src={category.image} alt={category.label} className="w-10 h-10 object-contain flex-shrink-0"
+              <img loading="lazy" src={category.image} alt={category.label} className="w-10 h-10 object-contain flex-shrink-0"
                 onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
               <div className="flex items-baseline gap-2">
                 <h1 className={`text-xl font-bold leading-none ${category.color}`}>{category.label}</h1>
@@ -176,7 +176,7 @@ export default function Category() {
           <ErrorState onRetry={() => fetchServices()} />
         ) : sorted.length === 0 ? (
           <div className="text-center py-16 text-gray-400">
-            <img src={category.image} alt={category.label} className="w-12 h-12 mx-auto mb-3 object-contain opacity-40"
+            <img loading="lazy" src={category.image} alt={category.label} className="w-12 h-12 mx-auto mb-3 object-contain opacity-40"
               onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
             <p>暂无此类服务</p>
             <button

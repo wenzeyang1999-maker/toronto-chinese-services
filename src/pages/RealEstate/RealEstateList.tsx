@@ -349,7 +349,7 @@ function DetailPanel({ prop, onClose }: { prop: Property; onClose: () => void })
                 {PROPERTY_TYPE_CONFIG[prop.property_type].emoji}
               </div>
             ) : (
-              <img
+              <img loading="lazy"
                 src={prop.images[imgIdx]}
                 alt={prop.title}
                 className="w-full h-full object-cover"
@@ -370,7 +370,7 @@ function DetailPanel({ prop, onClose }: { prop: Property; onClose: () => void })
                       {PROPERTY_TYPE_CONFIG[prop.property_type].emoji}
                     </div>
                   ) : (
-                    <img src={img} alt="" className="w-full h-full object-cover"
+                    <img loading="lazy" src={img} alt="" className="w-full h-full object-cover"
                       onError={() => setFailedImgs((s) => new Set(s).add(i))} />
                   )}
                 </button>
@@ -476,7 +476,7 @@ function DetailPanel({ prop, onClose }: { prop: Property; onClose: () => void })
                          cursor-pointer ring-2 ring-primary-200 hover:ring-primary-400 transition-all"
             >
               {prop.poster?.avatar_url
-                ? <img src={prop.poster.avatar_url} className="w-full h-full rounded-full object-cover" alt=""
+                ? <img loading="lazy" src={prop.poster.avatar_url} className="w-full h-full rounded-full object-cover" alt=""
                     onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
                 : <User size={16} className="text-primary-600" />
               }

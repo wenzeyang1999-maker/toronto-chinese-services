@@ -15,6 +15,7 @@ import {
 import SaveButton from '../../components/SaveButton/SaveButton'
 import ShareButton from '../../components/ShareButton/ShareButton'
 import PageMeta from '../../components/PageMeta/PageMeta'
+import ImageLightbox from '../../components/ImageLightbox/ImageLightbox'
 import ViewCount from '../../components/ViewCount/ViewCount'
 import { toast } from '../../lib/toast'
 
@@ -29,6 +30,7 @@ export default function EventDetail() {
   const [ev,      setEv]      = useState<Event | null>(null)
   const [loading, setLoading] = useState(true)
   const [imgIdx,  setImgIdx]  = useState(0)
+  const [lightboxOpen, setLightboxOpen] = useState(false)
   useEffect(() => { setImgIdx(0) }, [id])
   const [copied,  setCopied]  = useState(false)
   const [failedImgs, setFailedImgs] = useState<Set<number>>(new Set())
@@ -67,6 +69,9 @@ export default function EventDetail() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {ev && ev.images.length > 0 && (
+        <ImageLightbox images={ev.images} openIndex={lightboxOpen ? imgIdx : null} onClose={() => setLightboxOpen(false)} />
+      )}
       <div className="sticky top-0 z-20 bg-white border-b border-gray-100 px-4 h-14 flex items-center gap-3">
         <button onClick={() => navigate(-1)} className="text-gray-500 hover:text-gray-800">
           <ChevronLeft size={22} />
@@ -108,10 +113,11 @@ export default function EventDetail() {
                     {cfg?.emoji}
                   </div>
                 ) : (
-                  <img
+                  <img loading="lazy"
                     src={ev.images[imgIdx]}
                     alt={ev.title}
-                    className="w-full h-full object-cover"
+                    onClick={() => setLightboxOpen(true)}
+                    className="w-full h-full object-cover cursor-zoom-in"
                     onError={() => setFailedImgs((s) => new Set(s).add(imgIdx))}
                   />
                 )}
@@ -129,7 +135,7 @@ export default function EventDetail() {
                           {cfg?.emoji}
                         </div>
                       ) : (
-                        <img
+                        <img loading="lazy"
                           src={img}
                           alt=""
                           className="w-full h-full object-cover"
@@ -225,7 +231,7 @@ export default function EventDetail() {
                              cursor-pointer ring-2 ring-primary-200 hover:ring-primary-400 transition-all"
                 >
                   {ev.poster?.avatar_url
-                    ? <img src={ev.poster.avatar_url} alt={ev.contact_name} className="w-full h-full rounded-full object-cover"
+                    ? <img loading="lazy" src={ev.poster.avatar_url} alt={ev.contact_name} className="w-full h-full rounded-full object-cover"
                         onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
                     : <User size={18} className="text-primary-600" />
                   }
