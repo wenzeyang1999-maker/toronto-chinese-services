@@ -80,6 +80,7 @@ interface AppState {
   getServicesByCategory: (category: ServiceCategory) => Service[]
   fetchServiceRequests: () => Promise<void>
   addServiceRequest: (req: ServiceRequest) => void
+  removeServiceRequest: (id: string) => void
 }
 
 const SERVICES_PAGE_SIZE = 40
@@ -197,6 +198,9 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   addServiceRequest: (req) =>
     set((state) => ({ serviceRequests: [req, ...state.serviceRequests] })),
+
+  removeServiceRequest: (id) =>
+    set((state) => ({ serviceRequests: state.serviceRequests.filter((r) => r.id !== id) })),
 
   fetchServiceRequests: async () => {
     const { data, error } = await supabase

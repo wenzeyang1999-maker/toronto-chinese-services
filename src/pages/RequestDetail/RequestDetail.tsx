@@ -4,6 +4,7 @@ import { ArrowLeft, Clock, MapPin, DollarSign, Calendar, MessageSquare, Calendar
 import { motion } from 'framer-motion'
 import { supabase } from '../../lib/supabase'
 import { useAuthStore } from '../../store/authStore'
+import { useAppStore } from '../../store/appStore'
 import { getCategoryById } from '../../data/categories'
 import type { ServiceRequest } from '../../types'
 import Header from '../../components/Header/Header'
@@ -14,6 +15,7 @@ export default function RequestDetail() {
   const { id }     = useParams<{ id: string }>()
   const navigate   = useNavigate()
   const user       = useAuthStore((s) => s.user)
+  const removeServiceRequest = useAppStore((s) => s.removeServiceRequest)
   const [req, setReq] = useState<ServiceRequest | null>(null)
   const [loading, setLoading] = useState(true)
 
@@ -90,6 +92,9 @@ export default function RequestDetail() {
     // — the map filters out requests with null lat/lng.
     await supabase.from('service_requests').update({ status: 'closed', lat: null, lng: null }).eq('id', req.id)
     setReq((r) => r ? { ...r, status: 'closed', lat: undefined, lng: undefined } : r)
+    // Drop it from the in-memory feed so the card + map pin disappear at once
+    // (the Home feed reads this store, not the DB, until a full reload).
+    removeServiceRequest(req.id)
     toast('需求已关闭', 'success')
   }
 
