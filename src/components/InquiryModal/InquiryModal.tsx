@@ -9,6 +9,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { X, ChevronDown, Sparkles, UserCheck, Clock3, ShieldCheck, Pencil, MapPin, Mic, MicOff } from 'lucide-react'
 import InquiryResultPanel from '../InquiryResultPanel/InquiryResultPanel'
 import { supabase } from '../../lib/supabase'
+import { offsetLocation } from '../../lib/geo'
 import { useAuthStore } from '../../store/authStore'
 import { useAppStore } from '../../store/appStore'
 import { CATEGORIES } from '../../data/categories'
@@ -240,6 +241,9 @@ export default function InquiryModal({ open, onClose }: Props) {
         const publicDesc = finalDescription
           ? `${timingTag} ${finalDescription}`
           : timingTag
+        // Privacy: the public demand pin must NOT sit on the real address —
+        // shift it a random 300–900 m before storing (same as PostRequest).
+        const pubLoc = userLocation ? offsetLocation(userLocation.lat, userLocation.lng) : null
         const { data: reqData } = await supabase
           .from('service_requests')
           .insert({
@@ -249,8 +253,8 @@ export default function InquiryModal({ open, onClose }: Props) {
             category:    form.categoryId || 'other',
             city:        'Toronto',
             budget:      form.budget.trim() || null,
-            lat:         userLocation?.lat ?? null,
-            lng:         userLocation?.lng ?? null,
+            lat:         pubLoc?.lat ?? null,
+            lng:         pubLoc?.lng ?? null,
             expires_at:  expiresAt,
             status:      'open',
           })

@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { ArrowLeft, CheckCircle, Clock, MapPin, ChevronDown, Sparkles, Pencil } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useAuthStore } from '../../store/authStore'
+import { offsetLocation } from '../../lib/geo'
 import { useAppStore } from '../../store/appStore'
 import { supabase } from '../../lib/supabase'
 import { CATEGORIES } from '../../data/categories'
@@ -80,21 +81,8 @@ export default function PostRequest() {
     if (!checked) { setLocCoords(null); return }
     navigator.geolocation.getCurrentPosition(
       (pos) => {
-        // Privacy: never plot the real address. Shift the point a random
-        // 300–900 m in a random direction, THEN round to 3 decimals (~110 m
-        // grid). The offset guarantees the marker sits a few blocks off the
-        // true location; the rounding strips residual precision. Computed once
-        // here so the stored point is stable for every viewer.
-        const R = 6_371_000                              // earth radius (m)
-        const dist = 300 + Math.random() * 600           // 300–900 m away
-        const bearing = Math.random() * 2 * Math.PI      // random direction
-        const dLat = (dist * Math.cos(bearing)) / R
-        const dLng = (dist * Math.sin(bearing)) / (R * Math.cos(pos.coords.latitude * Math.PI / 180))
-        const rawLat = pos.coords.latitude  + dLat * 180 / Math.PI
-        const rawLng = pos.coords.longitude + dLng * 180 / Math.PI
-        const lat = Math.round(rawLat * 1000) / 1000
-        const lng = Math.round(rawLng * 1000) / 1000
-        setLocCoords({ lat, lng })
+        // Privacy: never plot the real address — shift it a random 300–900 m.
+        setLocCoords(offsetLocation(pos.coords.latitude, pos.coords.longitude))
       },
       () => { setLocError('无法获取位置，请检查浏览器定位权限'); setShareLocation(false) },
       { timeout: 8000 },
