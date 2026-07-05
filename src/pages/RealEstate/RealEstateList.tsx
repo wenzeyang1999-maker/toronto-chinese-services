@@ -11,6 +11,7 @@ import {
 import ImgFallback from '../../components/ImgFallback/ImgFallback'
 import ListPageShell from '../../components/ListPageShell/ListPageShell'
 import ErrorState from '../../components/ErrorState/ErrorState'
+import { useDelayedLoading } from '../../hooks/useDelayedLoading'
 import PropertyMap from '../../components/PropertyMap/PropertyMap'
 import SortChips from '../../components/SortChips/SortChips'
 import { useRealEstateStore } from '../../store/realestateStore'
@@ -30,6 +31,7 @@ const GTA_AREAS = [
 
 export default function RealEstateList() {
   const { fetchProperties, setFilters, clearFilters, getFilteredProperties, filters, isReady, loadError } = useRealEstateStore()
+  const showSkeleton = useDelayedLoading(!isReady)
   const readSet  = useReadStore((s) => s.read)
   const markRead = useReadStore((s) => s.markRead)
   const user     = useAuthStore((s) => s.user)
@@ -201,7 +203,7 @@ export default function RealEstateList() {
     </>
   )
 
-  const cardList = !isReady ? (
+  const cardList = !isReady ? (showSkeleton ? (
     <div style={{ columns: '220px', columnGap: '10px' }}>
       {[1, 2, 3, 4].map((i) => (
         <div key={i} className="break-inside-avoid mb-2.5 bg-white rounded-2xl overflow-hidden animate-pulse"
@@ -214,7 +216,7 @@ export default function RealEstateList() {
         </div>
       ))}
     </div>
-  ) : loadError && properties.length === 0 ? (
+  ) : null) : loadError && properties.length === 0 ? (
     <ErrorState onRetry={fetchProperties} />
   ) : properties.length === 0 ? (
     filters.keyword || filters.property_type || filters.area || filters.bedrooms != null || filters.max_price ? (

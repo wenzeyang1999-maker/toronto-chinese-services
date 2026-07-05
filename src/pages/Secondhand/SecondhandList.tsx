@@ -10,6 +10,7 @@ import {
 import { supabase } from '../../lib/supabase'
 import ListPageShell from '../../components/ListPageShell/ListPageShell'
 import ErrorState from '../../components/ErrorState/ErrorState'
+import { useDelayedLoading } from '../../hooks/useDelayedLoading'
 import SortChips from '../../components/SortChips/SortChips'
 import ImgFallback from '../../components/ImgFallback/ImgFallback'
 import { useSecondhandStore } from '../../store/secondhandStore'
@@ -32,6 +33,7 @@ export default function SecondhandList() {
   const navigate  = useNavigate()
   const user      = useAuthStore((s) => s.user)
   const { fetchItems, setFilters, clearFilters, getFilteredItems, filters, isReady, loadError } = useSecondhandStore()
+  const showSkeleton = useDelayedLoading(!isReady)
   const readSet  = useReadStore((s) => s.read)
   const markRead = useReadStore((s) => s.markRead)
 
@@ -165,7 +167,7 @@ export default function SecondhandList() {
     </>
   )
 
-  const cardList = !isReady ? (
+  const cardList = !isReady ? (showSkeleton ? (
     <div style={{ columns: '160px', columnGap: '10px' }}>
       {[1, 2, 3, 4].map((i) => (
         <div key={i} className="break-inside-avoid mb-2.5 bg-white rounded-2xl overflow-hidden animate-pulse"
@@ -178,7 +180,7 @@ export default function SecondhandList() {
         </div>
       ))}
     </div>
-  ) : loadError && items.length === 0 ? (
+  ) : null) : loadError && items.length === 0 ? (
     <ErrorState onRetry={fetchItems} />
   ) : items.length === 0 ? (
     filters.keyword || filters.category || filters.condition || filters.area || filters.max_price ? (

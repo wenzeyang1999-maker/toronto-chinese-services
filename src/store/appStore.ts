@@ -209,12 +209,25 @@ export const useAppStore = create<AppState>((set, get) => ({
     const offset  = append ? current.length : 0
     if (append) set({ servicesLoadingMore: true })
 
-    const { data, error } = await supabase
+    // Cold starts occasionally drop the first request. Retry the initial load a
+    // couple of times with backoff so a transient blip self-heals silently —
+    // only surface an error (toast) once all attempts fail.
+    const runQuery = () => supabase
       .from('services')
       .select('*, provider:users(id, name, avatar_url, last_seen_at, created_at, phone_verified, business_verified, membership_level), reviews(rating)')
       .eq('is_available', true)
       .order('created_at', { ascending: false })
       .range(offset, offset + SERVICES_PAGE_SIZE - 1)
+
+    const maxAttempts = append ? 1 : 3
+    let data: Awaited<ReturnType<typeof runQuery>>['data'] = null
+    let error: Awaited<ReturnType<typeof runQuery>>['error'] = null
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      const res = await runQuery()
+      data = res.data; error = res.error
+      if (!error && data) break
+      if (attempt < maxAttempts) await new Promise((r) => setTimeout(r, 400 * attempt))
+    }
 
     if (error || !data) {
       set({ servicesLoadingMore: false, servicesLoaded: true, servicesError: true })

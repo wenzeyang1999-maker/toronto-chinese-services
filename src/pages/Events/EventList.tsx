@@ -11,6 +11,7 @@ import {
 } from 'lucide-react'
 import ListPageShell from '../../components/ListPageShell/ListPageShell'
 import ErrorState from '../../components/ErrorState/ErrorState'
+import { useDelayedLoading } from '../../hooks/useDelayedLoading'
 import EventRsvpButton from '../../components/EventRsvp/EventRsvpButton'
 import { useEventsStore } from '../../store/eventsStore'
 import { useAuthStore } from '../../store/authStore'
@@ -31,6 +32,7 @@ export default function EventList() {
   const navigate = useNavigate()
   const user     = useAuthStore((s) => s.user)
   const { fetchEvents, setFilters, clearFilters, getFilteredEvents, filters, isReady, loadError } = useEventsStore()
+  const showSkeleton = useDelayedLoading(!isReady)
   const readSet  = useReadStore((s) => s.read)
   const markRead = useReadStore((s) => s.markRead)
 
@@ -195,7 +197,7 @@ export default function EventList() {
     </>
   )
 
-  const cardList = !isReady ? (
+  const cardList = !isReady ? (showSkeleton ? (
     <div className="space-y-3">
       {[...Array(4)].map((_, i) => (
         <div key={i} className="bg-white rounded-2xl border border-gray-100 p-4 animate-pulse">
@@ -204,7 +206,7 @@ export default function EventList() {
         </div>
       ))}
     </div>
-  ) : loadError && events.length === 0 ? (
+  ) : null) : loadError && events.length === 0 ? (
     <ErrorState onRetry={fetchEvents} />
   ) : events.length === 0 ? (
     <div className="text-center py-20 text-gray-400">

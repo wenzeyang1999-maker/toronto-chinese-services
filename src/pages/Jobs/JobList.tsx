@@ -10,6 +10,7 @@ import {
 import ListPageShell from '../../components/ListPageShell/ListPageShell'
 import ErrorState from '../../components/ErrorState/ErrorState'
 import SortChips from '../../components/SortChips/SortChips'
+import { useDelayedLoading } from '../../hooks/useDelayedLoading'
 import { useJobStore } from '../../store/jobStore'
 import { useAuthStore } from '../../store/authStore'
 import { useReadStore } from '../../store/readStore'
@@ -41,6 +42,7 @@ export default function JobList() {
   const navigate       = useNavigate()
   const user           = useAuthStore((s) => s.user)
   const { fetchJobs, setFilters, clearFilters, getFilteredJobs, filters, isReady, loadError } = useJobStore()
+  const showSkeleton = useDelayedLoading(!isReady)
   const readSet    = useReadStore((s) => s.read)
   const markRead   = useReadStore((s) => s.markRead)
 
@@ -186,7 +188,7 @@ export default function JobList() {
     </>
   )
 
-  const cardList = !isReady ? (
+  const cardList = !isReady ? (showSkeleton ? (
     <div style={{ columns: '200px', columnGap: '10px' }}>
       {[1, 2, 3, 4].map((i) => (
         <div key={i} className="break-inside-avoid mb-2.5 bg-white rounded-2xl overflow-hidden animate-pulse"
@@ -199,7 +201,7 @@ export default function JobList() {
         </div>
       ))}
     </div>
-  ) : loadError && jobs.length === 0 ? (
+  ) : null) : loadError && jobs.length === 0 ? (
     <ErrorState onRetry={fetchJobs} />
   ) : jobs.length === 0 ? (
     filters.keyword || filters.category || filters.job_type || filters.area ? (
