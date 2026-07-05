@@ -43,6 +43,11 @@ export default function ProviderProfile() {
     setLoading(true)
 
     async function load() {
+      // Contact columns (phone/wechat) are column-granted to authenticated only —
+      // anon must NOT request them or the whole users query 403s. So only append
+      // them when the viewer is logged in.
+      const extSelect = 'is_online, business_type, skill_tags, qualification_note, qualification_images, credit_penalty'
+        + (user ? ', phone, wechat' : '')
       const [
         { data: profile, error: profileError },
         { data: svcsData },
@@ -70,28 +75,31 @@ export default function ProviderProfile() {
         supabase.from('follows')
           .select('id', { count: 'exact', head: true }).eq('provider_id', id),
         supabase.from('users')
-          .select('is_online, business_type, skill_tags, qualification_note, qualification_images, credit_penalty')
+          .select(extSelect)
           .eq('id', id!).single(),
       ])
 
       if (profileError || !profile) { setNotFound(true); setLoading(false); return }
 
+      // `.select(dynamicString)` widens the row type, so read via a cast record.
+      const extRow = (ext ?? null) as Record<string, unknown> | null
+
       setProvider({
         ...profile,
         bio: profile.bio ?? null,
-        phone: null,
-        wechat: null,
+        phone: (extRow?.phone as string) ?? null,
+        wechat: (extRow?.wechat as string) ?? null,
         phone_verified: profile.phone_verified ?? false,
         social_links: (profile.social_links as Record<string, string>) ?? {},
         membership_level: (profile.membership_level as MemberLevel) ?? 'L1',
         business_verified: profile.business_verified ?? false,
         avg_reply_hours: profile.avg_reply_hours ?? null,
-        is_online: ext?.is_online ?? false,
-        business_type: (ext?.business_type as 'individual' | 'business') ?? 'individual',
-        skill_tags: (ext?.skill_tags as string[]) ?? [],
-        qualification_note: (ext?.qualification_note as string) ?? '',
-        qualification_images: (ext?.qualification_images as string[]) ?? [],
-        credit_penalty: (ext?.credit_penalty as number) ?? 0,
+        is_online: (extRow?.is_online as boolean) ?? false,
+        business_type: (extRow?.business_type as 'individual' | 'business') ?? 'individual',
+        skill_tags: (extRow?.skill_tags as string[]) ?? [],
+        qualification_note: (extRow?.qualification_note as string) ?? '',
+        qualification_images: (extRow?.qualification_images as string[]) ?? [],
+        credit_penalty: (extRow?.credit_penalty as number) ?? 0,
       })
 
       if (svcsData) {
@@ -126,7 +134,7 @@ export default function ProviderProfile() {
     }
 
     load()
-  }, [id])
+  }, [id, user?.id])
 
   async function handleMessage() {
     if (!user) { navigate('/login'); return }
