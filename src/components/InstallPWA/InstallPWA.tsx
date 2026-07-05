@@ -43,7 +43,7 @@ export default function InstallPWA() {
   return (
     <>
       {/* Bottom banner */}
-      <div className="fixed bottom-20 left-3 right-3 lg:left-auto lg:right-6 lg:bottom-56 lg:max-w-sm z-[60]">
+      <div className="fixed bottom-20 left-3 right-3 lg:left-auto lg:right-6 lg:bottom-96 lg:max-w-sm z-[60]">
         <div className="bg-white border border-primary-100 shadow-2xl rounded-2xl p-3.5 flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-primary-100 flex items-center justify-center flex-shrink-0">
             <Download size={18} className="text-primary-600" />
