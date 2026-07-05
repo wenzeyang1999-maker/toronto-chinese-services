@@ -88,16 +88,35 @@ export default function InquiriesSection() {
 
   async function closeInquiry(id: string) {
     if (!user) return
+    const item = items.find(it => it.id === id)
     const { error } = await supabase.from('inquiries')
       .update({ status: 'closed' }).eq('id', id).eq('user_id', user.id)
     if (error) { toast('关闭失败，请重试', 'error'); return }
     // Closed = gone: drop it from the list so it mirrors the map (no lingering).
     setItems(prev => prev.filter(it => it.id !== id))
-    // Cascade to the linked public demand post: close it + drop its map pin,
-    // then refresh the in-memory feed so it disappears from 「发现客户」.
+
+    // Cascade to the public demand post so its map pin disappears too.
+    // 1) Linked posts (new data) — close by inquiry_id.
     await supabase.from('service_requests')
       .update({ status: 'closed', lat: null, lng: null })
       .eq('inquiry_id', id).eq('user_id', user.id)
+    // 2) Legacy posts with no link — match by same user + category + a ±2 min
+    //    window around this inquiry's creation (both rows are written in the same
+    //    submit, so their timestamps are within seconds). Guarantees old data
+    //    cascades too, no manual SQL needed.
+    if (item) {
+      const t  = new Date(item.created_at).getTime()
+      const lo = new Date(t - 120_000).toISOString()
+      const hi = new Date(t + 120_000).toISOString()
+      await supabase.from('service_requests')
+        .update({ status: 'closed', lat: null, lng: null })
+        .eq('user_id', user.id)
+        .eq('category', item.category_id)
+        .is('inquiry_id', null)
+        .eq('status', 'open')
+        .gte('created_at', lo)
+        .lte('created_at', hi)
+    }
     void useAppStore.getState().fetchServiceRequests()
   }
 
