@@ -1,6 +1,7 @@
 // ─── Events Store (Zustand) ────────────────────────────────────────────────────
 import { create } from 'zustand'
 import { supabase } from '../lib/supabase'
+import { toast } from '../lib/toast'
 import type { Event, EventFilters } from '../pages/Events/types'
 import { isUpcoming } from '../pages/Events/types'
 
@@ -85,6 +86,7 @@ export const useEventsStore = create<EventsState>((set, get) => ({
       set({ events: (data as EventRow[]).map(mapRow), isReady: true })
     } else {
       set({ isReady: true })
+      toast('加载失败，请检查网络后重试', 'error')
     }
   },
 

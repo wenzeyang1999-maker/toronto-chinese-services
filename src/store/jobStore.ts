@@ -1,6 +1,7 @@
 // ─── Jobs Store (Zustand) ─────────────────────────────────────────────────────
 import { create } from 'zustand'
 import { supabase } from '../lib/supabase'
+import { toast } from '../lib/toast'
 import type { Job, JobFilters } from '../pages/Jobs/types'
 
 // Shape of a raw row returned from Supabase (jobs + joined users)
@@ -93,6 +94,7 @@ export const useJobStore = create<JobState>((set, get) => ({
       set({ jobs: (data as JobRow[]).map(mapRow), isReady: true })
     } else {
       set({ isReady: true })
+      toast('加载失败，请检查网络后重试', 'error')
     }
   },
 

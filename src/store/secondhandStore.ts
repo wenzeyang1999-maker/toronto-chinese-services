@@ -1,6 +1,7 @@
 // ─── Secondhand Store (Zustand) ───────────────────────────────────────────────
 import { create } from 'zustand'
 import { supabase } from '../lib/supabase'
+import { toast } from '../lib/toast'
 import type { SecondhandItem, SecondhandFilters } from '../pages/Secondhand/types'
 
 interface ItemRow {
@@ -79,6 +80,7 @@ export const useSecondhandStore = create<SecondhandState>((set, get) => ({
       set({ items: (data as ItemRow[]).map(mapRow), isReady: true })
     } else {
       set({ isReady: true })
+      toast('加载失败，请检查网络后重试', 'error')
     }
   },
 

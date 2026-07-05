@@ -3,6 +3,7 @@
 // Exported as two separate hooks to keep call-sites unchanged.
 import { create } from 'zustand'
 import { supabase } from '../lib/supabase'
+import { toast } from '../lib/toast'
 
 // ─── Views ────────────────────────────────────────────────────────────────────
 
@@ -86,11 +87,11 @@ export const useSavesStore = create<SavesState>((set, get) => ({
     if (already) {
       const { error } = await supabase.from('saves')
         .delete().eq('user_id', userId).eq('target_type', type).eq('target_id', id)
-      if (error) set(s => { const next = new Set(s.saved); next.add(k); return { saved: next } })
+      if (error) { set(s => { const next = new Set(s.saved); next.add(k); return { saved: next } }); toast('取消收藏失败，请重试', 'error') }
     } else {
       const { error } = await supabase.from('saves')
         .insert({ user_id: userId, target_type: type, target_id: id })
-      if (error) set(s => { const next = new Set(s.saved); next.delete(k); return { saved: next } })
+      if (error) { set(s => { const next = new Set(s.saved); next.delete(k); return { saved: next } }); toast('收藏失败，请重试', 'error') }
     }
   },
 

@@ -2,6 +2,7 @@
 import { create } from 'zustand'
 import type { Service, SearchFilters, ServiceCategory, ServiceRequest } from '../types'
 import { supabase } from '../lib/supabase'
+import { toast } from '../lib/toast'
 import { calcDistance } from '../lib/geo'
 
 // Cache user location across page reloads so the map works immediately and the
@@ -215,6 +216,7 @@ export const useAppStore = create<AppState>((set, get) => ({
 
     if (error || !data) {
       set({ servicesLoadingMore: false, servicesLoaded: true })
+      if (!append) toast('加载失败，请检查网络后重试', 'error')
       return
     }
     const mapped = (data as ServiceRow[]).map(mapRow)

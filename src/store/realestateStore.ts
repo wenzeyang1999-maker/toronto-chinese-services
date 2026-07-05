@@ -1,6 +1,7 @@
 // ─── Real Estate Store (Zustand) ──────────────────────────────────────────────
 import { create } from 'zustand'
 import { supabase } from '../lib/supabase'
+import { toast } from '../lib/toast'
 import type { Property, RealEstateFilters } from '../pages/RealEstate/types'
 
 interface PropertyRow {
@@ -98,6 +99,7 @@ export const useRealEstateStore = create<RealEstateState>((set, get) => ({
       set({ properties: (data as PropertyRow[]).map(mapRow), isReady: true })
     } else {
       set({ isReady: true })
+      toast('加载失败，请检查网络后重试', 'error')
     }
   },
 

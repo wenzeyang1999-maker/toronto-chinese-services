@@ -5,6 +5,7 @@
 import { create } from 'zustand'
 import { supabase } from '../lib/supabase'
 import { notifyNewFollower } from '../lib/notify'
+import { toast } from '../lib/toast'
 
 interface FollowsState {
   following:  Set<string>   // provider IDs the current user follows
@@ -52,12 +53,14 @@ export const useFollowsStore = create<FollowsState>((set, get) => ({
         .eq('provider_id', providerId)
       if (error) {
         set(s => { const next = new Set(s.following); next.add(providerId); return { following: next } })
+        toast('取消关注失败，请重试', 'error')
       }
     } else {
       const { error } = await supabase.from('follows')
         .insert({ follower_id: userId, provider_id: providerId })
       if (error) {
         set(s => { const next = new Set(s.following); next.delete(providerId); return { following: next } })
+        toast('关注失败，请重试', 'error')
         return
       }
 
