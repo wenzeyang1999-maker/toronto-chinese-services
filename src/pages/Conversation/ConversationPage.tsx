@@ -45,6 +45,9 @@ export default function ConversationPage() {
   const [otherLastRead, setOtherLastRead] = useState<string | null>(null)
   const [input,        setInput]       = useState('')
   const [sending,      setSending]     = useState(false)
+  // Set when the recipient has blocked us (DB trigger raises 42501). Locks input
+  // + suppresses retry so we don't loop forever on a message that can't land.
+  const [blockedByOther, setBlockedByOther] = useState(false)
   const [reportOpen,   setReportOpen]  = useState(false)
   const [reportReason, setReportReason] = useState('')
   const [reportSent,   setReportSent]  = useState(false)
@@ -216,7 +219,15 @@ export default function ConversationPage() {
         conversationId:  id!,
       })
     } else {
-      setMessages(prev => prev.map(m => m.id === tempId ? { ...m, failed: true } : m))
+      // 42501 = the recipient blocked us (raised by the blocked_users trigger).
+      const isBlock = error.code === '42501' || /blocked/i.test(error.message ?? '')
+      if (isBlock) {
+        setBlockedByOther(true)
+        setMessages(prev => prev.filter(m => m.id !== tempId))  // drop it — it can never land
+        toast('对方已将你拉黑，无法发送消息', 'error')
+      } else {
+        setMessages(prev => prev.map(m => m.id === tempId ? { ...m, failed: true } : m))
+      }
     }
     setSending(false)
   }
@@ -461,7 +472,12 @@ export default function ConversationPage() {
         <div ref={bottomRef} />
       </div>
 
-      {/* Input */}
+      {/* Input — locked once we learn the other party blocked us */}
+      {blockedByOther ? (
+        <div className="bg-gray-50 border-t border-gray-100 px-4 py-4 text-center">
+          <p className="text-sm text-gray-500">🚫 对方已将你拉黑，无法继续发送消息</p>
+        </div>
+      ) : (
       <div className="bg-white border-t border-gray-100 px-3 py-3 flex items-end gap-2">
         <input
           ref={photoInput}
@@ -503,6 +519,7 @@ export default function ConversationPage() {
           <Send size={16} />
         </button>
       </div>
+      )}
     </div>
     </div>
 
