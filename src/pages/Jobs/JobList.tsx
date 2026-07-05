@@ -15,7 +15,7 @@ import { useAuthStore } from '../../store/authStore'
 import { useReadStore } from '../../store/readStore'
 import {
   JOB_CATEGORY_CONFIG, JOB_TYPE_CONFIG, SALARY_TYPE_LABEL, getCategoryLabel,
-  type Job, type JobCategory, type JobType, type ListingType,
+  type Job, type JobCategory, type JobType, type ListingType, type SalaryType,
 } from './types'
 import { toast } from '../../lib/toast'
 import ImgFallback from '../../components/ImgFallback/ImgFallback'
@@ -24,6 +24,17 @@ import { useUrlFilters } from '../../lib/useUrlFilters'
 const GTA_AREAS = [
   '多伦多市区', '北约克', '士嘉堡', '密西沙加', '万锦',
   '列治文山', '奥克维尔', '宾顿', '安省其他',
+]
+
+// One-tap salary presets — each chip sets both the pay type and a minimum,
+// so mixed hourly/monthly listings stay unambiguous ("时薪$22+" vs "月薪$4k+").
+const SALARY_PRESETS: { type: SalaryType; min: number; label: string }[] = [
+  { type: 'hourly',  min: 18,   label: '时薪 $18+' },
+  { type: 'hourly',  min: 22,   label: '时薪 $22+' },
+  { type: 'hourly',  min: 25,   label: '时薪 $25+' },
+  { type: 'monthly', min: 3000, label: '月薪 $3k+' },
+  { type: 'monthly', min: 4000, label: '月薪 $4k+' },
+  { type: 'monthly', min: 5000, label: '月薪 $5k+' },
 ]
 
 export default function JobList() {
@@ -39,7 +50,7 @@ export default function JobList() {
   const [selectedId,   setSelectedId]   = useState<string | null>(null)
   const [mobileOpen,   setMobileOpen]   = useState(false)
 
-  useUrlFilters(filters, setFilters, ['listing_type', 'keyword', 'category', 'job_type', 'area', 'sortBy'])
+  useUrlFilters(filters, setFilters, ['listing_type', 'keyword', 'category', 'job_type', 'area', 'salary_type', 'salary_min', 'sortBy'], { numericKeys: ['salary_min'] })
 
   useEffect(() => { fetchJobs() }, [])
   useEffect(() => {
@@ -105,7 +116,7 @@ export default function JobList() {
         <button
           onClick={() => setShowFilters((v) => !v)}
           className={`p-2.5 rounded-xl border transition-colors ${
-            showFilters || filters.category || filters.job_type || filters.area
+            showFilters || filters.category || filters.job_type || filters.area || filters.salary_min != null
               ? 'border-primary-400 text-primary-600 bg-primary-50'
               : 'border-gray-200 text-gray-500 bg-white'
           }`}
@@ -149,6 +160,20 @@ export default function JobList() {
                     {a}
                   </Chip>
                 ))}
+              </FilterRow>
+              <FilterRow label="最低薪资">
+                <Chip active={filters.salary_min == null} onClick={() => setFilters({ salary_type: undefined, salary_min: undefined })}>不限</Chip>
+                {SALARY_PRESETS.map((p) => {
+                  const active = filters.salary_type === p.type && filters.salary_min === p.min
+                  return (
+                    <Chip key={p.label} active={active}
+                      onClick={() => setFilters(active
+                        ? { salary_type: undefined, salary_min: undefined }
+                        : { salary_type: p.type, salary_min: p.min })}>
+                      {p.label}
+                    </Chip>
+                  )
+                })}
               </FilterRow>
               <button onClick={() => { clearFilters(); setLocalKeyword('') }}
                 className="text-xs text-gray-400 hover:text-red-500 transition-colors">

@@ -66,6 +66,8 @@ export interface JobFilters {
   category?: JobCategory
   job_type?: JobType
   area?: string
+  salary_type?: SalaryType
+  salary_min?: number
   sortBy?: SortBy
 }
 

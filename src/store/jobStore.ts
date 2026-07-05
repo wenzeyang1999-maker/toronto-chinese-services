@@ -121,6 +121,13 @@ export const useJobStore = create<JobState>((set, get) => ({
     if (filters.area) {
       result = result.filter((j) => j.area?.includes(filters.area!))
     }
+    if (filters.salary_min != null) {
+      result = result.filter((j) => {
+        if (filters.salary_type && j.salary_type !== filters.salary_type) return false
+        const pay = j.salary_min ?? j.salary_max
+        return pay != null && pay >= filters.salary_min!
+      })
+    }
     if (filters.keyword) {
       const kw = filters.keyword.toLowerCase()
       result = result.filter(
