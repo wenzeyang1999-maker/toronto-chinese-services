@@ -26,6 +26,8 @@ interface Props {
   rightPlaceholder?: React.ReactNode
   children: React.ReactNode
   fabPath?: string | null
+  /** When set, the FAB renders as a labelled pill instead of a bare「+」circle */
+  fabLabel?: string
   /** When provided, enables pull-to-refresh on the mobile list column */
   onRefresh?: () => Promise<unknown> | void
 }
@@ -44,6 +46,7 @@ export default function ListPageShell({
   rightPlaceholder,
   children,
   fabPath,
+  fabLabel,
   onRefresh,
 }: Props) {
   const navigate = useNavigate()
@@ -149,7 +152,7 @@ export default function ListPageShell({
       </AnimatePresence>
 
       {/* FAB */}
-      {user && fabPath && <PostFAB onClick={() => navigate(fabPath)} />}
+      {user && fabPath && <PostFAB onClick={() => navigate(fabPath)} label={fabLabel} />}
     </div>
   )
 }

@@ -283,6 +283,7 @@ export default function JobList() {
       detailMobile={selectedJob ? <DetailPanel job={selectedJob} salaryLabel={salaryLabel(selectedJob)} onClose={() => setMobileOpen(false)} /> : null}
       leftColWidth={420}
       fabPath={`/jobs/post?type=${listingType}`}
+      fabLabel={listingType === 'hiring' ? '发布招聘' : '发布求职'}
       onRefresh={fetchJobs}
     >
       {cardList}
