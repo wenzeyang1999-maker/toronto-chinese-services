@@ -130,6 +130,11 @@ export default function Home() {
     localStorage.setItem('tcs_feed_mode', mode)
   }
 
+  // Deep-link: open the「AI 帮你找」inquiry modal via ?inquiry=1
+  useEffect(() => {
+    if (searchParams.get('inquiry') === '1') setInquiryOpen(true)
+  }, [searchParams])
+
   // Scroll to search bar when coming from tabs
   useEffect(() => {
     if (searchParams.get('from') !== 'tabs') return

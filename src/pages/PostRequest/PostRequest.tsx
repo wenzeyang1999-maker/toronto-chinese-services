@@ -277,7 +277,24 @@ export default function PostRequest() {
         </button>
 
         <h1 className="text-xl font-bold text-gray-900 mb-1">发布服务需求</h1>
-        <p className="text-sm text-gray-400 mb-6">让附近的服务商主动找到你</p>
+        <p className="text-sm text-gray-400 mb-4">让附近的服务商主动找到你</p>
+
+        {/* Distinguish from「AI 帮你找」: this is a public post, no auto-matching. */}
+        <div className="mb-6 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3">
+          <p className="text-sm font-semibold text-amber-800">此方式只公开发布,不自动匹配商家</p>
+          <p className="text-xs text-amber-700 mt-1 leading-relaxed">
+            你的需求会公开挂在地图上,由商家自行浏览后联系你。
+            <br />
+            想让系统<strong>自动派发给附近商家、他们主动联系你</strong>?请用
+            <button
+              type="button"
+              onClick={() => navigate('/?inquiry=1')}
+              className="mx-1 font-bold text-primary-600 underline underline-offset-2 hover:text-primary-700"
+            >
+              ✨ AI 帮你找
+            </button>
+          </p>
+        </div>
 
         <motion.form
           onSubmit={handleSubmit}
