@@ -127,6 +127,20 @@ Deno.serve(async (req) => {
     if (payload.recipientUserId === userData.user.id) {
       return json({ error: 'Cannot push to self' }, 400)
     }
+    // The recipient must actually follow the caller ("someone you follow posted"),
+    // else anyone could push arbitrary title/body/url to any user (push phishing).
+    const svcKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    const svcUrl = Deno.env.get('SUPABASE_URL') ?? ''
+    if (svcKey && svcUrl) {
+      const admin = createClient(svcUrl, svcKey)
+      const { data: follow } = await admin
+        .from('follows')
+        .select('follower_id')
+        .eq('follower_id', payload.recipientUserId)
+        .eq('provider_id', userData.user.id)
+        .maybeSingle()
+      if (!follow) return json({ error: 'recipient does not follow you' }, 403)
+    }
     recipientUserIds = [payload.recipientUserId]
     title = payload.title; body = payload.body; url = payload.url; tag = payload.tag; icon = payload.icon
   } else if ('mode' in raw && raw.mode === 'broadcast_match') {

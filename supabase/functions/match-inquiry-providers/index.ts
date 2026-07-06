@@ -142,13 +142,34 @@ Deno.serve(async (req) => {
 
     const admin = createClient(url, serviceRoleKey)
 
+    // Auth: the caller must own this inquiry (else anyone could trigger a
+    // dispatch to real merchants for an arbitrary inquiry, or hijack it).
+    const anonKey = Deno.env.get('SUPABASE_ANON_KEY')
+    const authHeader = req.headers.get('Authorization') ?? ''
+    let callerId: string | null = null
+    if (anonKey && authHeader) {
+      const userClient = createClient(url, anonKey, { global: { headers: { Authorization: authHeader } } })
+      const { data: { user } } = await userClient.auth.getUser()
+      callerId = user?.id ?? null
+    }
+    if (!callerId) {
+      return new Response(JSON.stringify({ error: 'not_authenticated' }), {
+        status: 401, headers: { ...cors, 'Content-Type': 'application/json' },
+      })
+    }
+
     // Verify inquiry exists and has not been matched already (prevents duplicate sends)
     const { data: inquiry, error: inquiryError } = await admin
       .from('inquiries')
-      .select('id, status, lat, lng, user_id')
+      .select('id, status, lat, lng, user_id, category_id')
       .eq('id', payload.inquiryId)
       .single()
     if (inquiryError || !inquiry) throw new Error('Inquiry not found')
+    if (inquiry.user_id !== callerId) {
+      return new Response(JSON.stringify({ error: 'forbidden' }), {
+        status: 403, headers: { ...cors, 'Content-Type': 'application/json' },
+      })
+    }
     if (inquiry.status === 'matched' || (inquiry as any).race_status === 'filled') {
       return new Response(JSON.stringify({ sent: 0, total: 0, skipped: 'already_matched' }), {
         headers: { ...cors, 'Content-Type': 'application/json' },
@@ -158,7 +179,7 @@ Deno.serve(async (req) => {
     const { data: rows, error } = await admin
       .from('services')
       .select('provider_id, lat, lng, provider:provider_id(id, name, email, last_seen_at, is_online), reviews(rating)')
-      .eq('category_id', payload.categoryId)
+      .eq('category_id', (inquiry as { category_id?: string }).category_id ?? payload.categoryId)
       .eq('is_available', true)
 
     if (error || !rows?.length) {
