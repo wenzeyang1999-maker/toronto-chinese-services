@@ -8,6 +8,7 @@ import {
 import { SOCIAL_PLATFORMS } from '../../../lib/socialPlatforms'
 import { cropAndCompressImage, compressImage, validateImageFile } from '../../../lib/compressImage'
 import { supabase } from '../../../lib/supabase'
+import { offsetLocation } from '../../../lib/geo'
 import { useAuthStore } from '../../../store/authStore'
 import { useNavigate } from 'react-router-dom'
 import MembershipBadge, { type MemberLevel } from '../../../components/MembershipBadge/MembershipBadge'
@@ -259,8 +260,11 @@ export default function HomepageSection() {
     if (next) {
       try {
         const pos = await getCurrentPosition()
-        lat = pos.coords.latitude
-        lng = pos.coords.longitude
+        // Privacy: the online pin is publicly readable — never store the raw
+        // device GPS (often a home address). Fuzz it 300–900m like demand pins.
+        const fuzzed = offsetLocation(pos.coords.latitude, pos.coords.longitude)
+        lat = fuzzed.lat
+        lng = fuzzed.lng
       } catch {
         toast('无法获取位置，上线后地图上不会显示你的位置', 'info')
       }
