@@ -33,7 +33,7 @@ export default function Home() {
   const fetchServices    = useAppStore((s) => s.fetchServices)
   const navigate         = useNavigate()
   const user             = useAuthStore((s) => s.user)
-  const [searchParams]   = useSearchParams()
+  const [searchParams, setSearchParams] = useSearchParams()
 
   // Pull-to-refresh (mobile) — re-fetch the services feed from the top.
   const { distance, refreshing, threshold } = usePullToRefresh(() => fetchServices())
@@ -130,10 +130,17 @@ export default function Home() {
     localStorage.setItem('tcs_feed_mode', mode)
   }
 
-  // Deep-link: open the「AI 帮你找」inquiry modal via ?inquiry=1
+  // Deep-link: open the「AI 帮你找」inquiry modal via ?inquiry=1, then strip the
+  // param so navigating back / refreshing doesn't re-open it unexpectedly.
   useEffect(() => {
-    if (searchParams.get('inquiry') === '1') setInquiryOpen(true)
-  }, [searchParams])
+    if (searchParams.get('inquiry') !== '1') return
+    setInquiryOpen(true)
+    setSearchParams((prev) => {
+      const n = new URLSearchParams(prev)
+      n.delete('inquiry')
+      return n
+    }, { replace: true })
+  }, [searchParams, setSearchParams])
 
   // Scroll to search bar when coming from tabs
   useEffect(() => {
