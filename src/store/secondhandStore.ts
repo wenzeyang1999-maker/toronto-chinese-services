@@ -76,7 +76,8 @@ export const useSecondhandStore = create<SecondhandState>((set, get) => ({
       .from('secondhand')
       .select('*, seller:users(id, name, avatar_url)')
       .eq('is_active', true)
-      .eq('is_sold', false)
+      // Include sold items — they stay listed with a 「已售出」 badge for a week
+      // (a cron deletes them after); sold ones sort to the bottom below.
       .order('created_at', { ascending: false })
     if (!error && data) {
       set({ items: (data as ItemRow[]).map(mapRow), isReady: true, loadError: false })
@@ -93,7 +94,9 @@ export const useSecondhandStore = create<SecondhandState>((set, get) => ({
 
   getFilteredItems: () => {
     const { items, filters } = get()
-    let result = items.filter((i) => i.is_active && !i.is_sold)
+    // Keep sold items visible (with a 「已售出」 badge); they get pushed to the
+    // bottom after the main sort below.
+    let result = items.filter((i) => i.is_active)
 
     if (filters.category) {
       result = result.filter((i) => i.category === filters.category)
@@ -124,6 +127,9 @@ export const useSecondhandStore = create<SecondhandState>((set, get) => ({
     } else {
       result = [...result].sort((a, b) => b.created_at.localeCompare(a.created_at))
     }
+
+    // Sold items always sink to the bottom (stable — keeps the order above).
+    result = [...result].sort((a, b) => Number(a.is_sold) - Number(b.is_sold))
 
     return result
   },

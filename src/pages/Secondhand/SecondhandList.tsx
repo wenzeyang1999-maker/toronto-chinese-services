@@ -210,10 +210,16 @@ export default function SecondhandList() {
           onClick={() => handleItemClick(item)}
           className={`break-inside-avoid mb-2.5 bg-white rounded-2xl overflow-hidden
             cursor-pointer transition-all duration-150
+            ${item.is_sold ? 'opacity-70' : ''}
             ${readSet.has(`secondhand:${item.id}`) ? 'opacity-75' : ''}
             ${selectedId === item.id ? 'ring-2 ring-primary-400 shadow-md' : 'shadow-sm hover:shadow-md'}`}
         >
-          <div className="w-full aspect-[4/3] bg-gray-100 overflow-hidden">
+          <div className="relative w-full aspect-[4/3] bg-gray-100 overflow-hidden">
+            {item.is_sold && (
+              <span className="absolute top-2 left-2 z-10 text-[10px] font-bold text-white bg-gray-900/75 px-2 py-0.5 rounded-full">
+                已售出
+              </span>
+            )}
             {item.images.length > 0 ? (
               <ImgFallback
                 src={item.images[0]}

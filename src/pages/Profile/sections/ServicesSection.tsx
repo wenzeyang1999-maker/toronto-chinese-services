@@ -200,8 +200,10 @@ export default function ServicesSection() {
     setProperties(prev => prev.map(x => x.id === p.id ? { ...x, is_filled: true, is_active: false } : x))
   }
   async function markSecondhandSold(item: SecondhandItem) {
-    await supabase.from('secondhand').update({ is_sold: true, is_active: false }).eq('id', item.id)
-    setSecondhand(prev => prev.map(x => x.id === item.id ? { ...x, is_sold: true, is_active: false } : x))
+    // Keep it listed (is_active stays true) but flag sold + stamp sold_at — it
+    // shows a 「已售出」 badge for a week, then a cron auto-deletes it.
+    await supabase.from('secondhand').update({ is_sold: true, sold_at: new Date().toISOString() }).eq('id', item.id)
+    setSecondhand(prev => prev.map(x => x.id === item.id ? { ...x, is_sold: true } : x))
   }
 
   async function deleteItem(table: string, id: string) {
