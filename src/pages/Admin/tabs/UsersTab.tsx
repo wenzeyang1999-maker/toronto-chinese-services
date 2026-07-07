@@ -5,6 +5,7 @@ import { Search, BadgeCheck, CheckCircle2, Ban, UserCheck, ExternalLink, X } fro
 import { supabase } from '../../../lib/supabase'
 import { type UserRow } from '../types'
 import { useAdminContext } from '../AdminContext'
+import { attachEmails } from '../adminEmails'
 
 export default function UsersTab() {
   const { acting, setActing, showNotice, runAdminAction } = useAdminContext()
@@ -15,16 +16,16 @@ export default function UsersTab() {
     const kw = userSearch.trim()
     const query = supabase
       .from('users')
-      .select('id, name, email, role, created_at, is_email_verified, business_verified, referral_code')
+      .select('id, name, role, created_at, is_email_verified, business_verified, referral_code')
       .order('created_at', { ascending: false })
       .limit(30)
-    if (kw) query.or(`name.ilike.%${kw}%,email.ilike.%${kw}%`)
+    if (kw) query.or(`name.ilike.%${kw}%,referral_code.ilike.%${kw}%`)
     const { data, error } = await query
     if (error) {
       showNotice('error', `搜索用户失败：${error.message}`)
       return
     }
-    setUserResults((data ?? []) as UserRow[])
+    setUserResults(await attachEmails((data ?? []) as Omit<UserRow, 'email'>[]) as UserRow[])
   }
 
   async function setUserRole(userId: string, role: UserRow['role']) {

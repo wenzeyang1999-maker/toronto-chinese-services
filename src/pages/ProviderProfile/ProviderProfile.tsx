@@ -58,7 +58,7 @@ export default function ProviderProfile() {
         { data: contact },
       ] = await Promise.all([
         supabase.from('public_profiles')
-          .select('id, name, avatar_url, email, bio, created_at, is_email_verified, last_seen_at, phone_verified, social_links, membership_level, business_verified, avg_reply_hours')
+          .select('id, name, avatar_url, bio, created_at, is_email_verified, last_seen_at, phone_verified, social_links, membership_level, business_verified, avg_reply_hours')
           .eq('id', id).single(),
         supabase.from('services')
           .select('id, title, description, category_id, price, price_type, area, images, reviews:reviews(id, rating, comment, created_at, reply:review_replies(content), reviewer:reviewer_id(id, name, avatar_url))')
@@ -77,7 +77,7 @@ export default function ProviderProfile() {
           .select(extSelect)
           .eq('id', id!).single(),
         user
-          ? supabase.rpc('get_contact', { p_target: id }).returns<{ phone: string; wechat: string }[]>().maybeSingle()
+          ? supabase.rpc('get_contact', { p_target: id }).returns<{ phone: string; wechat: string; email: string }[]>().maybeSingle()
           : Promise.resolve({ data: null }),
       ])
 
@@ -85,10 +85,11 @@ export default function ProviderProfile() {
 
       // `.select(dynamicString)` widens the row type, so read via a cast record.
       const extRow = (ext ?? null) as Record<string, unknown> | null
-      const contactRow = (contact ?? null) as { phone?: string; wechat?: string } | null
+      const contactRow = (contact ?? null) as { phone?: string; wechat?: string; email?: string } | null
 
       setProvider({
         ...profile,
+        email: contactRow?.email ?? '',   // email now via authorized get_contact, not the public view
         bio: profile.bio ?? null,
         phone: contactRow?.phone ?? null,
         wechat: contactRow?.wechat ?? null,

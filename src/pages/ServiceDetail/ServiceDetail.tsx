@@ -88,10 +88,10 @@ export default function ServiceDetail() {
       // Fetch contact info, provider extras, and report status all in parallel
       const [{ data: contact }, { data: profile }, { data: report }] = await Promise.all([
         providerId && user
-          ? supabase.rpc('get_contact', { p_target: providerId }).returns<{ phone: string; wechat: string }[]>().maybeSingle()
+          ? supabase.rpc('get_contact', { p_target: providerId }).returns<{ phone: string; wechat: string; email: string }[]>().maybeSingle()
           : Promise.resolve({ data: null }),
         supabase.from('public_profiles')
-          .select('email, is_email_verified, phone_verified, social_links, avg_reply_hours')
+          .select('is_email_verified, phone_verified, social_links, avg_reply_hours')
           .eq('id', providerId)
           .single(),
         user
@@ -111,10 +111,10 @@ export default function ServiceDetail() {
           ? { ...prev, provider: { ...prev.provider, phone: contact.phone ?? '', wechat: contact.wechat ?? undefined } }
           : prev
         )
+        if (contact.email) setProviderEmail(contact.email)   // email now via authorized RPC, not the public view
       }
 
       if (profile) {
-        if (profile.email)                   setProviderEmail(profile.email as string)
         if (profile.is_email_verified)       setEmailVerified(true)
         if (profile.phone_verified)          setPhoneVerified(true)
         if (profile.social_links)            setSocialLinks(profile.social_links as Record<string, string>)

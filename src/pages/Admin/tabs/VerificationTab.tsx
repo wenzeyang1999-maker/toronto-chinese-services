@@ -6,6 +6,7 @@ import { BadgeCheck, ExternalLink, X, CheckSquare, Square } from 'lucide-react'
 import { supabase } from '../../../lib/supabase'
 import { type VerificationRow } from '../types'
 import { useAdminContext } from '../AdminContext'
+import { attachEmails } from '../adminEmails'
 
 export default function VerificationTab() {
   const navigate = useNavigate()
@@ -44,24 +45,24 @@ export default function VerificationTab() {
   async function loadVerifications() {
     const { data, error } = await supabase
       .from('users')
-      .select('id, name, email, qualification_images, verification_status, created_at')
+      .select('id, name, qualification_images, verification_status, created_at')
       .eq('verification_status', 'pending')
       .order('created_at', { ascending: false })
     if (error) {
       showNotice('error', `加载认证列表失败：${error.message}`)
       return
     }
-    if (data) setVerifications(data as VerificationRow[])
+    if (data) setVerifications(await attachEmails(data as Omit<VerificationRow, 'email'>[]) as VerificationRow[])
   }
 
   async function loadVerifHistory() {
     const { data } = await supabase
       .from('users')
-      .select('id, name, email, qualification_images, verification_status, created_at')
+      .select('id, name, qualification_images, verification_status, created_at')
       .in('verification_status', ['approved', 'rejected'])
       .order('created_at', { ascending: false })
       .limit(50)
-    if (data) setVerifHistory(data as VerificationRow[])
+    if (data) setVerifHistory(await attachEmails(data as Omit<VerificationRow, 'email'>[]) as VerificationRow[])
   }
 
   async function approveVerification(userId: string) {

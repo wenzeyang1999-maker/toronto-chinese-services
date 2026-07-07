@@ -5,6 +5,7 @@ import { Trash2, ExternalLink, Pencil, CheckCircle2, Zap } from 'lucide-react'
 import { supabase } from '../../../lib/supabase'
 import { type NewServiceRow } from '../types'
 import { useAdminContext } from '../AdminContext'
+import { fetchEmails } from '../adminEmails'
 
 const PAGE = 40
 
@@ -24,17 +25,21 @@ export default function ServicesTab() {
     const start = append ? newServices.length : 0
     const { data, error } = await supabase
       .from('services')
-      .select('id, title, description, price, category_id, is_available, is_promoted, created_at, provider:provider_id(id, name, email)')
+      .select('id, title, description, price, category_id, is_available, is_promoted, created_at, provider:provider_id(id, name)')
       .order('created_at', { ascending: false })
       .range(start, start + PAGE - 1)
     if (error) {
       showNotice('error', `加载服务审核列表失败：${error.message}`)
       return
     }
-    const mapped = (data ?? []).map((r: any) => ({
+    const base = (data ?? []).map((r: any) => ({
       ...r,
       provider: Array.isArray(r.provider) ? r.provider[0] : r.provider,
     }))
+    const emails = await fetchEmails(base.map((r: any) => r.provider?.id))
+    const mapped = base.map((r: any) => (
+      r.provider ? { ...r, provider: { ...r.provider, email: emails.get(r.provider.id) ?? '' } } : r
+    ))
     if (append) setNewServices(prev => [...prev, ...mapped])
     else setNewServices(mapped)
     setServicesHasMore((data ?? []).length === PAGE)

@@ -6,6 +6,7 @@ import { supabase } from '../../../lib/supabase'
 import { type AuditLogRow, ADMIN_ACTION_LABEL } from '../types'
 import { renderAuditDetails } from '../auditFormat'
 import { useAdminContext } from '../AdminContext'
+import { fetchEmails } from '../adminEmails'
 
 export default function LogsTab() {
   const { showNotice } = useAdminContext()
@@ -18,18 +19,22 @@ export default function LogsTab() {
   async function loadAuditLogs() {
     const { data, error } = await supabase
       .from('admin_audit_logs')
-      .select('id, action_type, target_type, target_id, details, created_at, actor:actor_id(id, name, email)')
+      .select('id, action_type, target_type, target_id, details, created_at, actor:actor_id(id, name)')
       .order('created_at', { ascending: false })
       .limit(80)
     if (error) {
       showNotice('error', `加载操作日志失败：${error.message}`)
       return
     }
-    setAuditLogs((data ?? []).map((row: any) => ({
+    const rows = (data ?? []).map((row: any) => ({
       ...row,
       details: row.details ?? {},
       actor: Array.isArray(row.actor) ? row.actor[0] : row.actor,
-    })))
+    }))
+    const emails = await fetchEmails(rows.map((r: any) => r.actor?.id))
+    setAuditLogs(rows.map((r: any) => (
+      r.actor ? { ...r, actor: { ...r.actor, email: emails.get(r.actor.id) ?? '' } } : r
+    )))
   }
 
   useEffect(() => {

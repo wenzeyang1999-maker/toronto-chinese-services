@@ -5,6 +5,7 @@ import { Search, Crown, X, Trash2 } from 'lucide-react'
 import { supabase } from '../../../lib/supabase'
 import { type MemberRow } from '../types'
 import { useAdminContext } from '../AdminContext'
+import { attachEmails } from '../adminEmails'
 
 export default function MembershipTab() {
   const { acting, setActing, showNotice, runAdminAction, setDeleteTarget } = useAdminContext()
@@ -15,16 +16,16 @@ export default function MembershipTab() {
     const kw = memberSearch.trim()
     const query = supabase
       .from('users')
-      .select('id, name, email, membership_level, membership_expires_at')
+      .select('id, name, membership_level, membership_expires_at')
       .order('created_at', { ascending: false })
       .limit(20)
-    if (kw) query.or(`name.ilike.%${kw}%,email.ilike.%${kw}%`)
+    if (kw) query.ilike('name', `%${kw}%`)
     const { data, error } = await query
     if (error) {
       showNotice('error', `搜索会员失败：${error.message}`)
       return
     }
-    setMemberResults((data ?? []) as MemberRow[])
+    setMemberResults(await attachEmails((data ?? []) as Omit<MemberRow, 'email'>[]) as MemberRow[])
   }
 
   async function grantMembership(row: MemberRow, level: 'L2' | 'L3') {
