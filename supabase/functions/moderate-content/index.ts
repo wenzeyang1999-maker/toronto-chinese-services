@@ -4,6 +4,10 @@
 // Uses Groq llama-3 for fast, cheap classification.
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.57.4'
+import { allowAiCallByUser } from '../_shared/aiRateLimit.ts'
+
+const RL_MAX    = 60              // moderations per user per window (called on each publish)
+const RL_WINDOW = 10 * 60 * 1000  // 10 minutes
 
 const ALLOWED_ORIGINS = new Set([
   'https://toronto-chinese-services.vercel.app',
@@ -42,7 +46,7 @@ const SYSTEM_PROMPT = `你是一个内容审核 AI，专门为加拿大多伦多
 只返回 JSON，格式严格如下，不要有任何其他文字：
 {"pass":true} 或 {"pass":false,"reason":"具体原因（中文，15字以内）"}`
 
-async function requireAuth(req: Request): Promise<void> {
+async function requireAuth(req: Request): Promise<string> {
   const url     = Deno.env.get('SUPABASE_URL')
   const anonKey = Deno.env.get('SUPABASE_ANON_KEY')
   if (!url || !anonKey) throw new Error('Supabase env missing')
@@ -51,6 +55,7 @@ async function requireAuth(req: Request): Promise<void> {
   })
   const { data, error } = await client.auth.getUser()
   if (error || !data.user) throw new Error('Unauthorized')
+  return data.user.id
 }
 
 Deno.serve(async (req: Request) => {
@@ -62,7 +67,12 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
-    await requireAuth(req)
+    const uid = await requireAuth(req)
+    if (!(await allowAiCallByUser(uid, 'moderate-content', RL_MAX, RL_WINDOW))) {
+      return new Response(JSON.stringify({ error: '操作过于频繁，请稍后再试' }), {
+        status: 429, headers: { ...cors, 'Content-Type': 'application/json' },
+      })
+    }
 
     const { text } = await req.json() as { text: string }
     if (!text?.trim()) {

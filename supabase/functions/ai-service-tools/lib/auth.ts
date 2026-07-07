@@ -1,6 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.57.4'
 
-export async function requireAuth(req: Request): Promise<void> {
+export async function requireAuth(req: Request): Promise<string> {
   const url = Deno.env.get('SUPABASE_URL')
   const anonKey = Deno.env.get('SUPABASE_ANON_KEY')
   if (!url || !anonKey) throw new Error('Supabase env missing')
@@ -10,4 +10,5 @@ export async function requireAuth(req: Request): Promise<void> {
   })
   const { data, error } = await client.auth.getUser()
   if (error || !data.user) throw new Error('Unauthorized')
+  return data.user.id
 }
