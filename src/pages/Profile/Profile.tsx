@@ -127,13 +127,17 @@ export default function Profile() {
 
   useEffect(() => {
     if (!user) return
-    supabase.from('users')
-      .select('name, phone, avatar_url, membership_level, membership_expires_at, is_email_verified, phone_verified, id_verified, business_verified, credit_penalty')
-      .eq('id', user.id).single()
-      .then(({ data }) => {
+    Promise.all([
+      supabase.from('users')
+        .select('name, avatar_url, membership_level, membership_expires_at, is_email_verified, phone_verified, id_verified, business_verified, credit_penalty')
+        .eq('id', user.id).single(),
+      supabase.rpc('get_my_contact').returns<{ name: string; phone: string; wechat: string }[]>().maybeSingle(),   // phone REVOKEd — read own via RPC
+    ])
+      .then(([{ data }, { data: contact }]) => {
         if (!data) return
+        const c = contact as { phone?: string } | null
         setName(data.name ?? user.user_metadata?.name ?? '用户')
-        setPhone(data.phone ?? user.user_metadata?.phone ?? '')
+        setPhone(c?.phone ?? user.user_metadata?.phone ?? '')
         setAvatarUrl(data.avatar_url ?? null)
         const expiry = data.membership_expires_at ? new Date(data.membership_expires_at) : null
         const isActive = !!(expiry && expiry > new Date())

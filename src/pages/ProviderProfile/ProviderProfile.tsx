@@ -43,11 +43,9 @@ export default function ProviderProfile() {
     setLoading(true)
 
     async function load() {
-      // Contact columns (phone/wechat) are column-granted to authenticated only —
-      // anon must NOT request them or the whole users query 403s. So only append
-      // them when the viewer is logged in.
+      // Contact (phone/wechat) is fetched via the authorized get_contact RPC —
+      // the base columns are REVOKEd from clients (see contact_rpcs migration).
       const extSelect = 'is_online, business_type, skill_tags, qualification_note, qualification_images, credit_penalty'
-        + (user ? ', phone, wechat' : '')
       const [
         { data: profile, error: profileError },
         { data: svcsData },
@@ -57,6 +55,7 @@ export default function ProviderProfile() {
         { data: jobsData },
         { count: followCount },
         { data: ext },
+        { data: contact },
       ] = await Promise.all([
         supabase.from('public_profiles')
           .select('id, name, avatar_url, email, bio, created_at, is_email_verified, last_seen_at, phone_verified, social_links, membership_level, business_verified, avg_reply_hours')
@@ -77,18 +76,22 @@ export default function ProviderProfile() {
         supabase.from('users')
           .select(extSelect)
           .eq('id', id!).single(),
+        user
+          ? supabase.rpc('get_contact', { p_target: id }).returns<{ phone: string; wechat: string }[]>().maybeSingle()
+          : Promise.resolve({ data: null }),
       ])
 
       if (profileError || !profile) { setNotFound(true); setLoading(false); return }
 
       // `.select(dynamicString)` widens the row type, so read via a cast record.
       const extRow = (ext ?? null) as Record<string, unknown> | null
+      const contactRow = (contact ?? null) as { phone?: string; wechat?: string } | null
 
       setProvider({
         ...profile,
         bio: profile.bio ?? null,
-        phone: (extRow?.phone as string) ?? null,
-        wechat: (extRow?.wechat as string) ?? null,
+        phone: contactRow?.phone ?? null,
+        wechat: contactRow?.wechat ?? null,
         phone_verified: profile.phone_verified ?? false,
         social_links: (profile.social_links as Record<string, string>) ?? {},
         membership_level: (profile.membership_level as MemberLevel) ?? 'L1',

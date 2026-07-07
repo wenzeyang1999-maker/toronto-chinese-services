@@ -91,7 +91,7 @@ export default function InquiryModal({ open, onClose }: Props) {
       name:  f.name.trim()  ? f.name  : (meta.name ?? ''),
       phone: f.phone.trim() ? f.phone : (meta.phone ?? user.phone ?? ''),
     }))
-    supabase.from('users').select('name, phone, wechat').eq('id', user.id).single()
+    supabase.rpc('get_my_contact').returns<{ name: string; phone: string; wechat: string }[]>().maybeSingle()
       .then(({ data }) => {
         if (cancelled || !data) return
         setForm((f) => ({

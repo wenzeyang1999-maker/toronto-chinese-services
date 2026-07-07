@@ -69,19 +69,26 @@ export default function ConversationPage() {
       .select(`id, client_id, provider_id, service_id,
                client_last_read_at, provider_last_read_at,
                service:services(title),
-               client:users!conversations_client_id_fkey(name, phone, wechat),
-               provider:users!conversations_provider_id_fkey(name, phone, wechat)`)
+               client:users!conversations_client_id_fkey(name),
+               provider:users!conversations_provider_id_fkey(name)`)
       .eq('id', id)
       .single()
       .then(({ data, error }) => {
         if (error || !data) return
         const isClient = data.client_id === user.id
+        const otherName = isClient
+          ? (Array.isArray(data.provider) ? data.provider[0] : data.provider)
+          : (Array.isArray(data.client)   ? data.client[0]   : data.client)
+        const otherId = isClient ? data.provider_id : data.client_id
         setConv({
           ...data,
           service: Array.isArray(data.service) ? data.service[0] : data.service,
-          other:   isClient
-            ? (Array.isArray(data.provider) ? data.provider[0] : data.provider)
-            : (Array.isArray(data.client)   ? data.client[0]   : data.client),
+          other: { name: (otherName as { name?: string })?.name ?? '', phone: null, wechat: null },
+        })
+        // Contact of the other party via the authorized RPC (conversation partner).
+        supabase.rpc('get_contact', { p_target: otherId }).returns<{ phone: string; wechat: string }[]>().maybeSingle().then(({ data: c }) => {
+          const cc = c as { phone?: string; wechat?: string } | null
+          if (cc) setConv((prev) => prev ? { ...prev, other: prev.other ? { ...prev.other, phone: cc.phone ?? null, wechat: cc.wechat ?? null } : prev.other } : prev)
         })
         // How far the other party has read (for my own messages' receipts).
         setOtherLastRead((isClient ? data.provider_last_read_at : data.client_last_read_at) ?? null)

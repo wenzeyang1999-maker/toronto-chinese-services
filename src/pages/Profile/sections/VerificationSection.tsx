@@ -128,17 +128,22 @@ export default function VerificationSection({ user }: Props) {
 
   // ── load data on mount ────────────────────────────────────────────────────
   useEffect(() => {
-    supabase.from('users')
-      .select('phone, phone_verified, wechat, social_links, verification_status, business_verified, qualification_images')
-      .eq('id', user.id).single()
-      .then(({ data }) => {
+    Promise.all([
+      supabase.from('users')
+        .select('phone_verified, social_links, verification_status, business_verified, qualification_images')
+        .eq('id', user.id).single(),
+      // phone/wechat are REVOKEd from clients — read own via the RPC.
+      supabase.rpc('get_my_contact').returns<{ name: string; phone: string; wechat: string }[]>().maybeSingle(),
+    ])
+      .then(([{ data }, { data: contact }]) => {
         if (!data) return
-        setDbPhone(data.phone ?? null)
+        const c = contact as { phone?: string; wechat?: string } | null
+        setDbPhone(c?.phone ?? null)
         setPhoneVerified(data.phone_verified ?? false)
         const raw = (data.social_links ?? {}) as Partial<SocialValues>
         const loaded: SocialValues = {
           ...EMPTY_SOCIALS,
-          wechat:      data.wechat ?? raw.wechat      ?? '',
+          wechat:      c?.wechat ?? raw.wechat      ?? '',
           whatsapp:    raw.whatsapp    ?? '',
           xiaohongshu: raw.xiaohongshu ?? '',
           facebook:    raw.facebook    ?? '',

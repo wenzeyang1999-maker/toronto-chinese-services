@@ -88,7 +88,7 @@ export default function ServiceDetail() {
       // Fetch contact info, provider extras, and report status all in parallel
       const [{ data: contact }, { data: profile }, { data: report }] = await Promise.all([
         providerId && user
-          ? supabase.from('users').select('phone, wechat').eq('id', providerId).single()
+          ? supabase.rpc('get_contact', { p_target: providerId }).returns<{ phone: string; wechat: string }[]>().maybeSingle()
           : Promise.resolve({ data: null }),
         supabase.from('public_profiles')
           .select('email, is_email_verified, phone_verified, social_links, avg_reply_hours')

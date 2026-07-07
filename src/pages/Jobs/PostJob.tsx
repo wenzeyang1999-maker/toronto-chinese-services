@@ -76,7 +76,7 @@ export default function PostJob() {
   // Pre-fill contact from profile
   useEffect(() => {
     if (!user) return
-    supabase.from('users').select('name, phone, wechat').eq('id', user.id).single()
+    supabase.rpc('get_my_contact').returns<{ name: string; phone: string; wechat: string }[]>().maybeSingle()
       .then(({ data }) => {
         if (!data) return
         setForm((f) => ({
