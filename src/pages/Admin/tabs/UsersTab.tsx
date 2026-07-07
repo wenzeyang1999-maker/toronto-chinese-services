@@ -14,12 +14,20 @@ export default function UsersTab() {
 
   async function searchUsers() {
     const kw = userSearch.trim()
+    // Keyword search (name / email / referral) runs through an admin-only RPC,
+    // since clients can't filter users by email directly anymore.
+    let idList: string[] | null = null
+    if (kw) {
+      const { data: ids } = await (supabase.rpc as any)('admin_search_user_ids', { p_kw: kw })
+      idList = ((ids ?? []) as { id: string }[]).map(r => r.id)
+      if (!idList.length) { setUserResults([]); return }
+    }
     const query = supabase
       .from('users')
       .select('id, name, role, created_at, is_email_verified, business_verified, referral_code')
       .order('created_at', { ascending: false })
       .limit(30)
-    if (kw) query.or(`name.ilike.%${kw}%,referral_code.ilike.%${kw}%`)
+    if (idList) query.in('id', idList)
     const { data, error } = await query
     if (error) {
       showNotice('error', `搜索用户失败：${error.message}`)

@@ -14,12 +14,19 @@ export default function MembershipTab() {
 
   async function searchMembers() {
     const kw = memberSearch.trim()
+    // Keyword search (name / email / referral) via the admin-only RPC.
+    let idList: string[] | null = null
+    if (kw) {
+      const { data: ids } = await (supabase.rpc as any)('admin_search_user_ids', { p_kw: kw })
+      idList = ((ids ?? []) as { id: string }[]).map(r => r.id)
+      if (!idList.length) { setMemberResults([]); return }
+    }
     const query = supabase
       .from('users')
       .select('id, name, membership_level, membership_expires_at')
       .order('created_at', { ascending: false })
       .limit(20)
-    if (kw) query.ilike('name', `%${kw}%`)
+    if (idList) query.in('id', idList)
     const { data, error } = await query
     if (error) {
       showNotice('error', `搜索会员失败：${error.message}`)
