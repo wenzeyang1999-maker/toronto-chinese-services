@@ -15,7 +15,8 @@ const CORS = {
 }
 
 const OTP_TTL_MINUTES  = 5
-const RATE_LIMIT_MAX   = 3
+const RATE_LIMIT_MAX    = 3               // max sends per USER per window
+const PHONE_LIMIT_MAX   = 3               // max sends to a single PHONE per window (anti-bombing)
 const RATE_LIMIT_WINDOW = 10 * 60 * 1000  // 10 minutes in ms
 
 function toE164(raw: string): string {
@@ -59,16 +60,33 @@ Deno.serve(async (req: Request) => {
 
   const admin = createClient(supabaseUrl, serviceRoleKey)
 
-  // Rate limit: count OTPs sent to this user in the last 10 minutes
+  // Rate limit off the append-only otp_send_log (not phone_otps, which gets
+  // deleted/mutated by verify-otp). Two independent limits, both must pass:
+  //   • per USER  — an account can't spam
+  //   • per PHONE — a single number can't be bombed, even across accounts
   const windowStart = new Date(Date.now() - RATE_LIMIT_WINDOW).toISOString()
-  const { count } = await admin
-    .from('phone_otps')
+
+  // Sweep ledger rows older than the window so the table stays small.
+  await admin.from('otp_send_log').delete().lt('created_at', windowStart)
+
+  const { count: userCount } = await admin
+    .from('otp_send_log')
     .select('id', { count: 'exact', head: true })
     .eq('user_id', user.id)
     .gte('created_at', windowStart)
-
-  if ((count ?? 0) >= RATE_LIMIT_MAX) {
+  if ((userCount ?? 0) >= RATE_LIMIT_MAX) {
     return new Response(JSON.stringify({ error: '发送太频繁，请 10 分钟后再试' }), {
+      status: 429, headers: { ...CORS, 'Content-Type': 'application/json' },
+    })
+  }
+
+  const { count: phoneCount } = await admin
+    .from('otp_send_log')
+    .select('id', { count: 'exact', head: true })
+    .eq('phone', phone)
+    .gte('created_at', windowStart)
+  if ((phoneCount ?? 0) >= PHONE_LIMIT_MAX) {
+    return new Response(JSON.stringify({ error: '该号码验证码请求过于频繁，请稍后再试' }), {
       status: 429, headers: { ...CORS, 'Content-Type': 'application/json' },
     })
   }
@@ -115,6 +133,10 @@ Deno.serve(async (req: Request) => {
       status: 502, headers: { ...CORS, 'Content-Type': 'application/json' },
     })
   }
+
+  // Record the delivered SMS in the rate-limit ledger (only successful sends
+  // count, so a failed Telnyx call doesn't penalise the user).
+  await admin.from('otp_send_log').insert({ user_id: user.id, phone })
 
   return new Response(JSON.stringify({ ok: true }), {
     headers: { ...CORS, 'Content-Type': 'application/json' },

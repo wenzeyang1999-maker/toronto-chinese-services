@@ -1,3 +1,11 @@
+import { allowAiCall } from '../_shared/aiRateLimit.ts'
+
+// Anti-abuse: cap input size and rate-limit anonymous callers per IP.
+const RL_MAX      = 40                // calls per IP per window
+const RL_WINDOW   = 10 * 60 * 1000    // 10 minutes
+const MAX_MSGS    = 12                // keep only the last N turns
+const MAX_MSG_LEN = 2000              // chars per message
+
 const ALLOWED_ORIGINS = new Set([
   'https://toronto-chinese-services.vercel.app',
   'http://localhost:5173',
@@ -115,10 +123,20 @@ Deno.serve(async (req: Request) => {
     return new Response('ok', { headers: cors })
   }
 
+  if (!(await allowAiCall(req, 'ai-chat', RL_MAX, RL_WINDOW))) {
+    return new Response(JSON.stringify({ error: '请求过于频繁，请稍后再试' }), {
+      status: 429, headers: { ...cors, 'Content-Type': 'application/json' },
+    })
+  }
+
   try {
-    const { messages } = await req.json() as {
+    const raw = await req.json() as {
       messages: Array<{ role: 'user' | 'assistant'; content: string }>
     }
+    // Cap input: keep the last few turns, clamp each message length.
+    const messages = (Array.isArray(raw.messages) ? raw.messages : [])
+      .slice(-MAX_MSGS)
+      .map(m => ({ role: m.role, content: String(m.content ?? '').slice(0, MAX_MSG_LEN) }))
 
     const apiKey = Deno.env.get('GROQ_API_KEY')
     if (!apiKey) throw new Error('GROQ_API_KEY secret not configured')

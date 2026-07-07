@@ -1,5 +1,11 @@
 // extract-inquiry: uses Groq LLM to parse a free-text service request
 // into structured fields (category, timing, locations, notes, items).
+import { allowAiCall } from '../_shared/aiRateLimit.ts'
+
+// Anti-abuse: cap input size and rate-limit anonymous callers per IP.
+const RL_MAX       = 15               // calls per IP per window
+const RL_WINDOW    = 10 * 60 * 1000   // 10 minutes
+const MAX_TEXT_LEN = 2000             // chars of free text
 
 const ALLOWED_ORIGINS = new Set([
   'https://toronto-chinese-services.vercel.app',
@@ -57,9 +63,17 @@ Deno.serve(async (req) => {
     return new Response('Method not allowed', { status: 405, headers: cors })
   }
 
+  if (!(await allowAiCall(req, 'extract-inquiry', RL_MAX, RL_WINDOW))) {
+    return new Response(JSON.stringify({ error: '请求过于频繁，请稍后再试' }), {
+      status: 429, headers: { ...cors, 'Content-Type': 'application/json' },
+    })
+  }
+
   try {
-    const { text } = await req.json() as { text: string }
-    if (!text?.trim()) {
+    const body = await req.json() as { text: string }
+    // Clamp input length before sending to the LLM.
+    const text = String(body.text ?? '').slice(0, MAX_TEXT_LEN)
+    if (!text.trim()) {
       return new Response(JSON.stringify({ error: '请输入需求描述' }), {
         status: 400,
         headers: { ...cors, 'Content-Type': 'application/json' },

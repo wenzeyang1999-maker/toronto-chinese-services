@@ -289,7 +289,7 @@ Deno.serve(async (req) => {
             recipient_id: provider.id,
             type:  'new_inquiry_lead',
             title: '匹配到一条新客户需求',
-            body:  `客户在找「${data.categoryLabel}」服务，点开查看联系方式并主动联系`,
+            body:  `客户在找「${payload.categoryLabel}」服务，点开查看联系方式并主动联系`,
             link_url: '/profile?section=claimed_inquiries',
           }))
         )
