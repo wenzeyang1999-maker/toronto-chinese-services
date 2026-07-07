@@ -551,6 +551,14 @@ export default function HomepageSection() {
               <p className="text-xs text-gray-400 mb-3">
                 写一句资质说明，并上传营业执照、证书、车队/设备照片，客户能在你主页直接看到（最多 {MAX_QUAL_IMAGES} 张）
               </p>
+              <div className="mb-3 flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5">
+                <span className="text-amber-500 flex-shrink-0 mt-0.5">⚠️</span>
+                <p className="text-xs leading-relaxed text-amber-700">
+                  <span className="font-semibold">这些图片会公开显示在主页。</span>
+                  请勿上传身份证、护照等隐私证件；如传营业执照，建议先给
+                  <span className="font-semibold">身份证号、住址、签名</span>等打码。
+                </p>
+              </div>
 
               {/* Text note */}
               {editingQualNote ? (

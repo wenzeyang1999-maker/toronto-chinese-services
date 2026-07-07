@@ -457,6 +457,14 @@ export default function VerificationSection({ user }: Props) {
             上传资质图片并提交审核，通过后你的服务将显示
             <span className="text-blue-600 font-medium"> ✓ 已认证</span> 标志
           </p>
+          <div className="mt-3 flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5">
+            <span className="text-amber-500 flex-shrink-0 mt-0.5">⚠️</span>
+            <p className="text-xs leading-relaxed text-amber-700">
+              <span className="font-semibold">资质图片会公开显示在你的主页。</span>
+              请勿上传身份证、护照等含个人隐私的证件；如需上传营业执照等，
+              建议先对<span className="font-semibold">身份证号、住址、法人签名</span>等敏感信息打码。
+            </p>
+          </div>
         </div>
         <div className="px-5 pb-5 border-t border-gray-100 pt-4">
           {businessVerified || verifStatus === 'approved' ? (
