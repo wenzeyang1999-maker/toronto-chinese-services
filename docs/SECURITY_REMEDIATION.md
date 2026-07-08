@@ -73,6 +73,14 @@
 | 存储 owner 校验偏弱:`uid = ANY(foldername)`,uid 是路径任意段即过 → `{victim}/{attacker}/file` 可在受害者前缀下投放 | 收紧为 **uid 必须是第 1 段,或(第 1 段是已知前缀 且 第 2 段是 uid)**。前缀白名单:realestate/qualifications/events/chat-photos/community/secondhand |
 | `row_is_promoted(p_table)` 无表白名单(低危,`%I` 已防注入,仅可探测表存在性) | 加白名单:仅 services/jobs/events/properties/secondhand |
 
+## 4c. 低危列守卫(migration 20260707120002)
+
+| 问题 | 修复 |
+|---|---|
+| `inquiries` owner-UPDATE 无列守卫:owner 可把任意 uid 塞进 `accepted_provider_ids`(SELECT 策略据此授权读取)或改 `race_status` → 把带自己联系方式的假 lead 注入任意商家队列 | 用 SECURITY DEFINER 助手锁 `accepted_provider_ids` + `race_status` 两列(owner 只能改 status/assigned_provider_id,即前端实际写的字段);派单/抢单走 service_role / DEFINER RPC 不受影响 |
+| `community_posts.like_count` 作者可直接改;且维护触发器**非** DEFINER → 非作者点赞被 RLS 挡,计数不加(潜在功能 bug) | 触发器改 SECURITY DEFINER(修 bug + 成为唯一写者)+ 作者 UPDATE 策略锁 `like_count` 列 |
+| `views` INSERT `WITH CHECK(true)` | 加约束 `viewer_id IS NULL OR = auth.uid()`(禁止冒充他人 viewer);**计数灌水为花瓶指标(前端 localStorage 去重),记为已知接受** |
+
 ## 5. 已核对、判定安全(未改)
 
 - `inquiries` 未加入 realtime publication(不会经 Realtime 泄露)
