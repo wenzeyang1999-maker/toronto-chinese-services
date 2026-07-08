@@ -64,6 +64,15 @@
 
 ---
 
+## 4b. 第二轮加固(migration 20260707120001)
+
+| 问题 | 修复 |
+|---|---|
+| `use_free_promotion(p_days)` 无上限 → 传 `p_days=100000` 把置顶钉几百年,架空付费延长 | 夹到 **1–7 天**(`least(greatest(coalesce(p_days,3),1),7)`) |
+| `service_types` INSERT `WITH CHECK(true)` + UPDATE `USING(true)` → 任意登录用户可改全站共享分类 / 刷 `usage_count` 顶置 | INSERT 约束(`usage_count=1` + category 非空 + name 限长);UPDATE **改 admin 专属**(app 只 INSERT 不 UPDATE) |
+| 存储 owner 校验偏弱:`uid = ANY(foldername)`,uid 是路径任意段即过 → `{victim}/{attacker}/file` 可在受害者前缀下投放 | 收紧为 **uid 必须是第 1 段,或(第 1 段是已知前缀 且 第 2 段是 uid)**。前缀白名单:realestate/qualifications/events/chat-photos/community/secondhand |
+| `row_is_promoted(p_table)` 无表白名单(低危,`%I` 已防注入,仅可探测表存在性) | 加白名单:仅 services/jobs/events/properties/secondhand |
+
 ## 5. 已核对、判定安全(未改)
 
 - `inquiries` 未加入 realtime publication(不会经 Realtime 泄露)
