@@ -299,24 +299,24 @@ export default function Search() {
       {/* Search header */}
       <div className="bg-white border-b border-gray-100 px-4 py-3">
         <div className="max-w-2xl mx-auto">
-          <div className="flex items-center gap-3">
-            <button onClick={() => navigate(-1)} className="text-gray-500 hover:text-gray-700">
+          <div className="flex items-center gap-2">
+            <button onClick={() => navigate(-1)} className="text-gray-500 hover:text-gray-700 flex-shrink-0">
               <ArrowLeft size={20} />
             </button>
-            <div className="flex-1 flex items-center gap-2 bg-gray-100 rounded-xl px-3 py-2">
-              <SearchIcon size={16} className="text-gray-400" />
+            <div className="flex-1 min-w-0 flex items-center gap-2 bg-gray-100 rounded-xl px-3 py-2">
+              <SearchIcon size={16} className="text-gray-400 flex-shrink-0" />
               <input
                 value={localQuery}
                 onChange={(e) => setLocalQuery(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
                 placeholder="搜索服务..."
-                className="flex-1 bg-transparent outline-none text-sm text-gray-900"
+                className="flex-1 min-w-0 bg-transparent outline-none text-sm text-gray-900"
                 autoFocus
               />
             </div>
             <button
               onClick={handleSearch}
-              className="text-primary-600 text-sm font-medium"
+              className="text-primary-600 text-sm font-medium flex-shrink-0 whitespace-nowrap"
             >
               搜索
             </button>
@@ -324,9 +324,9 @@ export default function Search() {
               whileTap={{ scale: 0.95 }}
               onClick={() => setInquiryOpen(true)}
               className="flex items-center gap-1 bg-primary-600 hover:bg-primary-700
-                         text-white text-xs font-bold px-3 py-1.5 rounded-xl transition-colors flex-shrink-0"
+                         text-white text-xs font-bold px-2.5 py-1.5 rounded-xl transition-colors flex-shrink-0 whitespace-nowrap"
             >
-              <Sparkles size={12} />
+              <Sparkles size={12} className="flex-shrink-0" />
               AI帮你找
             </motion.button>
             {/* Map / List toggle */}
