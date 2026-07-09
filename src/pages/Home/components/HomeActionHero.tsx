@@ -74,12 +74,15 @@ export default function HomeActionHero({
         <div className="relative grid items-center gap-8 lg:min-h-[28rem] lg:grid-cols-[minmax(0,1.08fr)_minmax(400px,0.92fr)] lg:gap-16 xl:gap-20">
 
           {/* ── Left: headline + search ── */}
+          {/* min-w-0: grid items default to min-width:auto and won't shrink below
+              their content — a wide child (e.g. the location pill) would otherwise
+              stretch this column past the viewport and push the search/AI row right. */}
           <motion.div
             initial={{ opacity: 0, y: 14 }}
             animate={{ opacity: 1, y: 0 }}
-            className="relative z-10 max-w-[42rem]"
+            className="relative z-10 min-w-0 max-w-[42rem]"
           >
-            <div className="inline-flex items-center gap-1.5 rounded-full border border-gray-200 bg-white px-3 py-1 text-xs font-medium text-gray-500 shadow-sm mb-4">
+            <div className="inline-flex max-w-full flex-wrap items-center gap-1.5 rounded-full border border-gray-200 bg-white px-3 py-1 text-xs font-medium text-gray-500 shadow-sm mb-4">
               <MapPin size={11} className="text-primary-500" />
               {userHasLocation ? '已为您准备附近结果' : '海外华人生活一站式服务'}
               {userHasLocation && (
@@ -103,7 +106,7 @@ export default function HomeActionHero({
               先搜索，也可以把需求交给 AI 帮你找。搬家、保洁、接送、装修、现金工，一步进入，更快看到评价、地图和真实联系方式。
             </p>
 
-            <div className="mt-6 flex flex-col gap-3 md:flex-row md:items-stretch">
+            <div className="mt-6 flex min-w-0 flex-col gap-3 md:flex-row md:items-stretch">
               <div className="min-w-0 flex-1 relative" ref={searchWrapRef}
                 onFocus={() => setShowHistory(true)}
                 onBlur={(e) => {
