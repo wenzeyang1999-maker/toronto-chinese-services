@@ -412,9 +412,15 @@ export default function Profile() {
       {/* ── Top bar ─────────────────────────────────────────────────────────── */}
       <div className="w-full bg-white border-b-2 border-gray-200 px-4 h-14 flex items-center gap-3 sticky top-0 z-20">
         <button
-          // In a section → return to the profile menu by clearing the URL param
-          // (replace, so no history bounce); at the menu → leave Profile.
-          onClick={() => section ? navigate('/profile', { replace: true }) : navigate(-1)}
+          // Context-aware back:
+          //  • section opened from the account menu (setSection, URL still /profile,
+          //    no ?section) → return to the menu.
+          //  • section opened via URL (bottom-nav 消息 / deep link, URL has ?section)
+          //    or already at the menu → browser back to wherever we came from.
+          onClick={() => {
+            if (section && !searchParams.get('section')) setSection(null)
+            else navigate(-1)
+          }}
           className="text-gray-500 hover:text-gray-800 lg:hidden"
         >
           <ChevronLeft size={22} />
