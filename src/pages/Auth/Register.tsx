@@ -93,7 +93,11 @@ export default function Register() {
   async function resendVerification() {
     setResending(true)
     setResendMsg(null)
-    const { error } = await supabase.auth.resend({ type: 'signup', email: form.email })
+    const { error } = await supabase.auth.resend({
+      type: 'signup',
+      email: form.email,
+      options: { emailRedirectTo: `${window.location.origin}/` },
+    })
     setResending(false)
     setResendMsg(error ? '发送失败，请稍后再试' : '验证邮件已重新发送 ✓')
   }
@@ -123,6 +127,10 @@ export default function Register() {
       email: form.email,
       password: form.password,
       options: {
+        // Return the confirmation link to the SAME domain the user registered on
+        // (both vercel + huarenq are in the redirect allow-list), so verifying
+        // doesn't bounce them to a different origin where they'd appear logged out.
+        emailRedirectTo: `${window.location.origin}/`,
         data: {
           name: form.name,
           phone: form.phone.trim() || null,
