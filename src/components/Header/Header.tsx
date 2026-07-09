@@ -36,7 +36,7 @@ const PLACEHOLDER: Record<SectionId, string> = {
 }
 
 // Pages that render their own search bar — Header row 3 would be redundant there
-const PAGES_WITH_OWN_SEARCH = new Set(['/jobs', '/secondhand', '/realestate'])
+const PAGES_WITH_OWN_SEARCH = new Set(['/jobs', '/secondhand', '/realestate', '/search'])
 
 function getActiveSection(pathname: string): SectionId | null {
   if (pathname.startsWith('/jobs'))        return 'jobs'
