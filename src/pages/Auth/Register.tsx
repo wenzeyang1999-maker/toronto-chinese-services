@@ -87,6 +87,7 @@ export default function Register() {
   const [serverError, setServerError]           = useState<string | null>(null)
   const [emailExists, setEmailExists]           = useState(false)
   const [success, setSuccess]                   = useState(false)
+  const [autoEnter, setAutoEnter]               = useState(false)   // email confirmation OFF → signUp returns a session, log straight in
   const [resending, setResending]               = useState(false)
   const [resendMsg, setResendMsg]               = useState<string | null>(null)
 
@@ -123,7 +124,7 @@ export default function Register() {
 
     // Create auth user — the DB trigger handle_new_user() will automatically
     // insert into public.users using SECURITY DEFINER (bypasses RLS).
-    const { error: authError } = await supabase.auth.signUp({
+    const { data, error: authError } = await supabase.auth.signUp({
       email: form.email,
       password: form.password,
       options: {
@@ -152,7 +153,17 @@ export default function Register() {
 
     setLoading(false)
     setSuccess(true)
+    // With email confirmation OFF, signUp already returns a session → the user is
+    // logged in. Show a brief success screen, then drop them on the homepage.
+    if (data.session) setAutoEnter(true)
   }
+
+  // Auto-enter the homepage a beat after a session-backed signup.
+  useEffect(() => {
+    if (!autoEnter) return
+    const t = setTimeout(() => navigate('/', { replace: true }), 2500)
+    return () => clearTimeout(t)
+  }, [autoEnter, navigate])
 
   // ── Success screen ────────────────────────────────────────────────────────
   if (success) {
@@ -169,31 +180,53 @@ export default function Register() {
             </svg>
           </div>
           <h2 className="text-xl font-bold text-gray-900 mb-2">注册成功！</h2>
-          <p className="text-sm text-gray-500 mb-2">
-            我们已发送一封验证邮件到 <span className="font-medium text-gray-700">{form.email}</span>，
-            请查收并点击链接激活账号。
-          </p>
-          <p className="text-xs text-gray-400 mb-4">
-            若未收到邮件，请检查垃圾邮件文件夹，或点击下方重新发送。
-          </p>
-          {resendMsg && (
-            <p className={`text-xs mb-3 ${resendMsg.includes('✓') ? 'text-green-600' : 'text-red-500'}`}>
-              {resendMsg}
-            </p>
+
+          {autoEnter ? (
+            // Email confirmation OFF — already logged in, heading to the homepage.
+            <>
+              <p className="text-sm text-gray-500 mb-1">
+                欢迎加入华邻 👋 正在带你进入首页…
+              </p>
+              <p className="text-xs text-gray-400 mb-5">
+                你的账号已可使用。
+              </p>
+              <button
+                onClick={() => navigate('/', { replace: true })}
+                className="w-full bg-primary-600 text-white py-3 rounded-2xl font-medium text-sm hover:bg-primary-700 transition-colors"
+              >
+                立即进入
+              </button>
+            </>
+          ) : (
+            // Email confirmation ON — must verify before logging in.
+            <>
+              <p className="text-sm text-gray-500 mb-2">
+                我们已发送一封验证邮件到 <span className="font-medium text-gray-700">{form.email}</span>，
+                请查收并点击链接激活账号。
+              </p>
+              <p className="text-xs text-gray-400 mb-4">
+                若未收到邮件，请检查垃圾邮件文件夹，或点击下方重新发送。
+              </p>
+              {resendMsg && (
+                <p className={`text-xs mb-3 ${resendMsg.includes('✓') ? 'text-green-600' : 'text-red-500'}`}>
+                  {resendMsg}
+                </p>
+              )}
+              <button
+                onClick={resendVerification}
+                disabled={resending}
+                className="w-full border border-gray-200 text-gray-600 py-3 rounded-2xl font-medium text-sm hover:bg-gray-50 disabled:opacity-60 transition-colors mb-2"
+              >
+                {resending ? '发送中…' : '重新发送验证邮件'}
+              </button>
+              <button
+                onClick={() => navigate('/')}
+                className="w-full bg-primary-600 text-white py-3 rounded-2xl font-medium text-sm hover:bg-primary-700 transition-colors"
+              >
+                返回首页
+              </button>
+            </>
           )}
-          <button
-            onClick={resendVerification}
-            disabled={resending}
-            className="w-full border border-gray-200 text-gray-600 py-3 rounded-2xl font-medium text-sm hover:bg-gray-50 disabled:opacity-60 transition-colors mb-2"
-          >
-            {resending ? '发送中…' : '重新发送验证邮件'}
-          </button>
-          <button
-            onClick={() => navigate('/')}
-            className="w-full bg-primary-600 text-white py-3 rounded-2xl font-medium text-sm hover:bg-primary-700 transition-colors"
-          >
-            返回首页
-          </button>
         </motion.div>
       </div>
     )
