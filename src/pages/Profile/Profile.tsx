@@ -97,7 +97,13 @@ export default function Profile() {
   // (e.g. clicking the floating Messages button when already on /profile)
   useEffect(() => {
     const param = searchParams.get('section') as Section | null
-    if (!param || !VALID_SECTIONS.includes(param)) return
+    // No (or invalid) section param → reset to the default view instead of
+    // returning early, otherwise tapping 我的 while on 消息 leaves the old
+    // section stuck on screen ("进不去").
+    if (!param || !VALID_SECTIONS.includes(param)) {
+      setSection(typeof window !== 'undefined' && window.innerWidth >= 1024 ? 'homepage' : null)
+      return
+    }
     // Auto-switch mode if section belongs to the other mode
     const item = MENU.find((m) => m.key === param)
     if (item && !item.modes.includes(mode)) {
@@ -406,7 +412,9 @@ export default function Profile() {
       {/* ── Top bar ─────────────────────────────────────────────────────────── */}
       <div className="w-full bg-white border-b-2 border-gray-200 px-4 h-14 flex items-center gap-3 sticky top-0 z-20">
         <button
-          onClick={() => section ? setSection(null) : navigate(-1)}
+          // In a section → return to the profile menu by clearing the URL param
+          // (replace, so no history bounce); at the menu → leave Profile.
+          onClick={() => section ? navigate('/profile', { replace: true }) : navigate(-1)}
           className="text-gray-500 hover:text-gray-800 lg:hidden"
         >
           <ChevronLeft size={22} />

@@ -92,7 +92,10 @@ export default function BottomNav() {
           }
           label="消息"
           active={onMessages}
-          onClick={() => navigate(user ? '/profile?section=messages' : '/login')}
+          // 消息/我的 are the same route (/profile) — when already there, replace
+          // instead of push so switching between them doesn't stack history and
+          // the back button can't bounce between the two sub-views.
+          onClick={() => navigate(user ? '/profile?section=messages' : '/login', pathname === '/profile' ? { replace: true } : undefined)}
         />
 
         <NavTab
@@ -109,7 +112,7 @@ export default function BottomNav() {
           }
           label="我的"
           active={onProfile}
-          onClick={() => navigate(user ? '/profile' : '/login')}
+          onClick={() => navigate(user ? '/profile' : '/login', pathname === '/profile' ? { replace: true } : undefined)}
         />
       </div>
       <PublishSheet open={publishOpen} onClose={() => setPublishOpen(false)} />
