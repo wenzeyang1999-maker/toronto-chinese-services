@@ -86,6 +86,7 @@ export default function Profile() {
   )
   const [verify, setVerify] = useState({ email: false, phone: false, idOrBiz: false })
   const [creditPenalty, setCreditPenalty] = useState(0)
+  const [isAdmin, setIsAdmin] = useState(false)
   const [mode, setMode] = useState<'client' | 'provider'>(() => {
     const saved = localStorage.getItem('tcs_profile_mode')
     if (saved === 'provider' || saved === 'client') return saved
@@ -135,7 +136,7 @@ export default function Profile() {
     if (!user) return
     Promise.all([
       supabase.from('users')
-        .select('name, avatar_url, membership_level, membership_expires_at, is_email_verified, phone_verified, id_verified, business_verified, credit_penalty')
+        .select('name, avatar_url, membership_level, membership_expires_at, is_email_verified, phone_verified, id_verified, business_verified, credit_penalty, role')
         .eq('id', user.id).single(),
       supabase.rpc('get_my_contact').returns<{ name: string; phone: string; wechat: string }[]>().maybeSingle(),   // phone REVOKEd — read own via RPC
     ])
@@ -155,6 +156,7 @@ export default function Profile() {
           idOrBiz: (data.id_verified ?? false) || (data.business_verified ?? false),
         })
         setCreditPenalty(data.credit_penalty ?? 0)
+        setIsAdmin((data as { role?: string }).role === 'admin')
       })
     try { setBrowse(JSON.parse(localStorage.getItem('tcs_browse_history') ?? '[]')) } catch { /* */ }
 
@@ -340,6 +342,22 @@ export default function Profile() {
           )
         })}
       </div>
+
+      {/* Admin console entry — only for admins. App/PWA mode has no address bar,
+          so this is the only way in on mobile. */}
+      {isAdmin && (
+        <button
+          onClick={() => navigate('/admin')}
+          className="w-full flex items-center gap-4 px-5 py-4 bg-white rounded-3xl border border-purple-200 shadow-sm hover:bg-purple-50 active:bg-purple-100 transition-colors text-left"
+        >
+          <span className="flex-shrink-0 text-lg">🛡️</span>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold text-purple-700">管理后台</p>
+            <p className="text-xs text-gray-400 mt-0.5">用户 · 认证 · 服务 · 会员 · 日志</p>
+          </div>
+          <ChevronRight size={16} className="text-purple-300" />
+        </button>
+      )}
 
       {/* Install as App */}
       <InstallAppButton />
