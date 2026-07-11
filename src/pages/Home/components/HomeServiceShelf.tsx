@@ -29,6 +29,7 @@ interface Props {
   subtitle: string
   viewMode: 'list' | 'map'
   onViewModeChange: (next: 'list' | 'map') => void
+  onMapError?: () => void          // map failed to load → fall back WITHOUT persisting
   services: Service[]              // list view (nearby/recent subset)
   allServices: Service[]           // full pool for keyword search
   defaultMapServices: Service[]    // nearby-only default for map (no search)
@@ -40,6 +41,7 @@ export default function HomeServiceShelf({
   subtitle,
   viewMode,
   onViewModeChange,
+  onMapError,
   services,
   allServices,
   defaultMapServices,
@@ -132,7 +134,7 @@ export default function HomeServiceShelf({
           }
         </div>
       ) : (
-        <MapErrorBoundary onError={() => onViewModeChange('list')}>
+        <MapErrorBoundary onError={() => (onMapError ?? (() => onViewModeChange('list')))()}>
           <Suspense
             fallback={<div className="w-full rounded-2xl bg-gray-100 animate-pulse" style={{ height: '60vh', minHeight: 320 }} />}
           >

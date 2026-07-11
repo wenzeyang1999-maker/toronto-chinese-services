@@ -166,6 +166,10 @@ export default function Home() {
     if (next === 'map' && !userLocation) requestLocation()
   }
 
+  // Map failed to load → fall back to list for THIS view only (don't persist,
+  // so a transient map hiccup doesn't stick the user on list forever).
+  const handleMapError = () => setViewMode('list')
+
   const recent = userLocation
     ? services
         .filter((s) => s.available && s.location.lat != null && s.location.lng != null)
@@ -344,6 +348,7 @@ export default function Home() {
               }
               viewMode={viewMode}
               onViewModeChange={handleViewMode}
+              onMapError={handleMapError}
               services={recent}
               allServices={services.filter((s) => s.available)}
               defaultMapServices={nearbyForMap}
