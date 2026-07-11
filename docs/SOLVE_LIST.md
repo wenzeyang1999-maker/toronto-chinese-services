@@ -27,7 +27,7 @@
 |---|---|---|---|
 | [x] 三列表加 `.range` 分页(secondhand/properties/jobs) | ⭐⭐⭐⭐ | S~M | ✅ 40/页 + 加载更多(`bac45f3`)|
 | [x] **Category 页"全局 40 条过滤"正确性 bug** | ⭐⭐⭐⭐ | S | ✅ 按 category_id 查库分页(`5b62b53`)|
-| [x] 列表卡接 `imgTransform`(缩略图,别直出原图) | ⭐⭐⭐⭐ | S | ✅ thumb(400)(`c8c4828`)⚠️需 Supabase Pro 图片转换 |
+| [~] 列表卡接 `imgTransform`(缩略图,别直出原图) | ⭐⭐⭐⭐ | S | ⛔ **已回退**(`d9b2790`):Supabase 图片转换是 Pro 功能,当前套餐图全裂。替代方案见下方 ↓ |
 | [x] ServiceDetail 接 `ImageLightbox` | ⭐⭐⭐ | S | ✅ 点图放大(`b4a80a5`)|
 | [x] 微信复制抽成 `useCopy` hook | ⭐⭐ | S | ✅ 6 处收敛(`34f7574`);URL 分享几处可后续也接 |
 | [ ] 采用语义 token(success/danger/warning) | ⭐⭐ | M | ⚠️ 460+ 处、需逐处判断"这抹绿是语义还是装饰",**不宜盲扫**;建议新代码用 + 顺手改 |
@@ -35,6 +35,11 @@
 | [ ] RecommendedServices「猜你想找」提到首页显眼处 | ⭐⭐⭐ | S | 评分模型已埋在最底,挪上来即得运营层 |
 
 **建议:P1 一整档先清,大概 2~4 天,分数和体感都明显。**
+
+> **首屏提速的替代方案**(imgTransform 因 Pro 门槛回退后):
+> 1. **上传时压缩 + 生成缩略图**(客户端 canvas 压到 ~800px 再传;部分上传已用 `compressed`)——零成本、最推荐。
+> 2. 升级 Supabase **Pro** 启用图片转换,再把 imgTransform 接回。
+> 3. 套一层免费图片 CDN(如 Cloudflare Images / imgix 免费额度)做转换。
 
 ---
 
