@@ -9,7 +9,6 @@ import {
   BedDouble, Bath, Car, PawPrint, Zap, MapPin, Ruler, List, Map as MapIcon,
 } from 'lucide-react'
 import ImgFallback from '../../components/ImgFallback/ImgFallback'
-import { thumb } from '../../lib/imgTransform'
 import ListPageShell from '../../components/ListPageShell/ListPageShell'
 import ErrorState from '../../components/ErrorState/ErrorState'
 import { useDelayedLoading } from '../../hooks/useDelayedLoading'
@@ -254,7 +253,7 @@ export default function RealEstateList() {
           <div className="w-full aspect-[16/9] bg-gray-100 overflow-hidden relative">
             {p.images.length > 0 ? (
               <ImgFallback
-                src={thumb(p.images[0])}
+                src={p.images[0]}
                 alt={p.title}
                 loading="lazy"
                 className="w-full h-full object-cover"

@@ -6,7 +6,6 @@ import MembershipBadge from '../MembershipBadge/MembershipBadge'
 import type { Service } from '../../types'
 import { getCategoryById } from '../../data/categories'
 import { useReadStore } from '../../store/readStore'
-import { thumb } from '../../lib/imgTransform'
 
 interface Props {
   service: Service
@@ -98,7 +97,7 @@ export default function ServiceCard({ service, layout = 'list' }: Props) {
         <div className="relative aspect-[4/3] bg-gray-100">
           {showImage ? (
             <img
-              src={thumb(service.images![0])}
+              src={service.images![0]}
               alt={service.title}
               loading="lazy"
               className="w-full h-full object-cover"
