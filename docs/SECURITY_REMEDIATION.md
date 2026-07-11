@@ -81,6 +81,29 @@
 | `community_posts.like_count` 作者可直接改;且维护触发器**非** DEFINER → 非作者点赞被 RLS 挡,计数不加(潜在功能 bug) | 触发器改 SECURITY DEFINER(修 bug + 成为唯一写者)+ 作者 UPDATE 策略锁 `like_count` 列 |
 | `views` INSERT `WITH CHECK(true)` | 加约束 `viewer_id IS NULL OR = auth.uid()`(禁止冒充他人 viewer);**计数灌水为花瓶指标(前端 localStorage 去重),记为已知接受** |
 
+## 4d. 事后修复:contact RPC 类型 bug(migration 20260711120001)
+
+**症状**:email 收口后,服务详情/商家主页的联系方式区(电话/微信/邮箱)、后台
+5 个 tab 的 email 列**一直显示为空**——不是权限问题,是 RPC 直接抛错。
+
+**根因**:`get_contact` / `admin_get_user_emails` 是 **plpgsql** 函数,声明
+`RETURNS TABLE(... text ...)`,但 `users.phone` 是 `varchar(30)`、`email` 是
+varchar。plpgsql 的 `RETURN QUERY` **严格校验行类型** → 抛
+`42804: structure of query does not match function result type` → 整个 RPC
+报错 → 前端拿到 null → 联系方式/邮箱全空。
+
+**修复**:`RETURN QUERY SELECT u.phone::text, u.wechat::text, u.email::text …`
+(把列强制转成声明的类型)。
+
+**排查结论**:全量核过所有 plpgsql `RETURN QUERY` 函数,只有这 2 个中招,已修;
+`admin_search_user_ids` 返回 uuid(匹配),`LANGUAGE sql` 的函数(get_my_contact
+等)会隐式转 varchar→text 不报错。无遗漏。
+
+**教训**(纳入规矩):
+1. 建 RPC 必测**"成功返回真数据"**那条路径,不能只测权限拒绝——这次就是漏了。
+2. `RETURN QUERY` 里列一律 `::` 转成声明类型,别赌 varchar/text 自动匹配。
+3. 上线前对所有对外 RPC 跑一次 smoke(合法参数调一下看返不返回)。
+
 ## 5. 已核对、判定安全(未改)
 
 - `inquiries` 未加入 realtime publication(不会经 Realtime 泄露)
