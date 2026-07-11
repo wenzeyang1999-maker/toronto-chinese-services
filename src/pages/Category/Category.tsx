@@ -1,12 +1,13 @@
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { ArrowLeft, SlidersHorizontal, List, Map, Sparkles } from 'lucide-react'
 import { motion } from 'framer-motion'
-import { useEffect, useState, lazy, Suspense } from 'react'
+import { useEffect, useState, useCallback, useMemo, lazy, Suspense } from 'react'
 import ServiceCard from '../../components/ServiceCard/ServiceCard'
 import InquiryModal from '../../components/InquiryModal/InquiryModal'
 import { useAppStore } from '../../store/appStore'
 import { getCategoryById } from '../../data/categories'
-import type { ServiceCategory } from '../../types'
+import { calcDistance } from '../../lib/geo'
+import type { Service, ServiceCategory } from '../../types'
 import Header from '../../components/Header/Header'
 import ErrorState from '../../components/ErrorState/ErrorState'
 import { useGeolocation } from '../../hooks/useGeolocation'
@@ -21,10 +22,8 @@ export default function Category() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
-  const getServicesByCategory = useAppStore((s) => s.getServicesByCategory)
+  const fetchServicesByCategory = useAppStore((s) => s.fetchServicesByCategory)
   const userLocation = useAppStore((s) => s.userLocation)
-  const servicesError = useAppStore((s) => s.servicesError)
-  const fetchServices = useAppStore((s) => s.fetchServices)
   const [sortBy, setSortBy] = useState<'distance' | 'rating' | 'price'>(
     () => (searchParams.get('sort') as 'distance' | 'rating' | 'price') || 'rating'
   )
@@ -32,18 +31,50 @@ export default function Category() {
     () => searchParams.get('view') === 'map' ? 'map' : 'list'
   )
   const [inquiryOpen, setInquiryOpen] = useState(false)
-  const [page, setPage] = useState(1)
 
-  // Reset pagination on sort change
-  useEffect(() => { setPage(1) }, [sortBy])
+  // Fetch this category directly from the DB with real pagination (fixes the old
+  // bug where Category filtered only the globally-loaded newest 40 services).
+  const [rawServices, setRawServices] = useState<Service[]>([])
+  const [hasMore, setHasMore]         = useState(false)
+  const [loading, setLoading]         = useState(true)
+  const [loadingMore, setLoadingMore] = useState(false)
+  const [loadError, setLoadError]     = useState(false)
 
   const category = getCategoryById(id as ServiceCategory)
-  const services = getServicesByCategory(id as ServiceCategory)
+
+  const loadPage = useCallback(async (append: boolean) => {
+    if (!id) return
+    if (append) setLoadingMore(true)
+    else { setLoading(true); setLoadError(false) }
+    const offset = append ? rawServices.length : 0
+    const { items, hasMore: more, ok } = await fetchServicesByCategory(id as ServiceCategory, offset)
+    if (!ok && !append) { setLoadError(true); setLoading(false); return }
+    setRawServices((prev) => (append ? [...prev, ...items] : items))
+    setHasMore(more)
+    setLoading(false); setLoadingMore(false)
+  }, [id, rawServices.length, fetchServicesByCategory])
+
+  // (Re)load page 0 whenever the category changes
+  useEffect(() => {
+    setRawServices([]); setHasMore(false)
+    void loadPage(false)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id])
+
+  // Attach distance client-side to the loaded set (for sort + map)
+  const withDistance = useMemo(
+    () => rawServices.map((s) =>
+      userLocation && s.location.lat != null && s.location.lng != null
+        ? { ...s, distance: calcDistance(userLocation.lat, userLocation.lng, s.location.lat, s.location.lng) }
+        : { ...s, distance: undefined }
+    ),
+    [rawServices, userLocation]
+  )
 
   // Without a user location, "距离" can't sort meaningfully (every distance is
   // undefined), so fall back to rating until location arrives, then it re-sorts.
   const effectiveSort = sortBy === 'distance' && !userLocation ? 'rating' : sortBy
-  const sorted = [...services].sort((a, b) => {
+  const sorted = [...withDistance].sort((a, b) => {
     if (effectiveSort === 'rating') return b.provider.rating - a.provider.rating
     if (effectiveSort === 'price') return parseFloat(a.price) - parseFloat(b.price)
     return (a.distance ?? 99) - (b.distance ?? 99)
@@ -172,8 +203,10 @@ export default function Category() {
         )}
 
         {/* List view */}
-        {viewMode === 'list' && (servicesError && sorted.length === 0 ? (
-          <ErrorState onRetry={() => fetchServices()} />
+        {viewMode === 'list' && (loadError && sorted.length === 0 ? (
+          <ErrorState onRetry={() => loadPage(false)} />
+        ) : loading && sorted.length === 0 ? (
+          <div className="text-center py-16 text-sm text-gray-400">加载中…</div>
         ) : sorted.length === 0 ? (
           <div className="text-center py-16 text-gray-400">
             <img loading="lazy" src={category.image} alt={category.label} className="w-12 h-12 mx-auto mb-3 object-contain opacity-40"
@@ -194,7 +227,7 @@ export default function Category() {
               variants={{ show: { transition: { staggerChildren: 0.04 } } }}
               className="flex flex-col gap-2 mb-3"
             >
-              {sorted.slice(0, page * PAGE_SIZE).map((svc) => (
+              {sorted.map((svc) => (
                 <motion.div
                   key={svc.id}
                   variants={{ hidden: { opacity: 0, y: 10 }, show: { opacity: 1, y: 0 } }}
@@ -203,16 +236,17 @@ export default function Category() {
                 </motion.div>
               ))}
             </motion.div>
-            {sorted.length > page * PAGE_SIZE && (
+            {hasMore && (
               <button
-                onClick={() => setPage((p) => p + 1)}
+                onClick={() => loadPage(true)}
+                disabled={loadingMore}
                 className="w-full mb-6 py-3 rounded-2xl border border-gray-200 bg-white text-sm text-gray-600
-                           font-medium hover:bg-gray-50 transition-colors"
+                           font-medium hover:bg-gray-50 transition-colors disabled:opacity-60"
               >
-                加载更多（还有 {sorted.length - page * PAGE_SIZE} 条）
+                {loadingMore ? '加载中…' : '加载更多'}
               </button>
             )}
-            {sorted.length <= page * PAGE_SIZE && sorted.length > PAGE_SIZE && (
+            {!hasMore && sorted.length > PAGE_SIZE && (
               <p className="text-center text-xs text-gray-400 py-3 mb-3">已显示全部 {sorted.length} 条结果</p>
             )}
           </>

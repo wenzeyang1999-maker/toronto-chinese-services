@@ -76,6 +76,7 @@ interface AppState {
   addService: (service: Service) => void
   fetchServices: (append?: boolean) => Promise<void>
   fetchServicesByKeyword: (keyword: string) => Promise<Service[]>
+  fetchServicesByCategory: (category: ServiceCategory, offset?: number) => Promise<{ items: Service[]; hasMore: boolean; ok: boolean }>
   getFilteredServices: () => Service[]
   getServicesByCategory: (category: ServiceCategory) => Service[]
   fetchServiceRequests: () => Promise<void>
@@ -267,6 +268,21 @@ export const useAppStore = create<AppState>((set, get) => ({
       .limit(50)
     if (error || !data) return []
     return (data as ServiceRow[]).map(mapRow)
+  },
+
+  // Query one category directly from the DB with real pagination — the Category
+  // page must NOT filter the globally-loaded `services` (only the newest 40 are
+  // in memory, so older services in a category would never appear).
+  fetchServicesByCategory: async (category, offset = 0) => {
+    const { data, error } = await supabase
+      .from('services')
+      .select('*, provider:users(id, name, avatar_url, last_seen_at, created_at, phone_verified, business_verified, membership_level), reviews(rating)')
+      .eq('is_available', true)
+      .eq('category_id', category)
+      .order('created_at', { ascending: false })
+      .range(offset, offset + SERVICES_PAGE_SIZE - 1)
+    if (error || !data) return { items: [], hasMore: false, ok: false }
+    return { items: (data as ServiceRow[]).map(mapRow), hasMore: data.length === SERVICES_PAGE_SIZE, ok: true }
   },
 
   // Returns services filtered by keyword, category, rating and sorted accordingly.
