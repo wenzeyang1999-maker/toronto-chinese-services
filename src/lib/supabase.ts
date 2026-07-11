@@ -12,4 +12,13 @@ if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
   )
 }
 
-export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+  auth: {
+    // Stay logged in long-term: persist the session in localStorage (survives app
+    // restarts / PWA reopen) and silently refresh the access token before it
+    // expires, so users don't have to re-login unless they sign out or clear data.
+    persistSession: true,
+    autoRefreshToken: true,
+    detectSessionInUrl: true,
+  },
+})
