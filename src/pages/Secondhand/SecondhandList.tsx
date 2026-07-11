@@ -13,6 +13,7 @@ import ErrorState from '../../components/ErrorState/ErrorState'
 import { useDelayedLoading } from '../../hooks/useDelayedLoading'
 import SortChips from '../../components/SortChips/SortChips'
 import ImgFallback from '../../components/ImgFallback/ImgFallback'
+import { thumb } from '../../lib/imgTransform'
 import { useSecondhandStore } from '../../store/secondhandStore'
 import { useAuthStore } from '../../store/authStore'
 import { useReadStore } from '../../store/readStore'
@@ -223,7 +224,7 @@ export default function SecondhandList() {
             )}
             {item.images.length > 0 ? (
               <ImgFallback
-                src={item.images[0]}
+                src={thumb(item.images[0])}
                 alt={item.title}
                 loading="lazy"
                 className="w-full h-full object-cover"
