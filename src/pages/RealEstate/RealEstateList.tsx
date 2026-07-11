@@ -22,7 +22,7 @@ import {
   LISTING_TYPE_CONFIG, PROPERTY_TYPE_CONFIG, getPriceLabel, getBedroomLabel,
   type Property, type RealEstateListingType, type PropertyType,
 } from './types'
-import { toast } from '../../lib/toast'
+import { useCopy } from '../../hooks/useCopy'
 import { useUrlFilters } from '../../lib/useUrlFilters'
 
 const GTA_AREAS = [
@@ -338,21 +338,12 @@ function DetailPanel({ prop, onClose }: { prop: Property; onClose: () => void })
   const navigate = useNavigate()
   const user     = useAuthStore((s) => s.user)
   const [imgIdx, setImgIdx] = useState(0)
-  const [copied, setCopied] = useState(false)
+  const { copied, copy } = useCopy()
   const [failedImgs, setFailedImgs] = useState<Set<number>>(new Set())
 
   useEffect(() => { setImgIdx(0); setFailedImgs(new Set()) }, [prop.id])
 
-  async function copyWechat() {
-    if (!prop.contact_wechat) return
-    try {
-      await navigator.clipboard.writeText(prop.contact_wechat)
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
-    } catch {
-      toast(`微信号：${prop.contact_wechat}（请手动复制）`)
-    }
-  }
+  const copyWechat = () => copy(prop.contact_wechat, { fallback: `微信号：${prop.contact_wechat}（请手动复制）` })
 
   return (
     <div className="bg-white rounded-2xl border border-gray-100 shadow-sm mb-4">

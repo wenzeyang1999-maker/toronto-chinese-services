@@ -12,7 +12,7 @@ import SaveButton from '../../components/SaveButton/SaveButton'
 import ShareButton from '../../components/ShareButton/ShareButton'
 import PageMeta from '../../components/PageMeta/PageMeta'
 import ViewCount from '../../components/ViewCount/ViewCount'
-import { toast } from '../../lib/toast'
+import { useCopy } from '../../hooks/useCopy'
 
 export default function RealEstateDetail() {
   const { id }   = useParams<{ id: string }>()
@@ -26,7 +26,7 @@ export default function RealEstateDetail() {
   const [loading, setLoading] = useState(true)
   const [imgIdx,  setImgIdx]  = useState(0)
   useEffect(() => { setImgIdx(0) }, [id])
-  const [copied,  setCopied]  = useState(false)
+  const { copied, copy } = useCopy()
   const [failedImgs, setFailedImgs] = useState<Set<number>>(new Set())
 
   useEffect(() => {
@@ -48,16 +48,7 @@ export default function RealEstateDetail() {
       })
   }, [id])
 
-  async function copyWechat() {
-    if (!prop?.contact_wechat) return
-    try {
-      await navigator.clipboard.writeText(prop.contact_wechat)
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
-    } catch {
-      toast(`微信号：${prop.contact_wechat}（请手动复制）`)
-    }
-  }
+  const copyWechat = () => copy(prop?.contact_wechat, { fallback: `微信号：${prop?.contact_wechat}（请手动复制）` })
 
   return (
     <div className="min-h-screen bg-gray-50">

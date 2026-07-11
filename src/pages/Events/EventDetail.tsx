@@ -18,7 +18,7 @@ import PageMeta from '../../components/PageMeta/PageMeta'
 import ImageLightbox from '../../components/ImageLightbox/ImageLightbox'
 import { downloadIcs, mapNavUrl } from '../../lib/eventActions'
 import ViewCount from '../../components/ViewCount/ViewCount'
-import { toast } from '../../lib/toast'
+import { useCopy } from '../../hooks/useCopy'
 
 export default function EventDetail() {
   const { id }   = useParams<{ id: string }>()
@@ -33,7 +33,7 @@ export default function EventDetail() {
   const [imgIdx,  setImgIdx]  = useState(0)
   const [lightboxOpen, setLightboxOpen] = useState(false)
   useEffect(() => { setImgIdx(0) }, [id])
-  const [copied,  setCopied]  = useState(false)
+  const { copied, copy } = useCopy()
   const [failedImgs, setFailedImgs] = useState<Set<number>>(new Set())
 
   useEffect(() => {
@@ -55,16 +55,7 @@ export default function EventDetail() {
       })
   }, [id])
 
-  async function copyWechat() {
-    if (!ev?.contact_wechat) return
-    try {
-      await navigator.clipboard.writeText(ev.contact_wechat)
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
-    } catch {
-      toast(`微信号：${ev.contact_wechat}（请手动复制）`)
-    }
-  }
+  const copyWechat = () => copy(ev?.contact_wechat, { fallback: `微信号：${ev?.contact_wechat}（请手动复制）` })
 
   const cfg = ev ? EVENT_TYPE_CONFIG[ev.event_type] : null
 

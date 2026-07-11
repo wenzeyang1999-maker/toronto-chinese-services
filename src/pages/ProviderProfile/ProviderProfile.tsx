@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { ArrowLeft } from 'lucide-react'
-import { toast } from '../../lib/toast'
+import { useCopy } from '../../hooks/useCopy'
 import { supabase } from '../../lib/supabase'
 import { useAuthStore } from '../../store/authStore'
 import type { MemberLevel } from '../../components/MembershipBadge/MembershipBadge'
@@ -23,6 +23,7 @@ import EventsSection from './components/EventsSection'
 import ReviewsSection from './components/ReviewsSection'
 
 export default function ProviderProfile() {
+  const { copy } = useCopy()
   const { id }   = useParams<{ id: string }>()
   const navigate = useNavigate()
   const user     = useAuthStore((s) => s.user)
@@ -164,15 +165,10 @@ export default function ProviderProfile() {
     if (!error && data) navigate(`/conversation/${data.id}`)
   }
 
-  async function copyWechat() {
-    if (!provider?.wechat) return
-    try {
-      await navigator.clipboard.writeText(provider.wechat)
-      toast('微信号已复制 ✓', 'success')
-    } catch {
-      toast(`微信号：${provider.wechat}（请手动复制）`)
-    }
-  }
+  const copyWechat = () => copy(provider?.wechat, {
+    toastMsg: '微信号已复制 ✓',
+    fallback: `微信号：${provider?.wechat}（请手动复制）`,
+  })
 
   if (loading) {
     return (

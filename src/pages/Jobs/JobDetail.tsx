@@ -18,7 +18,7 @@ import ShareButton from '../../components/ShareButton/ShareButton'
 import ImgFallback from '../../components/ImgFallback/ImgFallback'
 import PageMeta from '../../components/PageMeta/PageMeta'
 import ViewCount from '../../components/ViewCount/ViewCount'
-import { toast } from '../../lib/toast'
+import { useCopy } from '../../hooks/useCopy'
 
 export default function JobDetail() {
   const { id }   = useParams<{ id: string }>()
@@ -28,7 +28,7 @@ export default function JobDetail() {
 
   const [job,     setJob]     = useState<Job | null>(null)
   const [loading, setLoading] = useState(true)
-  const [copied,  setCopied]  = useState(false)
+  const { copied, copy } = useCopy()
 
   useEffect(() => { if (id) markRead('job', id) }, [id])
 
@@ -50,16 +50,7 @@ export default function JobDetail() {
       })
   }, [id])
 
-  async function copyWechat() {
-    if (!job?.contact_wechat) return
-    try {
-      await navigator.clipboard.writeText(job.contact_wechat)
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
-    } catch {
-      toast(`微信号：${job.contact_wechat}（请手动复制）`)
-    }
-  }
+  const copyWechat = () => copy(job?.contact_wechat, { fallback: `微信号：${job?.contact_wechat}（请手动复制）` })
 
   const salaryLabel = !job ? '' :
     job.salary_type === 'negotiable'

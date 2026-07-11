@@ -21,6 +21,7 @@ import { SOCIAL_PLATFORMS } from '../../lib/socialPlatforms'
 import ContactActions from './components/ContactActions'
 import ImgFallback from '../../components/ImgFallback/ImgFallback'
 import ImageLightbox from '../../components/ImageLightbox/ImageLightbox'
+import { useCopy } from '../../hooks/useCopy'
 import GoogleMapCanvas, { type GoogleMapPoint } from '../../components/ServiceMap/GoogleMapCanvas'
 import { ServiceDetailSkeleton } from '../../components/Skeleton/Skeleton'
 import { CONTENT_REPORT_REASONS as REPORT_REASONS } from '../../constants/reportReasons'
@@ -35,6 +36,7 @@ function recordBrowse(entry: BrowseEntry) {
 }
 
 export default function ServiceDetail() {
+  const { copy } = useCopy()
   const { id } = useParams<{ id: string }>()
   const user     = useAuthStore((s) => s.user)
   const navigate = useNavigate()
@@ -235,15 +237,10 @@ export default function ServiceDetail() {
     window.location.href = `tel:${effectivePhone}`
   }
 
-  const handleWechat = async () => {
-    if (!effectiveWechat) return
-    try {
-      await navigator.clipboard.writeText(effectiveWechat)
-      toast('微信号已复制 ✓', 'success')
-    } catch {
-      toast(`微信号：${effectiveWechat}（请手动复制）`)
-    }
-  }
+  const handleWechat = () => copy(effectiveWechat, {
+    toastMsg: '微信号已复制 ✓',
+    fallback: `微信号：${effectiveWechat}（请手动复制）`,
+  })
 
   const handleMessage = async () => {
     if (!user) { navigate('/login'); return }
