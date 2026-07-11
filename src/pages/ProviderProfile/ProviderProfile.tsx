@@ -46,7 +46,7 @@ export default function ProviderProfile() {
     async function load() {
       // Contact (phone/wechat) is fetched via the authorized get_contact RPC —
       // the base columns are REVOKEd from clients (see contact_rpcs migration).
-      const extSelect = 'is_online, business_type, skill_tags, qualification_note, qualification_images, credit_penalty'
+      const extSelect = 'is_online, business_type, skill_tags, qualification_note, qualification_images'
       const [
         { data: profile, error: profileError },
         { data: svcsData },
@@ -59,7 +59,7 @@ export default function ProviderProfile() {
         { data: contact },
       ] = await Promise.all([
         supabase.from('public_profiles')
-          .select('id, name, avatar_url, bio, created_at, is_email_verified, last_seen_at, phone_verified, social_links, membership_level, business_verified, avg_reply_hours')
+          .select('id, name, avatar_url, bio, created_at, is_email_verified, last_seen_at, phone_verified, social_links, membership_level, business_verified, avg_reply_hours, credit_penalty')
           .eq('id', id).single(),
         supabase.from('services')
           .select('id, title, description, category_id, price, price_type, area, images, reviews:reviews(id, rating, comment, created_at, reply:review_replies(content), reviewer:reviewer_id(id, name, avatar_url))')
@@ -104,7 +104,7 @@ export default function ProviderProfile() {
         skill_tags: (extRow?.skill_tags as string[]) ?? [],
         qualification_note: (extRow?.qualification_note as string) ?? '',
         qualification_images: (extRow?.qualification_images as string[]) ?? [],
-        credit_penalty: (extRow?.credit_penalty as number) ?? 0,
+        credit_penalty: (profile.credit_penalty as number) ?? 0,
       })
 
       if (svcsData) {

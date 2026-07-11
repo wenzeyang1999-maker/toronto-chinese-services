@@ -136,11 +136,12 @@ export default function Profile() {
     if (!user) return
     Promise.all([
       supabase.from('users')
-        .select('name, avatar_url, membership_level, membership_expires_at, is_email_verified, phone_verified, id_verified, business_verified, credit_penalty, role')
+        .select('name, avatar_url, membership_level, membership_expires_at, is_email_verified, phone_verified, id_verified, business_verified, role')
         .eq('id', user.id).single(),
       supabase.rpc('get_my_contact').returns<{ name: string; phone: string; wechat: string }[]>().maybeSingle(),   // phone REVOKEd — read own via RPC
+      supabase.from('public_profiles').select('credit_penalty').eq('id', user.id).single(),   // credit_penalty REVOKEd from base — read via view
     ])
-      .then(([{ data }, { data: contact }]) => {
+      .then(([{ data }, { data: contact }, { data: pub }]) => {
         if (!data) return
         const c = contact as { phone?: string } | null
         setName(data.name ?? user.user_metadata?.name ?? '用户')
@@ -155,7 +156,7 @@ export default function Profile() {
           phone:   data.phone_verified ?? false,
           idOrBiz: (data.id_verified ?? false) || (data.business_verified ?? false),
         })
-        setCreditPenalty(data.credit_penalty ?? 0)
+        setCreditPenalty((pub as { credit_penalty?: number } | null)?.credit_penalty ?? 0)
         setIsAdmin((data as { role?: string }).role === 'admin')
       })
     try { setBrowse(JSON.parse(localStorage.getItem('tcs_browse_history') ?? '[]')) } catch { /* */ }
