@@ -27,11 +27,11 @@
 |---|---|---|---|
 | [x] 三列表加 `.range` 分页(secondhand/properties/jobs) | ⭐⭐⭐⭐ | S~M | ✅ 40/页 + 加载更多(`bac45f3`)|
 | [x] **Category 页"全局 40 条过滤"正确性 bug** | ⭐⭐⭐⭐ | S | ✅ 按 category_id 查库分页(`5b62b53`)|
-| [ ] 列表卡接 `imgTransform`(缩略图,别直出原图) | ⭐⭐⭐⭐ | S | 首屏大提速,已写好 0 调用 |
-| [ ] ServiceDetail 接 `ImageLightbox` | ⭐⭐⭐ | S | Events/Community 已有范例,照搬 |
-| [ ] 微信复制抽成 `useCopy` hook(20 处→1) | ⭐⭐ | S | DRY,顺手 |
-| [ ] 采用语义 token(success/danger/warning) | ⭐⭐ | M | 已在 config,0 采用;裸色 460+ 处漂移,分批换 |
-| [ ] `.btn-primary` / `<Chip>` / `<EmptyState>` 原语化 | ⭐⭐ | M | 内联主按钮 163 处收敛,视觉一致 |
+| [x] 列表卡接 `imgTransform`(缩略图,别直出原图) | ⭐⭐⭐⭐ | S | ✅ thumb(400)(`c8c4828`)⚠️需 Supabase Pro 图片转换 |
+| [x] ServiceDetail 接 `ImageLightbox` | ⭐⭐⭐ | S | ✅ 点图放大(`b4a80a5`)|
+| [x] 微信复制抽成 `useCopy` hook | ⭐⭐ | S | ✅ 6 处收敛(`34f7574`);URL 分享几处可后续也接 |
+| [ ] 采用语义 token(success/danger/warning) | ⭐⭐ | M | ⚠️ 460+ 处、需逐处判断"这抹绿是语义还是装饰",**不宜盲扫**;建议新代码用 + 顺手改 |
+| [ ] `.btn-primary` / `<Chip>` / `<EmptyState>` 原语化 | ⭐⭐ | M | ⚠️ 163 处内联按钮样式各异,**不能 find-replace**;建议触碰文件时顺手收敛 |
 | [ ] RecommendedServices「猜你想找」提到首页显眼处 | ⭐⭐⭐ | S | 评分模型已埋在最底,挪上来即得运营层 |
 
 **建议:P1 一整档先清,大概 2~4 天,分数和体感都明显。**
