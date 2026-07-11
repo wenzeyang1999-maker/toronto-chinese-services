@@ -6,6 +6,7 @@ import InquiryModal from '../../components/InquiryModal/InquiryModal'
 import { useAppStore } from '../../store/appStore'
 import { useGeolocation } from '../../hooks/useGeolocation'
 import RecommendedServices from '../../components/RecommendedServices/RecommendedServices'
+import HomeCommunityEntry from './components/HomeCommunityEntry'
 import ServiceRequestCard from '../../components/ServiceRequestCard/ServiceRequestCard'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuthStore } from '../../store/authStore'
@@ -287,6 +288,9 @@ export default function Home() {
             <ArrowRight size={16} />
           </button>
         </section>
+
+        {/* ── Community entry — surfaces 社区圈子 directly (skips the /plaza hub) ─ */}
+        <HomeCommunityEntry />
 
         {/* ── Feed mode toggle — headline dual-marketplace switcher ──────────── */}
         <div className="mb-4">
