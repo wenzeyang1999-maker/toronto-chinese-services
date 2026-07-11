@@ -7,6 +7,7 @@ import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { CheckCircle, Star, ExternalLink, Zap, Clock, Users, Phone, MessageCircle, Copy, Check } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
+import { useAuthStore } from '../../store/authStore'
 import { notifyInquirySelected } from '../../lib/notify'
 import { toast } from '../../lib/toast'
 
@@ -32,6 +33,38 @@ const MAX_SLOTS = 5
 
 export default function InquiryResultPanel({ inquiryId, categoryId, categoryLabel, customerName, customerPhone, customerWechat, onClose }: Props) {
   const navigate = useNavigate()
+  const user = useAuthStore((s) => s.user)
+  const [chatting, setChatting] = useState(false)
+
+  // 询价 → 站内 IM: open (or reuse) a conversation with the chosen provider and
+  // seed an opening message so the funnel continues inside the app.
+  async function startInquiryChat(providerId: string) {
+    if (!user) { navigate('/login'); return }
+    if (providerId === user.id) return
+    setChatting(true)
+    const { data, error } = await supabase
+      .from('conversations')
+      .upsert({ client_id: user.id, provider_id: providerId, service_id: null },
+               { onConflict: 'client_id,provider_id,service_id', ignoreDuplicates: false })
+      .select('id')
+      .single()
+    if (error || !data) { setChatting(false); toast('发起对话失败，请稍后再试', 'error'); return }
+    // Seed an opener only on a fresh conversation (avoid duplicates on re-tap).
+    const { count } = await supabase
+      .from('messages')
+      .select('id', { count: 'exact', head: true })
+      .eq('conversation_id', data.id)
+    if (!count) {
+      const opener = `你好，我通过华邻发起了「${categoryLabel}」询价并选择了你，想进一步沟通～`
+      await supabase.from('messages').insert({ conversation_id: data.id, sender_id: user.id, content: opener })
+      await supabase.from('conversations')
+        .update({ last_message: opener, last_message_at: new Date().toISOString() })
+        .eq('id', data.id)
+      await supabase.rpc('increment_conversation_unread', { conv_id: data.id, col_name: 'provider_unread' })
+    }
+    onClose()
+    navigate(`/conversation/${data.id}`)
+  }
 
   const [acceptedIds,  setAcceptedIds]  = useState<string[]>([])
   const [raceStatus,   setRaceStatus]   = useState<string>('open')
@@ -205,13 +238,23 @@ export default function InquiryResultPanel({ inquiryId, categoryId, categoryLabe
           </div>
         </div>
 
+        {/* In-app message — recommended, keeps the conversation in the app */}
+        <button
+          onClick={() => startInquiryChat(assignedCard.id)}
+          disabled={chatting}
+          className="flex items-center justify-center gap-2 w-full bg-primary-600 hover:bg-primary-700
+                     text-white text-sm font-semibold py-3 rounded-xl transition-colors active:scale-95 disabled:opacity-60"
+        >
+          <MessageCircle size={15} /> {chatting ? '正在打开…' : '发站内消息'}
+        </button>
+
         {/* Contact info */}
         {(contactPhone || contactWechat) && (
           <div className="space-y-2">
             {contactPhone && (
               <a href={`tel:${contactPhone}`}
-                className="flex items-center justify-center gap-2 w-full bg-primary-600 hover:bg-primary-700
-                           text-white text-sm font-semibold py-3 rounded-xl transition-colors active:scale-95">
+                className="flex items-center justify-center gap-2 w-full border border-primary-200 bg-primary-50 hover:bg-primary-100
+                           text-primary-700 text-sm font-semibold py-3 rounded-xl transition-colors active:scale-95">
                 <Phone size={15} /> {contactPhone}
               </a>
             )}
