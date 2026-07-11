@@ -25,8 +25,8 @@
 
 | 项 | 价值 | 工作量 | 备注 |
 |---|---|---|---|
-| [ ] 三列表加 `.range` 分页(secondhand/properties/jobs) | ⭐⭐⭐⭐ | S~M | 修全表拉,数据量上来不劣化 |
-| [ ] **Category 页"全局 40 条过滤"正确性 bug** | ⭐⭐⭐⭐ | S | 老服务永不显示,是 bug 不是优化 |
+| [x] 三列表加 `.range` 分页(secondhand/properties/jobs) | ⭐⭐⭐⭐ | S~M | ✅ 40/页 + 加载更多(`bac45f3`)|
+| [x] **Category 页"全局 40 条过滤"正确性 bug** | ⭐⭐⭐⭐ | S | ✅ 按 category_id 查库分页(`5b62b53`)|
 | [ ] 列表卡接 `imgTransform`(缩略图,别直出原图) | ⭐⭐⭐⭐ | S | 首屏大提速,已写好 0 调用 |
 | [ ] ServiceDetail 接 `ImageLightbox` | ⭐⭐⭐ | S | Events/Community 已有范例,照搬 |
 | [ ] 微信复制抽成 `useCopy` hook(20 处→1) | ⭐⭐ | S | DRY,顺手 |
