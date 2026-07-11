@@ -1,11 +1,10 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { Sparkles } from 'lucide-react'
-import { useAppStore } from '../../store/appStore'
 import { useAuthStore } from '../../store/authStore'
 import ServiceCard from '../ServiceCard/ServiceCard'
-import type { BrowseEntry } from '../../types/browse'
+import { useRankedServices } from './useRankedServices'
 
 const PAGE = 8
 const CTA_INSERT_AT = 4  // insert CTA card after this many items
@@ -15,70 +14,12 @@ interface Props {
 }
 
 export default function RecommendedServices({ excludeIds }: Props) {
-  const services  = useAppStore((s) => s.services)
   const user      = useAuthStore((s) => s.user)
   const navigate  = useNavigate()
   const sentinelRef = useRef<HTMLDivElement>(null)
   const [displayed, setDisplayed] = useState(PAGE)
-  const excludeSet = useMemo(() => new Set(excludeIds ?? []), [excludeIds])
 
-  const sorted = useMemo(() => {
-    if (services.length === 0) return []
-
-    // Category affinity from browse history (ordered by recency)
-    const recentCats: string[] = []
-    try {
-      const entries: BrowseEntry[] = JSON.parse(localStorage.getItem('tcs_browse_history') ?? '[]')
-      const seen = new Set<string>()
-      for (const e of entries) {
-        if (e.category && !seen.has(e.category)) {
-          seen.add(e.category)
-          recentCats.push(e.category)
-        }
-      }
-    } catch { /* ignore */ }
-
-    const now = Date.now()
-
-    return [...services]
-      .filter((s) => s.available && !excludeSet.has(s.id))
-      .map(s => {
-        let score = 0
-
-        // Rating (0–100)
-        score += s.provider.rating * 20
-
-        // Trust tier bonus
-        if (s.provider.businessVerified) score += 30
-        else if (s.provider.verified)    score += 20
-        else if (s.provider.phoneVerified) score += 10
-
-        // Recency decay: fresher services score higher
-        const ageDays = (now - new Date(s.createdAt).getTime()) / 86_400_000
-        if (ageDays < 7)  score += 15
-        else if (ageDays < 30)  score += 8
-        else if (ageDays < 90) score += 3
-
-        // Category affinity (top-3 browsed categories get a boost)
-        const catIdx = recentCats.indexOf(s.category)
-        if (catIdx === 0) score += 25
-        else if (catIdx === 1) score += 15
-        else if (catIdx === 2) score += 10
-
-        // Promoted
-        if (s.isPromoted) score += 20
-
-        // Membership visibility boost (方案A 曝光优先) — a soft nudge on the same
-        // scale as trust/freshness, so paid tiers rank higher *among similar*
-        // services without overriding a clearly better-rated competitor.
-        if (s.provider.membershipLevel === 'L3') score += 30
-        else if (s.provider.membershipLevel === 'L2') score += 15
-
-        return { s, score }
-      })
-      .sort((a, b) => b.score - a.score)
-      .map(x => x.s)
-  }, [services, excludeSet])
+  const sorted = useRankedServices(excludeIds)
 
   const loadMore = useCallback(() => {
     setDisplayed((prev) => Math.min(prev + PAGE, sorted.length))

@@ -6,6 +6,8 @@ import InquiryModal from '../../components/InquiryModal/InquiryModal'
 import { useAppStore } from '../../store/appStore'
 import { useGeolocation } from '../../hooks/useGeolocation'
 import RecommendedServices from '../../components/RecommendedServices/RecommendedServices'
+import RecommendedStrip from '../../components/RecommendedServices/RecommendedStrip'
+import { useRankedServices } from '../../components/RecommendedServices/useRankedServices'
 import ServiceRequestCard from '../../components/ServiceRequestCard/ServiceRequestCard'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuthStore } from '../../store/authStore'
@@ -180,6 +182,11 @@ export default function Home() {
         .slice(0, 4)
     : services.filter((s) => s.available).slice(0, 4)
 
+  // 「猜你喜欢」top strip picks — excluded from the bottom full feed so they
+  // don't repeat. Same ranking (useRankedServices) → strip & exclusion agree.
+  const recentIds = recent.map((s) => s.id)
+  const stripPickIds = useRankedServices(recentIds).slice(0, 8).map((s) => s.id)
+
   const MAX_MAP_MARKERS = 40
   const MAP_RADIUS_KM   = 25
   const nearbyForMap = useMemo(() => {
@@ -335,6 +342,8 @@ export default function Home() {
         {/* ── Services feed ────────────────────────────────────────────────── */}
         {feedMode === 'services' && (
           <>
+            {/* 「猜你喜欢」teaser — surfaced above the main shelf; full feed stays below */}
+            <RecommendedStrip excludeIds={recentIds} limit={8} />
             <HomeServiceShelf
               title={userLocation ? '附近服务' : '本地热门'}
               subtitle={
@@ -380,7 +389,7 @@ export default function Home() {
               </div>
             )}
             <HomeFollowingFeed />
-            <RecommendedServices excludeIds={recent.map(s => s.id)} />
+            <RecommendedServices excludeIds={[...recentIds, ...stripPickIds]} />
           </>
         )}
 
