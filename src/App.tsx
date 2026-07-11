@@ -92,8 +92,9 @@ export default function App() {
     let isActive = true
     let timerDone = false
     let fetchDone = false
+    let authDone = false
     const tryFinish = () => {
-      if (isActive && timerDone && fetchDone) setLoadingDone()
+      if (isActive && timerDone && fetchDone && authDone) setLoadingDone()
     }
     const syncSessionUser = async (authUser: User | null) => {
       if (!isActive) return
@@ -105,6 +106,10 @@ export default function App() {
         setUser(null)
         return
       }
+
+      // Set the user immediately from the restored session so the UI doesn't
+      // flash a logged-out state while the role/banned check round-trips.
+      setUser(authUser)
 
       const { data: profile } = await supabase
         .from('users')
@@ -148,8 +153,12 @@ export default function App() {
 
     supabase.auth.getSession().then(({ data }) => {
       const u = data.session?.user ?? null
+      // syncSessionUser sets the user synchronously (before its first await), so
+      // by here the logged-in/out state is known → let the loading screen finish.
       void syncSessionUser(u)
-    })
+      authDone = true
+      tryFinish()
+    }).catch(() => { authDone = true; tryFinish() })
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       const u = session?.user ?? null
       void syncSessionUser(u)
