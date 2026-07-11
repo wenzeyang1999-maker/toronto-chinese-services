@@ -77,31 +77,45 @@ interface RealEstateState {
   filters: RealEstateFilters
   isReady: boolean
   loadError: boolean
+  hasMore: boolean
+  loadingMore: boolean
 
-  fetchProperties: () => Promise<void>
+  fetchProperties: (append?: boolean) => Promise<void>
   setFilters: (f: Partial<RealEstateFilters>) => void
   clearFilters: () => void
   getFilteredProperties: () => Property[]
   addProperty: (p: Property) => void
 }
 
+const PAGE_SIZE = 40
+
 export const useRealEstateStore = create<RealEstateState>((set, get) => ({
   properties: [],
   filters:    { listing_type: 'rent' },
   isReady:    false,
   loadError:  false,
+  hasMore:    false,
+  loadingMore: false,
 
-  fetchProperties: async () => {
+  fetchProperties: async (append = false) => {
+    const offset = append ? get().properties.length : 0
+    if (append) set({ loadingMore: true })
     const { data, error } = await supabase
       .from('properties')
       .select('*, poster:users(id, name, avatar_url)')
       .eq('is_active', true)
       .order('created_at', { ascending: false })
+      .range(offset, offset + PAGE_SIZE - 1)
     if (!error && data) {
-      set({ properties: (data as PropertyRow[]).map(mapRow), isReady: true, loadError: false })
+      const mapped = (data as PropertyRow[]).map(mapRow)
+      set((state) => ({
+        properties: append ? [...state.properties, ...mapped] : mapped,
+        hasMore: data.length === PAGE_SIZE,
+        isReady: true, loadError: false, loadingMore: false,
+      }))
     } else {
-      set({ isReady: true, loadError: true })
-      toast('加载失败，请检查网络后重试', 'error')
+      set({ isReady: true, loadError: true, loadingMore: false })
+      if (!append) toast('加载失败，请检查网络后重试', 'error')
     }
   },
 

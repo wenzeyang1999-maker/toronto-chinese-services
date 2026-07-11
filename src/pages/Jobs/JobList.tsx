@@ -41,7 +41,7 @@ const SALARY_PRESETS: { type: SalaryType; min: number; label: string }[] = [
 export default function JobList() {
   const navigate       = useNavigate()
   const user           = useAuthStore((s) => s.user)
-  const { fetchJobs, setFilters, clearFilters, getFilteredJobs, filters, isReady, loadError } = useJobStore()
+  const { fetchJobs, setFilters, clearFilters, getFilteredJobs, filters, isReady, loadError, hasMore, loadingMore } = useJobStore()
   const showSkeleton = useDelayedLoading(!isReady)
   const readSet    = useReadStore((s) => s.read)
   const markRead   = useReadStore((s) => s.markRead)
@@ -202,7 +202,7 @@ export default function JobList() {
       ))}
     </div>
   ) : null) : loadError && jobs.length === 0 ? (
-    <ErrorState onRetry={fetchJobs} />
+    <ErrorState onRetry={() => fetchJobs()} />
   ) : jobs.length === 0 ? (
     filters.keyword || filters.category || filters.job_type || filters.area ? (
       <div className="text-center py-20 text-gray-400">
@@ -223,6 +223,7 @@ export default function JobList() {
       </div>
     )
   ) : (
+    <>
     <div style={{ columns: '200px', columnGap: '10px' }}>
       {jobs.map((job, i) => (
         <motion.div key={job.id}
@@ -268,6 +269,17 @@ export default function JobList() {
         </motion.div>
       ))}
     </div>
+    {hasMore && (
+      <button
+        onClick={() => fetchJobs(true)}
+        disabled={loadingMore}
+        className="w-full mt-3 py-3 rounded-2xl border border-gray-200 bg-white text-sm text-gray-600
+                   font-medium hover:bg-gray-50 transition-colors disabled:opacity-60"
+      >
+        {loadingMore ? '加载中…' : '加载更多'}
+      </button>
+    )}
+    </>
   )
 
   return (
@@ -284,7 +296,7 @@ export default function JobList() {
       leftColWidth={420}
       fabPath={`/jobs/post?type=${listingType}`}
       fabLabel={listingType === 'hiring' ? '发布招聘' : '发布求职'}
-      onRefresh={fetchJobs}
+      onRefresh={() => fetchJobs()}
     >
       {cardList}
     </ListPageShell>

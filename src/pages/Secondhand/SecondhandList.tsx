@@ -32,7 +32,7 @@ const GTA_AREAS = [
 export default function SecondhandList() {
   const navigate  = useNavigate()
   const user      = useAuthStore((s) => s.user)
-  const { fetchItems, setFilters, clearFilters, getFilteredItems, filters, isReady, loadError } = useSecondhandStore()
+  const { fetchItems, setFilters, clearFilters, getFilteredItems, filters, isReady, loadError, hasMore, loadingMore } = useSecondhandStore()
   const showSkeleton = useDelayedLoading(!isReady)
   const readSet  = useReadStore((s) => s.read)
   const markRead = useReadStore((s) => s.markRead)
@@ -181,7 +181,7 @@ export default function SecondhandList() {
       ))}
     </div>
   ) : null) : loadError && items.length === 0 ? (
-    <ErrorState onRetry={fetchItems} />
+    <ErrorState onRetry={() => fetchItems()} />
   ) : items.length === 0 ? (
     filters.keyword || filters.category || filters.condition || filters.area || filters.max_price ? (
       <div className="text-center py-20 text-gray-400">
@@ -202,6 +202,7 @@ export default function SecondhandList() {
       </div>
     )
   ) : (
+    <>
     <div style={{ columns: '160px', columnGap: '10px' }}>
       {items.map((item, i) => (
         <motion.div key={item.id}
@@ -261,6 +262,17 @@ export default function SecondhandList() {
         </motion.div>
       ))}
     </div>
+    {hasMore && (
+      <button
+        onClick={() => fetchItems(true)}
+        disabled={loadingMore}
+        className="w-full mt-3 py-3 rounded-2xl border border-gray-200 bg-white text-sm text-gray-600
+                   font-medium hover:bg-gray-50 transition-colors disabled:opacity-60"
+      >
+        {loadingMore ? '加载中…' : '加载更多'}
+      </button>
+    )}
+    </>
   )
 
   return (
@@ -276,7 +288,7 @@ export default function SecondhandList() {
       detailMobile={selectedItem ? <DetailPanel item={selectedItem} onClose={() => setMobileOpen(false)} /> : null}
       leftColWidth={380}
       fabPath="/secondhand/post"
-      onRefresh={fetchItems}
+      onRefresh={() => fetchItems()}
     >
       {cardList}
     </ListPageShell>

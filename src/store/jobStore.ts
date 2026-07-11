@@ -72,31 +72,45 @@ interface JobState {
   filters: JobFilters
   isReady: boolean
   loadError: boolean
+  hasMore: boolean
+  loadingMore: boolean
 
-  fetchJobs: () => Promise<void>
+  fetchJobs: (append?: boolean) => Promise<void>
   setFilters: (f: Partial<JobFilters>) => void
   clearFilters: () => void
   getFilteredJobs: () => Job[]
   addJob: (job: Job) => void
 }
 
+const PAGE_SIZE = 40
+
 export const useJobStore = create<JobState>((set, get) => ({
   jobs:    [],
   filters: {},
   isReady: false,
   loadError: false,
+  hasMore: false,
+  loadingMore: false,
 
-  fetchJobs: async () => {
+  fetchJobs: async (append = false) => {
+    const offset = append ? get().jobs.length : 0
+    if (append) set({ loadingMore: true })
     const { data, error } = await supabase
       .from('jobs')
       .select('*, poster:users(id, name, avatar_url, role)')
       .eq('is_active', true)
       .order('created_at', { ascending: false })
+      .range(offset, offset + PAGE_SIZE - 1)
     if (!error && data) {
-      set({ jobs: (data as JobRow[]).map(mapRow), isReady: true, loadError: false })
+      const mapped = (data as JobRow[]).map(mapRow)
+      set((state) => ({
+        jobs: append ? [...state.jobs, ...mapped] : mapped,
+        hasMore: data.length === PAGE_SIZE,
+        isReady: true, loadError: false, loadingMore: false,
+      }))
     } else {
-      set({ isReady: true, loadError: true })
-      toast('加载失败，请检查网络后重试', 'error')
+      set({ isReady: true, loadError: true, loadingMore: false })
+      if (!append) toast('加载失败，请检查网络后重试', 'error')
     }
   },
 

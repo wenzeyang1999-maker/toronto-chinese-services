@@ -30,7 +30,7 @@ const GTA_AREAS = [
 ]
 
 export default function RealEstateList() {
-  const { fetchProperties, setFilters, clearFilters, getFilteredProperties, filters, isReady, loadError } = useRealEstateStore()
+  const { fetchProperties, setFilters, clearFilters, getFilteredProperties, filters, isReady, loadError, hasMore, loadingMore } = useRealEstateStore()
   const showSkeleton = useDelayedLoading(!isReady)
   const readSet  = useReadStore((s) => s.read)
   const markRead = useReadStore((s) => s.markRead)
@@ -217,7 +217,7 @@ export default function RealEstateList() {
       ))}
     </div>
   ) : null) : loadError && properties.length === 0 ? (
-    <ErrorState onRetry={fetchProperties} />
+    <ErrorState onRetry={() => fetchProperties()} />
   ) : properties.length === 0 ? (
     filters.keyword || filters.property_type || filters.area || filters.bedrooms != null || filters.max_price ? (
       <div className="text-center py-20 text-gray-400">
@@ -238,6 +238,7 @@ export default function RealEstateList() {
       </div>
     )
   ) : (
+    <>
     <div style={{ columns: '220px', columnGap: '10px' }}>
       {properties.map((p, i) => (
         <motion.div key={p.id}
@@ -295,6 +296,17 @@ export default function RealEstateList() {
         </motion.div>
       ))}
     </div>
+    {hasMore && (
+      <button
+        onClick={() => fetchProperties(true)}
+        disabled={loadingMore}
+        className="w-full mt-3 py-3 rounded-2xl border border-gray-200 bg-white text-sm text-gray-600
+                   font-medium hover:bg-gray-50 transition-colors disabled:opacity-60"
+      >
+        {loadingMore ? '加载中…' : '加载更多'}
+      </button>
+    )}
+    </>
   )
 
   return (
@@ -309,11 +321,11 @@ export default function RealEstateList() {
       detailDesktop={selectedProp ? <DetailPanel prop={selectedProp} onClose={() => setSelectedId(null)} /> : null}
       detailMobile={selectedProp ? <DetailPanel prop={selectedProp} onClose={() => setMobileOpen(false)} /> : null}
       fabPath={`/realestate/post?type=${filters.listing_type ?? 'rent'}`}
-      onRefresh={viewMode === 'list' ? fetchProperties : undefined}
+      onRefresh={viewMode === 'list' ? () => fetchProperties() : undefined}
     >
       {viewMode === 'map'
         ? (isReady && loadError && properties.length === 0
-            ? <ErrorState onRetry={fetchProperties} />
+            ? <ErrorState onRetry={() => fetchProperties()} />
             : <PropertyMap properties={properties} />)
         : cardList}
     </ListPageShell>
