@@ -20,6 +20,7 @@ import ViewCount from '../../components/ViewCount/ViewCount'
 import { SOCIAL_PLATFORMS } from '../../lib/socialPlatforms'
 import ContactActions from './components/ContactActions'
 import ImgFallback from '../../components/ImgFallback/ImgFallback'
+import ImageLightbox from '../../components/ImageLightbox/ImageLightbox'
 import GoogleMapCanvas, { type GoogleMapPoint } from '../../components/ServiceMap/GoogleMapCanvas'
 import { ServiceDetailSkeleton } from '../../components/Skeleton/Skeleton'
 import { CONTENT_REPORT_REASONS as REPORT_REASONS } from '../../constants/reportReasons'
@@ -678,6 +679,7 @@ export default function ServiceDetail() {
 function ImageBlock({ images }: { images: string[] }) {
   const [current, setCurrent] = useState(0)
   const [failedImgs, setFailedImgs] = useState<Set<number>>(new Set())
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
 
   function onScroll() {
@@ -724,8 +726,9 @@ function ImageBlock({ images }: { images: string[] }) {
                 key={i}
                 src={img}
                 alt={`服务图片${i + 1}`}
-                className="w-full flex-shrink-0 object-cover rounded-xl snap-start"
+                className="w-full flex-shrink-0 object-cover rounded-xl snap-start cursor-pointer"
                 style={{ aspectRatio: '4/3' }}
+                onClick={() => setLightboxIndex(i)}
                 onError={() => setFailedImgs((s) => new Set(s).add(i))}
               />
             )
@@ -759,12 +762,15 @@ function ImageBlock({ images }: { images: string[] }) {
               key={i}
               src={img}
               alt={`服务图片${i + 1}`}
-              className={`w-full object-cover rounded-xl ${images.length === 1 ? '' : 'aspect-square'}`}
+              className={`w-full object-cover rounded-xl cursor-pointer ${images.length === 1 ? '' : 'aspect-square'}`}
+              onClick={() => setLightboxIndex(i)}
               onError={() => setFailedImgs((s) => new Set(s).add(i))}
             />
           )
         ))}
       </div>
+
+      <ImageLightbox images={images} openIndex={lightboxIndex} onClose={() => setLightboxIndex(null)} />
     </motion.div>
   )
 }
