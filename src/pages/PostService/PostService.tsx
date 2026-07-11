@@ -35,6 +35,7 @@ const INITIAL_FORM: PostServiceForm = {
   address: '',
   area: 'North York',
   tags: '',
+  businessHours: '',
 }
 
 export default function PostService() {
@@ -205,6 +206,7 @@ export default function PostService() {
         provider_id:   user.id,
         tags:          allTags,
         images:        imageUrls,
+        business_hours: form.businessHours?.trim() || null,
         is_available:  true,
         is_verified:   false,
       }).select('id').single()
@@ -413,6 +415,15 @@ export default function PostService() {
                 onChange={(e) => update('tags', e.target.value)}
                 onBlur={() => scrollTo(contactRef)}
                 placeholder="例：本地搬家, 打包服务, 有货车"
+              />
+            </Field>
+
+            <Field label="营业时间（选填）">
+              <input
+                className="input-base"
+                value={form.businessHours ?? ''}
+                onChange={(e) => update('businessHours', e.target.value)}
+                placeholder="例：周一至周五 9:00-18:00，周末休息"
               />
             </Field>
           </div>

@@ -38,6 +38,7 @@ export interface ServiceRow {
   tags: string[] | null
   images: string[] | null
   is_available: boolean | null
+  business_hours: string | null
   is_promoted: boolean | null
   promoted_until: string | null
   is_verified: boolean | null
@@ -126,6 +127,7 @@ export function mapRow(row: ServiceRow): Service {
     },
     tags: row.tags ?? [],
     images: row.images ?? [],
+    businessHours: row.business_hours ?? undefined,
     available:   row.is_available ?? true,
     // A promotion is active if is_promoted AND (no expiry set — admin grant — or
     // the expiry hasn't passed yet). Free member promotions expire without a cron.

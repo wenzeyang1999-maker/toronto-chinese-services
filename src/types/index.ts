@@ -70,6 +70,7 @@ export interface Service {
   provider: ServiceProvider
   tags: string[]
   images?: string[]
+  businessHours?: string
   available: boolean
   isPromoted: boolean
   createdAt: string
@@ -128,4 +129,5 @@ export interface PostServiceForm {
   address: string
   area: string
   tags: string
+  businessHours?: string
 }

@@ -329,6 +329,13 @@ export default function ServiceDetail() {
 
           <p className="text-gray-600 text-sm leading-relaxed">{service.description}</p>
 
+          {service.businessHours && (
+            <div className="mt-3 flex items-start gap-2 text-sm text-gray-600">
+              <Clock size={15} className="text-gray-400 flex-shrink-0 mt-0.5" />
+              <span><span className="text-gray-400">营业时间：</span>{service.businessHours}</span>
+            </div>
+          )}
+
           <ViewCount type="service" id={service.id} className="mt-2" />
 
           <div className="mt-4 flex flex-wrap gap-2">
