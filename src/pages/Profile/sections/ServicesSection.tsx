@@ -61,7 +61,7 @@ export default function ServicesSection() {
   const [pendingPromo,   setPendingPromo]   = useState<Set<string>>(new Set())
   const [freePromoLeft,  setFreePromoLeft]  = useState(0)
 
-  async function useFreePromo(serviceId: string) {
+  async function applyFreePromo(serviceId: string) {
     if (promoSending) return
     setPromoSending(true)
     const { data, error } = await supabase.rpc('use_free_promotion', { p_service_id: serviceId, p_days: 3 })
@@ -394,7 +394,7 @@ export default function ServicesSection() {
                     {/* Free instant promotion for 黄金/至尊 members */}
                     {freePromoLeft > 0 && (
                       <button
-                        onClick={() => useFreePromo(promoServiceId)}
+                        onClick={() => applyFreePromo(promoServiceId)}
                         disabled={promoSending}
                         className="w-full mb-4 py-3 rounded-2xl bg-gradient-to-r from-amber-400 to-yellow-500 text-white
                                    text-sm font-bold hover:opacity-95 disabled:opacity-60 transition-opacity
