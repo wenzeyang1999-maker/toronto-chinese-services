@@ -55,6 +55,7 @@ export interface ServiceRow {
     phone_verified: boolean | null
     business_verified: boolean | null
     membership_level: string | null
+    is_online: boolean | null
   } | null
   reviews: { rating: number }[] | null
 }
@@ -120,6 +121,7 @@ export function mapRow(row: ServiceRow): Service {
       membershipLevel:  (row.provider?.membership_level as 'L1' | 'L2' | 'L3') ?? 'L1',
       joinedAt: row.provider?.created_at?.slice(0, 10) ?? row.created_at?.slice(0, 10) ?? '',
       lastSeenAt: row.provider?.last_seen_at ?? null,
+      isOnline: row.provider?.is_online ?? false,
       languages: ['中文'],
     },
     tags: row.tags ?? [],
@@ -225,7 +227,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     // only surface an error (toast) once all attempts fail.
     const runQuery = () => supabase
       .from('services')
-      .select('*, provider:users(id, name, avatar_url, last_seen_at, created_at, phone_verified, business_verified, membership_level), reviews(rating)')
+      .select('*, provider:users(id, name, avatar_url, last_seen_at, created_at, phone_verified, business_verified, membership_level, is_online), reviews(rating)')
       .eq('is_available', true)
       .order('created_at', { ascending: false })
       .range(offset, offset + SERVICES_PAGE_SIZE - 1)
@@ -261,7 +263,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     // Uses trigram GIN index for fast ILIKE — fts_search_patch.sql must be applied
     const { data, error } = await supabase
       .from('services')
-      .select('*, provider:users(id, name, avatar_url, last_seen_at, created_at, phone_verified, business_verified, membership_level), reviews(rating)')
+      .select('*, provider:users(id, name, avatar_url, last_seen_at, created_at, phone_verified, business_verified, membership_level, is_online), reviews(rating)')
       .eq('is_available', true)
       .or(`title.ilike.%${kw}%,description.ilike.%${kw}%`)
       .order('created_at', { ascending: false })
@@ -276,7 +278,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   fetchServicesByCategory: async (category, offset = 0) => {
     const { data, error } = await supabase
       .from('services')
-      .select('*, provider:users(id, name, avatar_url, last_seen_at, created_at, phone_verified, business_verified, membership_level), reviews(rating)')
+      .select('*, provider:users(id, name, avatar_url, last_seen_at, created_at, phone_verified, business_verified, membership_level, is_online), reviews(rating)')
       .eq('is_available', true)
       .eq('category_id', category)
       .order('created_at', { ascending: false })
@@ -309,6 +311,20 @@ export const useAppStore = create<AppState>((set, get) => ({
     }
     if (searchFilters.minRating) {
       result = result.filter((s) => s.provider.rating >= searchFilters.minRating!)
+    }
+    if (searchFilters.onlineOnly) {
+      result = result.filter((s) => s.provider.isOnline)
+    }
+    // Price range — only applies to services with a numeric price (skip 面议).
+    if (searchFilters.minPrice != null || searchFilters.maxPrice != null) {
+      result = result.filter((s) => {
+        if (s.priceType === 'negotiable') return false
+        const p = parseFloat(s.price)
+        if (Number.isNaN(p)) return false
+        if (searchFilters.minPrice != null && p < searchFilters.minPrice) return false
+        if (searchFilters.maxPrice != null && p > searchFilters.maxPrice) return false
+        return true
+      })
     }
 
     if (userLocation) {

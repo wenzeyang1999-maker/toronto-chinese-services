@@ -55,6 +55,7 @@ export interface ServiceProvider {
   membershipLevel: 'L1' | 'L2' | 'L3'
   joinedAt: string
   lastSeenAt?: string | null
+  isOnline?: boolean
   languages: string[]
 }
 
@@ -83,6 +84,9 @@ export interface SearchFilters {
   maxDistance?: number
   minRating?: number
   priceType?: string
+  minPrice?: number
+  maxPrice?: number
+  onlineOnly?: boolean
   sortBy: 'distance' | 'rating' | 'newest' | 'price'
 }
 

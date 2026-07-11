@@ -284,7 +284,20 @@ export default function Search() {
   }
 
   // Use DB results when store hasn't loaded (direct navigation), otherwise client-side filter
-  const results = dbResults ?? getFilteredServices()
+  const baseResults = dbResults ?? getFilteredServices()
+  // Price / online filters apply to BOTH paths (the DB keyword search doesn't
+  // filter by them, and getFilteredServices already did — harmlessly idempotent).
+  const results = baseResults.filter((s) => {
+    if (searchFilters.onlineOnly && !s.provider.isOnline) return false
+    if (searchFilters.minPrice != null || searchFilters.maxPrice != null) {
+      if (s.priceType === 'negotiable') return false
+      const p = parseFloat(s.price)
+      if (Number.isNaN(p)) return false
+      if (searchFilters.minPrice != null && p < searchFilters.minPrice) return false
+      if (searchFilters.maxPrice != null && p > searchFilters.maxPrice) return false
+    }
+    return true
+  })
   const isSearching = dbLoading && dbResults === null
 
   // Reset to first page whenever filters/query change
@@ -427,6 +440,50 @@ export default function Search() {
                       {cat.emoji} {cat.label}
                     </button>
                   ))}
+                </div>
+              </div>
+
+              {/* Online toggle + price range */}
+              <div className="mb-3 space-y-3">
+                <button
+                  onClick={() => setSearchFilters({ onlineOnly: !searchFilters.onlineOnly })}
+                  className={`inline-flex items-center gap-1 text-xs px-3 py-1.5 rounded-full border transition-colors ${
+                    searchFilters.onlineOnly
+                      ? 'bg-primary-600 text-white border-primary-600'
+                      : 'bg-white text-gray-600 border-gray-200'
+                  }`}
+                >
+                  ⚡ 仅看在线接单
+                </button>
+
+                <div>
+                  <p className="text-xs text-gray-500 mb-2">价格区间</p>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="number" inputMode="numeric" min={0}
+                      value={searchFilters.minPrice ?? ''}
+                      onChange={(e) => setSearchFilters({ minPrice: e.target.value ? Number(e.target.value) : undefined })}
+                      placeholder="最低"
+                      className="w-20 text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 outline-none focus:border-primary-400"
+                    />
+                    <span className="text-gray-300 text-xs">—</span>
+                    <input
+                      type="number" inputMode="numeric" min={0}
+                      value={searchFilters.maxPrice ?? ''}
+                      onChange={(e) => setSearchFilters({ maxPrice: e.target.value ? Number(e.target.value) : undefined })}
+                      placeholder="最高"
+                      className="w-20 text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 outline-none focus:border-primary-400"
+                    />
+                    {(searchFilters.minPrice != null || searchFilters.maxPrice != null) && (
+                      <button
+                        onClick={() => setSearchFilters({ minPrice: undefined, maxPrice: undefined })}
+                        className="text-xs text-gray-400 hover:text-gray-600"
+                      >
+                        清除
+                      </button>
+                    )}
+                  </div>
+                  <p className="text-[10px] text-gray-400 mt-1">按价格筛选会排除「面议」服务</p>
                 </div>
               </div>
 
