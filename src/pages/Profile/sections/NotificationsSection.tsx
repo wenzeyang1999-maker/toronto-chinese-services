@@ -81,11 +81,10 @@ export default function NotificationsSection() {
 
   useEffect(() => {
     if (!user) return
-    supabase.from('users').select('notification_prefs').eq('id', user.id).single()
+    // notification_prefs REVOKEd from base — read own via SECURITY DEFINER RPC.
+    supabase.rpc('get_my_notification_prefs')
       .then(({ data }) => {
-        if (data?.notification_prefs) {
-          setPrefs({ ...DEFAULT_PREFS, ...(data.notification_prefs as Partial<NotifPrefs>) })
-        }
+        if (data) setPrefs({ ...DEFAULT_PREFS, ...(data as Partial<NotifPrefs>) })
         setLoading(false)
       })
   }, [user])

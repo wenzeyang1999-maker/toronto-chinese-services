@@ -104,6 +104,31 @@ varchar。plpgsql 的 `RETURN QUERY` **严格校验行类型** → 抛
 2. `RETURN QUERY` 里列一律 `::` 转成声明类型,别赌 varchar/text 自动匹配。
 3. 上线前对所有对外 RPC 跑一次 smoke(合法参数调一下看返不返回)。
 
+## 4e. users 表宽读收口(第二轮 PII,migration 20260711120003–120006)
+
+**触发**:复核"我的主页"取数路径时发现——PII 收口(4b/H2）当初**只 REVOKE 了
+phone/wechat/email**,users 表**其余所有列对登录客户端仍开放**。用
+`has_column_privilege('authenticated','public.users',col,'SELECT')` 逐列核,证实
+任何登录客户端可 `select ... from users` 批量抓取,包括:
+
+| 列 | 处理 | 迁移 |
+|---|---|---|
+| 🔴🔴 `password_hash` | REVOKE(前端 0 引用) | `...120003` |
+| 🔴 `verification_doc_url` | REVOKE(证件文档) | `...120003` |
+| 🔴 `certifications` | REVOKE | `...120003` |
+| 🟠 `referred_by_code`(邀请关系图) | REVOKE(前端只写不读) | `...120004` |
+| 🔴 `credit_penalty`(信用分,公开信任信号) | 移进 `public_profiles` 视图 + REVOKE base 列;前端改从视图读 | `...120005` |
+| `notification_prefs`(私密设置) | `get_my_notification_prefs()` RPC + REVOKE | `...120006` |
+
+**判定保留 true（可读）的列**:name/avatar/bio/social_links/skill_tags/business_type/
+membership_level/business_verified/avg_reply_hours/is_online/last_seen_at/created_at/
+phone_verified/is_email_verified/qualification_note(公开资料)、id_verified/
+verification_status(认证徽章)、qualification_images(已决定公开+提示)、
+online_lat/online_lng(C4 已偏移)、referral_code/role/membership_expires_at(低危)。
+
+**核对方式**:`has_column_privilege` 逐列查,改后复核 8 个敏感列全 false。
+**教训**:列级 REVOKE 要**枚举全表**核 `has_column_privilege`,别只挡"想到的那几列"。
+
 ## 5. 已核对、判定安全(未改)
 
 - `inquiries` 未加入 realtime publication(不会经 Realtime 泄露)
