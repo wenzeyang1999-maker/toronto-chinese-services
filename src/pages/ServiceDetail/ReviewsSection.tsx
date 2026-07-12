@@ -330,26 +330,15 @@ export default function ReviewsSection({ serviceId, providerId }: Props) {
         )}
       </div>
 
-      {/* New review form */}
+      {/* Reviews are now bound to a confirmed order (防刷评) — point users there */}
       {!isOwnService && !alreadyReviewed && (
-        <div className="bg-gray-50 rounded-2xl p-4 mb-4">
-          <p className="text-xs font-medium text-gray-600 mb-3">
-            {user ? '写下您的评价' : '登录后可以留下评价'}
+        <div className="bg-gray-50 rounded-2xl p-4 mb-4 text-center">
+          <p className="text-xs text-gray-500 leading-relaxed">
+            评价仅对<span className="font-medium text-gray-700">已成交</span>用户开放。与商家在站内对话「标记成交」、双方确认后，可在
+            <button onClick={() => navigate('/profile?section=orders')}
+              className="text-primary-600 font-medium hover:underline mx-0.5">我的订单</button>
+            里评价此服务。
           </p>
-          <StarPicker rating={myRating} hover={hoverRating}
-            onPick={setMyRating} onHover={setHoverRating} />
-          <textarea value={comment} onChange={e => setComment(e.target.value)}
-            placeholder="分享您的使用体验（选填）" rows={3} disabled={!user}
-            className="w-full mt-3 border border-gray-200 rounded-xl px-3 py-2 text-sm resize-none
-                       focus:outline-none focus:ring-2 focus:ring-primary-300 bg-white
-                       disabled:opacity-50 disabled:cursor-not-allowed" />
-          {submitError && <p className="text-xs text-red-500 mt-1">{submitError}</p>}
-          <button onClick={user ? submit : () => navigate('/login')} disabled={submitting}
-            className="mt-2 flex items-center gap-2 bg-primary-600 text-white text-sm font-medium
-                       px-5 py-2 rounded-xl hover:bg-primary-700 disabled:opacity-60 transition-colors">
-            <Send size={14} />
-            {submitting ? '提交中…' : user ? '提交评价' : '登录后评价'}
-          </button>
         </div>
       )}
 

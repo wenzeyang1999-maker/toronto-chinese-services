@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Store } from 'lucide-react'
+import { Store, Star } from 'lucide-react'
 import { useAuthStore } from '../../../store/authStore'
 import { supabase } from '../../../lib/supabase'
 import { toast } from '../../../lib/toast'
@@ -8,6 +8,7 @@ interface OrderRow {
   id: string
   client_id: string
   provider_id: string
+  service_id: string | null
   title: string | null
   amount: number | null
   status: string
@@ -29,6 +30,11 @@ export default function OrdersSection() {
   const [orders, setOrders]   = useState<OrderRow[]>([])
   const [loading, setLoading] = useState(true)
   const [acting, setActing]   = useState<string | null>(null)
+  const [reviewedIds, setReviewedIds] = useState<Set<string>>(new Set())
+  const [reviewingId, setReviewingId] = useState<string | null>(null)
+  const [stars, setStars]     = useState(0)
+  const [reviewText, setReviewText] = useState('')
+  const [submittingReview, setSubmittingReview] = useState(false)
 
   async function load() {
     if (!user) return
@@ -37,8 +43,26 @@ export default function OrdersSection() {
       .select('*, client:client_id(name), provider:provider_id(name)')
       .or(`client_id.eq.${user.id},provider_id.eq.${user.id}`)
       .order('created_at', { ascending: false })
-    setOrders((data ?? []) as OrderRow[])
+    const rows = (data ?? []) as OrderRow[]
+    setOrders(rows)
+    // Which of my orders I've already reviewed (to hide the 写评价 button).
+    const { data: revs } = await supabase.from('reviews')
+      .select('order_id').eq('reviewer_id', user.id).not('order_id', 'is', null)
+    setReviewedIds(new Set((revs ?? []).map((r: { order_id: string }) => r.order_id)))
     setLoading(false)
+  }
+
+  async function submitReview(orderId: string) {
+    if (stars === 0) { toast('请选择星级', 'error'); return }
+    setSubmittingReview(true)
+    const { error } = await supabase.rpc('submit_review', {
+      p_order_id: orderId, p_rating: stars, p_comment: reviewText.trim() || null,
+    })
+    setSubmittingReview(false)
+    if (error) { toast(error.message || '提交失败，请重试', 'error'); return }
+    toast('评价已提交，谢谢 ✓', 'success')
+    setReviewingId(null); setStars(0); setReviewText('')
+    void load()
   }
   useEffect(() => { void load() /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [user])
 
@@ -98,6 +122,40 @@ export default function OrdersSection() {
             )}
             {o.status === 'pending' && o.created_by === user?.id && (
               <p className="text-[11px] text-amber-600 mt-2">等待对方确认…</p>
+            )}
+
+            {/* Review — only the client, only a confirmed order with a service, once */}
+            {o.status === 'confirmed' && !isProvider && o.service_id && !reviewedIds.has(o.id) && (
+              reviewingId === o.id ? (
+                <div className="mt-3 border-t border-gray-50 pt-3">
+                  <div className="flex items-center gap-1 mb-2">
+                    {[1, 2, 3, 4, 5].map((n) => (
+                      <button key={n} onClick={() => setStars(n)}>
+                        <Star size={22} className={n <= stars ? 'text-yellow-400 fill-yellow-400' : 'text-gray-200 fill-gray-200'} />
+                      </button>
+                    ))}
+                  </div>
+                  <textarea value={reviewText} onChange={(e) => setReviewText(e.target.value)} rows={2}
+                    placeholder="分享你的体验（选填）"
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary-300" />
+                  <div className="flex gap-2 mt-2">
+                    <button onClick={() => submitReview(o.id)} disabled={submittingReview}
+                      className="flex-1 py-2 rounded-xl bg-primary-600 text-white text-sm font-semibold disabled:opacity-60">
+                      {submittingReview ? '提交中…' : '提交评价'}
+                    </button>
+                    <button onClick={() => { setReviewingId(null); setStars(0); setReviewText('') }}
+                      className="px-4 py-2 rounded-xl border border-gray-200 text-gray-500 text-sm">取消</button>
+                  </div>
+                </div>
+              ) : (
+                <button onClick={() => { setReviewingId(o.id); setStars(0); setReviewText('') }}
+                  className="mt-3 w-full py-2 rounded-xl border border-primary-200 bg-primary-50 text-primary-700 text-sm font-semibold hover:bg-primary-100">
+                  写评价
+                </button>
+              )
+            )}
+            {o.status === 'confirmed' && !isProvider && o.service_id && reviewedIds.has(o.id) && (
+              <p className="text-[11px] text-gray-400 mt-2">已评价 ✓</p>
             )}
           </div>
         )
