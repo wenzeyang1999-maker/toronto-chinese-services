@@ -37,6 +37,7 @@ export default function ProviderProfile() {
   const [events,          setEvents]         = useState<Event[]>([])
   const [loading,         setLoading]        = useState(true)
   const [notFound,        setNotFound]       = useState(false)
+  const [orderCount,      setOrderCount]     = useState(0)
   const [followerCount,   setFollowerCount]  = useState(0)
 
   useEffect(() => {
@@ -57,6 +58,7 @@ export default function ProviderProfile() {
         { count: followCount },
         { data: ext },
         { data: contact },
+        { data: orderCnt },
       ] = await Promise.all([
         supabase.from('public_profiles')
           .select('id, name, avatar_url, bio, created_at, is_email_verified, last_seen_at, phone_verified, social_links, membership_level, business_verified, avg_reply_hours, credit_penalty')
@@ -80,9 +82,11 @@ export default function ProviderProfile() {
         user
           ? supabase.rpc('get_contact', { p_target: id }).returns<{ phone: string; wechat: string; email: string }[]>().maybeSingle()
           : Promise.resolve({ data: null }),
+        supabase.rpc('provider_order_count', { p_provider: id }),
       ])
 
       if (profileError || !profile) { setNotFound(true); setLoading(false); return }
+      setOrderCount((orderCnt as number) ?? 0)
 
       // `.select(dynamicString)` widens the row type, so read via a cast record.
       const extRow = (ext ?? null) as Record<string, unknown> | null
@@ -237,6 +241,7 @@ export default function ProviderProfile() {
           followerCount={followerCount}
           isOwnProfile={isOwnProfile}
           joinedMonth={joinedMonth}
+          orderCount={orderCount}
           onMessage={handleMessage}
           onCopyWechat={copyWechat}
         />

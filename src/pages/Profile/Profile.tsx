@@ -29,6 +29,7 @@ import ReferralSection     from './sections/ReferralSection'
 import HomepageSection    from './sections/HomepageSection'
 import InquiriesSection        from './sections/InquiriesSection'
 import ClaimedInquiriesSection from './sections/ClaimedInquiriesSection'
+import OrdersSection            from './sections/OrdersSection'
 import NotificationsSection    from './sections/NotificationsSection'
 import MyEventsSection          from './sections/MyEventsSection'
 import { toast } from '../../lib/toast'
@@ -42,6 +43,7 @@ const MENU: MenuItem[] = [
   { key: 'verification', icon: <BadgeCheck    size={18} />, label: '联系方式与资质验证', sub: '社交媒体、手机验证、商户认证', modes: ['provider'] },
   { key: 'inquiries',         icon: <ClipboardList  size={18} />, label: '我的报价请求', sub: '已提交的需求和匹配结果',   modes: ['client'] },
   { key: 'claimed_inquiries', icon: <ClipboardList  size={18} />, label: '我接的单',     sub: '抢单记录和客户联系方式',   modes: ['provider'] },
+  { key: 'orders',            icon: <Store          size={18} />, label: '我的订单',     sub: '成交记录 · 确认成交',      modes: ['client', 'provider'] },
   { key: 'account',      icon: <ShieldCheck   size={18} />, label: '帐号和安全',        sub: '个人信息、密码修改', modes: ['client', 'provider'] },
   { key: 'messages',     icon: <MessageSquare  size={18} />, label: '我的消息',     sub: '与商家的对话记录', modes: ['client', 'provider'] },
   { key: 'membership',   icon: <Crown         size={18} />, label: '会员等级',           sub: '查看商家会员权益', modes: ['client', 'provider'] },
@@ -415,6 +417,7 @@ export default function Profile() {
       case 'referral':     return <ReferralSection user={user!} />
       case 'inquiries':          return <InquiriesSection />
       case 'claimed_inquiries':  return <ClaimedInquiriesSection />
+      case 'orders':             return <OrdersSection />
       case 'notifications':      return <NotificationsSection />
       case 'my_events':          return <MyEventsSection />
       case 'messages':       return <MessagesSection />

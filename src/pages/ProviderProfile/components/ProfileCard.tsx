@@ -13,11 +13,12 @@ interface Props {
   followerCount: number
   isOwnProfile: boolean
   joinedMonth: string
+  orderCount?: number
   onMessage: () => void
   onCopyWechat: () => void
 }
 
-export default function ProfileCard({ provider, followerCount, isOwnProfile, joinedMonth, onMessage, onCopyWechat }: Props) {
+export default function ProfileCard({ provider, followerCount, isOwnProfile, joinedMonth, orderCount = 0, onMessage, onCopyWechat }: Props) {
   return (
     <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }}
       className="bg-white rounded-3xl border border-gray-100 shadow-sm p-6">
@@ -60,6 +61,11 @@ export default function ProfileCard({ provider, followerCount, isOwnProfile, joi
           <div className="flex items-center gap-1.5 mt-1 text-xs text-gray-400">
             <Clock size={12} />
             <span>加入于 {joinedMonth}</span>
+            {orderCount > 0 && (
+              <span className="ml-1 inline-flex items-center rounded-full bg-green-50 border border-green-200 px-2 py-0.5 text-[11px] font-semibold text-green-700">
+                已成交 {orderCount} 单
+              </span>
+            )}
           </div>
           <div className="mt-1.5">
             <ReplyTimeBadge

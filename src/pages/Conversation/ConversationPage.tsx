@@ -52,6 +52,20 @@ export default function ConversationPage() {
   const [reportReason, setReportReason] = useState('')
   const [reportSent,   setReportSent]  = useState(false)
   const [blockOpen,    setBlockOpen]   = useState(false)
+  const [marking,      setMarking]     = useState(false)
+
+  // 「标记成交」— create a pending order between the two parties (双向确认).
+  async function markDeal() {
+    if (!id || marking) return
+    setMarking(true)
+    const { error } = await supabase.rpc('create_order', {
+      p_conversation_id: id,
+      p_title: conv?.service?.title ?? null,
+    })
+    setMarking(false)
+    if (error) { toast(error.message || '发起失败，请重试', 'error'); return }
+    toast('已发起成交，等对方确认 ✓', 'success')
+  }
   const [blockBusy,    setBlockBusy]   = useState(false)
   const [uploadingPhoto, setUploadingPhoto] = useState(false)
   const bottomRef  = useRef<HTMLDivElement>(null)
@@ -374,6 +388,14 @@ export default function ConversationPage() {
           <button onClick={copyWechat}
             className="w-9 h-9 rounded-full bg-green-50 flex items-center justify-center hover:bg-green-100 transition-colors">
             <MessageCircle size={16} className="text-green-600" />
+          </button>
+        )}
+        {conv && conv.client_id !== conv.provider_id && (
+          <button onClick={markDeal} disabled={marking}
+            className="flex-shrink-0 text-xs font-semibold px-2.5 py-1.5 rounded-full bg-primary-600 text-white
+                       hover:bg-primary-700 disabled:opacity-60 whitespace-nowrap"
+            title="双方确认后计入成交">
+            {marking ? '…' : '标记成交'}
           </button>
         )}
         {conv && conv.client_id !== conv.provider_id && (
