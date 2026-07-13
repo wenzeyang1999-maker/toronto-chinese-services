@@ -6,7 +6,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import {
   ChevronLeft, ChevronRight, Camera, LogOut,
-  ShieldCheck, Clock, MessageSquare, BadgeCheck, Crown, Heart, UserCheck, Gift, LayoutDashboard, ClipboardList, Bell, Store, Calendar, User as UserIcon,
+  ShieldCheck, Clock, MessageSquare, BadgeCheck, Crown, Heart, UserCheck, Gift, LayoutDashboard, ClipboardList, Store, Calendar, User as UserIcon,
 } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { useAuthStore } from '../../store/authStore'
@@ -40,12 +40,11 @@ const MENU: MenuItem[] = [
   { key: 'homepage',     icon: <LayoutDashboard size={18} />, label: '我的主页',         sub: '封面 · 简介 · 标签装修', modes: ['provider'] },
   { key: 'verification', icon: <BadgeCheck    size={18} />, label: '联系方式与资质验证', sub: '社交媒体、手机验证、商户认证', modes: ['provider'] },
   { key: 'transactions',      icon: <ClipboardList  size={18} />, label: '我的交易',     sub: '需求 · 接单 · 成交',       modes: ['client', 'provider'] },
-  { key: 'account',      icon: <ShieldCheck   size={18} />, label: '帐号和安全',        sub: '个人信息、密码修改', modes: ['client', 'provider'] },
+  { key: 'account',      icon: <ShieldCheck   size={18} />, label: '帐号和安全',        sub: '个人信息 · 密码 · 通知设置', modes: ['client', 'provider'] },
   { key: 'messages',     icon: <MessageSquare  size={18} />, label: '我的消息',     sub: '与商家的对话记录', modes: ['client', 'provider'] },
   { key: 'membership',   icon: <Crown         size={18} />, label: '会员等级',           sub: '查看商家会员权益', modes: ['client', 'provider'] },
   { key: 'my_events',      icon: <Calendar      size={18} />, label: '我报名的活动', sub: '已报名的同城活动', modes: ['client', 'provider'] },
   { key: 'referral',       icon: <Gift          size={18} />, label: '邀请好友',    sub: '我的分享码 · 已邀请人数', modes: ['client', 'provider'] },
-  { key: 'notifications',  icon: <Bell          size={18} />, label: '通知设置',    sub: '管理推送通知偏好', modes: ['client', 'provider'] },
 ]
 
 // ── Feature flag ──────────────────────────────────────────────────────────────
@@ -402,7 +401,15 @@ export default function Profile() {
   function renderSection(key: Section | null) {
     switch (key) {
       case 'homepage':     return <HomepageSection />
-      case 'account':      return <AccountSection user={user!} name={name} phone={phone} onNameChange={setName} onPhoneChange={setPhone} />
+      case 'account':
+      case 'notifications':
+        // 帐号和安全 is the settings hub: account info + password + 通知设置.
+        return (
+          <>
+            <AccountSection user={user!} name={name} phone={phone} onNameChange={setName} onPhoneChange={setPhone} />
+            <NotificationsSection />
+          </>
+        )
       case 'verification': return <VerificationSection user={user!} />
       case 'membership':   return <MembershipSection level={memberLevel} expiresAt={memberExpiresAt} />
       case 'services':     return <ServicesSection />
@@ -416,7 +423,6 @@ export default function Profile() {
       case 'inquiries':          return <TransactionsSection mode={mode} initialTab="inquiries" />
       case 'claimed_inquiries':  return <TransactionsSection mode={mode} initialTab="claimed" />
       case 'orders':             return <TransactionsSection mode={mode} initialTab="orders" />
-      case 'notifications':      return <NotificationsSection />
       case 'my_events':          return <MyEventsSection />
       case 'messages':       return <MessagesSection />
       case 'browse':       return <BrowseSection items={browse} onClear={() => { localStorage.removeItem('tcs_browse_history'); setBrowse([]) }} />
