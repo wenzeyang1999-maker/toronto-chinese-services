@@ -69,6 +69,8 @@ export default function HomepageSection() {
   // Bio
   const [editingBio, setEditingBio] = useState(false)
   const [bioInput,   setBioInput]   = useState('')
+  const [editingName, setEditingName] = useState(false)
+  const [nameInput,   setNameInput]   = useState('')
 
   // Skill tags
   const [editingTags, setEditingTags] = useState(false)
@@ -151,6 +153,17 @@ export default function HomepageSection() {
   async function saveBusinessType(type: 'individual' | 'business') {
     await supabase.from('users').update({ business_type: type }).eq('id', user!.id)
     setProfile(p => p ? { ...p, business_type: type } : p)
+  }
+
+  async function saveName() {
+    const v = nameInput.trim()
+    if (!v) { toast('名字不能为空', 'error'); return }
+    setSaving(true)
+    const { error } = await supabase.from('users').update({ name: v }).eq('id', user!.id)
+    setSaving(false)
+    if (error) { toast('保存失败：' + error.message, 'error'); return }
+    setProfile(p => p ? { ...p, name: v } : p)
+    setEditingName(false)
   }
 
   async function saveBio() {
@@ -406,6 +419,40 @@ export default function HomepageSection() {
           </button>
 
           <div className="bg-white rounded-3xl border border-gray-100 shadow-sm divide-y divide-gray-100 overflow-hidden">
+
+            {/* ① 名字 / 昵称 */}
+            <div className="px-5 py-4">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2 text-sm font-semibold text-gray-700">
+                  <User size={15} className="text-primary-400" />
+                  名字 / 昵称
+                </div>
+                {!editingName && (
+                  <button onClick={() => { setNameInput(profile.name); setEditingName(true) }}
+                    className="text-gray-400 hover:text-primary-600"><Pencil size={14} /></button>
+                )}
+              </div>
+              {editingName ? (
+                <div>
+                  <input autoFocus value={nameInput} onChange={e => setNameInput(e.target.value)}
+                    onKeyDown={e => e.key === 'Enter' && saveName()}
+                    maxLength={30}
+                    placeholder="你的称呼"
+                    className="w-full text-sm border border-primary-200 rounded-xl px-3 py-2.5 outline-none focus:ring-2 focus:ring-primary-100" />
+                  <div className="flex gap-2 mt-2">
+                    <button onClick={saveName} disabled={saving}
+                      className="flex items-center gap-1 text-xs text-white bg-primary-600 px-3 py-1.5 rounded-lg disabled:opacity-60">
+                      <Check size={12} /> 保存
+                    </button>
+                    <button onClick={() => setEditingName(false)} className="flex items-center gap-1 text-xs text-gray-400">
+                      <X size={12} /> 取消
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-sm text-gray-800">{profile.name}</p>
+              )}
+            </div>
 
             {/* ② 自雇/企业 */}
             <div className="px-5 py-4">

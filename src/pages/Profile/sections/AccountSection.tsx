@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import { Mail, Phone, Lock, User, Pencil, Check, X, ChevronRight, AlignLeft } from 'lucide-react'
 import { supabase } from '../../../lib/supabase'
+import { toast } from '../../../lib/toast'
 import type { User as SupabaseUser } from '@supabase/supabase-js'
 
 interface Props {
@@ -45,10 +46,11 @@ export default function AccountSection({ user, name, phone, onNameChange, onPhon
   async function saveName() {
     if (!nameInput.trim()) return
     setSaving(true)
-    await supabase.from('users').update({ name: nameInput.trim() }).eq('id', user.id)
+    const { error } = await supabase.from('users').update({ name: nameInput.trim() }).eq('id', user.id)
+    setSaving(false)
+    if (error) { toast('保存失败：' + error.message, 'error'); return }
     onNameChange(nameInput.trim())
     setEditingName(false)
-    setSaving(false)
   }
 
   async function savePhone() {
