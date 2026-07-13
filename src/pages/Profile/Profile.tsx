@@ -27,9 +27,7 @@ import StatsSection        from './sections/StatsSection'
 import CommunitySection    from './sections/CommunitySection'
 import ReferralSection     from './sections/ReferralSection'
 import HomepageSection    from './sections/HomepageSection'
-import InquiriesSection        from './sections/InquiriesSection'
-import ClaimedInquiriesSection from './sections/ClaimedInquiriesSection'
-import OrdersSection            from './sections/OrdersSection'
+import TransactionsSection     from './sections/TransactionsSection'
 import NotificationsSection    from './sections/NotificationsSection'
 import MyEventsSection          from './sections/MyEventsSection'
 import { toast } from '../../lib/toast'
@@ -41,9 +39,7 @@ type MenuItem = { key: Section; icon: React.ReactNode; label: string; sub: strin
 const MENU: MenuItem[] = [
   { key: 'homepage',     icon: <LayoutDashboard size={18} />, label: '我的主页',         sub: '封面 · 简介 · 标签装修', modes: ['provider'] },
   { key: 'verification', icon: <BadgeCheck    size={18} />, label: '联系方式与资质验证', sub: '社交媒体、手机验证、商户认证', modes: ['provider'] },
-  { key: 'inquiries',         icon: <ClipboardList  size={18} />, label: '我的报价请求', sub: '已提交的需求和匹配结果',   modes: ['client'] },
-  { key: 'claimed_inquiries', icon: <ClipboardList  size={18} />, label: '我接的单',     sub: '抢单记录和客户联系方式',   modes: ['provider'] },
-  { key: 'orders',            icon: <Store          size={18} />, label: '我的订单',     sub: '成交记录 · 确认成交',      modes: ['client', 'provider'] },
+  { key: 'transactions',      icon: <ClipboardList  size={18} />, label: '我的交易',     sub: '需求 · 接单 · 成交',       modes: ['client', 'provider'] },
   { key: 'account',      icon: <ShieldCheck   size={18} />, label: '帐号和安全',        sub: '个人信息、密码修改', modes: ['client', 'provider'] },
   { key: 'messages',     icon: <MessageSquare  size={18} />, label: '我的消息',     sub: '与商家的对话记录', modes: ['client', 'provider'] },
   { key: 'membership',   icon: <Crown         size={18} />, label: '会员等级',           sub: '查看商家会员权益', modes: ['client', 'provider'] },
@@ -119,10 +115,10 @@ export default function Profile() {
 
   // Opening 「我接的单」 clears the lead badge + marks those notifications read.
   useEffect(() => {
-    if (section === 'claimed_inquiries' && user) {
+    if ((section === 'claimed_inquiries' || (section === 'transactions' && mode === 'provider')) && user) {
       void useLeadAlertsStore.getState().markSeen(user.id)
     }
-  }, [section, user])
+  }, [section, user, mode])
 
   function switchMode(next: 'client' | 'provider') {
     setMode(next)
@@ -332,7 +328,7 @@ export default function Profile() {
               <div className="flex-1 min-w-0">
                 <p className={`text-sm font-medium flex items-center gap-2 ${active ? 'text-primary-700' : 'text-gray-800'}`}>
                   {item.label}
-                  {item.key === 'claimed_inquiries' && leadCount > 0 && (
+                  {item.key === 'transactions' && mode === 'provider' && leadCount > 0 && (
                     <span className="min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center">
                       {leadCount > 9 ? '9+' : leadCount}
                     </span>
@@ -415,9 +411,11 @@ export default function Profile() {
       case 'stats':        return <StatsSection />
       case 'community':    return <CommunitySection />
       case 'referral':     return <ReferralSection user={user!} />
-      case 'inquiries':          return <InquiriesSection />
-      case 'claimed_inquiries':  return <ClaimedInquiriesSection />
-      case 'orders':             return <OrdersSection />
+      case 'transactions':       return <TransactionsSection mode={mode} />
+      // Legacy / deep-link keys land inside 我的交易 on the matching tab.
+      case 'inquiries':          return <TransactionsSection mode={mode} initialTab="inquiries" />
+      case 'claimed_inquiries':  return <TransactionsSection mode={mode} initialTab="claimed" />
+      case 'orders':             return <TransactionsSection mode={mode} initialTab="orders" />
       case 'notifications':      return <NotificationsSection />
       case 'my_events':          return <MyEventsSection />
       case 'messages':       return <MessagesSection />
