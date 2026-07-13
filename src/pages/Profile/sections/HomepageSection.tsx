@@ -353,9 +353,11 @@ export default function HomepageSection() {
                 </span>
               ) : (
                 <button onClick={() => { setNameInput(profile.name); setEditingName(true) }}
-                  className="flex items-center gap-1 group">
+                  className="flex items-center gap-1.5 group">
                   <span className="text-lg font-bold text-gray-900">{profile.name}</span>
-                  <Pencil size={13} className="text-gray-300 group-hover:text-primary-600 transition-colors" />
+                  <span className="flex items-center gap-0.5 text-primary-600 bg-primary-50 border border-primary-200 rounded-full px-2 py-0.5 text-[11px] font-semibold group-hover:bg-primary-100 transition-colors">
+                    <Pencil size={11} /> 改名
+                  </span>
                 </button>
               )}
               <MembershipBadge level={profile.membership_level} size="sm" />
