@@ -33,6 +33,14 @@ const INITIAL: RegisterForm = {
   password: '',
 }
 
+// North-American number → E.164 (matches Login + send-otp normalisation)
+function toE164(raw: string): string {
+  const digits = raw.replace(/\D/g, '')
+  if (digits.length === 10) return `+1${digits}`
+  if (digits.length === 11 && digits.startsWith('1')) return `+${digits}`
+  return `+${digits}`
+}
+
 // ── Validation ────────────────────────────────────────────────────────────────
 function validate(form: RegisterForm): FormErrors {
   const errors: FormErrors = {}
@@ -90,6 +98,39 @@ export default function Register() {
   const [autoEnter, setAutoEnter]               = useState(false)   // email confirmation OFF → signUp returns a session, log straight in
   const [resending, setResending]               = useState(false)
   const [resendMsg, setResendMsg]               = useState<string | null>(null)
+
+  // ── Phone registration (Supabase native phone OTP — passwordless) ───────────
+  const [authMode, setAuthMode]         = useState<'email' | 'phone'>('email')
+  const [otpSent, setOtpSent]           = useState(false)
+  const [otpCode, setOtpCode]           = useState('')
+  const [phoneLoading, setPhoneLoading] = useState(false)
+  const [phoneError, setPhoneError]     = useState<string | null>(null)
+
+  async function sendPhoneOtpReg() {
+    if (!form.name.trim()) { setPhoneError('请输入姓名'); return }
+    if (!agreedToTerms) { setTermsError(true); return }
+    setTermsError(false)
+    const e164 = toE164(form.phone)
+    if (e164.replace(/\D/g, '').length < 10) { setPhoneError('手机号格式不正确'); return }
+    setPhoneLoading(true); setPhoneError(null)
+    // Metadata is consumed by the handle_new_user() trigger on first verify.
+    const { error } = await supabase.auth.signInWithOtp({
+      phone: e164,
+      options: { data: { name: form.name.trim(), referred_by_code: referralCode.trim().toUpperCase() || null } },
+    })
+    setPhoneLoading(false)
+    if (error) { setPhoneError('验证码发送失败，请稍后重试'); return }
+    setOtpSent(true)
+  }
+
+  async function verifyPhoneOtpReg() {
+    if (otpCode.trim().length !== 6) { setPhoneError('请输入 6 位验证码'); return }
+    setPhoneLoading(true); setPhoneError(null)
+    const { error } = await supabase.auth.verifyOtp({ phone: toE164(form.phone), token: otpCode.trim(), type: 'sms' })
+    setPhoneLoading(false)
+    if (error) { setPhoneError('验证码错误或已过期，请重试'); return }
+    navigate('/', { replace: true })
+  }
 
   async function resendVerification() {
     setResending(true)
@@ -265,10 +306,32 @@ export default function Register() {
           {/* Divider */}
           <div className="flex items-center gap-3 my-5">
             <div className="flex-1 h-px bg-gray-100" />
-            <span className="text-xs text-gray-400">或使用邮箱注册</span>
+            <span className="text-xs text-gray-400">或</span>
             <div className="flex-1 h-px bg-gray-100" />
           </div>
 
+          {/* Email ↔ Phone toggle */}
+          <div className="grid grid-cols-2 gap-1 mb-2 bg-gray-100 p-1 rounded-xl">
+            {(['email', 'phone'] as const).map((m) => (
+              <button
+                key={m}
+                type="button"
+                onClick={() => { setAuthMode(m); setServerError(null); setPhoneError(null); setOtpSent(false) }}
+                className={`py-2 rounded-lg text-sm font-medium transition-colors ${
+                  authMode === m ? 'bg-white text-primary-700 shadow-sm' : 'text-gray-500'
+                }`}
+              >
+                {m === 'email' ? '邮箱注册' : '手机注册'}
+              </button>
+            ))}
+          </div>
+          <p className="text-[11px] text-gray-400 mb-4 leading-relaxed">
+            {authMode === 'email'
+              ? '* 邮箱注册需设置密码，并通过邮件链接验证后才能登录'
+              : '* 手机注册免密码，通过短信验证码验证手机号，无需邮箱'}
+          </p>
+
+          {authMode === 'email' ? (
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* Name */}
             <Field label="姓名" error={errors.name}>
@@ -409,6 +472,139 @@ export default function Register() {
               {loading ? '注册中...' : '注册'}
             </motion.button>
           </form>
+          ) : (
+          <div className="space-y-4">
+            {/* Name */}
+            <Field label="姓名">
+              <InputRow icon={<User size={16} />}>
+                <input
+                  type="text"
+                  value={form.name}
+                  onChange={(e) => update('name', e.target.value)}
+                  placeholder="您的称呼"
+                  disabled={otpSent}
+                  className="flex-1 bg-transparent outline-none text-sm text-gray-900 placeholder-gray-400 disabled:opacity-60"
+                />
+              </InputRow>
+            </Field>
+
+            {/* Phone */}
+            <Field label="手机号">
+              <InputRow icon={<Phone size={16} />}>
+                <input
+                  type="tel"
+                  value={form.phone}
+                  onChange={(e) => update('phone', e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && !otpSent && sendPhoneOtpReg()}
+                  placeholder="10 位手机号"
+                  disabled={otpSent}
+                  className="flex-1 bg-transparent outline-none text-sm text-gray-900 placeholder-gray-400 disabled:opacity-60"
+                />
+              </InputRow>
+            </Field>
+
+            {/* Code */}
+            {otpSent && (
+              <Field label="验证码">
+                <InputRow icon={<Lock size={16} />}>
+                  <input
+                    inputMode="numeric"
+                    maxLength={6}
+                    value={otpCode}
+                    onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ''))}
+                    onKeyDown={(e) => e.key === 'Enter' && verifyPhoneOtpReg()}
+                    placeholder="6 位验证码"
+                    autoFocus
+                    className="flex-1 bg-transparent outline-none text-sm text-gray-900 placeholder-gray-400 tracking-widest"
+                  />
+                </InputRow>
+              </Field>
+            )}
+
+            {/* Referral code (optional) */}
+            {!otpSent && (
+              <Field label="邀请码（选填）">
+                <InputRow icon={<Gift size={16} />}>
+                  <input
+                    type="text"
+                    value={referralCode}
+                    onChange={(e) => setReferralCode(e.target.value.toUpperCase())}
+                    placeholder="朋友的分享码"
+                    maxLength={7}
+                    className="flex-1 bg-transparent outline-none text-sm text-gray-900 placeholder-gray-400 uppercase tracking-widest"
+                  />
+                </InputRow>
+              </Field>
+            )}
+
+            {/* Terms */}
+            {!otpSent && (
+              <div className="flex items-start gap-2 pt-1">
+                <input
+                  id="terms-phone"
+                  type="checkbox"
+                  checked={agreedToTerms}
+                  onChange={(e) => { setAgreedToTerms(e.target.checked); setTermsError(false) }}
+                  className="mt-0.5 accent-primary-600"
+                />
+                <label htmlFor="terms-phone" className="text-xs text-gray-500 leading-relaxed">
+                  我已阅读并同意{' '}
+                  <a href="/terms" target="_blank" rel="noopener noreferrer"
+                     className="text-primary-600 hover:underline">服务条款</a>
+                  {' '}及{' '}
+                  <a href="/privacy" target="_blank" rel="noopener noreferrer"
+                     className="text-primary-600 hover:underline">隐私政策</a>
+                </label>
+              </div>
+            )}
+            {termsError && (
+              <p className="text-xs text-red-500 -mt-2">请先同意服务条款</p>
+            )}
+
+            {phoneError && (
+              <div className="bg-red-50 border border-red-200 text-red-600 text-xs rounded-xl px-4 py-3">
+                {phoneError}
+              </div>
+            )}
+
+            {!otpSent ? (
+              <motion.button
+                type="button"
+                onClick={sendPhoneOtpReg}
+                disabled={phoneLoading}
+                whileTap={{ scale: phoneLoading ? 1 : 0.97 }}
+                className="w-full bg-primary-600 text-white py-3.5 rounded-2xl font-semibold text-sm
+                           hover:bg-primary-700 transition-colors mt-2 disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                {phoneLoading ? '发送中...' : '获取验证码'}
+              </motion.button>
+            ) : (
+              <>
+                <motion.button
+                  type="button"
+                  onClick={verifyPhoneOtpReg}
+                  disabled={phoneLoading}
+                  whileTap={{ scale: phoneLoading ? 1 : 0.97 }}
+                  className="w-full bg-primary-600 text-white py-3.5 rounded-2xl font-semibold text-sm
+                             hover:bg-primary-700 transition-colors mt-2 disabled:opacity-60 disabled:cursor-not-allowed"
+                >
+                  {phoneLoading ? '注册中...' : '验证并注册'}
+                </motion.button>
+                <button
+                  type="button"
+                  onClick={() => { setOtpSent(false); setOtpCode(''); setPhoneError(null) }}
+                  className="w-full text-xs text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  改号码 / 重新获取
+                </button>
+              </>
+            )}
+
+            <p className="text-[11px] text-gray-400 text-center leading-relaxed">
+              未注册的手机号将自动创建账号
+            </p>
+          </div>
+          )}
 
           {/* Login link */}
           <p className="text-center text-sm text-gray-500 mt-6">
