@@ -67,6 +67,11 @@ export default function VerificationSection({ user }: Props) {
   const [otpInput,      setOtpInput]      = useState('')
   const [phoneMsg,      setPhoneMsg]      = useState<{ ok: boolean; text: string } | null>(null)
   const [sending,       setSending]       = useState(false)
+  // Email bind / verify (link-based, unlike the phone 6-digit code)
+  const [emailStep,     setEmailStep]     = useState<'idle' | 'entering'>('idle')
+  const [emailInput,    setEmailInput]    = useState('')
+  const [emailMsg,      setEmailMsg]      = useState<{ ok: boolean; text: string } | null>(null)
+  const [emailSending,  setEmailSending]  = useState(false)
   const [verifying,     setVerifying]     = useState(false)
   const [countdown,     setCountdown]     = useState(0)
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
@@ -226,6 +231,24 @@ export default function VerificationSection({ user }: Props) {
     setStep('idle'); setPhoneMsg({ ok: true, text: '手机号验证成功 ✓' }); setVerifying(false)
   }
 
+  // ── email bind / verify ─────────────────────────────────────────────────────
+  // Email ownership is proven by clicking a link (not an in-app code): binding a
+  // new address, or re-confirming one that was never verified, both mail a link.
+  async function sendEmailVerification() {
+    const email = emailInput.trim().toLowerCase()
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setEmailMsg({ ok: false, text: '邮箱格式不正确' }); return
+    }
+    setEmailSending(true); setEmailMsg(null)
+    const sameEmail = !!user.email && email === user.email.toLowerCase()
+    const { error } = sameEmail
+      ? await supabase.auth.resend({ type: 'signup', email, options: { emailRedirectTo: `${window.location.origin}/` } })
+      : await supabase.auth.updateUser({ email }, { emailRedirectTo: `${window.location.origin}/` })
+    setEmailSending(false)
+    if (error) { setEmailMsg({ ok: false, text: error.message || '发送失败，请稍后重试' }); return }
+    setEmailMsg({ ok: true, text: `验证邮件已发送至 ${email}，请查收并点击链接完成验证（可能在垃圾邮件里）` })
+  }
+
   // ── save social links ─────────────────────────────────────────────────────
   async function saveSocialLinks() {
     setSavingLinks(true); setLinksMsg(null)
@@ -270,12 +293,49 @@ export default function VerificationSection({ user }: Props) {
             <p className="text-sm text-gray-800">邮箱验证</p>
             <p className="text-xs text-gray-400 truncate">{user.email || '未绑定邮箱（手机注册账号）'}</p>
           </div>
-          {!user.email
-            ? <Badge>未绑定</Badge>
-            : emailVerified
-              ? <Badge green>已验证</Badge>
-              : <Badge amber>未验证</Badge>}
+          {emailVerified
+            ? <Badge green>已验证</Badge>
+            : <button onClick={() => { setEmailStep('entering'); setEmailMsg(null); setEmailInput(user.email ?? '') }}
+                className="text-xs text-primary-600 bg-primary-50 hover:bg-primary-100 px-3 py-1 rounded-full font-medium transition-colors">
+                {user.email ? '去验证' : '去绑定'}
+              </button>}
         </div>
+
+        {/* Email bind / verify flow */}
+        <AnimatePresence>
+          {emailStep === 'entering' && !emailVerified && (
+            <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.2 }}
+              className="overflow-hidden border-t border-gray-100">
+              <div className="px-5 py-4 space-y-3">
+                <p className="text-xs text-gray-500">
+                  {user.email ? '我们将重新发送验证邮件到你的邮箱' : '输入邮箱，我们将发送验证链接。点击链接后即完成绑定与验证'}
+                </p>
+                <input
+                  type="email"
+                  value={emailInput}
+                  onChange={e => setEmailInput(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && !emailSending && sendEmailVerification()}
+                  placeholder="example@email.com"
+                  className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2.5 outline-none focus:ring-2 focus:ring-primary-100"
+                />
+                {emailMsg && (
+                  <p className={`text-xs ${emailMsg.ok ? 'text-green-600' : 'text-red-500'}`}>{emailMsg.text}</p>
+                )}
+                <div className="flex gap-2">
+                  <button onClick={() => { setEmailStep('idle'); setEmailMsg(null) }}
+                    className="flex-1 py-2.5 rounded-xl border border-gray-200 text-gray-600 text-sm font-medium hover:bg-gray-50">
+                    取消
+                  </button>
+                  <button onClick={sendEmailVerification} disabled={emailSending}
+                    className="flex-1 py-2.5 rounded-xl bg-primary-600 text-white text-sm font-semibold hover:bg-primary-700 disabled:opacity-60">
+                    {emailSending ? '发送中…' : '发送验证邮件'}
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Phone */}
         <div className="flex items-center gap-3 px-5 py-4 border-t border-gray-100">
