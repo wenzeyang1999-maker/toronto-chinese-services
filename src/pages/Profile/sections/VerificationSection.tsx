@@ -268,11 +268,13 @@ export default function VerificationSection({ user }: Props) {
           <Mail size={16} className="text-gray-400 flex-shrink-0" />
           <div className="flex-1">
             <p className="text-sm text-gray-800">邮箱验证</p>
-            <p className="text-xs text-gray-400 truncate">{user.email}</p>
+            <p className="text-xs text-gray-400 truncate">{user.email || '未绑定邮箱（手机注册账号）'}</p>
           </div>
-          {emailVerified
-            ? <Badge green>已验证</Badge>
-            : <Badge amber>未验证</Badge>}
+          {!user.email
+            ? <Badge>未绑定</Badge>
+            : emailVerified
+              ? <Badge green>已验证</Badge>
+              : <Badge amber>未验证</Badge>}
         </div>
 
         {/* Phone */}
