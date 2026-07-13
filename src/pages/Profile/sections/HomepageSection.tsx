@@ -444,10 +444,7 @@ export default function HomepageSection() {
                   <User size={15} className="text-primary-400" />
                   名字 / 昵称
                 </div>
-                {!editingName && (
-                  <button onClick={() => { setNameInput(profile.name); setEditingName(true) }}
-                    className="text-gray-400 hover:text-primary-600"><Pencil size={14} /></button>
-                )}
+                {!editingName && <EditChip onClick={() => { setNameInput(profile.name); setEditingName(true) }} />}
               </div>
               {editingName ? (
                 <div>
@@ -467,7 +464,10 @@ export default function HomepageSection() {
                   </div>
                 </div>
               ) : (
-                <p className="text-sm text-gray-800">{profile.name}</p>
+                <div onClick={() => { setNameInput(profile.name); setEditingName(true) }}
+                  className="cursor-pointer rounded-lg -mx-2 px-2 py-1 hover:bg-gray-50 transition-colors">
+                  <p className="text-sm text-gray-800">{profile.name}</p>
+                </div>
               )}
             </div>
 
@@ -506,10 +506,7 @@ export default function HomepageSection() {
                   <AlignLeft size={15} className="text-primary-400" />
                   自我简介
                 </div>
-                {!editingBio && (
-                  <button onClick={() => { setBioInput(profile.bio ?? ''); setEditingBio(true) }}
-                    className="text-gray-400 hover:text-primary-600"><Pencil size={14} /></button>
-                )}
+                {!editingBio && <EditChip onClick={() => { setBioInput(profile.bio ?? ''); setEditingBio(true) }} />}
               </div>
               {editingBio ? (
                 <div>
@@ -527,9 +524,12 @@ export default function HomepageSection() {
                   </div>
                 </div>
               ) : (
-                <p className="text-sm text-gray-600 leading-relaxed whitespace-pre-wrap">
-                  {profile.bio || <span className="text-gray-400 italic">未填写</span>}
-                </p>
+                <div onClick={() => { setBioInput(profile.bio ?? ''); setEditingBio(true) }}
+                  className="cursor-pointer rounded-lg -mx-2 px-2 py-1 hover:bg-gray-50 transition-colors">
+                  <p className="text-sm text-gray-600 leading-relaxed whitespace-pre-wrap">
+                    {profile.bio || <span className="text-gray-400 italic">未填写，点击这里填写</span>}
+                  </p>
+                </div>
               )}
             </div>
 
@@ -541,10 +541,7 @@ export default function HomepageSection() {
                   技能标签
                   <span className="text-xs text-gray-400 font-normal">（AI 搜索关键词）</span>
                 </div>
-                {!editingTags && (
-                  <button onClick={() => { setDraftTags(profile.skill_tags); setEditingTags(true) }}
-                    className="text-gray-400 hover:text-primary-600"><Pencil size={14} /></button>
-                )}
+                {!editingTags && <EditChip onClick={() => { setDraftTags(profile.skill_tags); setEditingTags(true) }} />}
               </div>
               {editingTags ? (
                 <div className="space-y-2">
@@ -587,14 +584,15 @@ export default function HomepageSection() {
                   </div>
                 </div>
               ) : (
-                <div className="flex flex-wrap gap-1.5">
+                <div onClick={() => { setDraftTags(profile.skill_tags); setEditingTags(true) }}
+                  className="flex flex-wrap gap-1.5 cursor-pointer rounded-lg -mx-2 px-2 py-1 hover:bg-gray-50 transition-colors">
                   {profile.skill_tags.length > 0
                     ? profile.skill_tags.map(t => (
                         <span key={t} className="text-xs bg-primary-50 text-primary-600 px-2.5 py-1 rounded-full font-medium">
                           # {t}
                         </span>
                       ))
-                    : <span className="text-sm text-gray-400 italic">未添加标签，添加后客户可以通过搜索找到你</span>
+                    : <span className="text-sm text-gray-400 italic">未添加标签，点击这里添加，添加后客户可以通过搜索找到你</span>
                   }
                 </div>
               )}
@@ -607,10 +605,7 @@ export default function HomepageSection() {
                   <ShieldCheck size={15} className="text-emerald-500" />
                   资质与设备
                 </div>
-                {!editingQualNote && (
-                  <button onClick={() => { setQualNoteInput(profile.qualification_note); setEditingQualNote(true) }}
-                    className="text-gray-400 hover:text-primary-600"><Pencil size={14} /></button>
-                )}
+                {!editingQualNote && <EditChip onClick={() => { setQualNoteInput(profile.qualification_note); setEditingQualNote(true) }} />}
               </div>
               <p className="text-xs text-gray-400 mb-3">
                 写一句资质说明，并上传营业执照、证书、车队/设备照片，客户能在你主页直接看到（最多 {MAX_QUAL_IMAGES} 张）
@@ -646,11 +641,14 @@ export default function HomepageSection() {
                   </div>
                 </div>
               ) : (
-                <p className="text-sm mb-3 whitespace-pre-wrap">
-                  {profile.qualification_note.trim()
-                    ? <span className="text-gray-700">{profile.qualification_note}</span>
-                    : <span className="text-gray-400 italic">未填写资质说明，填写可提高客户信任度</span>}
-                </p>
+                <div onClick={() => { setQualNoteInput(profile.qualification_note); setEditingQualNote(true) }}
+                  className="cursor-pointer rounded-lg -mx-2 px-2 py-1 mb-3 hover:bg-gray-50 transition-colors">
+                  <p className="text-sm whitespace-pre-wrap">
+                    {profile.qualification_note.trim()
+                      ? <span className="text-gray-700">{profile.qualification_note}</span>
+                      : <span className="text-gray-400 italic">未填写资质说明，点击这里填写，可提高客户信任度</span>}
+                  </p>
+                </div>
               )}
 
               {/* Image grid */}
@@ -694,10 +692,7 @@ export default function HomepageSection() {
                   社交媒体
                   <span className="text-xs text-gray-400 font-normal">（显示在你的公开主页）</span>
                 </div>
-                {!editingSocial && (
-                  <button onClick={() => { setSocialDraft({ ...profile.socialLinks }); setEditingSocial(true) }}
-                    className="text-gray-400 hover:text-primary-600"><Pencil size={14} /></button>
-                )}
+                {!editingSocial && <EditChip onClick={() => { setSocialDraft({ ...profile.socialLinks }); setEditingSocial(true) }} />}
               </div>
               {editingSocial ? (
                 <div className="space-y-2">
@@ -725,7 +720,8 @@ export default function HomepageSection() {
                   </div>
                 </div>
               ) : (
-                <div className="flex flex-wrap gap-2">
+                <div onClick={() => { setSocialDraft({ ...profile.socialLinks }); setEditingSocial(true) }}
+                  className="flex flex-wrap gap-2 cursor-pointer rounded-lg -mx-2 px-2 py-1 hover:bg-gray-50 transition-colors">
                   {SOCIAL_PLATFORMS.some(p => profile.socialLinks[p.key]?.trim()) ? (
                     SOCIAL_PLATFORMS.filter(p => profile.socialLinks[p.key]?.trim()).map(p => (
                       <span key={p.key} className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold border ${p.color}`}>
@@ -733,7 +729,7 @@ export default function HomepageSection() {
                       </span>
                     ))
                   ) : (
-                    <span className="text-sm text-gray-400 italic">未填写，添加后客户可在你主页直接跳转</span>
+                    <span className="text-sm text-gray-400 italic">未填写，点击这里添加，添加后客户可在你主页直接跳转</span>
                   )}
                 </div>
               )}
@@ -760,5 +756,17 @@ export default function HomepageSection() {
         </div>
       )}
     </motion.div>
+  )
+}
+
+// A clearly-visible "编辑" affordance — replaces the easy-to-miss bare pencil icon
+// that also got occluded by the floating action buttons on the right edge.
+function EditChip({ onClick }: { onClick: () => void }) {
+  return (
+    <button onClick={onClick}
+      className="flex items-center gap-0.5 text-primary-600 bg-primary-50 border border-primary-200
+                 rounded-full px-2 py-0.5 text-[11px] font-semibold hover:bg-primary-100 transition-colors flex-shrink-0">
+      <Pencil size={11} /> 编辑
+    </button>
   )
 }
