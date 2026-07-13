@@ -342,7 +342,22 @@ export default function HomepageSection() {
           {/* Name / type badge / bio / tags */}
           <div className="px-5 pt-3 pb-5">
             <div className="flex items-center gap-2 mb-1 flex-wrap">
-              <p className="text-lg font-bold text-gray-900">{profile.name}</p>
+              {editingName ? (
+                <span className="flex items-center gap-1.5">
+                  <input autoFocus value={nameInput} onChange={e => setNameInput(e.target.value)}
+                    onKeyDown={e => { if (e.key === 'Enter') saveName(); if (e.key === 'Escape') setEditingName(false) }}
+                    maxLength={30} placeholder="你的称呼"
+                    className="text-lg font-bold text-gray-900 border-b-2 border-primary-400 outline-none bg-transparent w-40" />
+                  <button onClick={saveName} disabled={saving} className="text-primary-600"><Check size={16} /></button>
+                  <button onClick={() => setEditingName(false)} className="text-gray-400"><X size={16} /></button>
+                </span>
+              ) : (
+                <button onClick={() => { setNameInput(profile.name); setEditingName(true) }}
+                  className="flex items-center gap-1 group">
+                  <span className="text-lg font-bold text-gray-900">{profile.name}</span>
+                  <Pencil size={13} className="text-gray-300 group-hover:text-primary-600 transition-colors" />
+                </button>
+              )}
               <MembershipBadge level={profile.membership_level} size="sm" />
               <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
                 profile.business_type === 'business'
