@@ -41,8 +41,10 @@ export default function Home() {
   const [inquiryOpen, setInquiryOpen]  = useState(false)
   const [searchQuery, setSearchQuery]  = useState('')
   const [viewMode, setViewMode] = useState<'list' | 'map'>(() => {
+    // List-first: default to list on first visit; a user's own toggle choice
+    // (saved in localStorage) is still honored, and the map stays selectable.
     const saved = localStorage.getItem('tcs_view_mode')
-    return saved === 'list' || saved === 'map' ? saved : 'map'
+    return saved === 'list' || saved === 'map' ? saved : 'list'
   })
   const searchRef = useRef<HTMLDivElement>(null)
 
