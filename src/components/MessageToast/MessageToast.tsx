@@ -22,7 +22,6 @@ interface Toast {
 
 const TOAST_DURATION_MS = 5000
 const MAX_TOASTS        = 3
-const PERMISSION_PROMPTED_KEY = 'tcs_notif_permission_prompted'
 
 function canUseNotifications() {
   return typeof window !== 'undefined' && 'Notification' in window
@@ -58,26 +57,9 @@ export default function MessageToast() {
   const pathRef = useRef(location.pathname)
   useEffect(() => { pathRef.current = location.pathname }, [location.pathname])
 
-  // Ask for Notification permission once per browser (after auth, on first user action)
-  useEffect(() => {
-    if (!user || !canUseNotifications()) return
-    if (Notification.permission !== 'default') return
-    if (localStorage.getItem(PERMISSION_PROMPTED_KEY)) return
-
-    const onFirstClick = async () => {
-      localStorage.setItem(PERMISSION_PROMPTED_KEY, '1')
-      try {
-        const result = await Notification.requestPermission()
-        if (result === 'granted' && user) {
-          await subscribeToWebPush(user.id)
-        }
-      } catch { /* ignore */ }
-      window.removeEventListener('click', onFirstClick)
-    }
-    window.addEventListener('click', onFirstClick, { once: true })
-    return () => window.removeEventListener('click', onFirstClick)
-  }, [user])
-
+  // Opt-in is handled by <NotificationPrompt/> (an explained card). Here we only
+  // re-subscribe the device on load when permission was already granted, so a
+  // returning user's device stays registered in push_subscriptions.
   // Re-subscribe on subsequent loads if user already granted permission
   useEffect(() => {
     if (!user || !canUseNotifications()) return

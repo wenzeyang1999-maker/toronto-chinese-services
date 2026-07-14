@@ -6,6 +6,7 @@ import { Bell, MessageSquare, ClipboardList, Star, Megaphone, Search as SearchIc
 import { supabase } from '../../../lib/supabase'
 import { useAuthStore } from '../../../store/authStore'
 import { toast } from '../../../lib/toast'
+import { subscribeToWebPush } from '../../../lib/webPush'
 import {
   getSavedSearches,
   removeSavedSearch,
@@ -128,7 +129,12 @@ export default function NotificationsSection() {
     if (!('Notification' in window)) return
     const result = await Notification.requestPermission()
     setPermState(result)
-    if (result === 'granted') toast('通知权限已开启 ✓', 'success')
+    if (result === 'granted') {
+      // Granting permission alone doesn't deliver pushes — the device must be
+      // registered in push_subscriptions for the edge function to reach it.
+      const ok = user ? await subscribeToWebPush(user.id) : false
+      toast(ok ? '通知已开启，本设备已登记 ✓' : '通知权限已开启 ✓', 'success')
+    }
   }
 
   if (loading) {

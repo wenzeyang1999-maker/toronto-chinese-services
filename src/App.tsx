@@ -20,6 +20,7 @@ import ErrorBoundary from './components/ErrorBoundary/ErrorBoundary'
 import Home from './pages/Home/Home'
 import ToastContainer from './components/Toast/ToastContainer'
 import MessageToast from './components/MessageToast/MessageToast'
+import NotificationPrompt from './components/NotificationPrompt/NotificationPrompt'
 import InstallPWA from './components/InstallPWA/InstallPWA'
 import FABGroup from './components/FABGroup/FABGroup'
 import BottomNav from './components/BottomNav/BottomNav'
@@ -229,6 +230,7 @@ export default function App() {
       {isLoadingDone && <FABGroup />}
       {isLoadingDone && <BottomNav />}
       {isLoadingDone && <MessageToast />}
+      {isLoadingDone && <NotificationPrompt />}
       {isLoadingDone && <InstallPWA />}
       {isLoadingDone && <GeofenceBanner />}
       {/* Provider inquiry alerts removed: it subscribed the provider's browser to
