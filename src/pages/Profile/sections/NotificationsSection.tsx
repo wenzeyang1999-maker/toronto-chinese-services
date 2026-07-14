@@ -7,6 +7,7 @@ import { supabase } from '../../../lib/supabase'
 import { useAuthStore } from '../../../store/authStore'
 import { toast } from '../../../lib/toast'
 import { subscribeToWebPush } from '../../../lib/webPush'
+import { isIos } from '../../../lib/pwa'
 import {
   getSavedSearches,
   removeSavedSearch,
@@ -66,6 +67,7 @@ export default function NotificationsSection() {
   const [loading, setLoading] = useState(true)
   const [saving,  setSaving]  = useState(false)
   const [permState, setPermState] = useState<NotificationPermission | 'unsupported'>('default')
+  const [showDeniedHelp, setShowDeniedHelp] = useState(false)
   const [savedSearches, setSavedSearches] = useState<SavedSearch[]>([])
 
   useEffect(() => {
@@ -169,8 +171,45 @@ export default function NotificationsSection() {
 
         {/* Browser permission banner */}
         {permState === 'denied' && (
-          <div className="mb-4 bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-sm text-red-700">
-            浏览器通知权限已被拒绝。请在浏览器设置中手动开启，否则无法收到推送。
+          <div className="mb-4 bg-red-50 border border-red-200 rounded-xl px-4 py-3.5">
+            <div className="flex items-start gap-2">
+              <p className="text-sm text-red-700 flex-1 leading-relaxed">
+                通知已被拒绝。系统不允许 App 直接改这个设置，需要你手动到系统里重新允许。
+              </p>
+            </div>
+            <button
+              onClick={() => setShowDeniedHelp(v => !v)}
+              className="mt-2 text-xs font-semibold text-red-600 underline underline-offset-2"
+            >
+              {showDeniedHelp ? '收起' : '怎么重新开启？'}
+            </button>
+
+            {showDeniedHelp && (
+              <div className="mt-3 pt-3 border-t border-red-200 text-sm text-red-800">
+                {isIos() ? (
+                  <>
+                    <p className="font-semibold mb-2">iPhone（已加到主屏幕）：</p>
+                    <ol className="space-y-2">
+                      <li className="flex gap-2"><span className="flex-shrink-0 w-5 h-5 rounded-full bg-red-100 text-red-600 font-bold text-[11px] flex items-center justify-center">1</span><span>打开 iPhone「<strong>设置</strong>」App</span></li>
+                      <li className="flex gap-2"><span className="flex-shrink-0 w-5 h-5 rounded-full bg-red-100 text-red-600 font-bold text-[11px] flex items-center justify-center">2</span><span>点「<strong>通知</strong>」，在列表里找到「<strong>华邻</strong>」</span></li>
+                      <li className="flex gap-2"><span className="flex-shrink-0 w-5 h-5 rounded-full bg-red-100 text-red-600 font-bold text-[11px] flex items-center justify-center">3</span><span>打开「<strong>允许通知</strong>」，然后回到本页刷新</span></li>
+                    </ol>
+                    <p className="mt-3 text-xs text-red-500 leading-relaxed">
+                      找不到「华邻」？把主屏上的华邻图标删掉，用 <strong>Safari</strong> 重新打开网站 →「分享」→「添加到主屏幕」，重新打开时选「允许」即可。
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <p className="font-semibold mb-2">电脑 / 安卓浏览器：</p>
+                    <ol className="space-y-2">
+                      <li className="flex gap-2"><span className="flex-shrink-0 w-5 h-5 rounded-full bg-red-100 text-red-600 font-bold text-[11px] flex items-center justify-center">1</span><span>点地址栏左侧的「<strong>🔒 锁</strong>」或「<strong>ⓘ</strong>」图标</span></li>
+                      <li className="flex gap-2"><span className="flex-shrink-0 w-5 h-5 rounded-full bg-red-100 text-red-600 font-bold text-[11px] flex items-center justify-center">2</span><span>找到「<strong>通知</strong>」，改为「<strong>允许</strong>」</span></li>
+                      <li className="flex gap-2"><span className="flex-shrink-0 w-5 h-5 rounded-full bg-red-100 text-red-600 font-bold text-[11px] flex items-center justify-center">3</span><span>刷新本页面</span></li>
+                    </ol>
+                  </>
+                )}
+              </div>
+            )}
           </div>
         )}
         {permState === 'default' && (
