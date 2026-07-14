@@ -159,7 +159,7 @@ export default function PostCommunity() {
         .select('id').single()
 
       setSubmitting(false)
-      if (err || !data) { setSubmitError('发布失败，请重试'); return }
+      if (err || !data) { setSubmitError(err?.message && /会员|过于频繁|最多|上限/.test(err.message) ? err.message : '发布失败，请重试'); return }
 
       // Notify followers — fire-and-forget, don't block navigation
       ;(async () => {

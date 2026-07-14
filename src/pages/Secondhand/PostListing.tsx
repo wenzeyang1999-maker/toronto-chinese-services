@@ -162,7 +162,7 @@ export default function PostListing() {
     setSubmitting(false)
 
     if (error) {
-      setSubmitError('发布失败，请稍后重试')
+      setSubmitError(/会员|过于频繁|最多|上限/.test(error.message) ? error.message : '发布失败，请稍后重试')
       setSubmitting(false)
       return
     }

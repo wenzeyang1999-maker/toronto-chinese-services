@@ -209,7 +209,7 @@ export default function PostRequest() {
     setLoading(false)
 
     if (error) {
-      toast('发布失败，请重试', 'error')
+      toast(/会员|过于频繁|最多|上限/.test(error.message) ? error.message : '发布失败，请重试', 'error')
       submittingRef.current = false
       return
     }
