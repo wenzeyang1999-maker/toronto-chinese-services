@@ -91,13 +91,24 @@ export default function ProfileCard({ provider, followerCount, isOwnProfile, joi
 
           {/* Trust bar */}
           {(provider.business_verified || provider.phone_verified ||
-            provider.is_email_verified || provider.qualification_images.length > 0) && (
+            provider.is_email_verified || provider.qualification_images.length > 0 ||
+            provider.has_license || provider.has_insurance) && (
             <div className="mt-2.5 pt-2.5 border-t border-gray-100">
               <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-1.5">认证信息</p>
               <div className="flex flex-wrap gap-1.5">
                 {provider.business_verified && (
                   <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-full bg-amber-50 text-amber-700 border border-amber-200">
                     <BadgeCheck size={11} /> 商户认证
+                  </span>
+                )}
+                {provider.has_license && (
+                  <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-full bg-green-50 text-green-700 border border-green-200">
+                    <BadgeCheck size={11} /> 持牌资质
+                  </span>
+                )}
+                {provider.has_insurance && (
+                  <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 border border-blue-200">
+                    <ShieldCheck size={11} /> 商业保险
                   </span>
                 )}
                 {provider.phone_verified && (

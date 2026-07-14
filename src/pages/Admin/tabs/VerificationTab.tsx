@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
-import { BadgeCheck, ExternalLink, X, CheckSquare, Square } from 'lucide-react'
+import { BadgeCheck, ExternalLink, X, CheckSquare, Square, Shield } from 'lucide-react'
 import { supabase } from '../../../lib/supabase'
 import { type VerificationRow } from '../types'
 import { useAdminContext } from '../AdminContext'
@@ -46,7 +46,7 @@ export default function VerificationTab() {
   async function loadVerifications() {
     const { data, error } = await supabase
       .from('users')
-      .select('id, name, qualification_images, verification_status, created_at')
+      .select('id, name, qualification_images, verification_status, created_at, has_license, has_insurance')
       .eq('verification_status', 'pending')
       .order('created_at', { ascending: false })
     if (error) {
@@ -59,7 +59,7 @@ export default function VerificationTab() {
   async function loadVerifHistory() {
     const { data } = await supabase
       .from('users')
-      .select('id, name, qualification_images, verification_status, created_at')
+      .select('id, name, qualification_images, verification_status, created_at, has_license, has_insurance')
       .in('verification_status', ['approved', 'rejected'])
       .order('created_at', { ascending: false })
       .limit(50)
@@ -94,6 +94,26 @@ export default function VerificationTab() {
       setVerifications(prev => prev.filter(v => v.id !== userId))
     }
     setActing(null)
+  }
+
+  // Toggle 持牌 / 商业保险 flags (name-card trust badges, A3). Independent of the
+  // overall approve/reject — admin sets them from the uploaded license/insurance
+  // docs. Goes through the is_admin()-gated admin_set_provider_flags RPC.
+  async function toggleFlag(v: VerificationRow, field: 'has_license' | 'has_insurance') {
+    const next = { has_license: !!v.has_license, has_insurance: !!v.has_insurance, [field]: !v[field] }
+    const ok = await runAdminAction(async () => {
+      const { error } = await supabase.rpc('admin_set_provider_flags', {
+        target_user_id:  v.id,
+        p_has_license:   next.has_license,
+        p_has_insurance: next.has_insurance,
+      })
+      if (error) throw error
+    }, field === 'has_license' ? '持牌状态已更新' : '保险状态已更新')
+    if (ok !== null) {
+      const patch = (rows: VerificationRow[]) => rows.map(r => r.id === v.id ? { ...r, ...next } : r)
+      setVerifications(patch)
+      setVerifHistory(patch)
+    }
   }
 
   useEffect(() => {
@@ -219,6 +239,20 @@ export default function VerificationTab() {
             )}
 
             <p className="text-xs text-gray-400 mb-3">申请时间：{v.created_at.slice(0, 10)}</p>
+
+            {/* 名片信任徽章：持牌 / 商业保险（可独立于批准/拒绝设置）*/}
+            <div className="flex gap-2 mb-2">
+              <button onClick={() => toggleFlag(v, 'has_license')} disabled={!!acting}
+                className={`flex-1 flex items-center justify-center gap-1 text-xs rounded-xl py-2 border transition-colors disabled:opacity-50
+                  ${v.has_license ? 'text-green-700 bg-green-50 border-green-200' : 'text-gray-500 border-gray-200 hover:bg-gray-50'}`}>
+                <BadgeCheck size={13} /> 持牌{v.has_license ? ' ✓' : ''}
+              </button>
+              <button onClick={() => toggleFlag(v, 'has_insurance')} disabled={!!acting}
+                className={`flex-1 flex items-center justify-center gap-1 text-xs rounded-xl py-2 border transition-colors disabled:opacity-50
+                  ${v.has_insurance ? 'text-blue-700 bg-blue-50 border-blue-200' : 'text-gray-500 border-gray-200 hover:bg-gray-50'}`}>
+                <Shield size={13} /> 保险{v.has_insurance ? ' ✓' : ''}
+              </button>
+            </div>
 
             <div className="flex gap-2">
               <button onClick={() => rejectVerification(v.id)} disabled={!!acting}

@@ -36,6 +36,8 @@ export interface VerificationRow {
   qualification_images: string[]
   verification_status: string
   created_at: string
+  has_license?: boolean
+  has_insurance?: boolean
 }
 
 export interface PromotedRow {

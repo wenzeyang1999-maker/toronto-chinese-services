@@ -5,11 +5,12 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { CheckCircle, Star, ExternalLink, Zap, Clock, Users, Phone, MessageCircle, Copy, Check } from 'lucide-react'
+import { CheckCircle, Star, ExternalLink, Zap, Clock, Users, Phone, MessageCircle, Copy, Check, MapPin, BadgeCheck, Shield } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { useAuthStore } from '../../store/authStore'
 import { notifyInquirySelected } from '../../lib/notify'
 import { toast } from '../../lib/toast'
+import { calcDistance } from '../../lib/geo'
 
 interface ProviderCard {
   id: string
@@ -17,6 +18,10 @@ interface ProviderCard {
   avatar_url: string | null
   avgRating: number
   reviewCount: number
+  businessType: 'individual' | 'business'   // 经营主体：自雇 / 公司
+  distanceKm: number | null                 // 与发单地点的距离（在线服务商才可算）
+  hasLicense: boolean                       // 持牌资质（admin 核验）
+  hasInsurance: boolean                     // 商业保险（admin 核验）
 }
 
 interface Props {
@@ -75,12 +80,13 @@ export default function InquiryResultPanel({ inquiryId, categoryId, categoryLabe
   const [contactPhone,   setContactPhone]   = useState<string | null>(null)
   const [contactWechat,  setContactWechat]  = useState<string | null>(null)
   const [wechatCopied,   setWechatCopied]   = useState(false)
+  const [customerLoc,    setCustomerLoc]    = useState<{ lat: number; lng: number } | null>(null)
 
   // Fetch initial state
   useEffect(() => {
     supabase
       .from('inquiries')
-      .select('accepted_provider_ids, race_status, assigned_provider_id')
+      .select('accepted_provider_ids, race_status, assigned_provider_id, lat, lng')
       .eq('id', inquiryId)
       .single()
       .then(({ data }) => {
@@ -88,6 +94,7 @@ export default function InquiryResultPanel({ inquiryId, categoryId, categoryLabe
         setAcceptedIds((data.accepted_provider_ids as string[]) ?? [])
         setRaceStatus(data.race_status ?? 'open')
         if (data.assigned_provider_id) setSelected(data.assigned_provider_id as string)
+        if (data.lat != null && data.lng != null) setCustomerLoc({ lat: data.lat as number, lng: data.lng as number })
       })
   }, [inquiryId])
 
@@ -108,16 +115,17 @@ export default function InquiryResultPanel({ inquiryId, categoryId, categoryLabe
     return () => { supabase.removeChannel(channel) }
   }, [inquiryId])
 
-  // Fetch provider cards whenever acceptedIds changes
+  // Fetch provider cards whenever the accepted set — or the customer location
+  // (needed for the distance chip) — changes.
   const prevIds = useRef<string>('')
   useEffect(() => {
-    const key = acceptedIds.slice().sort().join(',')
+    const key = acceptedIds.slice().sort().join(',') + '|' + (customerLoc ? 'loc' : 'noloc')
     if (!acceptedIds.length || key === prevIds.current) return
     prevIds.current = key
 
     const fetchProviders = async () => {
       const [{ data: users }, { data: reviews }] = await Promise.all([
-        supabase.from('users').select('id, name, avatar_url').in('id', acceptedIds),
+        supabase.from('users').select('id, name, avatar_url, business_type, online_lat, online_lng, has_license, has_insurance').in('id', acceptedIds),
         supabase.from('reviews').select('provider_id, rating').in('provider_id', acceptedIds),
       ])
 
@@ -128,21 +136,34 @@ export default function InquiryResultPanel({ inquiryId, categoryId, categoryLabe
         ratingMap[r.provider_id].count += 1
       }
 
-      const cards: ProviderCard[] = (users ?? []).map((u: any) => ({
-        id:          u.id,
-        name:        u.name ?? '服务商',
-        avatar_url:  u.avatar_url ?? null,
-        avgRating:   ratingMap[u.id] ? ratingMap[u.id].sum / ratingMap[u.id].count : 0,
-        reviewCount: ratingMap[u.id]?.count ?? 0,
-      }))
+      const cards: ProviderCard[] = (users ?? []).map((u: any) => {
+        const hasCoords = customerLoc && u.online_lat != null && u.online_lng != null
+        return {
+          id:          u.id,
+          name:        u.name ?? '服务商',
+          avatar_url:  u.avatar_url ?? null,
+          avgRating:   ratingMap[u.id] ? ratingMap[u.id].sum / ratingMap[u.id].count : 0,
+          reviewCount: ratingMap[u.id]?.count ?? 0,
+          businessType: (u.business_type ?? 'individual') as 'individual' | 'business',
+          distanceKm:  hasCoords ? calcDistance(customerLoc!.lat, customerLoc!.lng, u.online_lat, u.online_lng) : null,
+          hasLicense:   !!u.has_license,
+          hasInsurance: !!u.has_insurance,
+        }
+      })
 
-      // Preserve order by acceptedIds
-      cards.sort((a, b) => acceptedIds.indexOf(a.id) - acceptedIds.indexOf(b.id))
+      // Nearest first; providers without a known distance keep the accept order
+      // and sink to the bottom.
+      cards.sort((a, b) => {
+        if (a.distanceKm == null && b.distanceKm == null) return acceptedIds.indexOf(a.id) - acceptedIds.indexOf(b.id)
+        if (a.distanceKm == null) return 1
+        if (b.distanceKm == null) return -1
+        return a.distanceKm - b.distanceKm
+      })
       setProviders(cards)
     }
 
     fetchProviders()
-  }, [acceptedIds])
+  }, [acceptedIds, customerLoc])
 
   // Set assignedCard + fetch contact info once selection known
   useEffect(() => {
@@ -338,16 +359,42 @@ export default function InquiryResultPanel({ inquiryId, categoryId, categoryLabe
               ) : p.name.charAt(0)}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-gray-800 truncate">{p.name}</p>
-              {p.reviewCount > 0 ? (
-                <p className="text-xs text-yellow-500 flex items-center gap-0.5">
-                  <Star size={10} className="fill-yellow-400" />
-                  {p.avgRating.toFixed(1)}
-                  <span className="text-gray-400 ml-0.5">({p.reviewCount} 评价)</span>
-                </p>
-              ) : (
-                <p className="text-xs text-gray-400">暂无评价</p>
-              )}
+              <div className="flex items-center gap-1.5">
+                <p className="text-sm font-semibold text-gray-800 truncate">{p.name}</p>
+                <span className={`shrink-0 text-[10px] px-1.5 py-0.5 rounded-full font-medium ${
+                  p.businessType === 'business'
+                    ? 'text-blue-700 bg-blue-50 border border-blue-200'
+                    : 'text-gray-500 bg-gray-100'}`}>
+                  {p.businessType === 'business' ? '🏢 公司' : '👤 自雇'}
+                </span>
+              </div>
+              <div className="flex items-center gap-2 flex-wrap">
+                {p.reviewCount > 0 ? (
+                  <span className="text-xs text-yellow-500 flex items-center gap-0.5">
+                    <Star size={10} className="fill-yellow-400" />
+                    {p.avgRating.toFixed(1)}
+                    <span className="text-gray-400 ml-0.5">({p.reviewCount} 评价)</span>
+                  </span>
+                ) : (
+                  <span className="text-xs text-gray-400">暂无评价</span>
+                )}
+                {p.distanceKm != null && (
+                  <span className="text-xs text-gray-500 flex items-center gap-0.5">
+                    <MapPin size={10} className="text-gray-400" />
+                    {p.distanceKm < 1 ? '<1' : p.distanceKm.toFixed(1)} km
+                  </span>
+                )}
+                {p.hasLicense && (
+                  <span className="text-[10px] px-1.5 py-0.5 rounded-full font-medium text-green-700 bg-green-50 border border-green-200 flex items-center gap-0.5">
+                    <BadgeCheck size={10} /> 持牌
+                  </span>
+                )}
+                {p.hasInsurance && (
+                  <span className="text-[10px] px-1.5 py-0.5 rounded-full font-medium text-blue-700 bg-blue-50 border border-blue-200 flex items-center gap-0.5">
+                    <Shield size={10} /> 保险
+                  </span>
+                )}
+              </div>
             </div>
             <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
               <button

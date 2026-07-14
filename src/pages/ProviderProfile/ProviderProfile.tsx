@@ -47,7 +47,7 @@ export default function ProviderProfile() {
     async function load() {
       // Contact (phone/wechat) is fetched via the authorized get_contact RPC —
       // the base columns are REVOKEd from clients (see contact_rpcs migration).
-      const extSelect = 'is_online, business_type, skill_tags, qualification_note, qualification_images'
+      const extSelect = 'is_online, business_type, skill_tags, qualification_note, qualification_images, has_license, has_insurance'
       const [
         { data: profile, error: profileError },
         { data: svcsData },
@@ -108,6 +108,8 @@ export default function ProviderProfile() {
         skill_tags: (extRow?.skill_tags as string[]) ?? [],
         qualification_note: (extRow?.qualification_note as string) ?? '',
         qualification_images: (extRow?.qualification_images as string[]) ?? [],
+        has_license: (extRow?.has_license as boolean) ?? false,
+        has_insurance: (extRow?.has_insurance as boolean) ?? false,
         credit_penalty: (profile.credit_penalty as number) ?? 0,
       })
 

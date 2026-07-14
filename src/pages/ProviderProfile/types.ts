@@ -21,6 +21,8 @@ export interface ProviderUser {
   skill_tags: string[]
   qualification_note: string
   qualification_images: string[]
+  has_license: boolean
+  has_insurance: boolean
   credit_penalty: number
 }
 
