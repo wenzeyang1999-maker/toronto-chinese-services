@@ -2,10 +2,10 @@
 // Renders a Google map with service markers and the user's current location.
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Navigation, Maximize2, MapPin } from 'lucide-react'
+import { Navigation, Maximize2, MapPin, RefreshCw } from 'lucide-react'
 import type { Service, ServiceRequest, OnlineProvider } from '../../types'
 import { useAppStore } from '../../store/appStore'
-import { useGeolocation } from '../../hooks/useGeolocation'
+import { useGeolocation, useUpdateLocation, LOCATION_STALE_MS } from '../../hooks/useGeolocation'
 import { supabase } from '../../lib/supabase'
 import GoogleMapCanvas, { type GoogleMapCanvasHandle, type GoogleMapPoint } from './GoogleMapCanvas'
 import RadiusSlider from '../RadiusSlider/RadiusSlider'
@@ -31,10 +31,6 @@ function hasCoordinates(service: Service): service is Service & {
   return service.location.lat != null && service.location.lng != null
 }
 
-// Module-level guard so we auto-request location at most once per page load —
-// even if the user toggles between feed modes (which mounts a fresh ServiceMap).
-let geoAutoRequested = false
-
 // Returns a CSS height string keyed to dvh (dynamic viewport) so iOS
 // keyboard / URL-bar transitions don't visibly resize the map.
 function mapHeight(count: number): string {
@@ -52,15 +48,14 @@ export default function ServiceMap({ services, requests = [], count, requestsOnl
   const mapRef = useRef<GoogleMapCanvasHandle>(null)
   const mapped = useMemo(() => services.filter(hasCoordinates), [services])
   const [onlineProviders, setOnlineProviders] = useState<OnlineProvider[]>([])
+  const { locating, updateLocation } = useUpdateLocation()
 
-  // Auto-request location once per session whenever any map mounts.
-  // After the first grant the coords are cached in localStorage (appStore),
-  // so future visits skip the prompt and the map shows immediately.
+  // On mount, refresh location if we have none OR the cached fix is stale
+  // (>10 min) — so the map reflects where you ARE now, not where you were hours
+  // ago (e.g. you left home but the map still shows home). A fresh fix is silent
+  // after the first grant; a failure keeps the last-known coords.
   useEffect(() => {
-    if (userLocation) return
-    if (geoAutoRequested) return
-    geoAutoRequested = true
-    requestLocation()
+    requestLocation({ maxAgeMs: LOCATION_STALE_MS })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -197,6 +192,19 @@ export default function ServiceMap({ services, requests = [], count, requestsOnl
                      : 'bg-primary-600 hover:bg-primary-700'}`}
       >
         <Navigation size={18} className="text-white" fill="white" />
+      </button>
+
+      {/* Update-my-location — forces a fresh GPS read (throttled to once / 5 min) */}
+      <button
+        onClick={() => updateLocation(() => mapRef.current?.panToUser())}
+        disabled={locating}
+        title="更新我的位置（最多每 5 分钟一次）"
+        className="absolute top-14 right-3 z-[400] h-8 pl-2 pr-2.5 rounded-full shadow-md
+                   bg-white hover:bg-gray-50 flex items-center gap-1 active:scale-95 transition-all
+                   disabled:opacity-70 text-xs font-medium text-gray-700"
+      >
+        <RefreshCw size={13} className={locating ? 'animate-spin' : ''} />
+        {locating ? '定位中' : '更新位置'}
       </button>
 
       {/* Fullscreen button — opens dedicated /map page */}

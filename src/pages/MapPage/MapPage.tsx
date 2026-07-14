@@ -2,10 +2,10 @@
 // Route: /map  — Google Maps-style fullscreen experience with top search bar
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { ArrowLeft, Search, Navigation, X } from 'lucide-react'
+import { ArrowLeft, Search, Navigation, X, RefreshCw } from 'lucide-react'
 import { useAppStore } from '../../store/appStore'
 import { useAuthStore } from '../../store/authStore'
-import { useGeolocation } from '../../hooks/useGeolocation'
+import { useGeolocation, useUpdateLocation, LOCATION_STALE_MS } from '../../hooks/useGeolocation'
 import { supabase } from '../../lib/supabase'
 import GoogleMapCanvas, { type GoogleMapCanvasHandle, type GoogleMapPoint } from '../../components/ServiceMap/GoogleMapCanvas'
 import type { Service, OnlineProvider } from '../../types'
@@ -26,13 +26,14 @@ export default function MapPage() {
   const userLocation = useAppStore((s) => s.userLocation)
   const user = useAuthStore((s) => s.user)
   const requestLocation = useGeolocation()
+  const { locating, updateLocation } = useUpdateLocation()
   const mapRef = useRef<GoogleMapCanvasHandle>(null)
   const [search, setSearch] = useState('')
   const [onlineProviders, setOnlineProviders] = useState<OnlineProvider[]>([])
 
-  // Auto-request location on mount
+  // Auto-request location on mount; refresh if the cached fix is stale (>10 min).
   useEffect(() => {
-    if (!userLocation) requestLocation()
+    requestLocation({ maxAgeMs: LOCATION_STALE_MS })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -177,6 +178,18 @@ export default function MapPage() {
           aria-label="定位到我的位置"
         >
           <Navigation size={20} className={userLocation ? 'text-primary-600' : 'text-white'} fill={userLocation ? 'currentColor' : 'white'} />
+        </button>
+
+        {/* Update-my-location — fresh GPS read, throttled to once / 5 min */}
+        <button
+          onClick={() => updateLocation(() => mapRef.current?.panToUser())}
+          disabled={locating}
+          title="更新我的位置（最多每 5 分钟一次）"
+          className="absolute bottom-20 right-4 z-30 h-9 pl-2.5 pr-3 rounded-full shadow-lg bg-white hover:bg-gray-50
+                     flex items-center gap-1.5 active:scale-95 transition-all disabled:opacity-70 text-xs font-medium text-gray-700"
+        >
+          <RefreshCw size={14} className={locating ? 'animate-spin' : ''} />
+          {locating ? '定位中' : '更新位置'}
         </button>
 
         {/* Result count + legend */}

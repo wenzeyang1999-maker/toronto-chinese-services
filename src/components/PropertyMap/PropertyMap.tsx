@@ -4,9 +4,9 @@
 // have coordinates, plus the user's location + a locate-me button.
 import { useMemo, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Navigation } from 'lucide-react'
+import { Navigation, RefreshCw } from 'lucide-react'
 import { useAppStore } from '../../store/appStore'
-import { useGeolocation } from '../../hooks/useGeolocation'
+import { useGeolocation, useUpdateLocation } from '../../hooks/useGeolocation'
 import GoogleMapCanvas, { type GoogleMapCanvasHandle, type GoogleMapPoint } from '../ServiceMap/GoogleMapCanvas'
 import { buildPropertyInfo } from '../../lib/mapInfoWindows'
 import { getPriceLabel, getBedroomLabel, type Property } from '../../pages/RealEstate/types'
@@ -28,6 +28,7 @@ export default function PropertyMap({ properties }: Props) {
   const navigate = useNavigate()
   const userLocation = useAppStore((s) => s.userLocation)
   const requestLocation = useGeolocation()
+  const { locating, updateLocation } = useUpdateLocation()
   const mapRef = useRef<GoogleMapCanvasHandle>(null)
 
   const mapped = useMemo(
@@ -85,6 +86,19 @@ export default function PropertyMap({ properties }: Props) {
                    ${userLocation ? 'bg-red-500 hover:bg-red-600' : 'bg-primary-600 hover:bg-primary-700'}`}
       >
         <Navigation size={18} className="text-white" fill="white" />
+      </button>
+
+      {/* Update-my-location — fresh GPS read, throttled to once / 5 min */}
+      <button
+        onClick={() => updateLocation(() => mapRef.current?.panToUser())}
+        disabled={locating}
+        title="更新我的位置（最多每 5 分钟一次）"
+        className="absolute top-14 right-3 z-[400] h-8 pl-2 pr-2.5 rounded-full shadow-md
+                   bg-white hover:bg-gray-50 flex items-center gap-1 active:scale-95 transition-all
+                   disabled:opacity-70 text-xs font-medium text-gray-700"
+      >
+        <RefreshCw size={13} className={locating ? 'animate-spin' : ''} />
+        {locating ? '定位中' : '更新位置'}
       </button>
 
       <div className="absolute bottom-3 left-3 z-[400] bg-white/90 backdrop-blur-sm rounded-xl px-3 py-1.5

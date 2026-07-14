@@ -4,7 +4,7 @@ import HeroBanner from '../../components/HeroBanner/HeroBanner'
 import CategoryButtons from '../../components/CategoryButtons/CategoryButtons'
 import InquiryModal from '../../components/InquiryModal/InquiryModal'
 import { useAppStore } from '../../store/appStore'
-import { useGeolocation } from '../../hooks/useGeolocation'
+import { useGeolocation, LOCATION_STALE_MS } from '../../hooks/useGeolocation'
 import RecommendedServices from '../../components/RecommendedServices/RecommendedServices'
 import HomeCommunityEntry from './components/HomeCommunityEntry'
 import ServiceRequestCard from '../../components/ServiceRequestCard/ServiceRequestCard'
@@ -36,8 +36,12 @@ export default function Home() {
   const user             = useAuthStore((s) => s.user)
   const [searchParams, setSearchParams] = useSearchParams()
 
-  // Pull-to-refresh (mobile) — re-fetch the services feed from the top.
-  const { distance, refreshing, threshold } = usePullToRefresh(() => fetchServices())
+  // Pull-to-refresh (mobile) — re-fetch the services feed and, if the cached
+  // location is stale (>10 min), refresh it too (e.g. user left home).
+  const { distance, refreshing, threshold } = usePullToRefresh(() => {
+    fetchServices()
+    requestLocation({ maxAgeMs: LOCATION_STALE_MS })
+  })
   const [inquiryOpen, setInquiryOpen]  = useState(false)
   const [searchQuery, setSearchQuery]  = useState('')
   const [viewMode, setViewMode] = useState<'list' | 'map'>(() => {

@@ -20,6 +20,15 @@ function readCachedLocation(): { lat: number; lng: number } | null {
   } catch { /* ignore */ }
   return null
 }
+// Timestamp of the cached fix — used to decide when a location is stale.
+function readCachedLocationTs(): number | null {
+  if (typeof window === 'undefined') return null
+  try {
+    const raw = window.localStorage.getItem(USER_LOCATION_KEY)
+    const parsed = raw ? JSON.parse(raw) : null
+    return typeof parsed?.ts === 'number' ? parsed.ts : null
+  } catch { return null }
+}
 
 // Shape of a raw row returned from Supabase (services + joined users)
 export interface ServiceRow {
@@ -67,6 +76,7 @@ interface AppState {
   servicesError: boolean
   serviceRequests: ServiceRequest[]
   userLocation: { lat: number; lng: number } | null
+  locationCapturedAt: number | null   // epoch ms of the last fix — for staleness checks
   searchFilters: SearchFilters
   isLoadingDone: boolean
   servicesHasMore: boolean
@@ -171,6 +181,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   servicesError: false,
   serviceRequests: [],
   userLocation: readCachedLocation(),
+  locationCapturedAt: readCachedLocationTs(),
   searchFilters: { sortBy: 'rating' },
   // Branded splash shows only on the very first visit; reloads skip straight in.
   isLoadingDone: (() => {
@@ -185,11 +196,17 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
 
   setUserLocation: (loc) => {
-    set({ userLocation: loc })
-    // Persist only on successful fix — keep last-known coords if a refresh fails.
-    if (loc && typeof window !== 'undefined') {
-      try { window.localStorage.setItem(USER_LOCATION_KEY, JSON.stringify({ lat: loc.lat, lng: loc.lng, ts: Date.now() })) }
-      catch { /* ignore */ }
+    // Persist + stamp only on a successful fix — keep last-known coords/ts if a
+    // refresh fails, so a hiccup never blanks the map or resets staleness.
+    if (loc) {
+      const ts = Date.now()
+      set({ userLocation: loc, locationCapturedAt: ts })
+      if (typeof window !== 'undefined') {
+        try { window.localStorage.setItem(USER_LOCATION_KEY, JSON.stringify({ lat: loc.lat, lng: loc.lng, ts })) }
+        catch { /* ignore */ }
+      }
+    } else {
+      set({ userLocation: null })
     }
   },
 
