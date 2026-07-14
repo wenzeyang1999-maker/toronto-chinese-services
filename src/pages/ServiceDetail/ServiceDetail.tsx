@@ -18,6 +18,7 @@ import ShareButton from '../../components/ShareButton/ShareButton'
 import PageMeta from '../../components/PageMeta/PageMeta'
 import ViewCount from '../../components/ViewCount/ViewCount'
 import { SOCIAL_PLATFORMS } from '../../lib/socialPlatforms'
+import { navUrlToCoords } from '../../lib/navigation'
 import ContactActions from './components/ContactActions'
 import ImgFallback from '../../components/ImgFallback/ImgFallback'
 import ImageLightbox from '../../components/ImageLightbox/ImageLightbox'
@@ -614,16 +615,16 @@ export default function ServiceDetail() {
                 </div>
               </div>
 
-              {/* Google Maps navigation button */}
+              {/* One-tap navigation — Apple Maps on iOS, Google Maps elsewhere */}
               <a
-                href={`https://www.google.com/maps/dir/?api=1&destination=${service.location.lat},${service.location.lng}`}
+                href={navUrlToCoords(service.location.lat, service.location.lng)}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl border border-gray-200
                            bg-white hover:bg-gray-50 text-sm text-gray-700 font-medium transition-colors"
               >
                 <span>🗺️</span>
-                用 Google Maps 导航
+                一键导航
               </a>
             </motion.div>
           )}

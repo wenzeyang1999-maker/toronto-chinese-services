@@ -414,6 +414,24 @@ export default function ConversationPage() {
         )}
       </div>
 
+      {/* 身份烙印 — 客户暖色 / 服务商深色，明确当前身份与所谈服务（说明书 §5.1）*/}
+      {conv && user && conv.client_id !== conv.provider_id && (() => {
+        const isClient = conv.client_id === user.id
+        const other = conv.other?.name || '对方'
+        const svc = conv.service?.title
+        return isClient ? (
+          <div className="bg-gradient-to-r from-amber-50 to-orange-50 border-b border-amber-100 px-4 py-1.5 flex items-center gap-1.5">
+            <span>🛒</span>
+            <span className="text-xs text-amber-800 truncate">您是<b>客户</b> · 正在向「{other}」咨询{svc ? `「${svc}」` : ''}服务</span>
+          </div>
+        ) : (
+          <div className="bg-gradient-to-r from-slate-800 to-blue-900 border-b border-slate-900 px-4 py-1.5 flex items-center gap-1.5">
+            <span>🔧</span>
+            <span className="text-xs text-white/90 truncate">您是<b className="text-white">服务商</b> · 正在为「{other}」提供{svc ? `「${svc}」` : ''}服务</span>
+          </div>
+        )
+      })()}
+
       {/* Offline contact hint */}
       {(conv?.other?.phone || conv?.other?.wechat) && (
         <div className="bg-blue-50 border-b border-blue-100 px-4 py-2 flex items-center gap-2">

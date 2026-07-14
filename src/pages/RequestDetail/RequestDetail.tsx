@@ -9,6 +9,7 @@ import { getCategoryById } from '../../data/categories'
 import type { ServiceRequest } from '../../types'
 import Header from '../../components/Header/Header'
 import { toast } from '../../lib/toast'
+import { openNavToCoords } from '../../lib/navigation'
 import { formatRequestTime } from '../../lib/formatRequestTime'
 
 export default function RequestDetail() {
@@ -79,13 +80,8 @@ export default function RequestDetail() {
   }
 
   function handleNavigate() {
-    if (!req?.lat || !req?.lng) return
-    const dest = `${req.lat},${req.lng}`
-    const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent)
-    const url = isIOS
-      ? `maps://?daddr=${dest}`
-      : `https://www.google.com/maps/dir/?api=1&destination=${dest}`
-    window.open(url, '_blank')
+    if (req?.lat == null || req?.lng == null) return
+    openNavToCoords(req.lat, req.lng)
   }
 
   async function handleClose() {

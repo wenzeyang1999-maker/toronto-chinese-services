@@ -3,6 +3,7 @@
 // The .ics VALARM covers the "提醒" leg of the Meetup trio — the user's own
 // calendar fires the reminder, no server scheduler needed.
 import type { Event } from '../pages/Events/types'
+import { navUrlToQuery } from './navigation'
 
 // Escapes ICS text per RFC 5545 (backslash, semicolon, comma, newlines).
 function esc(s: string): string {
@@ -67,9 +68,9 @@ export function downloadIcs(ev: Event): void {
   setTimeout(() => URL.revokeObjectURL(url), 1000)
 }
 
-// Cross-platform maps deep link (opens the native app on mobile, web on desktop).
+// One-tap navigation to the event — Apple Maps on iOS, Google Maps elsewhere.
 export function mapNavUrl(ev: Event): string | null {
   const q = ev.address || ev.location_name
   if (!q) return null
-  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(q)}`
+  return navUrlToQuery(q)
 }
