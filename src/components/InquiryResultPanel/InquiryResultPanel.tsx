@@ -22,6 +22,7 @@ interface ProviderCard {
   distanceKm: number | null                 // 与发单地点的距离（在线服务商才可算）
   hasLicense: boolean                       // 持牌资质（admin 核验）
   hasInsurance: boolean                     // 商业保险（admin 核验）
+  orderCount: number                        // 接单量：累计确认成交的订单数（说明书 §4.3）
 }
 
 interface Props {
@@ -124,9 +125,13 @@ export default function InquiryResultPanel({ inquiryId, categoryId, categoryLabe
     prevIds.current = key
 
     const fetchProviders = async () => {
-      const [{ data: users }, { data: reviews }] = await Promise.all([
+      const [{ data: users }, { data: reviews }, orderCounts] = await Promise.all([
         supabase.from('users').select('id, name, avatar_url, business_type, online_lat, online_lng, has_license, has_insurance').in('id', acceptedIds),
         supabase.from('reviews').select('provider_id, rating').in('provider_id', acceptedIds),
+        // 接单量：每个候选商家的确认成交单数（≤5 个，逐个查即可）
+        Promise.all(acceptedIds.map(pid =>
+          supabase.rpc('provider_order_count', { p_provider: pid }).then(({ data }) => ({ pid, count: (data as number) ?? 0 }))
+        )),
       ])
 
       const ratingMap: Record<string, { sum: number; count: number }> = {}
@@ -135,6 +140,8 @@ export default function InquiryResultPanel({ inquiryId, categoryId, categoryLabe
         ratingMap[r.provider_id].sum   += r.rating
         ratingMap[r.provider_id].count += 1
       }
+      const orderCountMap: Record<string, number> = {}
+      for (const oc of orderCounts) orderCountMap[oc.pid] = oc.count
 
       const cards: ProviderCard[] = (users ?? []).map((u: any) => {
         const hasCoords = customerLoc && u.online_lat != null && u.online_lng != null
@@ -148,6 +155,7 @@ export default function InquiryResultPanel({ inquiryId, categoryId, categoryLabe
           distanceKm:  hasCoords ? calcDistance(customerLoc!.lat, customerLoc!.lng, u.online_lat, u.online_lng) : null,
           hasLicense:   !!u.has_license,
           hasInsurance: !!u.has_insurance,
+          orderCount:   orderCountMap[u.id] ?? 0,
         }
       })
 
@@ -377,6 +385,12 @@ export default function InquiryResultPanel({ inquiryId, categoryId, categoryLabe
                   </span>
                 ) : (
                   <span className="text-xs text-gray-400">暂无评价</span>
+                )}
+                {p.orderCount > 0 && (
+                  <span className="text-xs text-gray-500 flex items-center gap-0.5">
+                    <CheckCircle size={10} className="text-primary-400" />
+                    已成交 {p.orderCount} 单
+                  </span>
                 )}
                 {p.distanceKm != null && (
                   <span className="text-xs text-gray-500 flex items-center gap-0.5">
