@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
-import { Store, Star } from 'lucide-react'
+import { Store, Star, Camera } from 'lucide-react'
 import { useAuthStore } from '../../../store/authStore'
 import { supabase } from '../../../lib/supabase'
 import { toast } from '../../../lib/toast'
+import { compressImage } from '../../../lib/compressImage'
 
 interface OrderRow {
   id: string
@@ -14,6 +15,7 @@ interface OrderRow {
   status: string
   created_by: string
   created_at: string
+  completion_photos: string[] | null
   client:   { name: string | null } | null
   provider: { name: string | null } | null
 }
@@ -73,6 +75,31 @@ export default function OrdersSection() {
     if (error) { toast(error.message || '操作失败，请重试', 'error'); return }
     toast(fn === 'confirm_order' ? '已确认成交 ✓' : '已取消', 'success')
     void load()
+  }
+
+  // 完工存证：师傅上传 1-3 张现场照片 → 订单转 completed（说明书 §5.2）。
+  async function completeOrder(orderId: string, files: FileList | null) {
+    if (!user || !files || !files.length) return
+    const list = Array.from(files).slice(0, 3)
+    setActing(orderId)
+    try {
+      const urls: string[] = []
+      for (const f of list) {
+        const compressed = await compressImage(f)
+        const path = `${user.id}/order-completion/${orderId}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.jpg`
+        const { error } = await supabase.storage.from('service-images').upload(path, compressed, { upsert: false })
+        if (error) throw error
+        urls.push(supabase.storage.from('service-images').getPublicUrl(path).data.publicUrl)
+      }
+      const { error } = await supabase.rpc('complete_order', { p_order_id: orderId, p_photos: urls })
+      if (error) throw error
+      toast('已提交完工存证 ✓', 'success')
+      void load()
+    } catch (e) {
+      toast((e as { message?: string })?.message || '完工提交失败，请重试', 'error')
+    } finally {
+      setActing(null)
+    }
   }
 
   if (loading) return <p className="py-10 text-center text-sm text-gray-400">加载中…</p>
@@ -156,6 +183,33 @@ export default function OrdersSection() {
             )}
             {o.status === 'confirmed' && !isProvider && o.service_id && reviewedIds.has(o.id) && (
               <p className="text-[11px] text-gray-400 mt-2">已评价 ✓</p>
+            )}
+
+            {/* 完工存证 — 仅服务商，confirmed 订单上传 1-3 张现场照片（§5.2）*/}
+            {o.status === 'confirmed' && isProvider && (
+              <label className={`mt-3 w-full flex items-center justify-center gap-1.5 py-2 rounded-xl border border-primary-200
+                                 bg-primary-50 text-primary-700 text-sm font-semibold cursor-pointer hover:bg-primary-100
+                                 ${acting === o.id ? 'opacity-60 pointer-events-none' : ''}`}>
+                <Camera size={15} />
+                {acting === o.id ? '上传中…' : '标记完工（上传现场照）'}
+                <input type="file" accept="image/*" multiple hidden
+                  onChange={(e) => { void completeOrder(o.id, e.target.files); e.target.value = '' }} />
+              </label>
+            )}
+
+            {/* 完工存证照片 — completed 订单双方可见 */}
+            {o.status === 'completed' && o.completion_photos && o.completion_photos.length > 0 && (
+              <div className="mt-3 border-t border-gray-50 pt-3">
+                <p className="text-[11px] font-semibold text-gray-400 mb-1.5">完工存证</p>
+                <div className="flex gap-2">
+                  {o.completion_photos.map((url, i) => (
+                    <a key={i} href={url} target="_blank" rel="noopener noreferrer"
+                      className="block w-16 h-16 rounded-lg overflow-hidden border border-gray-100 bg-gray-50 hover:opacity-90">
+                      <img loading="lazy" src={url} alt={`完工照 ${i + 1}`} className="w-full h-full object-cover" />
+                    </a>
+                  ))}
+                </div>
+              </div>
             )}
           </div>
         )
