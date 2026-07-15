@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Store, Star, Camera } from 'lucide-react'
+import { Store, Star, Camera, AlertTriangle } from 'lucide-react'
 import { useAuthStore } from '../../../store/authStore'
 import { supabase } from '../../../lib/supabase'
 import { toast } from '../../../lib/toast'
@@ -37,6 +37,10 @@ export default function OrdersSection() {
   const [stars, setStars]     = useState(0)
   const [reviewText, setReviewText] = useState('')
   const [submittingReview, setSubmittingReview] = useState(false)
+  const [disputeMap, setDisputeMap] = useState<Record<string, string>>({}) // order_id → dispute status
+  const [disputingId, setDisputingId] = useState<string | null>(null)
+  const [disputeReason, setDisputeReason] = useState('')
+  const [submittingDispute, setSubmittingDispute] = useState(false)
 
   async function load() {
     if (!user) return
@@ -51,7 +55,28 @@ export default function OrdersSection() {
     const { data: revs } = await supabase.from('reviews')
       .select('order_id').eq('reviewer_id', user.id).not('order_id', 'is', null)
     setReviewedIds(new Set((revs ?? []).map((r: { order_id: string }) => r.order_id)))
+    // Existing disputes on my orders (to show status + hide the 发起纠纷 button).
+    if (rows.length) {
+      const { data: disp } = await supabase.from('disputes')
+        .select('order_id, status').in('order_id', rows.map(o => o.id))
+      const m: Record<string, string> = {}
+      for (const d of (disp ?? []) as { order_id: string; status: string }[]) m[d.order_id] = d.status
+      setDisputeMap(m)
+    }
     setLoading(false)
+  }
+
+  async function raiseDispute(orderId: string) {
+    if (!disputeReason.trim()) { toast('请填写纠纷原因', 'error'); return }
+    setSubmittingDispute(true)
+    const { data, error } = await supabase.rpc('raise_dispute', { p_order_id: orderId, p_reason: disputeReason.trim() })
+    setSubmittingDispute(false)
+    if (error) { toast(error.message || '发起失败，请重试', 'error'); return }
+    toast('已提交纠纷，平台会尽快处理', 'success')
+    setDisputingId(null); setDisputeReason('')
+    // Fire-and-forget: kick off the AI 初步意见 (admin reviews it in the backend).
+    void supabase.functions.invoke('arbitrate-dispute', { body: { disputeId: data } })
+    void load()
   }
 
   async function submitReview(orderId: string) {
@@ -210,6 +235,35 @@ export default function OrdersSection() {
                   ))}
                 </div>
               </div>
+            )}
+
+            {/* 发起纠纷 — confirmed/completed 订单，任一方，无进行中纠纷时 */}
+            {(o.status === 'confirmed' || o.status === 'completed') && (
+              disputeMap[o.id] ? (
+                <p className="mt-3 text-[11px] text-amber-600 flex items-center gap-1">
+                  <AlertTriangle size={12} />
+                  {disputeMap[o.id] === 'resolved' || disputeMap[o.id] === 'dismissed' ? '纠纷已处理' : '纠纷处理中，平台会尽快跟进'}
+                </p>
+              ) : disputingId === o.id ? (
+                <div className="mt-3 border-t border-gray-50 pt-3">
+                  <textarea value={disputeReason} onChange={(e) => setDisputeReason(e.target.value)} rows={2}
+                    placeholder="请描述纠纷情况（如：未按约定完成 / 收费不符 / 服务质量问题…）"
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-amber-300" />
+                  <div className="flex gap-2 mt-2">
+                    <button onClick={() => raiseDispute(o.id)} disabled={submittingDispute}
+                      className="flex-1 py-2 rounded-xl bg-amber-500 text-white text-sm font-semibold hover:bg-amber-600 disabled:opacity-60">
+                      {submittingDispute ? '提交中…' : '提交纠纷'}
+                    </button>
+                    <button onClick={() => { setDisputingId(null); setDisputeReason('') }}
+                      className="px-4 py-2 rounded-xl border border-gray-200 text-gray-500 text-sm">取消</button>
+                  </div>
+                </div>
+              ) : (
+                <button onClick={() => { setDisputingId(o.id); setDisputeReason('') }}
+                  className="mt-2 text-[11px] text-gray-400 hover:text-amber-600 flex items-center gap-1">
+                  <AlertTriangle size={11} /> 有问题？发起纠纷
+                </button>
+              )
             )}
           </div>
         )

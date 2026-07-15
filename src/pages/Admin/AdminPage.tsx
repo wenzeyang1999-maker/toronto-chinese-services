@@ -22,12 +22,13 @@ import UsersTab from './tabs/UsersTab'
 import ServicesTab from './tabs/ServicesTab'
 import CommunityTab from './tabs/CommunityTab'
 import InquiriesTab from './tabs/InquiriesTab'
+import DisputesTab from './tabs/DisputesTab'
 import LogsTab from './tabs/LogsTab'
 
 type Tab =
   | 'reports' | 'userReports' | 'communityReports' | 'verification' | 'promoted'
   | 'promoRequests' | 'overview' | 'community' | 'membership' | 'inquiries'
-  | 'users' | 'services' | 'logs'
+  | 'disputes' | 'users' | 'services' | 'logs'
 
 export default function AdminPage() {
   const user     = useAuthStore((s) => s.user)
@@ -152,6 +153,7 @@ export default function AdminPage() {
     { key: 'userReports',      label: `用户投诉${stats && stats.pending_user_reports > 0 ? ` (${stats.pending_user_reports})` : ''}` },
     { key: 'communityReports', label: `内容举报${stats ? ` (${stats.pending_content_reports})` : ''}` },
     { key: 'verification',     label: `认证审核${stats ? ` (${stats.pending_verifications})` : ''}` },
+    { key: 'disputes',         label: '纠纷' },
     { key: 'promoted',         label: '置顶推广' },
     { key: 'promoRequests',    label: `置顶申请${stats && stats.pending_promo_requests > 0 ? ` (${stats.pending_promo_requests})` : ''}` },
     { key: 'community',        label: '社区帖子' },
@@ -223,6 +225,8 @@ export default function AdminPage() {
           <MembershipTab />
         ) : tab === 'inquiries' ? (
           <InquiriesTab />
+        ) : tab === 'disputes' ? (
+          <DisputesTab />
         ) : tab === 'users' ? (
           <UsersTab />
         ) : tab === 'services' ? (
