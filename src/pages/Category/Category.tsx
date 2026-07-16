@@ -5,7 +5,7 @@ import { useEffect, useState, useCallback, useMemo, lazy, Suspense } from 'react
 import ServiceCard from '../../components/ServiceCard/ServiceCard'
 import InquiryModal from '../../components/InquiryModal/InquiryModal'
 import { useAppStore } from '../../store/appStore'
-import { getCategoryById } from '../../data/categories'
+import { getCategoryById, CATEGORIES } from '../../data/categories'
 import { calcDistance } from '../../lib/geo'
 import type { Service, ServiceCategory } from '../../types'
 import Header from '../../components/Header/Header'
@@ -138,6 +138,24 @@ export default function Category() {
       <InquiryModal open={inquiryOpen} onClose={() => setInquiryOpen(false)} />
 
       <div className="w-full px-3 md:w-[85%] md:px-0 lg:w-[70%] mx-auto mt-4">
+        {/* 同级分类芯片 — 横滑一排，点即切换分类（SPA 异步刷新，不整页重载，说明书 V5.2）*/}
+        <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide mb-3 pb-0.5" style={{ scrollbarWidth: 'none' }}>
+          {CATEGORIES.map((cat) => {
+            const active = cat.id === id
+            return (
+              <button
+                key={cat.id}
+                onClick={() => { if (!active) navigate(`/category/${cat.id}`) }}
+                className={`flex-shrink-0 whitespace-nowrap text-sm px-3.5 py-1.5 rounded-full font-medium transition-colors ${
+                  active ? 'bg-primary-600 text-white shadow-sm' : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
+                }`}
+              >
+                {cat.label}
+              </button>
+            )
+          })}
+        </div>
+
         {/* Sort bar + view toggle */}
         <div className="card p-3 mb-4 flex items-center gap-2 overflow-x-auto scrollbar-hide" style={{ scrollbarWidth: 'none' }}>
           <SlidersHorizontal size={14} className="text-gray-400 flex-shrink-0" />
