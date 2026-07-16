@@ -3,11 +3,12 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Inbox, CheckCircle2, Clock, XCircle, ChevronDown, ChevronUp, Phone, MessageCircle, Copy, Check } from 'lucide-react'
+import { Inbox, CheckCircle2, Clock, XCircle, ChevronDown, ChevronUp, Phone, MessageCircle, Copy, Check, Navigation } from 'lucide-react'
 import { supabase } from '../../../lib/supabase'
 import { useAuthStore } from '../../../store/authStore'
 import { CATEGORIES } from '../../../data/categories'
 import { toast } from '../../../lib/toast'
+import { openNavToCoords } from '../../../lib/navigation'
 
 interface ClaimedInquiry {
   id: string
@@ -68,6 +69,20 @@ export default function ClaimedInquiriesSection() {
     } catch {
       toast(`微信号：${wechat}（请手动复制）`)
     }
+  }
+
+  const [navBusy, setNavBusy] = useState<string | null>(null)
+  // B7：录用后才向中选师傅开放精确门牌地址；点导航时经 RPC 取精确坐标唤起导航。
+  async function navToInquiry(itemId: string) {
+    if (navBusy) return
+    setNavBusy(itemId)
+    const { data, error } = await supabase.rpc('get_inquiry_location', { p_inquiry_id: itemId })
+    setNavBusy(null)
+    const loc = Array.isArray(data) ? data[0] : data
+    if (error || !loc || loc.lat == null || loc.lng == null) {
+      toast('暂无法获取精确地址，请与客户确认', 'error'); return
+    }
+    openNavToCoords(loc.lat, loc.lng)
   }
 
   if (loading) return (
@@ -195,6 +210,13 @@ export default function ClaimedInquiriesSection() {
                               {item.wechat && (
                                 <p className="text-xs text-gray-400 text-center">微信号：{item.wechat}</p>
                               )}
+                              {/* B7：录用后才解锁精确门牌地址，一键上门导航 */}
+                              <button onClick={() => navToInquiry(item.id)} disabled={navBusy === item.id}
+                                className="w-full flex items-center justify-center gap-2 border border-gray-200 bg-white
+                                           hover:bg-gray-50 text-gray-700 text-sm font-semibold py-2.5 rounded-xl transition-colors active:scale-95 disabled:opacity-60">
+                                <Navigation size={14} className="text-primary-500" />
+                                {navBusy === item.id ? '获取地址中…' : '上门导航（精确地址）'}
+                              </button>
                             </div>
                           ) : waiting ? (
                             <div className="bg-amber-50 border border-amber-100 rounded-xl px-3 py-2.5">

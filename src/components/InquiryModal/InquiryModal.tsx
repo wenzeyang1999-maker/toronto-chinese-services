@@ -209,6 +209,9 @@ export default function InquiryModal({ open, onClose }: Props) {
         finalDescription = parts.join('；')
       }
 
+      // B7 隐私：inquiries.lat/lng 存「模糊」坐标（抢单期粗略距离/匹配用，全体抢单
+      // 师傅可读）；精确坐标进 precise_lat/lng，仅 owner/录用师傅可经 RPC 取。
+      const blurLoc = userLocation ? offsetLocation(userLocation.lat, userLocation.lng) : null
       const { data: inserted, error } = await supabase.from('inquiries').insert({
         category_id: form.categoryId,
         description: finalDescription,
@@ -218,8 +221,10 @@ export default function InquiryModal({ open, onClose }: Props) {
         phone:       form.phone.trim(),
         wechat:      form.wechat.trim() || null,
         user_id:     user.id,
-        lat:         userLocation?.lat ?? null,
-        lng:         userLocation?.lng ?? null,
+        lat:         blurLoc?.lat ?? null,
+        lng:         blurLoc?.lng ?? null,
+        precise_lat: userLocation?.lat ?? null,
+        precise_lng: userLocation?.lng ?? null,
         status:      'open',
       }).select('id').single()
       if (error) throw error

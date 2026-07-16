@@ -159,9 +159,11 @@ Deno.serve(async (req) => {
     }
 
     // Verify inquiry exists and has not been matched already (prevents duplicate sends)
+    // Use precise_lat/lng for accurate matching (service role bypasses the B7
+    // column revoke); fall back to the blurred lat/lng for older rows.
     const { data: inquiry, error: inquiryError } = await admin
       .from('inquiries')
-      .select('id, status, lat, lng, user_id, category_id')
+      .select('id, status, lat, lng, precise_lat, precise_lng, user_id, category_id')
       .eq('id', payload.inquiryId)
       .single()
     if (inquiryError || !inquiry) throw new Error('Inquiry not found')
@@ -189,8 +191,10 @@ Deno.serve(async (req) => {
     }
 
     // Straight-line distance (km) between the customer and a provider's service.
-    const iLat = typeof inquiry.lat === 'number' ? inquiry.lat : null
-    const iLng = typeof inquiry.lng === 'number' ? inquiry.lng : null
+    const iLat = typeof inquiry.precise_lat === 'number' ? inquiry.precise_lat
+               : typeof inquiry.lat === 'number' ? inquiry.lat : null
+    const iLng = typeof inquiry.precise_lng === 'number' ? inquiry.precise_lng
+               : typeof inquiry.lng === 'number' ? inquiry.lng : null
     function distanceKm(lat: number | null, lng: number | null): number | null {
       if (iLat === null || iLng === null || typeof lat !== 'number' || typeof lng !== 'number') return null
       if ((lat === 0 && lng === 0)) return null
