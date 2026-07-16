@@ -6,7 +6,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import {
   ChevronLeft, ChevronRight, Camera, LogOut,
-  ShieldCheck, Clock, MessageSquare, BadgeCheck, Crown, Heart, UserCheck, Gift, LayoutDashboard, ClipboardList, Store, Calendar, User as UserIcon,
+  ShieldCheck, Clock, MessageSquare, BadgeCheck, Crown, Heart, UserCheck, Gift, LayoutDashboard, ClipboardList, Store, Calendar, User as UserIcon, RefreshCw,
 } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { useAuthStore } from '../../store/authStore'
@@ -52,7 +52,7 @@ const MENU: MenuItem[] = [
 // now — the boss decided users navigate freely via the home tabs + map, so a
 // separate Profile mode toggle isn't needed. All the code is kept intact;
 // flip this to true to bring the feature back.
-const SHOW_MODE_TOGGLE = false
+const SHOW_MODE_TOGGLE = true
 
 export default function Profile() {
   const navigate = useNavigate()
@@ -285,29 +285,37 @@ export default function Profile() {
         </div>
       </div>
 
-      {/* Mode toggle — single CTA button + current-mode label.
-          Hidden via SHOW_MODE_TOGGLE; kept for possible future use. */}
+      {/* 一键身份翻转 — 双栖用户在「用户/服务商」视角间切换（说明书 §5.1）*/}
       {SHOW_MODE_TOGGLE && (
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 flex items-center justify-between gap-3">
-          <div className="min-w-0">
-            <p className="text-xs text-gray-400 mb-0.5">当前模式</p>
-            <p className="text-base font-bold text-gray-900 flex items-center gap-1.5">
+        <button
+          onClick={() => switchMode(mode === 'client' ? 'provider' : 'client')}
+          className={`w-full rounded-2xl p-3.5 flex items-center justify-between gap-3 shadow-sm border transition-colors active:scale-[0.99]
+            ${mode === 'client'
+              ? 'bg-gradient-to-r from-green-50 to-emerald-50 border-green-200'
+              : 'bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200'}`}
+        >
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0
+              ${mode === 'client' ? 'bg-green-100' : 'bg-blue-100'}`}>
               {mode === 'client'
-                ? <><UserIcon size={16} className="text-green-600" /> 用户模式</>
-                : <><Store size={16} className="text-blue-600" /> 服务商模式</>}
-            </p>
+                ? <UserIcon size={20} className="text-green-600" />
+                : <Store size={20} className="text-blue-600" />}
+            </div>
+            <div className="text-left min-w-0">
+              <p className="text-[11px] text-gray-400">当前身份</p>
+              <p className={`text-base font-bold truncate ${mode === 'client' ? 'text-green-700' : 'text-blue-700'}`}>
+                {mode === 'client' ? '我是用户（找服务）' : '我是服务商（接单）'}
+              </p>
+            </div>
           </div>
-          <button
-            onClick={() => switchMode(mode === 'client' ? 'provider' : 'client')}
-            className={`px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors flex-shrink-0 text-white shadow-sm relative
-              ${mode === 'client' ? 'bg-blue-600 hover:bg-blue-700' : 'bg-green-600 hover:bg-green-700'}`}
-          >
-            切换为{mode === 'client' ? '服务商' : '用户'}模式
+          <span className={`flex items-center gap-1 px-3 py-2 rounded-xl text-sm font-semibold text-white flex-shrink-0 shadow-sm relative
+            ${mode === 'client' ? 'bg-blue-600' : 'bg-green-600'}`}>
+            <RefreshCw size={14} /> 一键翻转
             {mode === 'client' && !hasServices && (
               <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-orange-400 rounded-full border-2 border-white" />
             )}
-          </button>
-        </div>
+          </span>
+        </button>
       )}
 
       {/* Menu items */}
