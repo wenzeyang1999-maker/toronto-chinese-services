@@ -24,7 +24,7 @@ import NotificationPrompt from './components/NotificationPrompt/NotificationProm
 import InstallPWA from './components/InstallPWA/InstallPWA'
 import FABGroup from './components/FABGroup/FABGroup'
 import BottomNav from './components/BottomNav/BottomNav'
-import GeofenceBanner from './components/GeofenceBanner/GeofenceBanner'
+import CityGate from './components/GeofenceBanner/CityGate'
 
 const Category        = lazy(() => import('./pages/Category/Category'))
 const Search          = lazy(() => import('./pages/Search/Search'))
@@ -232,7 +232,7 @@ export default function App() {
       {isLoadingDone && <MessageToast />}
       {isLoadingDone && <NotificationPrompt />}
       {isLoadingDone && <InstallPWA />}
-      {isLoadingDone && <GeofenceBanner />}
+      {isLoadingDone && <CityGate />}
       {/* Provider inquiry alerts removed: it subscribed the provider's browser to
           the whole inquiries table (which carries customer name/phone/wechat),
           a PII-over-realtime risk. Providers are notified via email + the public

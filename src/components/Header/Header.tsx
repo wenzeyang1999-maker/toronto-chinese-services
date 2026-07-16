@@ -11,8 +11,10 @@
 import { useCallback, useRef, useState } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { Search, UserCircle } from 'lucide-react'
+import { Search, UserCircle, MapPin } from 'lucide-react'
 import { useAuthStore } from '../../store/authStore'
+import { useCityStore } from '../../store/cityStore'
+import CityPicker from '../CityPicker/CityPicker'
 import HuaLinLogo from '../Logo/HuaLinLogo'
 import AdminNotificationsBell from '../AdminNotifications/AdminNotificationsBell'
 
@@ -78,6 +80,8 @@ export default function Header({ sticky = true }: HeaderProps) {
   const user      = useAuthStore((s) => s.user)
   const active    = getActiveSection(location.pathname)
   const scrollRef = useRef<HTMLDivElement>(null)
+  const city      = useCityStore((s) => s.city)
+  const [cityPickerOpen, setCityPickerOpen] = useState(false)
 
   const [searchQuery,  setSearchQuery]  = useState('')
   const [globalSearch, setGlobalSearch] = useState(false)
@@ -91,6 +95,8 @@ export default function Header({ sticky = true }: HeaderProps) {
   const placeholder = active ? PLACEHOLDER[active] : '搜索…'
 
   return (
+   <>
+    <CityPicker open={cityPickerOpen} onClose={() => setCityPickerOpen(false)} />
     <header className={sticky
       ? 'sticky top-0 z-40 bg-white border-b border-gray-200 pt-safe'
       : 'w-full bg-white border-b border-gray-200 relative pt-safe'
@@ -100,9 +106,17 @@ export default function Header({ sticky = true }: HeaderProps) {
       <div className="px-3 md:px-6 h-14 flex items-center gap-2">
 
         {/* Logo */}
-        <Link to="/" className="flex items-center flex-shrink-0 mr-2 lg:mr-4">
+        <Link to="/" className="flex items-center flex-shrink-0 mr-1 lg:mr-3">
           <HuaLinLogo variant="full" theme="light" size={32} />
         </Link>
+
+        {/* 当前城市 — 点击三级选城（B3）*/}
+        <button onClick={() => setCityPickerOpen(true)}
+          className="flex items-center gap-0.5 flex-shrink-0 text-xs font-medium text-gray-600 hover:text-primary-600 mr-1 lg:mr-3"
+          title="切换城市">
+          <MapPin size={13} className="text-primary-500" />
+          <span className="max-w-[56px] truncate">{city.name}</span>
+        </button>
 
         {/* Desktop section nav (lg+) */}
         <nav className="hidden lg:flex items-center gap-0.5 flex-shrink-0">
@@ -253,5 +267,6 @@ export default function Header({ sticky = true }: HeaderProps) {
         </div>
       )}
     </header>
+   </>
   )
 }
