@@ -48,11 +48,29 @@ interface ActivePanel {
   wechat: string
 }
 
+// A public demand posted via the「发需求」flow (PostRequest). It only writes a
+// service_requests row — no inquiry, no 5-provider race — so it never showed up
+// in「我的交易」before. We list these alongside inquiries (excluding the ones
+// that DO have a linked inquiry, which already appear as 报价请求).
+interface DemandRequest {
+  id: string
+  category: string
+  title: string
+  description: string | null
+  budget: string | null
+  status: 'open' | 'closed'
+  created_at: string
+}
+
+type Row =
+  | ({ kind: 'inquiry' } & Inquiry)
+  | ({ kind: 'request' } & DemandRequest)
+
 export default function InquiriesSection() {
   const user     = useAuthStore((s) => s.user)
   const navigate = useNavigate()
 
-  const [items,       setItems]       = useState<Inquiry[]>([])
+  const [items,       setItems]       = useState<Row[]>([])
   const [loading,     setLoading]     = useState(true)
   const [expanded,    setExpanded]    = useState<string | null>(null)
   const [activePanel, setActivePanel] = useState<ActivePanel | null>(null)
@@ -64,22 +82,37 @@ export default function InquiriesSection() {
 
     async function load() {
       setLoading(true)
-      const { data, error } = await supabase
-        .from('inquiries')
-        .select('id, category_id, description, budget, timing, status, race_status, accepted_provider_ids, assigned_provider_id, name, phone, wechat, created_at')
-        .eq('user_id', userId)
-        .neq('status', 'closed')   // hide closed — mirror the map (closed = gone)
-        .order('created_at', { ascending: false })
+      const [inqRes, reqRes] = await Promise.all([
+        supabase
+          .from('inquiries')
+          .select('id, category_id, description, budget, timing, status, race_status, accepted_provider_ids, assigned_provider_id, name, phone, wechat, created_at')
+          .eq('user_id', userId)
+          .neq('status', 'closed')   // hide closed — mirror the map (closed = gone)
+          .order('created_at', { ascending: false }),
+        // 「发需求」posts have no linked inquiry — pull those so they show here too.
+        supabase
+          .from('service_requests')
+          .select('id, category, title, description, budget, status, created_at')
+          .eq('user_id', userId)
+          .is('inquiry_id', null)
+          .neq('status', 'closed')
+          .order('created_at', { ascending: false }),
+      ])
 
-      if (isActive) {
-        if (!error && data) {
-          setItems(data.map((r: any) => ({
-            ...r,
-            accepted_provider_ids: r.accepted_provider_ids ?? [],
-          })))
-        }
-        setLoading(false)
-      }
+      if (!isActive) return
+
+      const inquiries: Row[] = (inqRes.data ?? []).map((r: any) => ({
+        kind: 'inquiry',
+        ...r,
+        accepted_provider_ids: r.accepted_provider_ids ?? [],
+      }))
+      const requests: Row[] = (reqRes.data ?? []).map((r: any) => ({
+        kind: 'request',
+        ...r,
+      }))
+      // Merge and sort newest-first across both kinds (ISO strings sort chronologically).
+      setItems([...inquiries, ...requests].sort((a, b) => b.created_at.localeCompare(a.created_at)))
+      setLoading(false)
     }
 
     void load()
@@ -104,7 +137,7 @@ export default function InquiriesSection() {
     //    window around this inquiry's creation (both rows are written in the same
     //    submit, so their timestamps are within seconds). Guarantees old data
     //    cascades too, no manual SQL needed.
-    if (item) {
+    if (item && item.kind === 'inquiry') {
       const t  = new Date(item.created_at).getTime()
       const lo = new Date(t - 120_000).toISOString()
       const hi = new Date(t + 120_000).toISOString()
@@ -117,6 +150,16 @@ export default function InquiriesSection() {
         .gte('created_at', lo)
         .lte('created_at', hi)
     }
+    void useAppStore.getState().fetchServiceRequests()
+  }
+
+  async function closeRequest(id: string) {
+    if (!user) return
+    // Wipe coords too so the demand pin drops off the map (map filters null lat/lng).
+    const { error } = await supabase.from('service_requests')
+      .update({ status: 'closed', lat: null, lng: null }).eq('id', id).eq('user_id', user.id)
+    if (error) { toast('关闭失败，请重试', 'error'); return }
+    setItems(prev => prev.filter(it => it.id !== id))
     void useAppStore.getState().fetchServiceRequests()
   }
 
@@ -154,12 +197,84 @@ export default function InquiriesSection() {
           </div>
         ) : (
           <div className="space-y-3">
-            <p className="text-xs text-gray-400 px-1">共 {items.length} 条报价请求</p>
+            <p className="text-xs text-gray-400 px-1">共 {items.length} 条</p>
             <AnimatePresence>
               {items.map((item, i) => {
-                const cat     = CATEGORIES.find(c => c.id === item.category_id)
-                const cfg     = STATUS_CONFIG[item.status] ?? STATUS_CONFIG.open
+                const catId   = item.kind === 'inquiry' ? item.category_id : item.category
+                const cat     = CATEGORIES.find(c => c.id === catId)
                 const isOpen  = expanded === item.id
+
+                // ── 我发布的公开需求（「发需求」入口，无抢单流程）──
+                if (item.kind === 'request') {
+                  return (
+                    <motion.div key={item.id}
+                      initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: i * 0.04 }}
+                      className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden"
+                    >
+                      <button
+                        onClick={() => setExpanded(isOpen ? null : item.id)}
+                        className="w-full flex items-center gap-3 px-4 py-3.5 text-left hover:bg-gray-50 transition-colors"
+                      >
+                        <span className="text-xl flex-shrink-0">{cat?.emoji ?? '📌'}</span>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold text-gray-800 truncate">
+                            {item.title || cat?.label || '我的需求'}
+                          </p>
+                          <p className="text-xs text-gray-400 mt-0.5">
+                            {item.created_at.slice(0, 10)} · 我发布的需求
+                            {item.budget ? ` · 预算 ${item.budget}` : ''}
+                          </p>
+                        </div>
+                        <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full flex-shrink-0 ${item.status === 'closed' ? 'bg-gray-100 text-gray-500' : 'bg-amber-100 text-amber-700'}`}>
+                          {item.status === 'closed' ? '已关闭' : '招募中'}
+                        </span>
+                        {isOpen ? <ChevronUp size={14} className="text-gray-400 flex-shrink-0" /> : <ChevronDown size={14} className="text-gray-400 flex-shrink-0" />}
+                      </button>
+
+                      <AnimatePresence>
+                        {isOpen && (
+                          <motion.div
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: 'auto', opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }}
+                            transition={{ duration: 0.2 }}
+                            className="overflow-hidden"
+                          >
+                            <div className="px-4 pb-4 space-y-3 border-t border-gray-50 pt-3">
+                              {item.description && (
+                                <p className="text-sm text-gray-700 leading-relaxed">{item.description}</p>
+                              )}
+                              <div className="flex items-center gap-2 bg-blue-50 border border-blue-100 rounded-xl px-3 py-2.5">
+                                <Clock size={14} className="text-blue-500 flex-shrink-0" />
+                                <p className="text-xs text-blue-700">这是公开需求帖，服务商看到后会主动联系你</p>
+                              </div>
+                              <button
+                                onClick={() => navigate(`/requests/${item.id}`)}
+                                className="w-full flex items-center justify-center gap-1.5 bg-white border border-gray-200
+                                           rounded-xl px-3 py-2.5 hover:bg-gray-50 transition-colors text-xs font-semibold text-gray-700"
+                              >
+                                查看公开需求页 →
+                              </button>
+                              {item.status !== 'closed' && (
+                                <button
+                                  onClick={() => closeRequest(item.id)}
+                                  className="w-full flex items-center justify-center gap-1.5 text-xs text-gray-400
+                                             hover:text-red-500 py-1.5 transition-colors"
+                                >
+                                  <X size={13} /> 关闭此需求（已找到服务商）
+                                </button>
+                              )}
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </motion.div>
+                  )
+                }
+
+                // ── 报价请求（AI 发单，带 5 人抢单状态）──
+                const cfg     = STATUS_CONFIG[item.status] ?? STATUS_CONFIG.open
                 const slotFilled = item.accepted_provider_ids.length >= 5 || item.race_status === 'filled'
                 const hasProviders = item.accepted_provider_ids.length > 0
                 const isAssigned = !!item.assigned_provider_id
