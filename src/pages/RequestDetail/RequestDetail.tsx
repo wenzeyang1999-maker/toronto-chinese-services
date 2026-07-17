@@ -23,15 +23,14 @@ export default function RequestDetail() {
 
   useEffect(() => {
     if (!id) return
-    // Anon visitors can see request details but not the requester's contact
-    // info — phone/wechat are revoked from the anon role and fetched here only
-    // when the viewer is logged in.
-    const requesterCols = user
-      ? 'id, name, avatar_url, phone, wechat'
-      : 'id, name, avatar_url'
+    // Only ever read the requester's public columns. phone/wechat are REVOKED
+    // from both anon AND authenticated on public.users (see migration
+    // 20260706120006) — selecting them here returns 42501 and makes the whole
+    // fetch fail, so a logged-in viewer sees "需求不存在". Contact info is
+    // reached separately via the get_contact RPC when actually needed.
     supabase
       .from('service_requests')
-      .select(`*, requester:users(${requesterCols})`)
+      .select('*, requester:users(id, name, avatar_url)')
       .eq('id', id)
       .single()
       .then(({ data, error }) => {
