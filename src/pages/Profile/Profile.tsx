@@ -9,8 +9,10 @@ import {
   ShieldCheck, Clock, MessageSquare, BadgeCheck, Crown, Heart, UserCheck, Gift, LayoutDashboard, ClipboardList, Store, Calendar, User as UserIcon, RefreshCw,
 } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
+import { offsetLocation } from '../../lib/geo'
 import { useAuthStore } from '../../store/authStore'
 import { useLeadAlertsStore } from '../../store/leadAlertsStore'
+import { useOnlineModeStore } from '../../store/onlineModeStore'
 import { compressImage } from '../../lib/compressImage'
 import type { BrowseEntry, Section } from './types'
 import type { MemberLevel } from '../../components/MembershipBadge/MembershipBadge'
@@ -84,6 +86,7 @@ export default function Profile() {
   const [verify, setVerify] = useState({ email: false, phone: false, idOrBiz: false })
   const [creditPenalty, setCreditPenalty] = useState(0)
   const [isAdmin, setIsAdmin] = useState(false)
+  const [flipping, setFlipping] = useState(false)   // 身份翻转 / 上下线进行中
   const [mode, setMode] = useState<'client' | 'provider'>(() => {
     const saved = localStorage.getItem('tcs_profile_mode')
     if (saved === 'provider' || saved === 'client') return saved
@@ -119,12 +122,49 @@ export default function Profile() {
     }
   }, [section, user, mode])
 
-  function switchMode(next: 'client' | 'provider') {
+  // 服务商模式 ≡ 上线接单：翻转到「服务商」= 自动上线（显示到地图），
+  // 翻回「用户」= 自动下线。上线接单不再是主页里单独的按钮。
+  async function switchMode(next: 'client' | 'provider') {
     setMode(next)
     localStorage.setItem('tcs_profile_mode', next)
     // If currently viewing a section not in the new mode, clear it
     const item = MENU.find((m) => m.key === section)
     if (item && !item.modes.includes(next)) setSection(null)
+
+    // Drive the app-wide blue「上线接单」tint immediately (optimistic).
+    useOnlineModeStore.getState().setOnline(next === 'provider')
+
+    if (!user || flipping) return
+    setFlipping(true)
+    try {
+      if (next === 'provider') {
+        // Go online. Fuzz the GPS 300–900m (like demand pins) — the online pin
+        // is publicly readable, never store the raw home address.
+        let lat: number | null = null
+        let lng: number | null = null
+        try {
+          const pos = await new Promise<GeolocationPosition>((res, rej) =>
+            navigator.geolocation.getCurrentPosition(res, rej, { timeout: 8000 }))
+          const f = offsetLocation(pos.coords.latitude, pos.coords.longitude)
+          lat = f.lat; lng = f.lng
+        } catch {
+          toast('已上线接单，但未获取到位置，地图上暂不显示你', 'info')
+        }
+        await supabase.from('users').update({
+          is_online: true, online_lat: lat, online_lng: lng,
+          last_seen_at: new Date().toISOString(),
+        }).eq('id', user.id)
+        if (lat != null) toast('已上线接单 · 显示到地图', 'success')
+      } else {
+        await supabase.from('users').update({
+          is_online: false, online_lat: null, online_lng: null,
+          last_seen_at: new Date().toISOString(),
+        }).eq('id', user.id)
+        toast('已切换为用户模式 · 已下线', 'success')
+      }
+    } finally {
+      setFlipping(false)
+    }
   }
 
   // Unauthenticated: show benefits screen (no hard redirect — let the screen sell the value)
@@ -289,7 +329,8 @@ export default function Profile() {
       {SHOW_MODE_TOGGLE && (
         <button
           onClick={() => switchMode(mode === 'client' ? 'provider' : 'client')}
-          className={`w-full rounded-2xl p-3.5 flex items-center justify-between gap-3 shadow-sm border transition-colors active:scale-[0.99]
+          disabled={flipping}
+          className={`w-full rounded-2xl p-3.5 flex items-center justify-between gap-3 shadow-sm border transition-colors active:scale-[0.99] disabled:opacity-70
             ${mode === 'client'
               ? 'bg-gradient-to-r from-green-50 to-emerald-50 border-green-200'
               : 'bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200'}`}
@@ -304,13 +345,16 @@ export default function Profile() {
             <div className="text-left min-w-0">
               <p className="text-[11px] text-gray-400">当前身份</p>
               <p className={`text-base font-bold truncate ${mode === 'client' ? 'text-green-700' : 'text-blue-700'}`}>
-                {mode === 'client' ? '我是用户（找服务）' : '我是服务商（接单）'}
+                {mode === 'client' ? '我是用户（找服务）' : '我是服务商（上线接单）'}
+              </p>
+              <p className="text-[10px] text-gray-400 truncate">
+                {mode === 'client' ? '翻转即上线接单 · 显示到地图' : flipping ? '定位中…' : '已上线接单 · 翻转回用户则下线'}
               </p>
             </div>
           </div>
           <span className={`flex items-center gap-1 px-3 py-2 rounded-xl text-sm font-semibold text-white flex-shrink-0 shadow-sm relative
             ${mode === 'client' ? 'bg-blue-600' : 'bg-green-600'}`}>
-            <RefreshCw size={14} /> 一键翻转
+            <RefreshCw size={14} className={flipping ? 'animate-spin' : ''} /> {flipping ? '处理中' : '一键翻转'}
             {mode === 'client' && !hasServices && (
               <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-orange-400 rounded-full border-2 border-white" />
             )}

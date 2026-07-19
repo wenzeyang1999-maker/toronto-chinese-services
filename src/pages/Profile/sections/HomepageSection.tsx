@@ -2,13 +2,12 @@ import { useEffect, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
 import {
   Camera, Check, ExternalLink, Pencil, Share2, Tag, X,
-  AlignLeft, Wifi, WifiOff, Briefcase, Building2, User,
+  AlignLeft, Briefcase, Building2, User,
   Plus, ImagePlus, ShieldCheck, Link2,
 } from 'lucide-react'
 import { SOCIAL_PLATFORMS } from '../../../lib/socialPlatforms'
 import { cropAndCompressImage, compressImage, validateImageFile } from '../../../lib/compressImage'
 import { supabase } from '../../../lib/supabase'
-import { offsetLocation } from '../../../lib/geo'
 import { useAuthStore } from '../../../store/authStore'
 import { useNavigate } from 'react-router-dom'
 import MembershipBadge, { type MemberLevel } from '../../../components/MembershipBadge/MembershipBadge'
@@ -49,12 +48,6 @@ interface Profile {
 
 const MAX_QUAL_IMAGES = 8
 
-function getCurrentPosition(): Promise<GeolocationPosition> {
-  return new Promise((resolve, reject) =>
-    navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 8000 })
-  )
-}
-
 export default function HomepageSection() {
   const user     = useAuthStore((s) => s.user)
   const navigate = useNavigate()
@@ -64,7 +57,6 @@ export default function HomepageSection() {
   const [saving,          setSaving]          = useState(false)
   const [uploadingCover,  setUploadingCover]  = useState(false)
   const [copied,          setCopied]          = useState(false)
-  const [togglingOnline,  setTogglingOnline]  = useState(false)
 
   // Bio
   const [editingBio, setEditingBio] = useState(false)
@@ -263,37 +255,6 @@ export default function HomepageSection() {
     }
   }
 
-  async function toggleOnline() {
-    if (!user || !profile) return
-    setTogglingOnline(true)
-    const next = !profile.is_online
-    let lat: number | null = null
-    let lng: number | null = null
-
-    if (next) {
-      try {
-        const pos = await getCurrentPosition()
-        // Privacy: the online pin is publicly readable — never store the raw
-        // device GPS (often a home address). Fuzz it 300–900m like demand pins.
-        const fuzzed = offsetLocation(pos.coords.latitude, pos.coords.longitude)
-        lat = fuzzed.lat
-        lng = fuzzed.lng
-      } catch {
-        toast('无法获取位置，上线后地图上不会显示你的位置', 'info')
-      }
-    }
-
-    const { error } = await supabase.from('users').update({
-      is_online:  next,
-      online_lat: next ? lat : null,
-      online_lng: next ? lng : null,
-      last_seen_at: new Date().toISOString(),
-    }).eq('id', user.id)
-
-    if (!error) setProfile(p => p ? { ...p, is_online: next } : p)
-    setTogglingOnline(false)
-  }
-
   // ── Render ────────────────────────────────────────────────────────────────
 
   return (
@@ -420,20 +381,8 @@ export default function HomepageSection() {
       {tab === 'edit' && (
         <div className="px-4 py-4 max-w-md lg:max-w-none mx-auto space-y-3">
 
-          {/* ① 上线接单 */}
-          <button onClick={toggleOnline} disabled={togglingOnline}
-            className={`w-full flex items-center justify-center gap-3 py-4 rounded-2xl text-base font-bold transition-all active:scale-[0.98] disabled:opacity-60 shadow-sm ${
-              profile.is_online
-                ? 'bg-gray-100 text-gray-500 hover:bg-gray-200'
-                : 'bg-emerald-500 text-white hover:bg-emerald-600 shadow-emerald-200'
-            }`}>
-            {togglingOnline
-              ? <span className="text-sm">定位中…</span>
-              : profile.is_online
-                ? <><WifiOff size={20} />我下线休息</>
-                : <><Wifi size={20} />上线接单（显示到地图）</>
-            }
-          </button>
+          {/* 上线接单已并入「一键翻转」身份切换（翻到服务商模式=自动上线），
+              此处不再放单独按钮。 */}
 
           <div className="bg-white rounded-3xl border border-gray-100 shadow-sm divide-y divide-gray-100 overflow-hidden">
 

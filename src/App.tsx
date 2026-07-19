@@ -62,9 +62,12 @@ const InquiryClaim    = lazy(() => import('./pages/InquiryClaim/InquiryClaim'))
 const NotFound        = lazy(() => import('./pages/NotFound/NotFound'))
 import { useAppStore } from './store/appStore'
 import { useAuthStore } from './store/authStore'
+import { useOnlineModeStore } from './store/onlineModeStore'
 import { supabase } from './lib/supabase'
 import { unsubscribeFromWebPush } from './lib/webPush'
 import { useRequestMatchAlerts } from './hooks/useRequestMatchAlerts'
+import { useUrgentRequestAlerts } from './hooks/useUrgentRequestAlerts'
+import UrgentLeadPopup from './components/UrgentLeadPopup/UrgentLeadPopup'
 import { useLeadAlerts } from './hooks/useLeadAlerts'
 import { useReadSync } from './lib/useReadSync'
 import { useViewportHeight } from './lib/useViewportHeight'
@@ -74,8 +77,24 @@ function SearchAllRedirect() {
   return <Navigate to={q ? `/search?q=${encodeURIComponent(q)}&global=1` : '/search?global=1'} replace />
 }
 
+// App-wide「上线接单」indicator — a faint blue gradient rising from the bottom on
+// EVERY screen while the provider is online, so they always know they're live.
+// pointer-events-none + fixed → purely cosmetic, never blocks taps or scroll.
+function OnlineModeTint() {
+  const online = useOnlineModeStore((s) => s.online)
+  if (!online) return null
+  return (
+    <div
+      aria-hidden
+      className="pointer-events-none fixed inset-0 z-[45] bg-gradient-to-t
+                 from-blue-500/20 via-blue-500/[0.06] to-transparent"
+    />
+  )
+}
+
 export default function App() {
   useRequestMatchAlerts()
+  useUrgentRequestAlerts()
   useLeadAlerts()
   useReadSync()
   useViewportHeight()
@@ -104,6 +123,7 @@ export default function App() {
           unsubscribeFromWebPush(prevUser.id).catch(() => {})
         }
         setUser(null)
+        useOnlineModeStore.getState().setOnline(false)   // logged out → no tint
         return
       }
 
@@ -113,7 +133,7 @@ export default function App() {
 
       const { data: profile } = await supabase
         .from('users')
-        .select('role')
+        .select('role, is_online')
         .eq('id', authUser.id)
         .single()
 
@@ -122,8 +142,13 @@ export default function App() {
       if (profile?.role === 'banned') {
         await supabase.auth.signOut()
         setUser(null)
+        useOnlineModeStore.getState().setOnline(false)
         return
       }
+
+      // Reconcile the app-wide「上线接单」tint with the real DB state so a stale
+      // localStorage flag can't show blue while actually offline (or vice versa).
+      useOnlineModeStore.getState().setOnline(profile?.is_online === true)
 
       // First-time OAuth users (Google/Apple) won't have a public.users row yet.
       // The email/password flow creates it via a DB trigger; OAuth needs this fallback.
@@ -226,6 +251,9 @@ export default function App() {
         </ErrorBoundary>
       )}
 
+      {/* App-wide「上线接单」blue tint (cosmetic, non-blocking) */}
+      {isLoadingDone && <OnlineModeTint />}
+
       {/* Desktop FABs + mobile bottom nav */}
       {isLoadingDone && <FABGroup />}
       {isLoadingDone && <BottomNav />}
@@ -233,6 +261,7 @@ export default function App() {
       {isLoadingDone && <NotificationPrompt />}
       {isLoadingDone && <InstallPWA />}
       {isLoadingDone && <CityGate />}
+      {isLoadingDone && <UrgentLeadPopup />}
       {/* Provider inquiry alerts removed: it subscribed the provider's browser to
           the whole inquiries table (which carries customer name/phone/wechat),
           a PII-over-realtime risk. Providers are notified via email + the public
