@@ -3,6 +3,7 @@ import { CheckCircle2, Clock, ExternalLink, MessageSquare, Phone, ShieldCheck, B
 import type { ProviderUser } from '../types'
 import MembershipBadge from '../../../components/MembershipBadge/MembershipBadge'
 import CreditStars from '../../../components/CreditStars/CreditStars'
+import Badge from '../../../components/Badge/Badge'
 import FollowButton from '../../../components/FollowButton/FollowButton'
 import ReplyTimeBadge from '../../../components/ReplyTimeBadge/ReplyTimeBadge'
 import ImgFallback from '../../../components/ImgFallback/ImgFallback'
@@ -97,19 +98,13 @@ export default function ProfileCard({ provider, followerCount, isOwnProfile, joi
               <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-1.5">认证信息</p>
               <div className="flex flex-wrap gap-1.5">
                 {provider.business_verified && (
-                  <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-full bg-amber-50 text-amber-700 border border-amber-200">
-                    <BadgeCheck size={11} /> 商户认证
-                  </span>
+                  <Badge tone="warning"><BadgeCheck size={11} /> 商户认证</Badge>
                 )}
                 {provider.has_license && (
-                  <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-full bg-green-50 text-green-700 border border-green-200">
-                    <BadgeCheck size={11} /> 持牌资质
-                  </span>
+                  <Badge tone="success"><BadgeCheck size={11} /> 持牌资质</Badge>
                 )}
                 {provider.has_insurance && (
-                  <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 border border-blue-200">
-                    <ShieldCheck size={11} /> 商业保险
-                  </span>
+                  <Badge tone="info"><ShieldCheck size={11} /> 商业保险</Badge>
                 )}
                 {provider.phone_verified && (
                   <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-full bg-sky-50 text-sky-600 border border-sky-200">

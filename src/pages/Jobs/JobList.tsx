@@ -22,10 +22,7 @@ import { toast } from '../../lib/toast'
 import ImgFallback from '../../components/ImgFallback/ImgFallback'
 import { useUrlFilters } from '../../lib/useUrlFilters'
 
-const GTA_AREAS = [
-  '多伦多市区', '北约克', '士嘉堡', '密西沙加', '万锦',
-  '列治文山', '奥克维尔', '宾顿', '安省其他',
-]
+import { GTA_FILTER_AREAS as GTA_AREAS } from '../../data/torontoAreas'
 
 // One-tap salary presets — each chip sets both the pay type and a minimum,
 // so mixed hourly/monthly listings stay unambiguous ("时薪$22+" vs "月薪$4k+").

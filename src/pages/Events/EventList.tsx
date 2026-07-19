@@ -23,10 +23,7 @@ import {
 import { toast } from '../../lib/toast'
 import { useUrlFilters } from '../../lib/useUrlFilters'
 
-const GTA_AREAS = [
-  '多伦多市区', '北约克', '士嘉堡', '密西沙加', '万锦',
-  '列治文山', '奥克维尔', '宾顿', '安省其他',
-]
+import { GTA_FILTER_AREAS as GTA_AREAS } from '../../data/torontoAreas'
 
 export default function EventList() {
   const navigate = useNavigate()

@@ -4,6 +4,7 @@ import { useAuthStore } from '../../../store/authStore'
 import { supabase } from '../../../lib/supabase'
 import { toast } from '../../../lib/toast'
 import { compressImage } from '../../../lib/compressImage'
+import Badge from '../../../components/Badge/Badge'
 
 interface OrderRow {
   id: string
@@ -20,17 +21,18 @@ interface OrderRow {
   provider: { name: string | null } | null
 }
 
-const STATUS: Record<string, { label: string; cls: string }> = {
-  pending:   { label: '待确认', cls: 'bg-amber-50 text-amber-700 border-amber-200' },
-  confirmed: { label: '已成交', cls: 'bg-green-50 text-green-700 border-green-200' },
-  completed: { label: '已完成', cls: 'bg-green-50 text-green-700 border-green-200' },
-  cancelled: { label: '已取消', cls: 'bg-gray-100 text-gray-500 border-gray-200' },
+const STATUS: Record<string, { label: string; tone: 'success' | 'warning' | 'neutral' }> = {
+  pending:   { label: '待确认', tone: 'warning' },
+  confirmed: { label: '已成交', tone: 'success' },
+  completed: { label: '已完成', tone: 'success' },
+  cancelled: { label: '已取消', tone: 'neutral' },
 }
 
 export default function OrdersSection() {
   const user = useAuthStore((s) => s.user)
   const [orders, setOrders]   = useState<OrderRow[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState(false)
   const [acting, setActing]   = useState<string | null>(null)
   const [reviewedIds, setReviewedIds] = useState<Set<string>>(new Set())
   const [reviewingId, setReviewingId] = useState<string | null>(null)
@@ -44,11 +46,13 @@ export default function OrdersSection() {
 
   async function load() {
     if (!user) return
-    const { data } = await supabase
+    setLoadError(false)
+    const { data, error } = await supabase
       .from('orders')
       .select('*, client:client_id(name), provider:provider_id(name)')
       .or(`client_id.eq.${user.id},provider_id.eq.${user.id}`)
       .order('created_at', { ascending: false })
+    if (error) { setLoadError(true); setLoading(false); return }  // 真错误态，不伪装成"没数据"
     const rows = (data ?? []) as OrderRow[]
     setOrders(rows)
     // Which of my orders I've already reviewed (to hide the 写评价 button).
@@ -127,7 +131,32 @@ export default function OrdersSection() {
     }
   }
 
-  if (loading) return <p className="py-10 text-center text-sm text-gray-400">加载中…</p>
+  if (loading) return (
+    <div className="space-y-3">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="bg-white rounded-2xl border border-gray-100 p-4 animate-pulse">
+          <div className="flex justify-between gap-3">
+            <div className="flex-1 space-y-2">
+              <div className="h-4 bg-gray-100 rounded w-1/2" />
+              <div className="h-3 bg-gray-100 rounded w-1/3" />
+            </div>
+            <div className="h-6 w-14 bg-gray-100 rounded-full" />
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+  if (loadError) return (
+    <div className="py-16 text-center text-gray-400">
+      <AlertTriangle size={40} className="mx-auto mb-3 text-danger-400" />
+      <p className="text-sm text-gray-600">订单加载失败</p>
+      <p className="text-xs text-gray-400 mt-1">请检查网络后重试</p>
+      <button onClick={() => { setLoading(true); load() }}
+        className="mt-4 px-5 py-2 rounded-xl bg-primary-600 text-white text-sm font-semibold hover:bg-primary-700">
+        重新加载
+      </button>
+    </div>
+  )
   if (!orders.length) return (
     <div className="py-16 text-center text-gray-400">
       <Store size={40} className="mx-auto mb-3 opacity-30" />
@@ -155,7 +184,7 @@ export default function OrdersSection() {
                 </p>
                 <p className="text-[11px] text-gray-300 mt-1">{new Date(o.created_at).toLocaleString('zh-CN')}</p>
               </div>
-              <span className={`flex-shrink-0 text-xs font-semibold px-2.5 py-1 rounded-full border ${st.cls}`}>{st.label}</span>
+              <Badge tone={st.tone} className="flex-shrink-0">{st.label}</Badge>
             </div>
 
             {(canConfirm || canCancel) && (

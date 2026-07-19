@@ -10,6 +10,7 @@ import { useAppStore } from '../../../store/appStore'
 import { toast } from '../../../lib/toast'
 import { CATEGORIES } from '../../../data/categories'
 import InquiryResultPanel from '../../../components/InquiryResultPanel/InquiryResultPanel'
+import Badge from '../../../components/Badge/Badge'
 
 interface Inquiry {
   id: string
@@ -28,10 +29,10 @@ interface Inquiry {
 }
 
 const STATUS_CONFIG = {
-  open:    { label: '待接单', color: 'bg-amber-100 text-amber-700' },
-  matched: { label: '已选定', color: 'bg-green-100 text-green-700' },
-  closed:  { label: '已关闭', color: 'bg-gray-100 text-gray-500' },
-} satisfies Record<Inquiry['status'], { label: string; color: string }>
+  open:    { label: '待接单', tone: 'warning' },
+  matched: { label: '已选定', tone: 'success' },
+  closed:  { label: '已关闭', tone: 'neutral' },
+} satisfies Record<Inquiry['status'], { label: string; tone: 'warning' | 'success' | 'neutral' }>
 
 const TIMING_LABEL: Record<string, string> = {
   asap:      '尽快',
@@ -300,9 +301,7 @@ export default function InquiriesSection() {
                           {item.budget ? ` · 预算 ${item.budget}` : ''}
                         </p>
                       </div>
-                      <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full flex-shrink-0 ${cfg.color}`}>
-                        {cfg.label}
-                      </span>
+                      <Badge tone={cfg.tone} className="flex-shrink-0">{cfg.label}</Badge>
                       {isOpen ? <ChevronUp size={14} className="text-gray-400 flex-shrink-0" /> : <ChevronDown size={14} className="text-gray-400 flex-shrink-0" />}
                     </button>
 
