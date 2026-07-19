@@ -1,14 +1,15 @@
 // ─── Online-Mode Store ────────────────────────────────────────────────────────
 // Tracks whether the current user is in「上线接单」(provider/online) mode. When
 // true, the whole app renders a faint bottom-to-top blue tint (see App.tsx) so a
-// provider always knows at a glance they're live on the map. Kept in a global
-// store — not just Profile-local state — because the tint spans every screen.
+// provider always knows at a glance they're live on the map.
+//
+// Single source of truth = `tcs_profile_mode` (the same localStorage key that
+// drives the「一键翻转」identity card). Keeping the tint on the SAME signal as the
+// card avoids the two drifting apart (card says online, tint doesn't show).
 import { create } from 'zustand'
 
-const LS_KEY = 'tcs_online_mode'
-
 function readInitial(): boolean {
-  try { return localStorage.getItem(LS_KEY) === 'true' } catch { return false }
+  try { return localStorage.getItem('tcs_profile_mode') === 'provider' } catch { return false }
 }
 
 interface OnlineModeState {
@@ -18,8 +19,7 @@ interface OnlineModeState {
 
 export const useOnlineModeStore = create<OnlineModeState>((set) => ({
   online: readInitial(),
-  setOnline: (v) => {
-    try { localStorage.setItem(LS_KEY, v ? 'true' : 'false') } catch { /* ignore */ }
-    set({ online: v })
-  },
+  // In-memory mirror only — persistence is owned by `tcs_profile_mode` (written
+  // by Profile's switchMode), so we don't write a second key here.
+  setOnline: (v) => set({ online: v }),
 }))

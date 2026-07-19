@@ -122,6 +122,12 @@ export default function Profile() {
     }
   }, [section, user, mode])
 
+  // Keep the app-wide blue「上线接单」tint locked to the current mode — including
+  // the URL-driven auto-switch above, which sets mode without calling switchMode.
+  useEffect(() => {
+    useOnlineModeStore.getState().setOnline(mode === 'provider')
+  }, [mode])
+
   // 服务商模式 ≡ 上线接单：翻转到「服务商」= 自动上线（显示到地图），
   // 翻回「用户」= 自动下线。上线接单不再是主页里单独的按钮。
   async function switchMode(next: 'client' | 'provider') {

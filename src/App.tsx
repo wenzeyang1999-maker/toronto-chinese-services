@@ -108,7 +108,7 @@ function OnlineModeTint() {
     <div
       aria-hidden
       className="pointer-events-none fixed inset-0 z-[45] bg-gradient-to-t
-                 from-blue-500/20 via-blue-500/[0.06] to-transparent"
+                 from-blue-500/30 via-blue-500/[0.10] to-transparent"
     />
   )
 }
@@ -154,7 +154,7 @@ export default function App() {
 
       const { data: profile } = await supabase
         .from('users')
-        .select('role, is_online')
+        .select('role')
         .eq('id', authUser.id)
         .single()
 
@@ -167,9 +167,11 @@ export default function App() {
         return
       }
 
-      // Reconcile the app-wide「上线接单」tint with the real DB state so a stale
-      // localStorage flag can't show blue while actually offline (or vice versa).
-      useOnlineModeStore.getState().setOnline(profile?.is_online === true)
+      // App-wide「上线接单」tint follows the SAME signal as the identity card
+      // (tcs_profile_mode) so the blue always matches what the card says.
+      try {
+        useOnlineModeStore.getState().setOnline(localStorage.getItem('tcs_profile_mode') === 'provider')
+      } catch { /* ignore */ }
 
       // First-time OAuth users (Google/Apple) won't have a public.users row yet.
       // The email/password flow creates it via a DB trigger; OAuth needs this fallback.
