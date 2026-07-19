@@ -60,6 +60,7 @@ interface RequestRow {
   description: string | null
   category: string | null
   area: string | null
+  is_urgent: boolean | null
 }
 
 export function useRequestMatchAlerts() {
@@ -92,6 +93,7 @@ export function useRequestMatchAlerts() {
         if (!enabledRef.current) return
         const r = payload.new as RequestRow
         if (r.user_id === user.id) return  // don't alert myself for my own posts
+        if (r.is_urgent) return            // urgent rows → louder popup via useUrgentRequestAlerts
         if (!matchesTags(r, tagsRef.current)) return
 
         playMatchSound()

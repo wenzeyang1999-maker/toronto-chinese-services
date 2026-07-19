@@ -52,6 +52,7 @@ interface InquiryPayload {
   name: string
   phone: string
   wechat: string
+  isUrgent?: boolean
 }
 
 // TODO (Plan B — 5-person racing mechanic):
@@ -75,9 +76,18 @@ interface ProviderRow {
 }
 
 function buildProviderInquiryEmail(recipientName: string, data: InquiryPayload) {
-  // Direct-dispatch: the merchant is already matched — invite them to contact the
-  // customer. Race mode: invite them to "抢单".
-  const cta = DIRECT_DISPATCH
+  const urgent = data.isUrgent === true
+  // Urgent: NO contact hand-off. The merchant reaches the customer only via
+  // in-app chat; the customer decides what to share. Direct-dispatch (normal):
+  // top-5 exchange contact. Race mode: invite them to "抢单".
+  const cta = urgent
+    ? {
+        line: '客户把紧急需求发给了正在「上线接单」的商家，<strong>请尽快登录，通过站内私信联系 TA</strong>：',
+        note: '🚨 紧急单！请尽快登录 App 私信客户。出于隐私保护，联系方式与位置由客户在聊天中自行决定是否提供。',
+        btn: '登录并私信客户',
+        href: `${SITE}/`,
+      }
+    : DIRECT_DISPATCH
     ? {
         line: '您已被匹配到这条需求，<strong>可直接查看客户联系方式并主动联系 TA</strong>：',
         note: '📩 客户已收到通知，知道需求发给了包括您在内的几位服务商。请尽快联系，先联系先得。',
@@ -91,7 +101,9 @@ function buildProviderInquiryEmail(recipientName: string, data: InquiryPayload) 
         href: `${SITE}/inquiries/${h(data.inquiryId)}/claim`,
       }
   return {
-    subject: `🔔 有客户正在寻找「${h(data.categoryLabel)}」服务`,
+    subject: urgent
+      ? `🚨 紧急！有客户急需「${h(data.categoryLabel)}」服务`
+      : `🔔 有客户正在寻找「${h(data.categoryLabel)}」服务`,
     html: `<!DOCTYPE html>
 <html lang="zh">
 <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
@@ -248,9 +260,12 @@ Deno.serve(async (req) => {
       return b.rating - a.rating
     })
 
-    // Direct-dispatch: assign the top ≤5. Race mode: notify up to MAX_NOTIFY who
-    // then compete to claim.
-    const targets = providers.slice(0, DIRECT_DISPATCH ? DIRECT_LIMIT : MAX_NOTIFY)
+    // 紧急单：只发给「上线接单」(is_online) 的商家，且全部通知（不止 top5，上限
+    // MAX_NOTIFY 兜底防炸）。普通单：direct-dispatch 取 top ≤5；抢单模式取 MAX_NOTIFY。
+    const isUrgent = payload.isUrgent === true
+    const targets = isUrgent
+      ? providers.filter((p) => p.isOnline).slice(0, MAX_NOTIFY)
+      : providers.slice(0, DIRECT_DISPATCH ? DIRECT_LIMIT : MAX_NOTIFY)
 
     await Promise.all(targets.map(async (provider) => {
       const email = buildProviderInquiryEmail(provider.name, payload)
@@ -279,7 +294,29 @@ Deno.serve(async (req) => {
           email_sent: true,
         }))
       )
-      if (DIRECT_DISPATCH) {
+      if (isUrgent) {
+        // 紧急单：绝不预授权联系方式（安全）。只通知在线商家，他们通过站内私信
+        // 联系客户；联系方式/位置由客户在聊天里自行决定是否提供。通知/邮件都不带
+        // 客户电话微信，link 指向公开需求帖 → 「联系」即发起站内会话。
+        const { data: sr } = await admin
+          .from('service_requests')
+          .select('id')
+          .eq('inquiry_id', payload.inquiryId)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle()
+        const link = sr?.id ? `/requests/${sr.id}` : '/'
+        await admin.from('notifications').insert(
+          targets.map((provider) => ({
+            recipient_id: provider.id,
+            type:  'new_inquiry_lead',
+            title: '🚨 紧急需求！客户急需服务',
+            body:  `客户急需「${payload.categoryLabel}」，点开私信联系 TA（联系方式由客户决定是否提供）`,
+            link_url: link,
+          }))
+        )
+        // 不动 accepted_provider_ids / race_status —— 不发放任何联系方式。
+      } else if (DIRECT_DISPATCH) {
         // Auto-assign the matched providers — both sides get contact immediately,
         // no grab step. race_status='filled' also blocks a duplicate re-dispatch.
         await admin.from('inquiries').update({
@@ -312,15 +349,21 @@ Deno.serve(async (req) => {
           ? {
               recipient_id: customerId,
               type:  'inquiry_dispatched',
-              title: `询价已发给 ${targets.length} 位商家`,
-              body:  '他们会尽快主动联系你；急的话也可点这里查看这几家、自己先联系',
-              link_url: '/profile?section=inquiries',
+              title: isUrgent
+                ? `🚨 紧急需求已发给 ${targets.length} 位在线商家`
+                : `询价已发给 ${targets.length} 位商家`,
+              body:  isUrgent
+                ? '在线商家已收到紧急提醒，会通过站内消息联系你，请留意「我的消息」'
+                : '他们会尽快主动联系你；急的话也可点这里查看这几家、自己先联系',
+              link_url: isUrgent ? '/profile?section=messages' : '/profile?section=inquiries',
             }
           : {
               recipient_id: customerId,
               type:  'inquiry_dispatched',
               title: '需求已收到',
-              body:  '暂时没有匹配到合适的商家，你可以直接浏览服务、主动联系',
+              body:  isUrgent
+                ? '暂时没有在线商家，需求已记录；可稍后再试或改为普通发布'
+                : '暂时没有匹配到合适的商家，你可以直接浏览服务、主动联系',
               link_url: '/',
             }
       )
