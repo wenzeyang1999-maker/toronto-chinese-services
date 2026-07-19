@@ -49,3 +49,14 @@
            bg-white text-gray-900 placeholder-gray-400 transition-all;
   }
 }
+
+/* ── 上线接单模式：整站背景转「浅绿」──────────────────────────────────────────
+   只染页面画布(min-h-screen 根容器 + 首页的 #f7f8fa 内层)。卡片(.card→白)、
+   地图、导航栏都是自身白底/不透明,不会变绿 —— 类似日/夜模式的背景切换。
+   由 App 在上线时给 <html> 加 .online-mode 触发。 */
+html.online-mode body { background-color: #e3f5e8; }
+html.online-mode .min-h-screen,
+html.online-mode .bg-\[\#f7f8fa\] {
+  background-color: #e3f5e8;
+  transition: background-color 0.3s ease;
+}

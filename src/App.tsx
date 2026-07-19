@@ -98,21 +98,18 @@ function MobileAiBubble() {
   )
 }
 
-// App-wide「上线接单」indicator — faint blue gradients hugging the LEFT and RIGHT
-// edges on EVERY screen while the provider is online. Edges only (center stays
-// clear) so the blue never covers the functional content in the middle.
-// pointer-events-none + fixed → purely cosmetic, never blocks taps or scroll.
+// App-wide「上线接单」indicator — toggles the `online-mode` class on <html> while
+// the provider is online. CSS (index.css) then turns the page CANVAS light green;
+// cards/map/nav keep their own opaque backgrounds, so only the background shifts
+// (day/night-mode style). Renders nothing — pure side effect.
 function OnlineModeTint() {
   const online = useOnlineModeStore((s) => s.online)
-  if (!online) return null
-  return (
-    <div aria-hidden className="pointer-events-none fixed inset-0 z-30">
-      <div className="absolute inset-y-0 left-0 w-14 sm:w-20 md:w-32
-                      bg-gradient-to-r from-sky-400/25 via-sky-400/[0.07] to-transparent" />
-      <div className="absolute inset-y-0 right-0 w-14 sm:w-20 md:w-32
-                      bg-gradient-to-l from-sky-400/25 via-sky-400/[0.07] to-transparent" />
-    </div>
-  )
+  useEffect(() => {
+    const el = document.documentElement
+    el.classList.toggle('online-mode', online)
+    return () => el.classList.remove('online-mode')
+  }, [online])
+  return null
 }
 
 export default function App() {
