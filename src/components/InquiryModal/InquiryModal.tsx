@@ -11,6 +11,7 @@ import InquiryResultPanel from '../InquiryResultPanel/InquiryResultPanel'
 import { supabase } from '../../lib/supabase'
 import { offsetLocation } from '../../lib/geo'
 import { useAuthStore } from '../../store/authStore'
+import LocationInput from '../LocationInput/LocationInput'
 import { useAppStore } from '../../store/appStore'
 import { CATEGORIES } from '../../data/categories'
 
@@ -64,6 +65,7 @@ export default function InquiryModal({ open, onClose }: Props) {
   const [aiMode,      setAiMode]      = useState(true)
   const [rawInput,    setRawInput]    = useState('')
   const [showAllCats, setShowAllCats] = useState(false)   // 手动模式「更多类别」
+  const [manualLoc,   setManualLoc]   = useState<{ address: string; lat: number; lng: number } | null>(null) // 选填：需求地点≠当前位置时手填
   const [extracting,  setExtracting]  = useState(false)
   const [extracted,   setExtracted]   = useState<Extracted | null>(null)
   const [extractError, setExtractError] = useState('')
@@ -245,7 +247,9 @@ export default function InquiryModal({ open, onClose }: Props) {
 
       // B7 隐私：inquiries.lat/lng 存「模糊」坐标（抢单期粗略距离/匹配用，全体抢单
       // 师傅可读）；精确坐标进 precise_lat/lng，仅 owner/录用师傅可经 RPC 取。
-      const blurLoc = userLocation ? offsetLocation(userLocation.lat, userLocation.lng) : null
+      // 需求地点：优先用手动填的地点（选填），否则用当前 GPS 定位。
+      const effLoc = manualLoc ?? userLocation
+      const blurLoc = effLoc ? offsetLocation(effLoc.lat, effLoc.lng) : null
       const { data: inserted, error } = await supabase.from('inquiries').insert({
         category_id: form.categoryId,
         description: finalDescription,
@@ -257,8 +261,8 @@ export default function InquiryModal({ open, onClose }: Props) {
         user_id:     user.id,
         lat:         blurLoc?.lat ?? null,
         lng:         blurLoc?.lng ?? null,
-        precise_lat: userLocation?.lat ?? null,
-        precise_lng: userLocation?.lng ?? null,
+        precise_lat: effLoc?.lat ?? null,
+        precise_lng: effLoc?.lng ?? null,
         status:      'open',
       }).select('id').single()
       if (error) throw error
@@ -284,7 +288,7 @@ export default function InquiryModal({ open, onClose }: Props) {
           : timingTag
         // Privacy: the public demand pin must NOT sit on the real address —
         // shift it a random 300–900 m before storing (same as PostRequest).
-        const pubLoc = userLocation ? offsetLocation(userLocation.lat, userLocation.lng) : null
+        const pubLoc = effLoc ? offsetLocation(effLoc.lat, effLoc.lng) : null
         const { data: reqData } = await supabase
           .from('service_requests')
           .insert({
@@ -294,6 +298,7 @@ export default function InquiryModal({ open, onClose }: Props) {
             description: publicDesc,
             category:    form.categoryId || 'other',
             city:        'Toronto',
+            area:        manualLoc?.address ?? null,
             budget:      form.budget.trim() || null,
             lat:         pubLoc?.lat ?? null,
             lng:         pubLoc?.lng ?? null,
@@ -356,7 +361,7 @@ export default function InquiryModal({ open, onClose }: Props) {
     onClose()
     setTimeout(() => {
       setForm(INITIAL); setErrors({}); setDone(false); setServerError('')
-      setRawInput(''); setExtracted(null); setExtractError(''); setAiMode(true); setPostPublic(true)
+      setRawInput(''); setExtracted(null); setExtractError(''); setAiMode(true); setPostPublic(true); setManualLoc(null); setShowAllCats(false)
       setInsertedId(null)
     }, 350)
   }
@@ -691,6 +696,19 @@ export default function InquiryModal({ open, onClose }: Props) {
                             </button>
                           ))}
                         </div>
+                      </div>
+
+                      {/* 需求地点（选填）— 不填默认用当前定位；地点≠当前位置时可手填 */}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                          需求地点 <span className="text-gray-400 font-normal text-xs">（选填，不填默认用当前定位）</span>
+                        </label>
+                        <LocationInput onChange={setManualLoc} />
+                        {manualLoc && (
+                          <p className="text-[11px] text-green-600 mt-1 flex items-center gap-1">
+                            <MapPin size={11} /> 已定位：{manualLoc.address}
+                          </p>
+                        )}
                       </div>
                     </div>
                   )}
