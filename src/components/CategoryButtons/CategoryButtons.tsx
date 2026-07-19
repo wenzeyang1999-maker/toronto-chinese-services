@@ -2,10 +2,11 @@ import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import {
   type LucideIcon,
-  Truck, Sparkles, Car, Leaf, Hammer, Wrench, LifeBuoy,
+  Truck, Sparkles, Car, Leaf, Hammer, Wrench, LifeBuoy, Cog,
 } from 'lucide-react'
 
-// ── 热门服务：生活服务 7 大类目直达（点击 → 搜索该类目）───────────────────────
+// ── 热门服务：生活服务 8 大类目直达（点击 → 搜索该类目）───────────────────────
+// 固定 8 类，4×2 两行铺满，不留空格。
 interface Category {
   label: string
   q: string           // search keyword
@@ -21,7 +22,8 @@ const CATEGORIES: Category[] = [
   { label: '园艺除雪', q: '园艺',     icon: Leaf,     color: 'text-green-600',  bgColor: 'bg-green-50' },
   { label: '装修',     q: '装修',     icon: Hammer,   color: 'text-amber-600',  bgColor: 'bg-amber-50' },
   { label: 'Handyman', q: 'Handyman', icon: Wrench,   color: 'text-violet-600', bgColor: 'bg-violet-50' },
-  { label: '道路',     q: '道路救援', icon: LifeBuoy, color: 'text-rose-600',   bgColor: 'bg-rose-50' },
+  { label: '道路救援', q: '道路救援', icon: LifeBuoy, color: 'text-rose-600',   bgColor: 'bg-rose-50' },
+  { label: '汽车维修', q: '汽车维修', icon: Cog,      color: 'text-slate-600',  bgColor: 'bg-slate-100' },
 ]
 
 const containerVariants = {
@@ -42,7 +44,7 @@ export default function CategoryButtons() {
       variants={containerVariants}
       initial="hidden"
       animate="show"
-      className="grid grid-cols-4 gap-3"
+      className="grid grid-cols-4 gap-2"
     >
       {CATEGORIES.map((cat) => (
         <motion.button
@@ -50,11 +52,11 @@ export default function CategoryButtons() {
           variants={itemVariants}
           whileTap={{ scale: 0.93 }}
           onClick={() => navigate(`/search?q=${encodeURIComponent(cat.q)}`)}
-          className={`relative ${cat.bgColor} rounded-2xl p-4 flex flex-col items-center gap-2
+          className={`relative ${cat.bgColor} rounded-xl py-2.5 px-1 flex flex-col items-center gap-1.5
                       border border-white/60 hover:shadow-md active:brightness-95 transition-all`}
         >
-          <cat.icon size={26} strokeWidth={1.5} className={cat.color} />
-          <span className={`text-sm font-semibold ${cat.color}`}>{cat.label}</span>
+          <cat.icon size={20} strokeWidth={1.6} className={cat.color} />
+          <span className={`text-[11px] font-semibold whitespace-nowrap ${cat.color}`}>{cat.label}</span>
         </motion.button>
       ))}
     </motion.div>

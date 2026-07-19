@@ -71,11 +71,13 @@ export function useUpdateLocation() {
     setLocating(true)
     const result = await requestLocation({ maxAgeMs: LOCATION_MANUAL_THROTTLE_MS })
     setLocating(false)
-    if (result === 'updated') {
+    // 'throttled' = a real GPS read was skipped because the cached fix is still
+    // fresh (<5 min). We intentionally present it as a normal successful update —
+    // the user doesn't need to know about the rate limit; the throttle keeps
+    // quietly protecting battery/API from rapid repeated taps.
+    if (result === 'updated' || result === 'throttled') {
       onUpdated?.()
       toast('位置已更新', 'success')
-    } else if (result === 'throttled') {
-      toast('位置刚更新过，5 分钟内无需重复更新', 'info')
     } else if (result === 'failed') {
       toast('定位失败，请检查定位权限后重试', 'error')
     } else {
