@@ -56,7 +56,8 @@
    由 App 在上线时给 <html> 加 .online-mode 触发。 */
 html.online-mode body { background-color: #e3f5e8; }
 html.online-mode .min-h-screen,
-html.online-mode .bg-\[\#f7f8fa\] {
+html.online-mode .bg-\[\#f7f8fa\],
+html.online-mode main.bg-gray-50 {          /* Profile 等桌面内容区画布 */
   background-color: #e3f5e8;
   transition: background-color 0.3s ease;
 }

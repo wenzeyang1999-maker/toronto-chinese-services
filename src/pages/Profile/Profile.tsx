@@ -489,9 +489,7 @@ export default function Profile() {
   }
 
   return (
-    <div className={`min-h-screen flex flex-col transition-colors duration-300 ${
-      !SHOW_MODE_TOGGLE ? 'bg-gray-50' : mode === 'provider' ? 'bg-blue-50' : 'bg-green-50'
-    }`}>
+    <div className="min-h-screen flex flex-col transition-colors duration-300 bg-gray-50">
 
       {/* ── Top bar ─────────────────────────────────────────────────────────── */}
       <div className="w-full bg-white border-b-2 border-gray-200 px-4 h-14 flex items-center gap-3 sticky top-0 z-20">
