@@ -34,6 +34,7 @@ import NotificationsSection    from './sections/NotificationsSection'
 import MyEventsSection          from './sections/MyEventsSection'
 import { toast } from '../../lib/toast'
 import InstallAppButton from '../../components/InstallAppButton/InstallAppButton'
+import ContactUsButton from '../../components/ContactUsButton/ContactUsButton'
 import CreditStars from '../../components/CreditStars/CreditStars'
 
 type MenuItem = { key: Section; icon: React.ReactNode; label: string; sub: string; modes: ('client' | 'provider')[] }
@@ -417,13 +418,14 @@ export default function Profile() {
       {/* Install as App */}
       <InstallAppButton />
 
+      {/* Contact us — 提交建议 / 举报投诉 / 寻求合作 */}
+      <ContactUsButton />
+
       {/* Legal links */}
       <div className="flex justify-center gap-4 text-xs text-gray-400">
         <a href="/terms" target="_blank" rel="noopener noreferrer" className="hover:text-gray-600 hover:underline">服务条款</a>
         <span>·</span>
         <a href="/privacy" target="_blank" rel="noopener noreferrer" className="hover:text-gray-600 hover:underline">隐私政策</a>
-        <span>·</span>
-        <a href="mailto:support@huarenq.com" className="hover:text-gray-600 hover:underline">联系我们</a>
       </div>
 
       {/* Logout — two-step inline confirm to avoid accidental sign-out */}
