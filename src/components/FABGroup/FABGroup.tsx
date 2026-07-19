@@ -34,7 +34,7 @@ export default function FABGroup() {
           发布服务
         </button>
         <button
-          onClick={() => user ? navigate('/requests/post') : navigate('/login', { state: { from: '/requests/post' } })}
+          onClick={() => navigate('/?inquiry=1')}
           className="flex items-center gap-2 bg-orange-500 hover:bg-orange-600
                      text-white rounded-full px-4 py-3
                      active:scale-95 transition-all duration-200 text-sm font-semibold whitespace-nowrap"

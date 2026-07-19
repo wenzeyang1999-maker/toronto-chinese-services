@@ -11,7 +11,7 @@ interface Props { open: boolean; onClose: () => void }
 
 const OPTIONS = [
   { label: '发服务',   sub: '我能提供的服务', to: '/post',            icon: Wrench,            color: 'text-primary-600 bg-primary-50' },
-  { label: '发需求',   sub: '我需要找人做',   to: '/requests/post',   icon: Megaphone,         color: 'text-orange-600 bg-orange-50' },
+  { label: '发需求',   sub: 'AI 帮你找 · 商家主动联系', to: '/?inquiry=1',      icon: Megaphone,         color: 'text-orange-600 bg-orange-50' },
   { label: '发帖子',   sub: '社区圈子',       to: '/community/post',  icon: MessageSquareText, color: 'text-rose-600 bg-rose-50' },
   { label: '发活动',   sub: '同城聚会',       to: '/events/post',     icon: CalendarPlus,      color: 'text-violet-600 bg-violet-50' },
   { label: '发招聘',   sub: '招聘 / 求职',    to: '/jobs/post',       icon: Briefcase,         color: 'text-blue-600 bg-blue-50' },

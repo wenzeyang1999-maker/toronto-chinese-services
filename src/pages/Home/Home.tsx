@@ -272,7 +272,7 @@ export default function Home() {
             ].map(chip => (
               <button
                 key={chip.key}
-                onClick={() => navigate(`/requests/post?urgency=${chip.key}`)}
+                onClick={() => setInquiryOpen(true)}
                 className="flex flex-col items-center justify-center gap-0.5 bg-gray-50 hover:bg-primary-50
                            border border-gray-200 hover:border-primary-300
                            rounded-xl py-2.5 text-[11px] font-semibold text-gray-600 hover:text-primary-600
@@ -285,7 +285,7 @@ export default function Home() {
           </div>
 
           <button
-            onClick={() => navigate('/requests/post')}
+            onClick={() => setInquiryOpen(true)}
             className="w-full flex items-center justify-center gap-2 bg-primary-600 hover:bg-primary-700
                        text-white py-3 rounded-xl text-sm font-bold transition-colors active:scale-[0.98]"
           >
