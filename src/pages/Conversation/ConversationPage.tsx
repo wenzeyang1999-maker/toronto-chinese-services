@@ -53,17 +53,27 @@ export default function ConversationPage() {
   const [reportSent,   setReportSent]  = useState(false)
   const [blockOpen,    setBlockOpen]   = useState(false)
   const [marking,      setMarking]     = useState(false)
+  const [dealOpen,     setDealOpen]    = useState(false)   // 金额录入弹窗
+  const [dealAmount,   setDealAmount]  = useState('')
 
-  // 「标记成交」— create a pending order between the two parties (双向确认).
+  // 「标记成交」— create a pending order between the two parties (双向确认)。
+  // 金额选填但强烈建议填：amount 是 GMV/客单价的地基（说明书名片墙口径）。
   async function markDeal() {
     if (!id || marking) return
+    const amt = dealAmount.trim() === '' ? null : Number(dealAmount)
+    if (amt !== null && (!Number.isFinite(amt) || amt < 0)) {
+      toast('金额请填写有效数字', 'error'); return
+    }
     setMarking(true)
     const { error } = await supabase.rpc('create_order', {
       p_conversation_id: id,
-      p_title: conv?.service?.title ?? null,
+      p_title:  conv?.service?.title ?? null,
+      p_amount: amt,
     })
     setMarking(false)
     if (error) { toast(error.message || '发起失败，请重试', 'error'); return }
+    setDealOpen(false)
+    setDealAmount('')
     toast('已发起成交，等对方确认 ✓', 'success')
   }
   const [blockBusy,    setBlockBusy]   = useState(false)
@@ -391,7 +401,7 @@ export default function ConversationPage() {
           </button>
         )}
         {conv && conv.client_id !== conv.provider_id && (
-          <button onClick={markDeal} disabled={marking}
+          <button onClick={() => setDealOpen(true)} disabled={marking}
             className="flex-shrink-0 text-xs font-semibold px-2.5 py-1.5 rounded-full bg-primary-600 text-white
                        hover:bg-primary-700 disabled:opacity-60 whitespace-nowrap"
             title="双方确认后计入成交">
@@ -649,6 +659,43 @@ export default function ConversationPage() {
               className="flex-1 py-2.5 rounded-xl bg-red-500 text-white text-sm font-semibold
                          disabled:bg-gray-200 transition-colors">
               {blockBusy ? '处理中…' : '确认拉黑'}
+            </button>
+          </div>
+        </motion.div>
+      </div>
+    )}
+
+    {/* 标记成交 — 金额录入弹窗（金额选填，是 GMV/客单价的地基）*/}
+    {dealOpen && (
+      <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 px-4 pb-8 sm:pb-0">
+        <motion.div
+          initial={{ opacity: 0, y: 40 }} animate={{ opacity: 1, y: 0 }}
+          className="bg-white w-full max-w-sm rounded-3xl p-6 shadow-xl"
+        >
+          <h3 className="font-semibold text-gray-900 mb-1">标记成交</h3>
+          <p className="text-sm text-gray-500 mb-4">
+            发起后需 {conv?.other?.name ?? '对方'} 确认，双方确认即计入成交。填写成交金额有助于统计与展示（选填）。
+          </p>
+          <label className="block text-xs font-medium text-gray-500 mb-1">成交金额（选填）</label>
+          <div className="flex items-center gap-2 mb-4 border border-gray-200 rounded-xl px-3 py-2.5 focus-within:ring-2 focus-within:ring-primary-300">
+            <span className="text-gray-400 text-sm">$</span>
+            <input
+              type="number" inputMode="decimal" min="0" step="1"
+              value={dealAmount} onChange={(e) => setDealAmount(e.target.value)}
+              placeholder="如 222，可留空"
+              className="flex-1 text-sm outline-none bg-transparent"
+            />
+            <span className="text-gray-400 text-xs">CAD</span>
+          </div>
+          <div className="flex gap-2">
+            <button onClick={() => { setDealOpen(false); setDealAmount('') }}
+              className="flex-1 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-600">
+              取消
+            </button>
+            <button onClick={markDeal} disabled={marking}
+              className="flex-1 py-2.5 rounded-xl bg-primary-600 text-white text-sm font-semibold
+                         disabled:opacity-60 transition-colors">
+              {marking ? '发起中…' : '发起成交'}
             </button>
           </div>
         </motion.div>

@@ -176,8 +176,9 @@ export default function OrdersSection() {
               <p className="text-[11px] text-amber-600 mt-2">等待对方确认…</p>
             )}
 
-            {/* Review — only the client, only a confirmed order with a service, once */}
-            {o.status === 'confirmed' && !isProvider && o.service_id && !reviewedIds.has(o.id) && (
+            {/* Review — client only, on any 成交/完工 order (含无服务的询价成交), once.
+                评价锚定师傅(provider_id)，不再要求 service_id；completed 也可评。*/}
+            {['confirmed', 'completed'].includes(o.status) && !isProvider && !reviewedIds.has(o.id) && (
               reviewingId === o.id ? (
                 <div className="mt-3 border-t border-gray-50 pt-3">
                   <div className="flex items-center gap-1 mb-2">
@@ -206,7 +207,7 @@ export default function OrdersSection() {
                 </button>
               )
             )}
-            {o.status === 'confirmed' && !isProvider && o.service_id && reviewedIds.has(o.id) && (
+            {['confirmed', 'completed'].includes(o.status) && !isProvider && reviewedIds.has(o.id) && (
               <p className="text-[11px] text-gray-400 mt-2">已评价 ✓</p>
             )}
 
