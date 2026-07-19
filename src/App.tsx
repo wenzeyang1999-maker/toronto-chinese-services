@@ -98,18 +98,20 @@ function MobileAiBubble() {
   )
 }
 
-// App-wide「上线接单」indicator — a faint blue gradient rising from the bottom on
-// EVERY screen while the provider is online, so they always know they're live.
+// App-wide「上线接单」indicator — faint blue gradients hugging the LEFT and RIGHT
+// edges on EVERY screen while the provider is online. Edges only (center stays
+// clear) so the blue never covers the functional content in the middle.
 // pointer-events-none + fixed → purely cosmetic, never blocks taps or scroll.
 function OnlineModeTint() {
   const online = useOnlineModeStore((s) => s.online)
   if (!online) return null
   return (
-    <div
-      aria-hidden
-      className="pointer-events-none fixed inset-0 z-[45] bg-gradient-to-t
-                 from-blue-500/30 via-blue-500/[0.10] to-transparent"
-    />
+    <div aria-hidden className="pointer-events-none fixed inset-0 z-[45]">
+      <div className="absolute inset-y-0 left-0 w-16 sm:w-28 md:w-44
+                      bg-gradient-to-r from-blue-500/35 to-transparent" />
+      <div className="absolute inset-y-0 right-0 w-16 sm:w-28 md:w-44
+                      bg-gradient-to-l from-blue-500/35 to-transparent" />
+    </div>
   )
 }
 
