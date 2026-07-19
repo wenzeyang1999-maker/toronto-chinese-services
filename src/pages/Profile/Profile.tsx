@@ -349,12 +349,11 @@ export default function Profile() {
                 : <Store size={20} className="text-blue-600" />}
             </div>
             <div className="text-left min-w-0">
-              <p className="text-[11px] text-gray-400">当前身份</p>
-              <p className={`text-base font-bold truncate ${mode === 'client' ? 'text-green-700' : 'text-blue-700'}`}>
-                {mode === 'client' ? '我是用户（找服务）' : '我是服务商（上线接单）'}
+              <p className={`text-lg font-bold truncate ${mode === 'client' ? 'text-green-700' : 'text-blue-700'}`}>
+                {mode === 'client' ? '下线休息' : '上线接单'}
               </p>
-              <p className="text-[10px] text-gray-400 truncate">
-                {mode === 'client' ? '翻转即上线接单 · 显示到地图' : flipping ? '定位中…' : '已上线接单 · 翻转回用户则下线'}
+              <p className="text-[11px] text-gray-400 truncate">
+                {flipping ? '定位中…' : mode === 'client' ? '客户模式（下线）' : '服务商模式（上线）'}
               </p>
             </div>
           </div>
