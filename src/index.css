@@ -57,7 +57,8 @@
 html.online-mode body { background-color: #e3f5e8; }
 html.online-mode .min-h-screen,
 html.online-mode .bg-\[\#f7f8fa\],
-html.online-mode main.bg-gray-50 {          /* Profile 等桌面内容区画布 */
+html.online-mode main.bg-gray-50,          /* Profile 等桌面内容区画布 */
+html.online-mode .sticky.bg-gray-50 {      /* 吸顶标签栏(编辑主页/我的交易)不再是灰带 */
   background-color: #e3f5e8;
   transition: background-color 0.3s ease;
 }
