@@ -63,6 +63,7 @@ export default function InquiryModal({ open, onClose }: Props) {
 
   const [aiMode,      setAiMode]      = useState(true)
   const [rawInput,    setRawInput]    = useState('')
+  const [showAllCats, setShowAllCats] = useState(false)   // 手动模式「更多类别」
   const [extracting,  setExtracting]  = useState(false)
   const [extracted,   setExtracted]   = useState<Extracted | null>(null)
   const [extractError, setExtractError] = useState('')
@@ -165,6 +166,39 @@ export default function InquiryModal({ open, onClose }: Props) {
     } catch (e) {
       setExtractError('解析失败，请重试或切换手动模式')
       console.error(e)
+    } finally {
+      setExtracting(false)
+    }
+  }
+
+  // 手动模式的「AI 智能解析」：对已填的详细描述做自动识别，回填类别/时间，并把
+  // 识别到的地点/物品补进描述（保留 AI 自动拾取能力，与图3 一致）。
+  async function handleExtractManual() {
+    const text = form.description.trim()
+    if (!text) { setErrors(e => ({ ...e, description: '请先填写需求描述' })); return }
+    setExtracting(true)
+    try {
+      const { data, error } = await supabase.functions.invoke('extract-inquiry', { body: { text } })
+      if (error || data?.error) throw new Error(data?.error || 'extract failed')
+      const ext = data as Extracted
+      const matchedCat = CATEGORIES.find(c => c.id === ext.category)
+      const validTiming = ['asap', 'flexible', 'next_week'].includes(ext.timing ?? '')
+        ? (ext.timing as InquiryForm['timing']) : form.timing
+      const extras = [
+        ext.location_from ? `起：${ext.location_from}` : '',
+        ext.location_to ? `到：${ext.location_to}` : '',
+        ext.special_notes || '',
+        ext.items ? `物品：${ext.items}` : '',
+      ].filter(Boolean).join('，')
+      setForm(f => ({
+        ...f,
+        categoryId: matchedCat ? ext.category! : f.categoryId,
+        timing: validTiming,
+        description: extras && !f.description.includes(extras) ? `${f.description}（AI识别：${extras}）` : f.description,
+      }))
+      setErrors(e => ({ ...e, categoryId: undefined }))
+    } catch {
+      setErrors(e => ({ ...e, description: '解析失败，请手动选择类别' }))
     } finally {
       setExtracting(false)
     }
@@ -585,46 +619,57 @@ export default function InquiryModal({ open, onClose }: Props) {
                   ) : (
                     /* ── MANUAL MODE ─────────────────────────────────────── */
                     <div className="space-y-4">
-                      {/* Category */}
+                      {/* 需求类别 — 芯片平铺（图3） */}
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                          服务类型 <span className="text-red-500">*</span>
+                          需求类别 <span className="text-red-500">*</span>
                         </label>
-                        <div className="relative">
-                          <select
-                            value={form.categoryId}
-                            onChange={e => update('categoryId', e.target.value)}
-                            className="w-full appearance-none border border-gray-200 rounded-xl px-4 py-2.5 text-sm
-                                       text-gray-800 bg-white outline-none focus:ring-2 focus:ring-primary-400
-                                       focus:border-transparent pr-9"
-                          >
-                            <option value="">请选择服务类型...</option>
-                            {CATEGORIES.filter(c => c.id !== 'other').map(c => (
-                              <option key={c.id} value={c.id}>{c.emoji} {c.label}</option>
-                            ))}
-                            <option value="other">其他服务</option>
-                          </select>
-                          <ChevronDown size={15} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                        <div className="grid grid-cols-3 gap-2">
+                          {(showAllCats ? CATEGORIES : CATEGORIES.slice(0, 6)).map(c => (
+                            <button key={c.id} type="button" onClick={() => update('categoryId', c.id)}
+                              className={`flex items-center justify-center gap-1 py-2.5 rounded-xl border text-sm font-medium transition-all ${
+                                form.categoryId === c.id
+                                  ? 'border-primary-500 bg-primary-50 text-primary-700'
+                                  : 'border-gray-200 text-gray-600 hover:border-gray-300'
+                              }`}>
+                              <span>{c.emoji}</span> {c.label}
+                            </button>
+                          ))}
                         </div>
+                        {CATEGORIES.length > 6 && (
+                          <button type="button" onClick={() => setShowAllCats(v => !v)}
+                            className="mt-2 text-xs text-gray-400 flex items-center gap-0.5 hover:text-gray-600">
+                            <ChevronDown size={13} className={showAllCats ? 'rotate-180 transition-transform' : 'transition-transform'} />
+                            {showAllCats ? '收起' : '更多类别'}
+                          </button>
+                        )}
                         {errors.categoryId && <p className="text-xs text-red-500 mt-1">{errors.categoryId}</p>}
                       </div>
 
-                      {/* Description */}
+                      {/* 详细描述 + AI 智能解析（保留 AI 自动拾取） */}
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                          需求描述 <span className="text-red-500">*</span>
+                          详细描述 <span className="text-gray-400 font-normal text-xs">（可选，可 AI 自动识别）</span>
                         </label>
                         <textarea
                           rows={3}
                           value={form.description}
                           onChange={e => update('description', e.target.value)}
-                          placeholder="请描述您的需求，例如：需要搬两居室，3楼无电梯，下周末可以..."
+                          placeholder="补充说明时间、地点、物品、要求等细节…"
                           maxLength={300}
                           className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-800
                                      outline-none focus:ring-2 focus:ring-primary-400 focus:border-transparent resize-none"
                         />
                         <p className="text-xs text-gray-400 text-right mt-0.5">{form.description.length}/300</p>
                         {errors.description && <p className="text-xs text-red-500 mt-0.5">{errors.description}</p>}
+                        <button type="button" onClick={handleExtractManual}
+                          disabled={extracting || !form.description.trim()}
+                          className="mt-2 w-full flex items-center justify-center gap-1.5 py-2.5 rounded-xl border border-primary-200
+                                     bg-primary-50 text-primary-600 text-sm font-semibold hover:bg-primary-100 disabled:opacity-50 transition-colors">
+                          {extracting
+                            ? <><span className="w-3.5 h-3.5 border-2 border-primary-400 border-t-transparent rounded-full animate-spin" /> 识别中…</>
+                            : <><Sparkles size={15} /> AI 智能解析（自动识别类别/地点/物品）</>}
+                        </button>
                       </div>
 
                       {/* Timing */}
