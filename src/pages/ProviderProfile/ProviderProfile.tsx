@@ -59,6 +59,7 @@ export default function ProviderProfile() {
         { data: ext },
         { data: contact },
         { data: orderCnt },
+        { data: provReviewsData },
       ] = await Promise.all([
         supabase.from('public_profiles')
           .select('id, name, avatar_url, bio, created_at, is_email_verified, last_seen_at, phone_verified, social_links, membership_level, business_verified, avg_reply_hours, credit_penalty')
@@ -83,6 +84,11 @@ export default function ProviderProfile() {
           ? supabase.rpc('get_contact', { p_target: id }).returns<{ phone: string; wechat: string; email: string }[]>().maybeSingle()
           : Promise.resolve({ data: null }),
         supabase.rpc('provider_order_count', { p_provider: id }),
+        // 评价按「师傅(provider_id)」直查，含无服务的询价成交评价——与名片墙口径一致。
+        supabase.from('reviews')
+          .select('id, rating, comment, created_at, service:service_id(id, title), reply:review_replies(content), reviewer:reviewer_id(id, name, avatar_url)')
+          .eq('provider_id', id!)
+          .order('created_at', { ascending: false }),
       ])
 
       if (profileError || !profile) { setNotFound(true); setLoading(false); return }
@@ -121,17 +127,22 @@ export default function ProviderProfile() {
             : null
           return { ...r, images: r.images ?? [], avgRating, reviewCount: reviews.length }
         }))
-        const allReviews: ProviderReview[] = svcsData.flatMap(svc =>
-          ((svc as any).reviews ?? []).map((r: any) => ({
+      }
+
+      // 评价 tab / 均分：按师傅聚合的全部评价（含无服务的询价成交评价）。
+      {
+        const allReviews: ProviderReview[] = ((provReviewsData ?? []) as any[]).map((r: any) => {
+          const svc = Array.isArray(r.service) ? r.service[0] : r.service
+          return {
             id:         r.id,
             rating:     r.rating,
             comment:    r.comment,
             created_at: r.created_at,
-            service:    { id: svc.id, title: svc.title },
+            service:    svc ? { id: svc.id, title: svc.title } : null,
             reviewer:   Array.isArray(r.reviewer) ? r.reviewer[0] : r.reviewer,
             reply:      Array.isArray(r.reply) ? (r.reply[0]?.content ?? null) : (r.reply?.content ?? null),
-          }))
-        )
+          }
+        })
         allReviews.sort((a, b) => b.rating - a.rating || b.created_at.localeCompare(a.created_at))
         setProviderReviews(allReviews)
       }
