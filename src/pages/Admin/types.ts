@@ -27,6 +27,7 @@ export interface Stats {
   pending_verifications: number
   pending_user_reports: number
   pending_promo_requests: number
+  pending_feedback: number
 }
 
 export interface VerificationRow {

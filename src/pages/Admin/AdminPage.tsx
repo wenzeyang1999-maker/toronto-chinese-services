@@ -62,7 +62,7 @@ export default function AdminPage() {
   }
 
   async function loadStats() {
-    const [users, services, jobs, properties, secondhand, events, reports, contentReportsCount, verifs, userReportsCount, promoReqCount] = await Promise.all([
+    const [users, services, jobs, properties, secondhand, events, reports, contentReportsCount, verifs, userReportsCount, promoReqCount, feedbackCount] = await Promise.all([
       supabase.from('users').select('id', { count: 'exact', head: true }),
       supabase.from('services').select('id', { count: 'exact', head: true }),
       supabase.from('jobs').select('id', { count: 'exact', head: true }),
@@ -74,6 +74,7 @@ export default function AdminPage() {
       supabase.from('users').select('id', { count: 'exact', head: true }).eq('verification_status', 'pending'),
       supabase.from('content_reports').select('id', { count: 'exact', head: true }).eq('status', 'pending').eq('content_type', 'user'),
       supabase.from('promo_requests').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
+      supabase.from('feedback').select('id', { count: 'exact', head: true }).eq('status', 'open'),
     ])
     setStats({
       users:                  users.count ?? 0,
@@ -87,6 +88,7 @@ export default function AdminPage() {
       pending_verifications:  verifs.count ?? 0,
       pending_user_reports:   userReportsCount.count ?? 0,
       pending_promo_requests: promoReqCount.count ?? 0,
+      pending_feedback:       feedbackCount.count ?? 0,
     })
   }
 
@@ -152,7 +154,7 @@ export default function AdminPage() {
   const TABS: { key: Tab; label: string }[] = [
     { key: 'reports',          label: `举报${stats ? ` (${stats.pending_reports})` : ''}` },
     { key: 'userReports',      label: `用户投诉${stats && stats.pending_user_reports > 0 ? ` (${stats.pending_user_reports})` : ''}` },
-    { key: 'feedback',         label: '用户反馈' },
+    { key: 'feedback',         label: `用户反馈${stats && stats.pending_feedback > 0 ? ` (${stats.pending_feedback})` : ''}` },
     { key: 'communityReports', label: `内容举报${stats ? ` (${stats.pending_content_reports})` : ''}` },
     { key: 'verification',     label: `认证审核${stats ? ` (${stats.pending_verifications})` : ''}` },
     { key: 'disputes',         label: '纠纷' },
