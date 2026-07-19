@@ -107,10 +107,10 @@ function OnlineModeTint() {
   if (!online) return null
   return (
     <div aria-hidden className="pointer-events-none fixed inset-0 z-[45]">
-      <div className="absolute inset-y-0 left-0 w-8 sm:w-12 md:w-20
-                      bg-gradient-to-r from-blue-500/20 via-blue-500/[0.05] to-transparent" />
-      <div className="absolute inset-y-0 right-0 w-8 sm:w-12 md:w-20
-                      bg-gradient-to-l from-blue-500/20 via-blue-500/[0.05] to-transparent" />
+      <div className="absolute inset-y-0 left-0 w-14 sm:w-20 md:w-32
+                      bg-gradient-to-r from-sky-400/25 via-sky-400/[0.07] to-transparent" />
+      <div className="absolute inset-y-0 right-0 w-14 sm:w-20 md:w-32
+                      bg-gradient-to-l from-sky-400/25 via-sky-400/[0.07] to-transparent" />
     </div>
   )
 }
