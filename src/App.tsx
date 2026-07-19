@@ -106,7 +106,7 @@ function OnlineModeTint() {
   const online = useOnlineModeStore((s) => s.online)
   if (!online) return null
   return (
-    <div aria-hidden className="pointer-events-none fixed inset-0 z-[45]">
+    <div aria-hidden className="pointer-events-none fixed inset-0 z-30">
       <div className="absolute inset-y-0 left-0 w-14 sm:w-20 md:w-32
                       bg-gradient-to-r from-sky-400/25 via-sky-400/[0.07] to-transparent" />
       <div className="absolute inset-y-0 right-0 w-14 sm:w-20 md:w-32
