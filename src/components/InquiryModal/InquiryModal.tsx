@@ -627,24 +627,6 @@ export default function InquiryModal({ open, onClose }: Props) {
                         {errors.description && <p className="text-xs text-red-500 mt-0.5">{errors.description}</p>}
                       </div>
 
-                      {/* Budget */}
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                          预算范围 <span className="text-gray-400 font-normal text-xs">（可选）</span>
-                        </label>
-                        <div className="relative">
-                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">$</span>
-                          <input
-                            type="text"
-                            value={form.budget}
-                            onChange={e => update('budget', e.target.value)}
-                            placeholder="例：100–200"
-                            className="w-full border border-gray-200 rounded-xl pl-7 pr-4 py-2.5 text-sm
-                                       text-gray-800 outline-none focus:ring-2 focus:ring-primary-400 focus:border-transparent"
-                          />
-                        </div>
-                      </div>
-
                       {/* Timing */}
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1.5">希望服务时间</label>
@@ -680,26 +662,6 @@ export default function InquiryModal({ open, onClose }: Props) {
                         <span className="text-xs text-gray-400">联系方式</span>
                         <div className="flex-1 h-px bg-gray-100" />
                       </div>
-
-                      {/* Budget (AI mode) */}
-                      {aiMode && (
-                        <div>
-                          <label className="block text-xs font-medium text-gray-500 mb-1">
-                            预算范围 <span className="text-gray-400 font-normal">（可选）</span>
-                          </label>
-                          <div className="relative">
-                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">$</span>
-                            <input
-                              type="text"
-                              value={form.budget}
-                              onChange={e => update('budget', e.target.value)}
-                              placeholder="例：100–200"
-                              className="w-full border border-gray-200 rounded-xl pl-7 pr-4 py-2 text-sm
-                                         text-gray-800 outline-none focus:ring-2 focus:ring-primary-400 focus:border-transparent"
-                            />
-                          </div>
-                        </div>
-                      )}
 
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1.5">

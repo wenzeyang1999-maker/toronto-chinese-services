@@ -454,19 +454,6 @@ export default function PostRequest() {
               </select>
             </div>
 
-            <div className="card p-4">
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                预算 <span className="text-gray-400 font-normal">（可选）</span>
-              </label>
-              <input
-                value={budget}
-                onChange={(e) => setBudget(e.target.value)}
-                placeholder="面议 / $50/时"
-                maxLength={20}
-                className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm
-                           focus:outline-none focus:ring-2 focus:ring-primary-300"
-              />
-            </div>
           </div>
 
           {/* Service-time window */}
