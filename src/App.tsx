@@ -12,7 +12,7 @@
 //   /login          → User login page
 //   /profile        → User profile page
 import { lazy, Suspense, useEffect } from 'react'
-import { Routes, Route, Navigate } from 'react-router-dom'
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { AnimatePresence } from 'framer-motion'
 import type { User } from '@supabase/supabase-js'
 import LoadingScreen from './components/LoadingScreen/LoadingScreen'
@@ -23,6 +23,7 @@ import MessageToast from './components/MessageToast/MessageToast'
 import NotificationPrompt from './components/NotificationPrompt/NotificationPrompt'
 import InstallPWA from './components/InstallPWA/InstallPWA'
 import FABGroup from './components/FABGroup/FABGroup'
+import AiChatWidget from './components/AiChatWidget/AiChatWidget'
 import BottomNav from './components/BottomNav/BottomNav'
 import CityGate from './components/GeofenceBanner/CityGate'
 
@@ -75,6 +76,26 @@ import { useViewportHeight } from './lib/useViewportHeight'
 function SearchAllRedirect() {
   const q = new URLSearchParams(window.location.search).get('q') ?? ''
   return <Navigate to={q ? `/search?q=${encodeURIComponent(q)}&global=1` : '/search?global=1'} replace />
+}
+
+// Mobile-only floating AI bubble. On desktop the AI 客服 button lives in the
+// FABGroup stack (hidden on mobile), so without this the bot vanishes on phones.
+// Hidden on the same routes as the bottom nav to avoid clashing with page
+// bottom bars; md:hidden so it never doubles up with the desktop FAB.
+function MobileAiBubble() {
+  const { pathname } = useLocation()
+  const hidden =
+    /^\/(login|register|forgot-password|reset-password|map)$/.test(pathname) ||
+    pathname.endsWith('/post') ||
+    pathname === '/post' ||
+    pathname.startsWith('/conversation/') ||
+    pathname.startsWith('/admin')
+  if (hidden) return null
+  return (
+    <div className="md:hidden">
+      <AiChatWidget />
+    </div>
+  )
 }
 
 // App-wide「上线接单」indicator — a faint blue gradient rising from the bottom on
@@ -256,6 +277,7 @@ export default function App() {
 
       {/* Desktop FABs + mobile bottom nav */}
       {isLoadingDone && <FABGroup />}
+      {isLoadingDone && <MobileAiBubble />}
       {isLoadingDone && <BottomNav />}
       {isLoadingDone && <MessageToast />}
       {isLoadingDone && <NotificationPrompt />}
