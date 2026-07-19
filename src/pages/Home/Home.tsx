@@ -6,7 +6,8 @@ import InquiryModal from '../../components/InquiryModal/InquiryModal'
 import { useAppStore } from '../../store/appStore'
 import { useGeolocation, LOCATION_STALE_MS } from '../../hooks/useGeolocation'
 import RecommendedServices from '../../components/RecommendedServices/RecommendedServices'
-import HomeCommunityEntry from './components/HomeCommunityEntry'
+// 暂时隐藏社区入口（恢复时连同下方 <HomeCommunityEntry /> 一起取消注释）
+// import HomeCommunityEntry from './components/HomeCommunityEntry'
 import ServiceRequestCard from '../../components/ServiceRequestCard/ServiceRequestCard'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuthStore } from '../../store/authStore'
@@ -251,7 +252,8 @@ export default function Home() {
         </section>
 
         {/* ── Community entry — surfaces 社区圈子 directly (skips the /plaza hub) ─ */}
-        <HomeCommunityEntry />
+        {/* 暂时隐藏社区入口（保留组件，恢复时取消注释即可） */}
+        {/* <HomeCommunityEntry /> */}
 
         {/* ── Feed mode toggle — headline dual-marketplace switcher ──────────── */}
         <div className="mb-4">
