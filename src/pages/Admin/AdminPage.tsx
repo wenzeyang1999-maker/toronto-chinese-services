@@ -15,6 +15,7 @@ import PromotedTab from './tabs/PromotedTab'
 import PromoRequestsTab from './tabs/PromoRequestsTab'
 import ReportsTab from './tabs/ReportsTab'
 import UserReportsTab from './tabs/UserReportsTab'
+import FeedbackTab from './tabs/FeedbackTab'
 import CommunityReportsTab from './tabs/CommunityReportsTab'
 import VerificationTab from './tabs/VerificationTab'
 import MembershipTab from './tabs/MembershipTab'
@@ -28,7 +29,7 @@ import LogsTab from './tabs/LogsTab'
 type Tab =
   | 'reports' | 'userReports' | 'communityReports' | 'verification' | 'promoted'
   | 'promoRequests' | 'overview' | 'community' | 'membership' | 'inquiries'
-  | 'disputes' | 'users' | 'services' | 'logs'
+  | 'disputes' | 'users' | 'services' | 'logs' | 'feedback'
 
 export default function AdminPage() {
   const user     = useAuthStore((s) => s.user)
@@ -151,6 +152,7 @@ export default function AdminPage() {
   const TABS: { key: Tab; label: string }[] = [
     { key: 'reports',          label: `举报${stats ? ` (${stats.pending_reports})` : ''}` },
     { key: 'userReports',      label: `用户投诉${stats && stats.pending_user_reports > 0 ? ` (${stats.pending_user_reports})` : ''}` },
+    { key: 'feedback',         label: '用户反馈' },
     { key: 'communityReports', label: `内容举报${stats ? ` (${stats.pending_content_reports})` : ''}` },
     { key: 'verification',     label: `认证审核${stats ? ` (${stats.pending_verifications})` : ''}` },
     { key: 'disputes',         label: '纠纷' },
@@ -213,6 +215,8 @@ export default function AdminPage() {
           <PromoRequestsTab />
         ) : tab === 'userReports' ? (
           <UserReportsTab />
+        ) : tab === 'feedback' ? (
+          <FeedbackTab />
         ) : tab === 'communityReports' ? (
           <CommunityReportsTab />
         ) : tab === 'community' ? (
