@@ -16,7 +16,7 @@ import HomeFollowingFeed from './components/HomeFollowingFeed'
 import PullIndicator from '../../components/PullToRefresh/PullIndicator'
 import { usePullToRefresh } from '../../hooks/usePullToRefresh'
 import { RADIUS_MIN_KM, RADIUS_MAX_KM } from '../../components/RadiusSlider/RadiusSlider'
-import { PlusCircle, Search as SearchIcon, ChevronRight, Sparkles, Megaphone, ArrowRight } from 'lucide-react'
+import { Search as SearchIcon, ChevronRight, Sparkles } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { getCategoryById } from '../../data/categories'
 import { fuzzyFilterRequests } from '../../lib/fuzzySearch'
@@ -248,51 +248,6 @@ export default function Home() {
             </button>
           </div>
           <CategoryButtons />
-        </section>
-
-        {/* ── Post-request CTA ─────────────────────────────────────────────── */}
-        <section className="mb-4 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-          <div className="flex items-start justify-between gap-3 mb-3">
-            <div className="min-w-0">
-              <div className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-primary-600 bg-primary-50 border border-primary-100 px-2.5 py-1 rounded-full mb-2">
-                <Megaphone size={11} /> 发需求 · 商家来找你
-              </div>
-              <h3 className="text-base font-bold text-gray-900 leading-tight">1 分钟告诉我们你要什么</h3>
-              <p className="text-xs text-gray-400 mt-1">附近商家看到后主动联系你 · 比挨家挨家问省一半时间</p>
-            </div>
-            <PlusCircle size={28} className="text-gray-200 flex-shrink-0 mt-0.5" />
-          </div>
-
-          <div className="grid grid-cols-4 gap-2 mb-3">
-            {[
-              { key: 'urgent',   icon: '🔥', label: '紧急单' },
-              { key: 'today',    icon: '⏰', label: '今天就要' },
-              { key: 'week',     icon: '📅', label: '本周内'   },
-              { key: 'flexible', icon: '💬', label: '慢慢找'   },
-            ].map(chip => (
-              <button
-                key={chip.key}
-                onClick={() => setInquiryOpen(true)}
-                className="flex flex-col items-center justify-center gap-0.5 bg-gray-50 hover:bg-primary-50
-                           border border-gray-200 hover:border-primary-300
-                           rounded-xl py-2.5 text-[11px] font-semibold text-gray-600 hover:text-primary-600
-                           transition-colors active:scale-95"
-              >
-                <span className="text-base leading-none">{chip.icon}</span>
-                {chip.label}
-              </button>
-            ))}
-          </div>
-
-          <button
-            onClick={() => setInquiryOpen(true)}
-            className="w-full flex items-center justify-center gap-2 bg-primary-600 hover:bg-primary-700
-                       text-white py-3 rounded-xl text-sm font-bold transition-colors active:scale-[0.98]"
-          >
-            <PlusCircle size={16} />
-            立即发布需求
-            <ArrowRight size={16} />
-          </button>
         </section>
 
         {/* ── Community entry — surfaces 社区圈子 directly (skips the /plaza hub) ─ */}
