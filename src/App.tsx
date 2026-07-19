@@ -53,7 +53,6 @@ const AdminPage       = lazy(() => import('./pages/Admin/AdminPage'))
 const CommunityPage   = lazy(() => import('./pages/Community/CommunityPage'))
 const CommunityDetail = lazy(() => import('./pages/Community/CommunityDetail'))
 const PostCommunity   = lazy(() => import('./pages/Community/PostCommunity'))
-const PostRequest     = lazy(() => import('./pages/PostRequest/PostRequest'))
 const PlazaPage       = lazy(() => import('./pages/Plaza/PlazaPage'))
 const RequestDetail   = lazy(() => import('./pages/RequestDetail/RequestDetail'))
 const MapPage         = lazy(() => import('./pages/MapPage/MapPage'))
@@ -213,7 +212,8 @@ export default function App() {
           <Route path="/community" element={<CommunityPage />} />
           <Route path="/community/post" element={<PostCommunity />} />
           <Route path="/community/:id" element={<CommunityDetail />} />
-          <Route path="/requests/post" element={<PostRequest />} />
+          {/* 旧「发布服务需求」页已合并进「AI帮你找」弹窗，旧链接重定向过去 */}
+          <Route path="/requests/post" element={<Navigate to="/?inquiry=1" replace />} />
           <Route path="/requests/:id" element={<RequestDetail />} />
           <Route path="/inquiries/:id/claim" element={<InquiryClaim />} />
           <Route path="/map" element={<MapPage />} />
