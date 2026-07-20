@@ -42,6 +42,7 @@ export default function HomeActionHero({
   const showSkeleton = useDelayedLoading(!servicesLoaded)
   const [history, setHistory] = useState<string[]>(getHistory)
   const [showHistory, setShowHistory] = useState(false)
+  const [view, setView] = useState<'feed' | 'map'>('feed')   // 推送 / 地图快照
   const searchWrapRef = useRef<HTMLDivElement>(null)
 
   function handleSearch(kw: string) {
@@ -67,6 +68,8 @@ export default function HomeActionHero({
 
   const tickerLoop = ticker.length > 0 ? [...ticker, ...ticker] : []
   const CARD_H = 60
+  const PANEL_H = CARD_H * 4 + 8 * 3   // shared body height for both views
+  const nearbyCount = services.filter((s) => s.available).length
 
   return (
     <div className="relative w-full overflow-hidden bg-[#f7f8fa] border-b border-gray-200 px-4 py-10 md:px-5 md:py-16">
@@ -194,15 +197,63 @@ export default function HomeActionHero({
                   <p className="text-[10px] uppercase tracking-widest text-gray-400">Live · 实时上线</p>
                   <p className="mt-0.5 text-sm font-semibold text-gray-800">最新入驻 &amp; 推广商家</p>
                 </div>
-                <div className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs text-emerald-600">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                  实时
+                {/* 两视图切换：推送 / 地图快照 */}
+                <div className="inline-flex items-center gap-0.5 rounded-full bg-gray-100 p-0.5 text-xs flex-shrink-0">
+                  <button
+                    onClick={() => setView('feed')}
+                    className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 font-semibold transition-colors
+                      ${view === 'feed' ? 'bg-white text-emerald-600 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}
+                  >
+                    {view === 'feed' && <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />}
+                    推送
+                  </button>
+                  <button
+                    onClick={() => setView('map')}
+                    className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 font-semibold transition-colors
+                      ${view === 'map' ? 'bg-white text-primary-600 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}
+                  >
+                    <MapPin size={11} /> 地图
+                  </button>
                 </div>
               </div>
 
-              {/* Ticker — skeleton only if the load is genuinely slow (>300ms);
-                  a fast load fills in directly, an empty-but-loaded panel shows nothing. */}
-              {ticker.length === 0 ? (
+              {/* Body: 地图快照（点击跳完整地图）or 推送列表 */}
+              {view === 'map' ? (
+                <button
+                  onClick={() => navigate('/map')}
+                  className="relative block w-full overflow-hidden rounded-xl border border-gray-100 group"
+                  style={{ height: PANEL_H }}
+                >
+                  {/* map-ish backdrop — 纯 CSS，无瓦片/API 成本 */}
+                  <div className="absolute inset-0 bg-gradient-to-br from-emerald-50 via-sky-50 to-indigo-50" />
+                  <div
+                    className="absolute inset-0 opacity-[0.18]"
+                    style={{
+                      backgroundImage:
+                        'linear-gradient(#94a3b8 1px, transparent 1px), linear-gradient(90deg, #94a3b8 1px, transparent 1px)',
+                      backgroundSize: '30px 30px',
+                    }}
+                  />
+                  {/* faint "river/road" diagonals */}
+                  <div className="absolute -inset-8 opacity-[0.12]"
+                    style={{ backgroundImage: 'linear-gradient(115deg, transparent 46%, #38bdf8 46%, #38bdf8 52%, transparent 52%)' }} />
+                  {/* scattered service pins */}
+                  <MapPin size={16} className="absolute text-rose-500 fill-rose-200"    style={{ top: '20%', left: '26%' }} />
+                  <MapPin size={14} className="absolute text-amber-500 fill-amber-200"   style={{ top: '58%', left: '18%' }} />
+                  <MapPin size={15} className="absolute text-violet-500 fill-violet-200" style={{ top: '30%', right: '22%' }} />
+                  <MapPin size={13} className="absolute text-emerald-500 fill-emerald-200" style={{ bottom: '20%', right: '30%' }} />
+                  {/* center CTA */}
+                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-1.5">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary-600 text-white shadow-lg transition-transform group-hover:scale-105">
+                      <MapPin size={22} />
+                    </div>
+                    <p className="text-sm font-bold text-gray-800">在地图上找附近服务</p>
+                    <p className="inline-flex items-center gap-1 rounded-full bg-white/80 px-3 py-1 text-xs font-medium text-primary-600 shadow-sm">
+                      {nearbyCount > 0 ? `${nearbyCount} 个服务 · ` : ''}点击查看地图 <ArrowRight size={12} />
+                    </p>
+                  </div>
+                </button>
+              ) : ticker.length === 0 ? (
                 (!servicesLoaded && showSkeleton) ? (
                   <div className="space-y-2">
                     {Array.from({ length: 4 }).map((_, i) => (
@@ -213,7 +264,7 @@ export default function HomeActionHero({
               ) : (
                 <div
                   className="relative overflow-hidden rounded-xl"
-                  style={{ height: CARD_H * 4 + 8 * 3 }}
+                  style={{ height: PANEL_H }}
                 >
                   <div className="pointer-events-none absolute inset-x-0 top-0 z-10 h-6 bg-gradient-to-b from-white to-transparent" />
                   <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-10 bg-gradient-to-t from-white to-transparent" />
