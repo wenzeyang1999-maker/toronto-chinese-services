@@ -7,6 +7,7 @@ import {
 } from 'lucide-react'
 import { SOCIAL_PLATFORMS } from '../../../lib/socialPlatforms'
 import { cropAndCompressImage, compressImage, validateImageFile } from '../../../lib/compressImage'
+import { moderateImage } from '../../../lib/moderateImage'
 import { supabase } from '../../../lib/supabase'
 import { useAuthStore } from '../../../store/authStore'
 import { useNavigate } from 'react-router-dom'
@@ -125,6 +126,13 @@ export default function HomepageSection() {
     setUploadingCover(true)
     try {
       const compressed = await cropAndCompressImage(file, 3)
+      const imgMod = await moderateImage(compressed)   // 黄暴血腥；fail-open
+      if (!imgMod.pass) {
+        toast(`封面未通过审核：${imgMod.reason ?? '含违规内容'}`, 'error')
+        setUploadingCover(false)
+        if (coverRef.current) coverRef.current.value = ''
+        return
+      }
       const path = `${user!.id}/cover.jpg`
       const { error } = await supabase.storage.from('avatars').upload(path, compressed, { upsert: true })
       if (error) throw error
@@ -222,6 +230,12 @@ export default function HomepageSection() {
       const uploaded: string[] = []
       for (const file of toProcess) {
         const compressed = await compressImage(file)
+        const imgMod = await moderateImage(compressed)   // 黄暴血腥；fail-open
+        if (!imgMod.pass) {
+          toast(`图片未通过审核：${imgMod.reason ?? '含违规内容'}`, 'error')
+          setUploadingQual(false)
+          return
+        }
         const path = `qualifications/${user!.id}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.jpg`
         const { error } = await supabase.storage.from('service-images').upload(path, compressed, { upsert: false })
         if (error) throw error

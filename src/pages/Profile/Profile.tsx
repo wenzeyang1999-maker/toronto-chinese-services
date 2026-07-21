@@ -14,6 +14,7 @@ import { useAuthStore } from '../../store/authStore'
 import { useLeadAlertsStore } from '../../store/leadAlertsStore'
 import { useOnlineModeStore } from '../../store/onlineModeStore'
 import { compressImage } from '../../lib/compressImage'
+import { moderateImage } from '../../lib/moderateImage'
 import type { BrowseEntry, Section } from './types'
 import type { MemberLevel } from '../../components/MembershipBadge/MembershipBadge'
 import MembershipBadge from '../../components/MembershipBadge/MembershipBadge'
@@ -280,6 +281,13 @@ export default function Profile() {
     setUploading(true)
     try {
       const compressed = await compressImage(file)
+      const imgMod = await moderateImage(compressed)   // 黄暴血腥；fail-open
+      if (!imgMod.pass) {
+        toast(`头像未通过审核：${imgMod.reason ?? '含违规内容'}`, 'error')
+        setUploading(false)
+        if (fileRef.current) fileRef.current.value = ''
+        return
+      }
       const path = `${user!.id}/avatar.jpg`
       const { error } = await supabase.storage.from('avatars').upload(path, compressed, { upsert: true })
       if (error) throw error

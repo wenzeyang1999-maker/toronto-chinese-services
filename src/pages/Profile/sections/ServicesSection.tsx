@@ -12,6 +12,7 @@ import { supabase } from '../../../lib/supabase'
 import { useAuthStore } from '../../../store/authStore'
 import { notifyAdminPromoRequest } from '../../../lib/notify'
 import { compressImage, validateImageFile } from '../../../lib/compressImage'
+import { moderateImage } from '../../../lib/moderateImage'
 import { JOB_CATEGORY_CONFIG, getCategoryLabel } from '../../Jobs/types'
 import type { Job } from '../../Jobs/types'
 import { LISTING_TYPE_CONFIG as RE_CONFIG, PROPERTY_TYPE_CONFIG, getPriceLabel as propPrice } from '../../RealEstate/types'
@@ -152,6 +153,12 @@ export default function ServicesSection() {
     const uploaded: string[] = []
     for (const file of newImgFiles) {
       const compressed = await compressImage(file)
+      const imgMod = await moderateImage(compressed)   // 黄暴血腥；fail-open
+      if (!imgMod.pass) {
+        toast(`图片未通过审核：${imgMod.reason ?? '含违规内容'}`, 'error')
+        setSaving(false)
+        return
+      }
       const ext  = compressed.name.split('.').pop()
       const path = `${user.id}/${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`
       const { error } = await supabase.storage.from('service-images').upload(path, compressed, { upsert: false })

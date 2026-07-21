@@ -8,6 +8,7 @@ import { ArrowLeft, ImagePlus, X, MapPin, Tag } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { useAuthStore } from '../../store/authStore'
 import { compressImage, validateImageFile } from '../../lib/compressImage'
+import { moderateImage } from '../../lib/moderateImage'
 import { POST_TYPE_CONFIG, AREA_CONFIG } from './config'
 import { toast } from '../../lib/toast'
 import { moderateContent } from '../../hooks/useContentModeration'
@@ -76,8 +77,18 @@ export default function PostCommunity() {
     }
     setUploadingImg(true)
     const compressed = await Promise.all(toProcess.map(f => compressImage(f)))
-    setNewImages(prev => [...prev, ...compressed])
-    setNewPreviews(prev => [...prev, ...compressed.map(f => URL.createObjectURL(f))])
+    // 图片审核（黄暴血腥）：违规的剔除并提示；fail-open。
+    const accepted: File[] = []
+    let rejectReason: string | null = null
+    for (const f of compressed) {
+      const m = await moderateImage(f)
+      if (m.pass) accepted.push(f); else rejectReason = m.reason ?? '含违规内容'
+    }
+    if (accepted.length > 0) {
+      setNewImages(prev => [...prev, ...accepted])
+      setNewPreviews(prev => [...prev, ...accepted.map(f => URL.createObjectURL(f))])
+    }
+    if (rejectReason) setSubmitError(`图片审核未通过：${rejectReason}${accepted.length > 0 ? '，已移除违规图片' : ''}`)
     setUploadingImg(false)
   }
 

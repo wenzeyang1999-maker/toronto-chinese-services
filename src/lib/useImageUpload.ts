@@ -9,6 +9,7 @@
 //   • revokes object URLs on unmount
 import { useState, useEffect, useCallback } from 'react'
 import { compressImage, validateImageFile } from './compressImage'
+import { moderateImage } from './moderateImage'
 
 export interface ImageUpload {
   images:      File[]
@@ -44,11 +45,23 @@ export function useImageUpload(maxImages: number): ImageUpload {
     }
 
     setUploading(true)
-    const compressed   = await Promise.all(toProcess.map((f) => compressImage(f)))
-    const newPreviews  = compressed.map((f) => URL.createObjectURL(f))
-    setImages((prev) => [...prev, ...compressed])
-    setPreviews((prev) => [...prev, ...newPreviews])
-    setError(null)
+    const compressed = await Promise.all(toProcess.map((f) => compressImage(f)))
+    // 图片审核（黄暴血腥）：逐张审，违规的当场剔除并提示；出错/限流一律放行(fail-open)。
+    const accepted: File[] = []
+    let rejectReason: string | null = null
+    for (const f of compressed) {
+      const m = await moderateImage(f)
+      if (m.pass) accepted.push(f)
+      else rejectReason = m.reason ?? '含违规内容'
+    }
+    if (accepted.length > 0) {
+      const newPreviews = accepted.map((f) => URL.createObjectURL(f))
+      setImages((prev) => [...prev, ...accepted])
+      setPreviews((prev) => [...prev, ...newPreviews])
+    }
+    setError(rejectReason
+      ? (accepted.length > 0 ? `部分图片审核未通过（${rejectReason}），已自动移除` : `图片审核未通过：${rejectReason}`)
+      : null)
     setUploading(false)
   }, [images.length, maxImages])
 

@@ -4,6 +4,7 @@ import { useAuthStore } from '../../../store/authStore'
 import { supabase } from '../../../lib/supabase'
 import { toast } from '../../../lib/toast'
 import { compressImage } from '../../../lib/compressImage'
+import { moderateImage } from '../../../lib/moderateImage'
 import Badge from '../../../components/Badge/Badge'
 
 interface OrderRow {
@@ -115,6 +116,12 @@ export default function OrdersSection() {
       const urls: string[] = []
       for (const f of list) {
         const compressed = await compressImage(f)
+        const imgMod = await moderateImage(compressed)   // 黄暴血腥；fail-open
+        if (!imgMod.pass) {
+          toast(`完工照未通过审核：${imgMod.reason ?? '含违规内容'}`, 'error')
+          setActing(null)
+          return
+        }
         const path = `${user.id}/order-completion/${orderId}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.jpg`
         const { error } = await supabase.storage.from('service-images').upload(path, compressed, { upsert: false })
         if (error) throw error

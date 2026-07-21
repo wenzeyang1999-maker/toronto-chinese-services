@@ -10,6 +10,7 @@ import { useAuthStore } from '../../store/authStore'
 import { notifyNewMessage } from '../../lib/notify'
 import { toast } from '../../lib/toast'
 import { compressImage } from '../../lib/compressImage'
+import { moderateImage } from '../../lib/moderateImage'
 
 interface Message {
   id: string
@@ -307,6 +308,12 @@ export default function ConversationPage() {
     setUploadingPhoto(true)
     try {
       const compressed = await compressImage(file)
+      const imgMod = await moderateImage(compressed)   // 黄暴血腥；fail-open
+      if (!imgMod.pass) {
+        toast(`图片未通过审核：${imgMod.reason ?? '含违规内容'}`, 'error')
+        setUploadingPhoto(false)
+        return
+      }
       const ext  = compressed.name.split('.').pop() ?? 'jpg'
       const path = `chat-photos/${user.id}/${Date.now()}.${ext}`
       const { error: uploadErr } = await supabase.storage
