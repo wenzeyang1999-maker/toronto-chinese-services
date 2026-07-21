@@ -1,6 +1,6 @@
 import { MapPin, Sparkles, ArrowRight, ShieldCheck, Star, Clock, X } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import SearchBar from '../../../components/SearchBar/SearchBar'
 import { useAppStore } from '../../../store/appStore'
@@ -44,6 +44,13 @@ export default function HomeActionHero({
   const [showHistory, setShowHistory] = useState(false)
   const [view, setView] = useState<'feed' | 'map'>('feed')   // 推送 / 地图快照
   const searchWrapRef = useRef<HTMLDivElement>(null)
+
+  // 自动轮播：每 4.5s 在 推送/地图 间切换。dep=[view] 让手动切换后计时重置，
+  // 点了不会马上又跳走。
+  useEffect(() => {
+    const t = setInterval(() => setView((v) => (v === 'feed' ? 'map' : 'feed')), 4500)
+    return () => clearInterval(t)
+  }, [view])
 
   function handleSearch(kw: string) {
     if (!kw.trim()) return
@@ -334,6 +341,20 @@ export default function HomeActionHero({
                   </div>
                 </div>
               )}
+
+              {/* 轮播指示点（点了也能切） */}
+              <div className="mt-3 flex items-center justify-center gap-1.5">
+                {(['feed', 'map'] as const).map((v) => (
+                  <button
+                    key={v}
+                    onClick={() => setView(v)}
+                    aria-label={v === 'feed' ? '推送' : '地图'}
+                    className={`h-1.5 rounded-full transition-all ${
+                      view === v ? 'w-4 bg-primary-500' : 'w-1.5 bg-gray-300 hover:bg-gray-400'
+                    }`}
+                  />
+                ))}
+              </div>
 
               <button
                 onClick={() => navigate('/search')}
