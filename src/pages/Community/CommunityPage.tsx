@@ -85,7 +85,7 @@ export default function CommunityPage() {
     const from = reset ? 0 : offsetRef.current
     let q = supabase
       .from('community_posts')
-      .select('id, title, content, type, area, like_count, created_at, images, author:author_id(id, name, avatar_url)')
+      .select('id, title, content, type, area, like_count, comment_count, created_at, images, author:author_id(id, name, avatar_url)')
       .eq('is_active', true)
       .order('created_at', { ascending: false })
       .range(from, from + PAGE_SIZE - 1)
@@ -100,18 +100,11 @@ export default function CommunityPage() {
       setLoading(false); setLoadingMore(false); return
     }
 
-    // 评论计数：只对这一小批的帖子查（不再一次拉全部）。
-    const ids = data.map((p: any) => p.id)
-    const countMap: Record<string, number> = {}
-    if (ids.length) {
-      const { data: counts } = await supabase
-        .from('community_comments').select('post_id').in('post_id', ids)
-      counts?.forEach((c: any) => { countMap[c.post_id] = (countMap[c.post_id] ?? 0) + 1 })
-    }
+    // 评论数直接读字段（由触发器维护）——不再二次查询 community_comments。
     const mapped: Post[] = data.map((p: any) => ({
       ...p,
       author:        Array.isArray(p.author) ? p.author[0] : p.author,
-      comment_count: countMap[p.id] ?? 0,
+      comment_count: p.comment_count ?? 0,
     }))
 
     setPosts((prev) => {
