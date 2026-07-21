@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ClipboardList, ChevronDown, ChevronUp, Users, CheckCircle, Clock, X, Star } from 'lucide-react'
+import { ClipboardList, ChevronDown, ChevronUp, Users, CheckCircle, Clock, X, Star, MessageCircle } from 'lucide-react'
 import { supabase } from '../../../lib/supabase'
 import { useAuthStore } from '../../../store/authStore'
 import { useAppStore } from '../../../store/appStore'
@@ -247,9 +247,16 @@ export default function InquiriesSection() {
                                 <p className="text-sm text-gray-700 leading-relaxed">{item.description}</p>
                               )}
                               <div className="flex items-center gap-2 bg-blue-50 border border-blue-100 rounded-xl px-3 py-2.5">
-                                <Clock size={14} className="text-blue-500 flex-shrink-0" />
-                                <p className="text-xs text-blue-700">这是公开需求帖，服务商看到后会主动联系你</p>
+                                <MessageCircle size={14} className="text-blue-500 flex-shrink-0" />
+                                <p className="text-xs text-blue-700">这是公开需求帖，商家看到后会通过站内消息私信你</p>
                               </div>
+                              <button
+                                onClick={() => navigate('/profile?section=messages')}
+                                className="w-full flex items-center justify-center gap-1.5 bg-primary-600 hover:bg-primary-700
+                                           text-white text-sm font-semibold py-2.5 rounded-xl transition-colors active:scale-95"
+                              >
+                                <MessageCircle size={14} /> 去「我的消息」看商家私信 →
+                              </button>
                               <button
                                 onClick={() => navigate(`/requests/${item.id}`)}
                                 className="w-full flex items-center justify-center gap-1.5 bg-white border border-gray-200
@@ -360,9 +367,18 @@ export default function InquiriesSection() {
                                 </div>
                               </button>
                             ) : (
-                              <div className="flex items-center gap-2 bg-amber-50 border border-amber-100 rounded-xl px-3 py-2.5">
-                                <Clock size={14} className="text-amber-500 flex-shrink-0 animate-pulse" />
-                                <p className="text-xs text-amber-700">等待服务商接单，请留意电话和微信消息</p>
+                              <div className="space-y-2">
+                                <div className="flex items-center gap-2 bg-primary-50 border border-primary-100 rounded-xl px-3 py-2.5">
+                                  <MessageCircle size={14} className="text-primary-500 flex-shrink-0" />
+                                  <p className="text-xs text-primary-700">商家会通过站内消息联系你，请留意「我的消息」（你的电话/微信不会自动透露）</p>
+                                </div>
+                                <button
+                                  onClick={() => navigate('/profile?section=messages')}
+                                  className="w-full flex items-center justify-center gap-1.5 bg-primary-600 hover:bg-primary-700
+                                             text-white text-sm font-semibold py-2.5 rounded-xl transition-colors active:scale-95"
+                                >
+                                  <MessageCircle size={14} /> 去「我的消息」看商家私信 →
+                                </button>
                               </div>
                             )}
 
