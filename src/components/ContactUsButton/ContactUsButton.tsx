@@ -198,10 +198,10 @@ export default function ContactUsButton() {
                 <textarea
                   value={reportDetail}
                   onChange={(e) => setReportDetail(e.target.value)}
-                  rows={3}
+                  rows={4}
                   maxLength={500}
                   placeholder="补充说明（可选）"
-                  className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm resize-none
+                  className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm resize-none lg:min-h-[11rem]
                              focus:outline-none focus:ring-2 focus:ring-primary-300"
                 />
                 <button
