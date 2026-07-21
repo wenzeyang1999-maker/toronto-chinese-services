@@ -14,6 +14,7 @@ import PostFormContact from '../../components/PostForm/PostFormContact'
 import LocationInput, { type LocationResult } from '../../components/LocationInput/LocationInput'
 import PostFormSuccess from '../../components/PostForm/PostFormSuccess'
 import { supabase } from '../../lib/supabase'
+import { reportUploadedImage } from '../../lib/moderateImage'
 import { useAuthStore } from '../../store/authStore'
 import { useRealEstateStore } from '../../store/realestateStore'
 import { useImageUpload } from '../../lib/useImageUpload'
@@ -140,6 +141,7 @@ export default function PostProperty() {
       }
       const { data: urlData } = supabase.storage.from('service-images').getPublicUrl(path)
       imageUrls.push(urlData.publicUrl)
+      void reportUploadedImage(file, urlData.publicUrl, 'property')
     }
 
     const payload = {

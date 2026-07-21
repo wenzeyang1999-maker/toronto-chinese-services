@@ -23,6 +23,7 @@ import {
 } from './types'
 import { toast } from '../../lib/toast'
 import { moderateContent } from '../../hooks/useContentModeration'
+import { reportUploadedImage } from '../../lib/moderateImage'
 import { notifyFollowerNewListing } from '../../lib/notify'
 
 const Card  = PostFormCard
@@ -132,6 +133,7 @@ export default function PostListing() {
       }
       const { data: urlData } = supabase.storage.from('service-images').getPublicUrl(path)
       imageUrls.push(urlData.publicUrl)
+      void reportUploadedImage(file, urlData.publicUrl, 'secondhand')   // 审核曾延迟则入队补审
     }
 
     const payload = {

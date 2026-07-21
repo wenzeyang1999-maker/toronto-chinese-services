@@ -7,6 +7,7 @@ import PhoneVerifyBanner from '../../components/PhoneVerifyBanner/PhoneVerifyBan
 import { motion } from 'framer-motion'
 import { ChevronLeft, ImagePlus, X } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
+import { reportUploadedImage } from '../../lib/moderateImage'
 import { useAuthStore } from '../../store/authStore'
 import { useEventsStore } from '../../store/eventsStore'
 import PostFormCard from '../../components/PostForm/PostFormCard'
@@ -132,6 +133,7 @@ export default function PostEvent() {
       }
       const { data: urlData } = supabase.storage.from('service-images').getPublicUrl(path)
       imageUrls.push(urlData.publicUrl)
+      void reportUploadedImage(file, urlData.publicUrl, 'event')
     }
 
     const payload = {

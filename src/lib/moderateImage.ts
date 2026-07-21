@@ -38,6 +38,10 @@ function toThumbnailDataUrl(file: File): Promise<string | null> {
   })
 }
 
+// Files whose sync moderation was DEFERRED (quota out / error). After such a
+// file is uploaded, reportUploadedImage() enqueues it for later re-moderation.
+const deferredFiles = new WeakSet<File>()
+
 /** Moderate one image file. Fail-open on any error. */
 export async function moderateImage(file: File): Promise<ModerationResult> {
   try {
@@ -46,11 +50,30 @@ export async function moderateImage(file: File): Promise<ModerationResult> {
     const { data, error } = await supabase.functions.invoke<ModerationResult>('moderate-content', {
       body: { imageDataUrl },
     })
-    if (error || !data) return { pass: true }
+    if (error || !data) { deferredFiles.add(file); return { pass: true, deferred: true } }
+    if (data.deferred) deferredFiles.add(file)
     return data
   } catch {
-    return { pass: true }
+    deferredFiles.add(file)
+    return { pass: true, deferred: true }
   }
+}
+
+/**
+ * After a compressed image File is uploaded, call this with its public URL and
+ * content type. If that file's earlier moderation was DEFERRED (quota out), it
+ * gets enqueued for later re-moderation (safety net). No-op otherwise.
+ * target_type ∈ service | secondhand | property | event
+ */
+export async function reportUploadedImage(file: File, imageUrl: string, targetType: string): Promise<void> {
+  if (!deferredFiles.has(file)) return
+  try {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return
+    await supabase.from('image_review_queue').insert({
+      user_id: user.id, image_url: imageUrl, target_type: targetType,
+    })
+  } catch { /* best-effort */ }
 }
 
 /** Moderate several images; returns the first failure, else pass. */

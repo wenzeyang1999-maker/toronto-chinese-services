@@ -95,7 +95,7 @@ Deno.serve(async (req: Request) => {
     if (body.imageDataUrl) {
       const apiKey = Deno.env.get('GROQ_API_KEY')
       if (!apiKey) {
-        return new Response(JSON.stringify({ pass: true }), { headers: { ...cors, 'Content-Type': 'application/json' } })
+        return new Response(JSON.stringify({ pass: true, deferred: true }), { headers: { ...cors, 'Content-Type': 'application/json' } })
       }
       try {
         const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
@@ -118,7 +118,8 @@ Deno.serve(async (req: Request) => {
         })
         if (!res.ok) {
           console.error('Groq vision error:', res.status)
-          return new Response(JSON.stringify({ pass: true }), { headers: { ...cors, 'Content-Type': 'application/json' } })   // fail open
+          // 限流/出错 → fail-open 放行，但标记 deferred，让客户端入队稍后补审
+          return new Response(JSON.stringify({ pass: true, deferred: true }), { headers: { ...cors, 'Content-Type': 'application/json' } })
         }
         const data = await res.json()
         const raw  = data.choices?.[0]?.message?.content?.trim() ?? '{}'
@@ -127,7 +128,7 @@ Deno.serve(async (req: Request) => {
         return new Response(JSON.stringify(result), { headers: { ...cors, 'Content-Type': 'application/json' } })
       } catch (e) {
         console.error('vision moderation error:', e)
-        return new Response(JSON.stringify({ pass: true }), { headers: { ...cors, 'Content-Type': 'application/json' } })   // fail open
+        return new Response(JSON.stringify({ pass: true, deferred: true }), { headers: { ...cors, 'Content-Type': 'application/json' } })   // fail open + defer
       }
     }
 

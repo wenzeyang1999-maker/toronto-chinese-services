@@ -11,7 +11,7 @@ import { supabase } from '../../lib/supabase'
 import type { PostServiceForm } from '../../types'
 import Header from '../../components/Header/Header'
 import { compressImage, validateImageFile } from '../../lib/compressImage'
-import { moderateImages } from '../../lib/moderateImage'
+import { moderateImages, reportUploadedImage } from '../../lib/moderateImage'
 import type { LocationResult } from '../../components/LocationInput/LocationInput'
 import { generateServiceDraft } from '../../lib/aiTools'
 import { notifyFollowerNewService } from '../../lib/notify'
@@ -191,6 +191,7 @@ export default function PostService() {
         const { error: uploadError } = await supabase.storage.from('service-images').upload(path, compressed, { upsert: false })
         if (uploadError) return { ok: false as const, name: file.name }
         const { data: { publicUrl } } = supabase.storage.from('service-images').getPublicUrl(path)
+        void reportUploadedImage(file, publicUrl, 'service')   // 若审核曾被延迟，入队补审
         return { ok: true as const, url: publicUrl }
       }))
       const imageUrls          = uploadResults.flatMap((r) => (r.ok ? [r.url] : []))

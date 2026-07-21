@@ -6,6 +6,7 @@ import { supabase } from '../lib/supabase'
 export interface ModerationResult {
   pass: boolean
   reason?: string
+  deferred?: boolean   // true = 未能实际审核（额度用光/出错），已 fail-open 放行，需稍后补审
 }
 
 // Combines title + description + any extra fields into one string for review
