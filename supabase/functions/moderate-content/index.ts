@@ -48,6 +48,19 @@ const SYSTEM_PROMPT = `你是一个内容审核 AI，专门为加拿大多伦多
 只返回 JSON，格式严格如下，不要有任何其他文字：
 {"pass":true} 或 {"pass":false,"reason":"具体原因（中文，15字以内）"}`
 
+const IMAGE_PROMPT = `你是图片内容安全审核 AI，服务于海外华人生活服务平台。判断这张用户上传的图片是否含有以下必须拒绝的内容：
+1. 色情、裸露、性暗示、擦边低俗
+2. 血腥、暴力、伤口、虐待、尸体、极度不适画面
+3. 恐怖、惊悚、恶心
+4. 明显违法（毒品、武器展示等）
+
+这是生活服务平台，正常图片一律通过：服务/施工照片、商品照、二手物品、家居、车辆、食物、风景、正常人物/生活照、证件（如驾照打码后）等。
+只在明确含上述违规内容时才拒绝；模糊或不确定时通过（宁可放行，false positive 代价高）。
+不要评判政治内容（图片政治判断不可靠，交由人工/举报处理）。
+
+只返回 JSON，格式严格如下，不要有任何其他文字：
+{"pass":true} 或 {"pass":false,"reason":"具体原因（中文，10字以内）"}`
+
 async function requireAuth(req: Request): Promise<string> {
   const url     = Deno.env.get('SUPABASE_URL')
   const anonKey = Deno.env.get('SUPABASE_ANON_KEY')
@@ -76,7 +89,50 @@ Deno.serve(async (req: Request) => {
       })
     }
 
-    const { text } = await req.json() as { text: string }
+    const body = await req.json() as { text?: string; imageDataUrl?: string }
+
+    // ── 图片审核分支（qwen 视觉，判黄暴血腥；客户端已缩成 ~512px 缩略图）──────────
+    if (body.imageDataUrl) {
+      const apiKey = Deno.env.get('GROQ_API_KEY')
+      if (!apiKey) {
+        return new Response(JSON.stringify({ pass: true }), { headers: { ...cors, 'Content-Type': 'application/json' } })
+      }
+      try {
+        const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+          method: 'POST',
+          signal: AbortSignal.timeout(15_000),   // 视觉推理略慢
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
+          body: JSON.stringify({
+            model:       'qwen/qwen3.6-27b',   // Groq 多模态（可看图）
+            max_tokens:  128,
+            temperature: 0,
+            response_format: { type: 'json_object' },
+            messages: [
+              { role: 'system', content: IMAGE_PROMPT },
+              { role: 'user', content: [
+                { type: 'text', text: '审核这张用户上传的图片，只返回 JSON。' },
+                { type: 'image_url', image_url: { url: body.imageDataUrl } },
+              ] },
+            ],
+          }),
+        })
+        if (!res.ok) {
+          console.error('Groq vision error:', res.status)
+          return new Response(JSON.stringify({ pass: true }), { headers: { ...cors, 'Content-Type': 'application/json' } })   // fail open
+        }
+        const data = await res.json()
+        const raw  = data.choices?.[0]?.message?.content?.trim() ?? '{}'
+        let result: { pass: boolean; reason?: string }
+        try { result = JSON.parse(raw) } catch { result = { pass: true } }
+        return new Response(JSON.stringify(result), { headers: { ...cors, 'Content-Type': 'application/json' } })
+      } catch (e) {
+        console.error('vision moderation error:', e)
+        return new Response(JSON.stringify({ pass: true }), { headers: { ...cors, 'Content-Type': 'application/json' } })   // fail open
+      }
+    }
+
+    // ── 文字审核分支 ────────────────────────────────────────────────────────────
+    const text = body.text ?? ''
     if (!text?.trim()) {
       return new Response(JSON.stringify({ pass: true }), {
         headers: { ...cors, 'Content-Type': 'application/json' },

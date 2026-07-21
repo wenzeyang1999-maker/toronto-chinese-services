@@ -23,6 +23,7 @@ import {
 } from './types'
 import { toast } from '../../lib/toast'
 import { moderateContent } from '../../hooks/useContentModeration'
+import { moderateImages } from '../../lib/moderateImage'
 import { notifyFollowerNewListing } from '../../lib/notify'
 
 const Card  = PostFormCard
@@ -115,6 +116,15 @@ export default function PostListing() {
       toast(`内容审核未通过：${modResult.reason ?? '包含违规内容'}`, 'error')
       setSubmitting(false)
       return
+    }
+    // 图片审核（黄暴血腥；fail-open）
+    if (images.length > 0) {
+      const imgMod = await moderateImages(images)
+      if (!imgMod.pass) {
+        toast(`图片审核未通过：${imgMod.reason ?? '含违规内容'}`, 'error')
+        setSubmitting(false)
+        return
+      }
     }
 
     // Upload images

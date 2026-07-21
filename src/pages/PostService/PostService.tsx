@@ -11,6 +11,7 @@ import { supabase } from '../../lib/supabase'
 import type { PostServiceForm } from '../../types'
 import Header from '../../components/Header/Header'
 import { compressImage, validateImageFile } from '../../lib/compressImage'
+import { moderateImages } from '../../lib/moderateImage'
 import type { LocationResult } from '../../components/LocationInput/LocationInput'
 import { generateServiceDraft } from '../../lib/aiTools'
 import { notifyFollowerNewService } from '../../lib/notify'
@@ -158,12 +159,21 @@ export default function PostService() {
     setIsSubmitting(true)
     setSubmitError('')
     try {
-      // 0. Content moderation
+      // 0. Content moderation — text
       const modResult = await moderateContent({ title: form.title, description: form.description, tags: form.tags })
       if (!modResult.pass) {
         setSubmitError(`内容审核未通过：${modResult.reason ?? '包含违规内容'}。请修改后重新发布。`)
         setIsSubmitting(false)
         return
+      }
+      // 0b. Content moderation — images（黄暴血腥；fail-open）
+      if (images.length > 0) {
+        const imgMod = await moderateImages(images)
+        if (!imgMod.pass) {
+          setSubmitError(`图片审核未通过：${imgMod.reason ?? '含违规内容'}。请更换图片后重新发布。`)
+          setIsSubmitting(false)
+          return
+        }
       }
 
       // 1. Update user contact info
