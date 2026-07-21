@@ -10,6 +10,7 @@ import { supabase } from '../../lib/supabase'
 import GoogleMapCanvas, { type GoogleMapCanvasHandle, type GoogleMapPoint } from '../../components/ServiceMap/GoogleMapCanvas'
 import type { Service, OnlineProvider } from '../../types'
 import { buildServiceInfo, buildDemandInfo, buildOnlineProviderInfo } from '../../lib/mapInfoWindows'
+import { fuzzyFilterServices, fuzzyFilterRequests } from '../../lib/fuzzySearch'
 
 function hasCoordinates(service: Service): service is Service & {
   location: { lat: number; lng: number; address: string; city: string; area?: string }
@@ -61,9 +62,7 @@ export default function MapPage() {
   const isProvider = !!user && services.some((s) => s.provider.id === user.id)
 
   const kw = search.trim().toLowerCase()
-  // 轻量中文分词：整串 + 相邻二字组合（bigram），任一命中即算匹配。
-  // 这样「搬家公司」会拆出「搬家 / 家公 / 公司」，命中标题含「搬家」的服务，
-  // 不再因为没有服务标题正好包含整串「搬家公司」而返回 0 项。
+  // 在线师傅用轻量二字分词匹配（fuzzySearch 只覆盖 Service/ServiceRequest）。
   const terms = kw
     ? Array.from(new Set(
         kw.split(/\s+/).filter(Boolean).flatMap((w) => {
@@ -76,12 +75,12 @@ export default function MapPage() {
   const matches = (text: string | null | undefined) =>
     !kw || terms.some((term) => (text ?? '').toLowerCase().includes(term))
 
-  const mapped = useMemo(
-    () => services.filter(hasCoordinates).filter((s) =>
-      matches(s.title) || matches(s.description) || matches(s.location.area) || matches(s.location.address)
-    ),
-    [services, kw]
-  )
+  // 服务/需求：复用与主搜索(Home/Search)完全相同的模糊搜索
+  // （Fuse.js + 同义词扩展 + 类目标签），相关的都出来。
+  const mapped = useMemo(() => {
+    const withCoords = services.filter(hasCoordinates)
+    return kw ? fuzzyFilterServices(withCoords, kw) : withCoords
+  }, [services, kw])
 
   const servicePoints = useMemo<GoogleMapPoint[]>(() => {
     if (requestsMode) return []
@@ -102,9 +101,9 @@ export default function MapPage() {
   const requestPoints = useMemo<GoogleMapPoint[]>(() => {
     // In requestsMode mode, show all customer requests (don't gate by isProvider)
     if (!requestsMode && !isProvider) return []
-    return serviceRequests
-      .filter((r) => r.lat != null && r.lng != null)
-      .filter((r) => matches(r.title) || matches(r.description) || matches(r.area))
+    const withCoords = serviceRequests.filter((r) => r.lat != null && r.lng != null)
+    const list = kw ? fuzzyFilterRequests(withCoords, kw) : withCoords
+    return list
       .map((r) => ({
         id: `req-${r.id}`,
         lat: r.lat!,
