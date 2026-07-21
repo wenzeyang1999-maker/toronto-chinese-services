@@ -1,6 +1,6 @@
 // ─── Job List Page ────────────────────────────────────────────────────────────
 // Route: /jobs
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
@@ -12,6 +12,7 @@ import ErrorState from '../../components/ErrorState/ErrorState'
 import SortChips from '../../components/SortChips/SortChips'
 import { useDelayedLoading } from '../../hooks/useDelayedLoading'
 import { useJobStore } from '../../store/jobStore'
+import { useInfiniteScroll } from '../../hooks/useInfiniteScroll'
 import { useAuthStore } from '../../store/authStore'
 import { useReadStore } from '../../store/readStore'
 import {
@@ -39,6 +40,8 @@ export default function JobList() {
   const navigate       = useNavigate()
   const user           = useAuthStore((s) => s.user)
   const { fetchJobs, setFilters, clearFilters, getFilteredJobs, filters, isReady, loadError, hasMore, loadingMore } = useJobStore()
+  const sentinelRef = useRef<HTMLDivElement>(null)
+  useInfiniteScroll(sentinelRef, { hasMore, loading: loadingMore, onLoadMore: () => fetchJobs(true) })
   const showSkeleton = useDelayedLoading(!isReady)
   const readSet    = useReadStore((s) => s.read)
   const markRead   = useReadStore((s) => s.markRead)
@@ -267,14 +270,9 @@ export default function JobList() {
       ))}
     </div>
     {hasMore && (
-      <button
-        onClick={() => fetchJobs(true)}
-        disabled={loadingMore}
-        className="w-full mt-3 py-3 rounded-2xl border border-gray-200 bg-white text-sm text-gray-600
-                   font-medium hover:bg-gray-50 transition-colors disabled:opacity-60"
-      >
-        {loadingMore ? '加载中…' : '加载更多'}
-      </button>
+      <div ref={sentinelRef} className="w-full mt-3 py-4 text-center text-xs text-gray-400">
+        {loadingMore ? '加载中…' : ''}
+      </div>
     )}
     </>
   )
