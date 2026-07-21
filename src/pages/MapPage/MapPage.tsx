@@ -61,7 +61,20 @@ export default function MapPage() {
   const isProvider = !!user && services.some((s) => s.provider.id === user.id)
 
   const kw = search.trim().toLowerCase()
-  const matches = (text: string | null | undefined) => !kw || (text ?? '').toLowerCase().includes(kw)
+  // 轻量中文分词：整串 + 相邻二字组合（bigram），任一命中即算匹配。
+  // 这样「搬家公司」会拆出「搬家 / 家公 / 公司」，命中标题含「搬家」的服务，
+  // 不再因为没有服务标题正好包含整串「搬家公司」而返回 0 项。
+  const terms = kw
+    ? Array.from(new Set(
+        kw.split(/\s+/).filter(Boolean).flatMap((w) => {
+          const parts = [w]
+          for (let i = 0; i < w.length - 1; i++) parts.push(w.slice(i, i + 2))
+          return parts
+        })
+      ))
+    : []
+  const matches = (text: string | null | undefined) =>
+    !kw || terms.some((term) => (text ?? '').toLowerCase().includes(term))
 
   const mapped = useMemo(
     () => services.filter(hasCoordinates).filter((s) =>
