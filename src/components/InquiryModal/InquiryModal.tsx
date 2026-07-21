@@ -6,8 +6,7 @@ import { useNavigate } from 'react-router-dom'
 import { ensurePhoneVerified } from '../../lib/requirePhoneVerified'
 import PhoneVerifyBanner from '../PhoneVerifyBanner/PhoneVerifyBanner'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X, ChevronDown, Sparkles, UserCheck, Clock3, ShieldCheck, Pencil, MapPin, Mic, MicOff, Siren, PhoneCall, Radio, MessageCircle } from 'lucide-react'
-import InquiryResultPanel from '../InquiryResultPanel/InquiryResultPanel'
+import { X, ChevronDown, Sparkles, UserCheck, Clock3, ShieldCheck, Pencil, MapPin, Mic, MicOff, Siren, PhoneCall, Radio, MessageCircle, CheckCircle2 } from 'lucide-react'
 import OnlineProvidersPanel from '../OnlineProvidersPanel/OnlineProvidersPanel'
 import { supabase } from '../../lib/supabase'
 import { offsetLocation } from '../../lib/geo'
@@ -57,41 +56,46 @@ const TIMING_OPTIONS = [
   { value: 'next_week', label: '下周内' },
 ] as const
 
-// 紧急单（让商家联系我）提交后的确认屏：商家只能站内私信联系，不发放联系方式。
-function UrgentSentView({ categoryLabel, onClose, onGoMessages }: {
-  categoryLabel: string; onClose: () => void; onGoMessages: () => void
+// 「让商家联系我」（普通 / 紧急）提交后的确认屏：商家只能站内私信联系，绝不发放
+// 客户联系方式。
+function SentToProvidersView({ categoryLabel, isUrgent, onClose, onGoMessages }: {
+  categoryLabel: string; isUrgent: boolean; onClose: () => void; onGoMessages: () => void
 }) {
+  const accent = isUrgent ? 'red' : 'primary'
   return (
     <div className="px-5 py-6 space-y-4">
       <div className="flex flex-col items-center text-center">
-        <div className="w-16 h-16 rounded-full bg-red-50 flex items-center justify-center mb-3">
-          <Siren size={30} className="text-red-500 animate-pulse" />
+        <div className={`w-16 h-16 rounded-full flex items-center justify-center mb-3 ${isUrgent ? 'bg-red-50' : 'bg-primary-50'}`}>
+          {isUrgent
+            ? <Siren size={30} className="text-red-500 animate-pulse" />
+            : <CheckCircle2 size={30} className="text-primary-600" />}
         </div>
-        <h3 className="text-lg font-bold text-gray-900 mb-1">🚨 紧急需求已发出</h3>
+        <h3 className="text-lg font-bold text-gray-900 mb-1">{isUrgent ? '🚨 紧急需求已发出' : '需求已发出'}</h3>
         <p className="text-sm text-gray-500 leading-relaxed">
-          已通知所有正在「上线接单」的 <span className="font-semibold text-gray-700">{categoryLabel}</span> 商家
+          {isUrgent ? '已通知所有正在「上线接单」的 ' : '已发给最匹配的 '}
+          <span className="font-semibold text-gray-700">{categoryLabel}</span> 商家
         </p>
       </div>
 
-      <div className="rounded-2xl bg-red-50 border border-red-100 px-4 py-3.5 space-y-2.5">
+      <div className={`rounded-2xl px-4 py-3.5 space-y-2.5 border ${isUrgent ? 'bg-red-50 border-red-100' : 'bg-primary-50 border-primary-100'}`}>
         <div className="flex items-start gap-2.5">
-          <MessageCircle size={15} className="text-red-500 flex-shrink-0 mt-0.5" />
+          <MessageCircle size={15} className={`flex-shrink-0 mt-0.5 ${isUrgent ? 'text-red-500' : 'text-primary-500'}`} />
           <p className="text-[13px] text-gray-700 leading-relaxed">
             商家会通过<span className="font-semibold">站内消息</span>联系你，请留意「我的消息」。
           </p>
         </div>
         <div className="flex items-start gap-2.5">
-          <ShieldCheck size={15} className="text-red-500 flex-shrink-0 mt-0.5" />
+          <ShieldCheck size={15} className={`flex-shrink-0 mt-0.5 ${isUrgent ? 'text-red-500' : 'text-primary-500'}`} />
           <p className="text-[13px] text-gray-700 leading-relaxed">
-            出于安全，你的电话/微信/具体位置<span className="font-semibold">不会自动透露</span>——
+            出于安全，你的电话/微信/具体位置<span className="font-semibold">不会自动透露给商家</span>——
             要不要给、给谁，由你在聊天里自己决定。
           </p>
         </div>
       </div>
 
       <button onClick={onGoMessages}
-        className="w-full flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700
-                   text-white text-sm font-semibold py-3 rounded-xl transition-colors active:scale-95">
+        className={`w-full flex items-center justify-center gap-2 text-white text-sm font-semibold py-3 rounded-xl transition-colors active:scale-95 ${
+          isUrgent ? 'bg-red-600 hover:bg-red-700' : 'bg-primary-600 hover:bg-primary-700'}`}>
         <MessageCircle size={15} /> 去「我的消息」
       </button>
       <button onClick={onClose}
@@ -298,10 +302,11 @@ export default function InquiryModal({ open, onClose }: Props) {
       // 需求地点：优先用手动填的地点（选填），否则用当前 GPS 定位。
       const effLoc = manualLoc ?? userLocation
       const blurLoc = effLoc ? offsetLocation(effLoc.lat, effLoc.lng) : null
-      // 只有「让商家联系你」+ 紧急 时才广播到公开帖并触发在线商家实时弹窗；
-      // 「主动联系上线商家」是拉模式（客户自己找），不惊动商家。
+      // 「让商家联系我」必建公开需求帖：它是商家唯一的联系入口——商家在帖里点
+      // 「联系发布者」发起站内会话（帖子无 PII、只有模糊坐标）。紧急时该帖 is_urgent
+      // 触发在线商家实时弹窗。「主动联系」是拉模式，公开帖按用户勾选可选。
       const broadcastUrgent = isUrgent && contactMode === 'providers_contact'
-      const doPublic = postPublic || broadcastUrgent
+      const doPublic = postPublic || contactMode === 'providers_contact'
       const { data: inserted, error } = await supabase.from('inquiries').insert({
         category_id: form.categoryId,
         description: finalDescription,
@@ -538,27 +543,15 @@ export default function InquiryModal({ open, onClose }: Props) {
                     customerLoc={manualLoc ?? userLocation}
                     onClose={handleClose}
                   />
-                ) : isUrgent ? (
-                  <UrgentSentView
+                ) : (
+                  <SentToProvidersView
                     categoryLabel={(() => {
                       const cat = CATEGORIES.find(c => c.id === form.categoryId)
                       return cat ? `${cat.emoji} ${cat.label}` : form.categoryId
                     })()}
+                    isUrgent={isUrgent}
                     onClose={handleClose}
                     onGoMessages={() => { handleClose(); navigate('/profile?section=messages') }}
-                  />
-                ) : (
-                  <InquiryResultPanel
-                    inquiryId={insertedId}
-                    categoryId={form.categoryId}
-                    categoryLabel={(() => {
-                      const cat = CATEGORIES.find(c => c.id === form.categoryId)
-                      return cat ? `${cat.emoji} ${cat.label}` : form.categoryId
-                    })()}
-                    customerName={form.name}
-                    customerPhone={form.phone}
-                    customerWechat={form.wechat}
-                    onClose={handleClose}
                   />
                 )
               ) : (
@@ -903,26 +896,38 @@ export default function InquiryModal({ open, onClose }: Props) {
                         </div>
                       </label>
 
-                      {/* Public post toggle */}
-                      <label className={`flex items-start gap-3 rounded-2xl border-2 px-4 py-3 cursor-pointer transition-all ${
-                        postPublic ? 'border-primary-400 bg-primary-50' : 'border-gray-200 bg-gray-50'
-                      }`}>
-                        <input
-                          type="checkbox"
-                          checked={postPublic}
-                          onChange={e => setPostPublic(e.target.checked)}
-                          className="mt-0.5 w-4 h-4 accent-primary-600 flex-shrink-0 cursor-pointer"
-                        />
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-1.5 text-sm font-semibold text-gray-800">
-                            <MapPin size={13} className="text-primary-500 flex-shrink-0" />
-                            同时发布公开需求帖
+                      {/* 公开需求帖：让商家联系我时必发（是商家私信你的入口），只在
+                          主动联系模式下作为可选项。 */}
+                      {contactMode === 'self_contact' ? (
+                        <label className={`flex items-start gap-3 rounded-2xl border-2 px-4 py-3 cursor-pointer transition-all ${
+                          postPublic ? 'border-primary-400 bg-primary-50' : 'border-gray-200 bg-gray-50'
+                        }`}>
+                          <input
+                            type="checkbox"
+                            checked={postPublic}
+                            onChange={e => setPostPublic(e.target.checked)}
+                            className="mt-0.5 w-4 h-4 accent-primary-600 flex-shrink-0 cursor-pointer"
+                          />
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-1.5 text-sm font-semibold text-gray-800">
+                              <MapPin size={13} className="text-primary-500 flex-shrink-0" />
+                              同时发布公开需求帖
+                            </div>
+                            <p className="text-[11px] text-gray-500 mt-0.5 leading-relaxed">
+                              让附近更多商家在地图上看到你的需求，主动私信你，增加收到回复的机会
+                            </p>
                           </div>
-                          <p className="text-[11px] text-gray-500 mt-0.5 leading-relaxed">
-                            让附近更多商家在地图上看到你的需求，主动联系你报价，增加收到回复的机会
+                        </label>
+                      ) : (
+                        <div className="flex items-start gap-2.5 rounded-2xl bg-gray-50 border border-gray-100 px-4 py-3">
+                          <ShieldCheck size={14} className="text-primary-500 flex-shrink-0 mt-0.5" />
+                          <p className="text-[11px] text-gray-500 leading-relaxed">
+                            商家只会通过<span className="font-semibold text-gray-700">站内私信</span>联系你，
+                            <span className="font-semibold text-gray-700">看不到你的电话/微信</span>；
+                            要不要给，由你在聊天里自己决定。
                           </p>
                         </div>
-                      </label>
+                      )}
 
                       {serverError && (
                         <div className="bg-red-50 border border-red-200 text-red-600 text-xs rounded-xl px-4 py-3">

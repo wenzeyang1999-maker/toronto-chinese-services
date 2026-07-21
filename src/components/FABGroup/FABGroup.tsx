@@ -10,7 +10,7 @@ export default function FABGroup() {
   const { pathname } = useLocation()
 
   const hideMobileFAB =
-    /^\/(login|register|forgot-password|reset-password|map)$/.test(pathname) ||
+    /^\/(login|register|forgot-password|reset-password)$/.test(pathname) ||
     pathname.endsWith('/post') ||
     pathname === '/post' ||
     pathname.startsWith('/conversation/') ||

@@ -306,7 +306,10 @@ export default function InquiryResultPanel({ inquiryId, categoryId, categoryLabe
     )
   }
 
-  // ── Waiting / live race view ─────────────────────────────────────────────────
+  // ── Waiting view ─────────────────────────────────────────────────────────────
+  // 统一「只走站内私信」后，需求不再预锁定接单商家 → 一般没有 accepted 名单可选，
+  // 商家会通过站内消息联系客户。仅当存在 accepted 名单（历史数据）时才显示名片墙。
+  const chatOnly = !filled && acceptedIds.length === 0
   return (
     <div className="px-5 py-5 space-y-4">
       {/* Header status */}
@@ -317,28 +320,34 @@ export default function InquiryResultPanel({ inquiryId, categoryId, categoryLabe
         <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${
           filled ? 'bg-green-100' : 'bg-primary-100'
         }`}>
-          {filled ? <Users size={20} className="text-green-600" /> : <Zap size={20} className="text-primary-600 animate-pulse" />}
+          {filled ? <Users size={20} className="text-green-600" />
+            : chatOnly ? <MessageCircle size={20} className="text-primary-600" />
+            : <Zap size={20} className="text-primary-600 animate-pulse" />}
         </div>
         <div>
           <p className={`text-sm font-bold ${filled ? 'text-green-700' : 'text-primary-700'}`}>
-            {filled ? '5 名服务商已接单！' : `正在等待服务商接单… ${slotCount}/${MAX_SLOTS}`}
+            {filled ? '5 名服务商已接单！' : chatOnly ? '需求已发出，等商家私信你' : `正在等待服务商接单… ${slotCount}/${MAX_SLOTS}`}
           </p>
           <p className={`text-xs mt-0.5 ${filled ? 'text-green-600' : 'text-primary-500'}`}>
-            {filled ? '请从下方选择一位服务商' : '服务商正在抢单，稍后请从下方选择'}
+            {filled ? '请从下方选择一位服务商'
+              : chatOnly ? '商家会通过「我的消息」联系你，你的电话/微信不会自动透露'
+              : '服务商正在抢单，稍后请从下方选择'}
           </p>
         </div>
       </motion.div>
 
-      {/* Slot progress */}
-      <div className="flex gap-1.5">
-        {Array.from({ length: MAX_SLOTS }).map((_, i) => (
-          <div key={i}
-            className={`flex-1 h-1.5 rounded-full transition-all duration-500 ${
-              i < slotCount ? 'bg-primary-500' : 'bg-gray-100'
-            }`}
-          />
-        ))}
-      </div>
+      {/* Slot progress — 仅抢单/历史名单模式显示 */}
+      {!chatOnly && (
+        <div className="flex gap-1.5">
+          {Array.from({ length: MAX_SLOTS }).map((_, i) => (
+            <div key={i}
+              className={`flex-1 h-1.5 rounded-full transition-all duration-500 ${
+                i < slotCount ? 'bg-primary-500' : 'bg-gray-100'
+              }`}
+            />
+          ))}
+        </div>
+      )}
 
       {/* Category label */}
       <p className="text-xs text-gray-400 text-center">{categoryLabel}</p>
@@ -348,9 +357,19 @@ export default function InquiryResultPanel({ inquiryId, categoryId, categoryLabe
         {providers.length === 0 && (
           <motion.div key="empty" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             className="flex flex-col items-center py-8 text-gray-400">
-            <Clock size={28} className="mb-3 opacity-40 animate-pulse" />
-            <p className="text-sm">等待服务商接单中…</p>
-            <p className="text-xs text-gray-300 mt-1">通常几分钟内会有人接单</p>
+            {chatOnly ? (
+              <>
+                <MessageCircle size={28} className="mb-3 opacity-40" />
+                <p className="text-sm">留意「我的消息」</p>
+                <p className="text-xs text-gray-300 mt-1">商家看到你的需求后会站内私信你</p>
+              </>
+            ) : (
+              <>
+                <Clock size={28} className="mb-3 opacity-40 animate-pulse" />
+                <p className="text-sm">等待服务商接单中…</p>
+                <p className="text-xs text-gray-300 mt-1">通常几分钟内会有人接单</p>
+              </>
+            )}
           </motion.div>
         )}
         {providers.map((p, i) => (
@@ -437,13 +456,15 @@ export default function InquiryResultPanel({ inquiryId, categoryId, categoryLabe
       {/* Footer hint */}
       {!filled && (
         <p className="text-center text-xs text-gray-400 pt-2 pb-4">
-          您也可以先关闭，服务商会通过您留的联系方式主动联系您
+          {chatOnly
+            ? '商家会通过「我的消息」私信你，你的电话/微信不会自动透露'
+            : '您也可以先关闭，服务商会通过您留的联系方式主动联系您'}
         </p>
       )}
       {!filled && (
         <button onClick={onClose} className="w-full py-2.5 text-sm text-gray-500 border border-gray-200
                                              rounded-xl hover:bg-gray-50 transition-colors">
-          关闭，等服务商联系我
+          关闭，等商家私信我
         </button>
       )}
     </div>

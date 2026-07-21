@@ -1,14 +1,14 @@
 // ─── Claimed Inquiries Section (服务商侧) ─────────────────────────────────────
-// Shows inquiries the current provider has claimed via the race mechanic.
+// Leads dispatched to this provider. 统一「只走站内私信」：商家【绝不】看到客户的
+// 电话/微信/精确地址，只能站内私信客户，联系方式由客户在聊天里自行决定是否提供。
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Inbox, CheckCircle2, Clock, XCircle, ChevronDown, ChevronUp, Phone, MessageCircle, Copy, Check, Navigation } from 'lucide-react'
+import { Inbox, CheckCircle2, Clock, XCircle, ChevronDown, ChevronUp, MessageCircle } from 'lucide-react'
 import { supabase } from '../../../lib/supabase'
 import { useAuthStore } from '../../../store/authStore'
 import { CATEGORIES } from '../../../data/categories'
 import { toast } from '../../../lib/toast'
-import { openNavToCoords } from '../../../lib/navigation'
 
 interface ClaimedInquiry {
   id: string
@@ -18,9 +18,7 @@ interface ClaimedInquiry {
   timing: string
   status: 'open' | 'matched' | 'closed'
   assigned_provider_id: string | null
-  name: string
-  phone: string
-  wechat: string | null
+  user_id: string          // 客户 id —— 仅用于发起站内会话，不含任何联系方式
   created_at: string
 }
 
@@ -37,7 +35,7 @@ export default function ClaimedInquiriesSection() {
   const [items,    setItems]    = useState<ClaimedInquiry[]>([])
   const [loading,  setLoading]  = useState(true)
   const [expanded, setExpanded] = useState<string | null>(null)
-  const [copied,   setCopied]   = useState<string | null>(null)
+  const [chatting, setChatting] = useState<string | null>(null)
 
   useEffect(() => {
     let isActive = true
@@ -47,7 +45,7 @@ export default function ClaimedInquiriesSection() {
       setLoading(true)
       const { data, error } = await supabase
         .from('inquiries')
-        .select('id, category_id, description, budget, timing, status, assigned_provider_id, name, phone, wechat, created_at')
+        .select('id, category_id, description, budget, timing, status, assigned_provider_id, user_id, created_at')
         .contains('accepted_provider_ids', [user!.id])
         .order('created_at', { ascending: false })
 
@@ -61,28 +59,18 @@ export default function ClaimedInquiriesSection() {
     return () => { isActive = false }
   }, [user])
 
-  async function copyWechat(wechat: string, itemId: string) {
-    try {
-      await navigator.clipboard.writeText(wechat)
-      setCopied(itemId)
-      setTimeout(() => setCopied(null), 2000)
-    } catch {
-      toast(`微信号：${wechat}（请手动复制）`)
-    }
-  }
-
-  const [navBusy, setNavBusy] = useState<string | null>(null)
-  // B7：录用后才向中选师傅开放精确门牌地址；点导航时经 RPC 取精确坐标唤起导航。
-  async function navToInquiry(itemId: string) {
-    if (navBusy) return
-    setNavBusy(itemId)
-    const { data, error } = await supabase.rpc('get_inquiry_location', { p_inquiry_id: itemId })
-    setNavBusy(null)
-    const loc = Array.isArray(data) ? data[0] : data
-    if (error || !loc || loc.lat == null || loc.lng == null) {
-      toast('暂无法获取精确地址，请与客户确认', 'error'); return
-    }
-    openNavToCoords(loc.lat, loc.lng)
+  // 站内私信客户 —— 唯一的联系通道（get_or_create_conversation 不暴露任何联系方式）
+  async function startChat(item: ClaimedInquiry) {
+    if (!user || chatting) return
+    setChatting(item.id)
+    const { data, error } = await supabase.rpc('get_or_create_conversation', {
+      p_provider_id: user.id,     // 我（服务商）主动联系
+      p_client_id:   item.user_id,
+      p_service_id:  null,
+    })
+    setChatting(null)
+    if (error || !data) { toast('无法发起会话，请稍后再试', 'error'); return }
+    navigate('/profile?section=messages', { state: { conversationId: data } })
   }
 
   if (loading) return (
@@ -108,7 +96,7 @@ export default function ClaimedInquiriesSection() {
         <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-10 text-center">
           <Inbox size={36} className="text-gray-300 mx-auto mb-3" />
           <p className="text-sm text-gray-600 font-medium">还没有接过单</p>
-          <p className="text-xs text-gray-400 mt-1 mb-4">当有客户发布符合您类目的需求时，平台会发邮件通知您抢单</p>
+          <p className="text-xs text-gray-400 mt-1 mb-4">有客户发布符合你类目的需求时，会以 🔔 通知 + 邮件送达；点开通知里的需求即可<b>站内私信客户</b>。保持「上线接单」能收到更多急单。</p>
           <button
             onClick={() => navigate('/profile?section=homepage')}
             className="px-5 py-2.5 bg-primary-600 text-white text-sm font-semibold rounded-2xl hover:bg-primary-700 transition-colors"
@@ -125,7 +113,6 @@ export default function ClaimedInquiriesSection() {
               const isOpen   = expanded === item.id
               const selectedMe  = item.assigned_provider_id === user?.id
               const selectedOther = item.assigned_provider_id && item.assigned_provider_id !== user?.id
-              const waiting  = !item.assigned_provider_id && item.status !== 'closed'
 
               let stateBadge: React.ReactNode
               if (selectedMe) {
@@ -186,47 +173,26 @@ export default function ClaimedInquiriesSection() {
                         <div className="px-4 pb-4 space-y-3 border-t border-gray-50 pt-3">
                           <p className="text-sm text-gray-700 leading-relaxed">{item.description}</p>
 
-                          {selectedMe ? (
-                            // Show customer contact info
-                            <div className="space-y-2">
-                              <p className="text-xs font-semibold text-green-700 flex items-center gap-1">
-                                <CheckCircle2 size={12} /> 客户已选中您，以下是联系方式
-                              </p>
-                              <div className="flex gap-2">
-                                <a href={`tel:${item.phone}`}
-                                  className="flex-1 flex items-center justify-center gap-2 bg-primary-600 hover:bg-primary-700
-                                             text-white text-sm font-semibold py-2.5 rounded-xl transition-colors active:scale-95">
-                                  <Phone size={14} /> {item.phone}
-                                </a>
-                                {item.wechat && (
-                                  <button onClick={() => copyWechat(item.wechat!, item.id)}
-                                    className="flex items-center justify-center gap-2 bg-green-500 hover:bg-green-600
-                                               text-white text-sm font-semibold px-4 py-2.5 rounded-xl transition-colors active:scale-95">
-                                    {copied === item.id ? <Check size={14} /> : <MessageCircle size={14} />}
-                                    {copied === item.id ? '已复制' : '微信'}
-                                  </button>
-                                )}
-                              </div>
-                              {item.wechat && (
-                                <p className="text-xs text-gray-400 text-center">微信号：{item.wechat}</p>
-                              )}
-                              {/* B7：录用后才解锁精确门牌地址，一键上门导航 */}
-                              <button onClick={() => navToInquiry(item.id)} disabled={navBusy === item.id}
-                                className="w-full flex items-center justify-center gap-2 border border-gray-200 bg-white
-                                           hover:bg-gray-50 text-gray-700 text-sm font-semibold py-2.5 rounded-xl transition-colors active:scale-95 disabled:opacity-60">
-                                <Navigation size={14} className="text-primary-500" />
-                                {navBusy === item.id ? '获取地址中…' : '上门导航（精确地址）'}
-                              </button>
+                          {item.status === 'closed' && !selectedMe ? (
+                            <div className="bg-gray-50 border border-gray-100 rounded-xl px-3 py-2.5">
+                              <p className="text-xs text-gray-500">该需求已关闭</p>
                             </div>
-                          ) : waiting ? (
-                            <div className="bg-amber-50 border border-amber-100 rounded-xl px-3 py-2.5">
-                              <p className="text-xs font-semibold text-amber-700 mb-0.5">等待客户选择</p>
-                              <p className="text-xs text-amber-600">如客户选中您，联系方式将在此显示</p>
-                            </div>
-                          ) : (
+                          ) : selectedOther ? (
                             <div className="bg-gray-50 border border-gray-100 rounded-xl px-3 py-2.5">
                               <p className="text-xs text-gray-500">客户已选择其他服务商</p>
                             </div>
+                          ) : (
+                            <>
+                              <button onClick={() => startChat(item)} disabled={chatting === item.id}
+                                className="w-full flex items-center justify-center gap-2 bg-primary-600 hover:bg-primary-700
+                                           text-white text-sm font-semibold py-2.5 rounded-xl transition-colors active:scale-95 disabled:opacity-60">
+                                <MessageCircle size={15} />
+                                {chatting === item.id ? '正在打开…' : '站内私信客户'}
+                              </button>
+                              <p className="text-[11px] text-gray-400 text-center leading-relaxed">
+                                出于隐私，客户的电话/微信/精确地址不在此显示；请通过站内消息联系，由客户自行决定是否提供。
+                              </p>
+                            </>
                           )}
                         </div>
                       </motion.div>

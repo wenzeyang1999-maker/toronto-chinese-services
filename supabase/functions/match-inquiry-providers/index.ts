@@ -21,13 +21,9 @@ function corsHeaders(origin: string | null) {
 
 const FROM = 'HuaLin <noreply@huarenq.com>'
 const SITE = 'https://toronto-chinese-services.vercel.app'
-// Race mode: notify all matching providers, they race to claim the first 5 slots.
+// 上限兜底：紧急单最多同时通知 MAX_NOTIFY 位在线商家；普通单取最匹配的 DIRECT_LIMIT 位。
+// 无论普通 / 紧急，都【只走站内私信】，绝不发放客户联系方式（见下方 dispatch 说明）。
 const MAX_NOTIFY = 20
-
-// Cold-start mode:供给还少时跳过「抢单」竞争,直接把匹配到的前 ≤DIRECT_LIMIT 家
-// 锁定为接单商家,双方立即互通联系方式。等商家密度上来,把 DIRECT_DISPATCH 翻成
-// false 即可恢复"抢单先到先得"(RPC / 名额逻辑全保留)。
-const DIRECT_DISPATCH = true
 const DIRECT_LIMIT = 5
 
 // Escape user-supplied strings before interpolating them into the email HTML.
@@ -77,9 +73,8 @@ interface ProviderRow {
 
 function buildProviderInquiryEmail(recipientName: string, data: InquiryPayload) {
   const urgent = data.isUrgent === true
-  // Urgent: NO contact hand-off. The merchant reaches the customer only via
-  // in-app chat; the customer decides what to share. Direct-dispatch (normal):
-  // top-5 exchange contact. Race mode: invite them to "抢单".
+  // 统一「只走站内私信」：无论普通 / 紧急，都【不】发放客户联系方式。商家登录 App
+  // 后通过站内私信联系客户；电话/微信/位置由客户在聊天中自行决定是否提供。
   const cta = urgent
     ? {
         line: '客户把紧急需求发给了正在「上线接单」的商家，<strong>请尽快登录，通过站内私信联系 TA</strong>：',
@@ -87,18 +82,11 @@ function buildProviderInquiryEmail(recipientName: string, data: InquiryPayload) 
         btn: '登录并私信客户',
         href: `${SITE}/`,
       }
-    : DIRECT_DISPATCH
-    ? {
-        line: '您已被匹配到这条需求，<strong>可直接查看客户联系方式并主动联系 TA</strong>：',
-        note: '📩 客户已收到通知，知道需求发给了包括您在内的几位服务商。请尽快联系，先联系先得。',
-        btn: '查看客户联系方式',
-        href: `${SITE}/profile?section=claimed_inquiries`,
-      }
     : {
-        line: '登录抢单，<strong>客户选定您后即可获得联系方式</strong>：',
-        note: '⚡ 先到先得！最多 5 名服务商可抢到此单。抢单后若被客户选中，即可看到客户联系方式。',
-        btn: '🔥 立即抢单',
-        href: `${SITE}/inquiries/${h(data.inquiryId)}/claim`,
+        line: '您被匹配到这条需求，<strong>请登录 App，通过站内私信主动联系 TA</strong>：',
+        note: '📩 出于隐私保护，客户的电话/微信/位置不会直接展示；请通过站内消息联系，由客户在聊天中自行决定是否提供。',
+        btn: '登录并私信客户',
+        href: `${SITE}/`,
       }
   return {
     subject: urgent
@@ -260,12 +248,12 @@ Deno.serve(async (req) => {
       return b.rating - a.rating
     })
 
-    // 紧急单：只发给「上线接单」(is_online) 的商家，且全部通知（不止 top5，上限
-    // MAX_NOTIFY 兜底防炸）。普通单：direct-dispatch 取 top ≤5；抢单模式取 MAX_NOTIFY。
+    // 派单对象：紧急单发给「上线接单」(is_online) 的全部匹配商家（不止 top5，上限
+    // MAX_NOTIFY 兜底防炸）；普通单取最匹配的 ≤DIRECT_LIMIT 家。
     const isUrgent = payload.isUrgent === true
     const targets = isUrgent
       ? providers.filter((p) => p.isOnline).slice(0, MAX_NOTIFY)
-      : providers.slice(0, DIRECT_DISPATCH ? DIRECT_LIMIT : MAX_NOTIFY)
+      : providers.slice(0, DIRECT_LIMIT)
 
     await Promise.all(targets.map(async (provider) => {
       const email = buildProviderInquiryEmail(provider.name, payload)
@@ -294,50 +282,29 @@ Deno.serve(async (req) => {
           email_sent: true,
         }))
       )
-      if (isUrgent) {
-        // 紧急单：绝不预授权联系方式（安全）。只通知在线商家，他们通过站内私信
-        // 联系客户；联系方式/位置由客户在聊天里自行决定是否提供。通知/邮件都不带
-        // 客户电话微信，link 指向公开需求帖 → 「联系」即发起站内会话。
-        const { data: sr } = await admin
-          .from('service_requests')
-          .select('id')
-          .eq('inquiry_id', payload.inquiryId)
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .maybeSingle()
-        const link = sr?.id ? `/requests/${sr.id}` : '/'
-        await admin.from('notifications').insert(
-          targets.map((provider) => ({
-            recipient_id: provider.id,
-            type:  'new_inquiry_lead',
-            title: '🚨 紧急需求！客户急需服务',
-            body:  `客户急需「${payload.categoryLabel}」，点开私信联系 TA（联系方式由客户决定是否提供）`,
-            link_url: link,
-          }))
-        )
-        // 不动 accepted_provider_ids / race_status —— 不发放任何联系方式。
-      } else if (DIRECT_DISPATCH) {
-        // Auto-assign the matched providers — both sides get contact immediately,
-        // no grab step. race_status='filled' also blocks a duplicate re-dispatch.
-        await admin.from('inquiries').update({
-          accepted_provider_ids: targets.map((p) => p.id),
-          race_status: 'filled',
-        }).eq('id', payload.inquiryId)
-
-        // In-app lead notification to each matched merchant (they also got email).
-        await admin.from('notifications').insert(
-          targets.map((provider) => ({
-            recipient_id: provider.id,
-            type:  'new_inquiry_lead',
-            title: '匹配到一条新客户需求',
-            body:  `客户在找「${payload.categoryLabel}」服务，点开查看联系方式并主动联系`,
-            link_url: '/profile?section=claimed_inquiries',
-          }))
-        )
-      } else {
-        // Race mode: open the slots, providers compete to claim.
-        await admin.from('inquiries').update({ race_status: 'open' }).eq('id', payload.inquiryId)
-      }
+      // ★ 统一「只走站内私信」：任何派给商家的单（普通 / 紧急）都【绝不】发放客户
+      // 联系方式——不设 accepted_provider_ids、不解锁精确地址。商家只能到公开需求帖
+      // （无 PII、模糊坐标）点「联系发布者」发起站内会话；电话/微信/精确位置由客户
+      // 在聊天里自行决定是否提供。
+      const { data: sr } = await admin
+        .from('service_requests')
+        .select('id')
+        .eq('inquiry_id', payload.inquiryId)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+      const link = sr?.id ? `/requests/${sr.id}` : '/'
+      await admin.from('notifications').insert(
+        targets.map((provider) => ({
+          recipient_id: provider.id,
+          type:  'new_inquiry_lead',
+          title: isUrgent ? '🚨 紧急需求！客户急需服务' : '有新客户需求匹配你',
+          body:  isUrgent
+            ? `客户急需「${payload.categoryLabel}」，点开站内私信联系 TA（联系方式由客户决定是否提供）`
+            : `客户在找「${payload.categoryLabel}」服务，点开站内私信联系 TA（联系方式由客户决定是否提供）`,
+          link_url: link,
+        }))
+      )
     }
 
     // Reassure the customer — ALWAYS fire, even with 0 matches, so a posted
@@ -351,11 +318,9 @@ Deno.serve(async (req) => {
               type:  'inquiry_dispatched',
               title: isUrgent
                 ? `🚨 紧急需求已发给 ${targets.length} 位在线商家`
-                : `询价已发给 ${targets.length} 位商家`,
-              body:  isUrgent
-                ? '在线商家已收到紧急提醒，会通过站内消息联系你，请留意「我的消息」'
-                : '他们会尽快主动联系你；急的话也可点这里查看这几家、自己先联系',
-              link_url: isUrgent ? '/profile?section=messages' : '/profile?section=inquiries',
+                : `需求已发给 ${targets.length} 位商家`,
+              body:  '商家会通过站内消息联系你，请留意「我的消息」（你的电话/微信不会自动透露，由你在聊天里决定是否提供）',
+              link_url: '/profile?section=messages',
             }
           : {
               recipient_id: customerId,

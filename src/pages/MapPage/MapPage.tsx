@@ -20,7 +20,11 @@ function hasCoordinates(service: Service): service is Service & {
 export default function MapPage() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
-  const requestsOnly = searchParams.get('type') === 'requests'
+  const [mode, setMode] = useState<'services' | 'requests'>(
+    searchParams.get('type') === 'requests' ? 'requests' : 'services'
+  )
+  const requestsMode = mode === 'requests'
+  const [searchOpen, setSearchOpen] = useState(false)
   const services = useAppStore((s) => s.services)
   const serviceRequests = useAppStore((s) => s.serviceRequests)
   const userLocation = useAppStore((s) => s.userLocation)
@@ -38,7 +42,7 @@ export default function MapPage() {
   }, [])
 
   useEffect(() => {
-    if (requestsOnly) return
+    if (requestsMode) return
     let cancelled = false
     supabase.from('users')
       .select('id, name, avatar_url, online_lat, online_lng, skill_tags')
@@ -52,7 +56,7 @@ export default function MapPage() {
         if (data) setOnlineProviders(data as OnlineProvider[])
       })
     return () => { cancelled = true }
-  }, [requestsOnly])
+  }, [requestsMode])
 
   // Provider mode: also show service requests as orange pins
   const isProvider = !!user && services.some((s) => s.provider.id === user.id)
@@ -68,7 +72,7 @@ export default function MapPage() {
   )
 
   const servicePoints = useMemo<GoogleMapPoint[]>(() => {
-    if (requestsOnly) return []
+    if (requestsMode) return []
     return mapped.map((service) => ({
       id: service.id,
       lat: service.location.lat!,
@@ -81,11 +85,11 @@ export default function MapPage() {
         () => navigate(`/provider/${service.provider.id}`),
       ),
     }))
-  }, [mapped, navigate, requestsOnly])
+  }, [mapped, navigate, requestsMode])
 
   const requestPoints = useMemo<GoogleMapPoint[]>(() => {
-    // In requestsOnly mode, show all customer requests (don't gate by isProvider)
-    if (!requestsOnly && !isProvider) return []
+    // In requestsMode mode, show all customer requests (don't gate by isProvider)
+    if (!requestsMode && !isProvider) return []
     return serviceRequests
       .filter((r) => r.lat != null && r.lng != null)
       .filter((r) => matches(r.title) || matches(r.description) || matches(r.area))
@@ -98,7 +102,7 @@ export default function MapPage() {
         demandPin: true,
         infoContent: buildDemandInfo(r, () => navigate(`/requests/${r.id}`)),
       } as GoogleMapPoint))
-  }, [serviceRequests, isProvider, navigate, kw, requestsOnly])
+  }, [serviceRequests, isProvider, navigate, kw, requestsMode])
 
   const onlinePoints = useMemo<GoogleMapPoint[]>(() =>
     onlineProviders
@@ -129,35 +133,74 @@ export default function MapPage() {
   return (
     <div className="fixed inset-0 z-50 bg-white flex flex-col">
 
-      {/* Top bar — search + back */}
+      {/* Top bar — back + 找服务/找需求 切换 + 小搜索键 */}
       <div className="flex-shrink-0 bg-white shadow-md z-10">
         <div className="flex items-center gap-2 px-3 py-2.5">
           <button
             onClick={() => navigate(-1)}
-            className="w-10 h-10 rounded-full hover:bg-gray-100 active:bg-gray-200 flex items-center justify-center transition-colors"
+            className="w-10 h-10 rounded-full hover:bg-gray-100 active:bg-gray-200 flex items-center justify-center transition-colors flex-shrink-0"
             aria-label="返回"
           >
             <ArrowLeft size={20} className="text-gray-600" />
           </button>
-          <div className="flex-1 flex items-center gap-2 bg-gray-100 rounded-full px-4 py-2.5">
-            <Search size={16} className="text-gray-400 flex-shrink-0" />
-            <input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder={requestsOnly ? '搜索需求、关键词、地点…' : '搜索服务、商家、地点…'}
-              className="flex-1 bg-transparent outline-none text-sm text-gray-800 placeholder-gray-400 min-w-0"
-            />
-            {search && (
+
+          {/* 找服务 / 找需求 切换 */}
+          <div className="flex-1 flex justify-center">
+            <div className="inline-flex items-center gap-0.5 rounded-full bg-gray-100 p-0.5 text-sm">
               <button
-                onClick={() => setSearch('')}
-                className="text-gray-400 hover:text-gray-600"
-                aria-label="清空搜索"
+                onClick={() => setMode('services')}
+                className={`px-4 py-1.5 rounded-full font-semibold transition-colors ${
+                  mode === 'services' ? 'bg-white text-primary-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+                }`}
               >
-                <X size={16} />
+                找服务
               </button>
-            )}
+              <button
+                onClick={() => setMode('requests')}
+                className={`px-4 py-1.5 rounded-full font-semibold transition-colors ${
+                  mode === 'requests' ? 'bg-white text-orange-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                找需求
+              </button>
+            </div>
           </div>
+
+          {/* 小搜索键（右上角）— 点击展开搜索框 */}
+          <button
+            onClick={() => setSearchOpen((o) => !o)}
+            className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors flex-shrink-0
+              ${searchOpen ? 'bg-primary-50 text-primary-600' : 'hover:bg-gray-100 text-gray-600'}`}
+            aria-label="搜索"
+          >
+            <Search size={20} />
+          </button>
         </div>
+
+        {/* 可展开搜索框 */}
+        {searchOpen && (
+          <div className="px-3 pb-2.5">
+            <div className="flex items-center gap-2 bg-gray-100 rounded-full px-4 py-2.5">
+              <Search size={16} className="text-gray-400 flex-shrink-0" />
+              <input
+                autoFocus
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder={requestsMode ? '搜索需求、关键词、地点…' : '搜索服务、商家、地点…'}
+                className="flex-1 bg-transparent outline-none text-sm text-gray-800 placeholder-gray-400 min-w-0"
+              />
+              {search ? (
+                <button onClick={() => setSearch('')} className="text-gray-400 hover:text-gray-600" aria-label="清空搜索">
+                  <X size={16} />
+                </button>
+              ) : (
+                <button onClick={() => setSearchOpen(false)} className="text-gray-400 hover:text-gray-600" aria-label="收起搜索">
+                  <X size={16} />
+                </button>
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Map fills remaining height */}
@@ -170,10 +213,10 @@ export default function MapPage() {
           userLocation={userLocation}
         />
 
-        {/* Locate button — bottom right Google Maps style */}
+        {/* Locate button — bottom LEFT（右下留给 4 个操作按钮 FABGroup）*/}
         <button
           onClick={handleLocate}
-          className={`absolute bottom-6 right-4 z-30 w-12 h-12 rounded-full shadow-lg flex items-center justify-center active:scale-95 transition-all
+          className={`absolute bottom-6 left-4 z-30 w-12 h-12 rounded-full shadow-lg flex items-center justify-center active:scale-95 transition-all
             ${userLocation ? 'bg-white hover:bg-gray-50' : 'bg-primary-600 hover:bg-primary-700'}`}
           aria-label="定位到我的位置"
         >
@@ -185,7 +228,7 @@ export default function MapPage() {
           onClick={() => updateLocation(() => mapRef.current?.panToUser())}
           disabled={locating}
           title="更新我的位置（最多每 5 分钟一次）"
-          className="absolute bottom-20 right-4 z-30 h-9 pl-2.5 pr-3 rounded-full shadow-lg bg-white hover:bg-gray-50
+          className="absolute bottom-20 left-4 z-30 h-9 pl-2.5 pr-3 rounded-full shadow-lg bg-white hover:bg-gray-50
                      flex items-center gap-1.5 active:scale-95 transition-all disabled:opacity-70 text-xs font-medium text-gray-700"
         >
           <RefreshCw size={14} className={locating ? 'animate-spin' : ''} />
@@ -194,7 +237,7 @@ export default function MapPage() {
 
         {/* Result count + legend */}
         <div className="absolute top-3 left-3 bg-white/95 backdrop-blur rounded-full px-3 py-1.5 shadow-md text-xs font-semibold text-gray-700">
-          {kw ? `找到 ${points.length} 项` : `${points.length} ${requestsOnly ? '条需求' : '项服务'}`}
+          {kw ? `找到 ${points.length} 项` : `${points.length} ${requestsMode ? '条需求' : '项服务'}`}
         </div>
 
         {/* No results state */}
