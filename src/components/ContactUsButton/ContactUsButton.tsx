@@ -85,7 +85,7 @@ export default function ContactUsButton() {
           onClick={close}
         >
           <div
-            className="bg-white rounded-t-3xl lg:rounded-3xl w-full lg:max-w-md p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] max-h-[85vh] overflow-y-auto"
+            className="bg-white rounded-t-3xl lg:rounded-3xl w-full lg:max-w-xl p-5 lg:p-7 pb-[calc(1.25rem+env(safe-area-inset-bottom))] max-h-[85vh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
@@ -139,7 +139,7 @@ export default function ContactUsButton() {
                   maxLength={800}
                   autoFocus
                   placeholder="说说你的想法、遇到的问题或希望增加的功能…"
-                  className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm resize-none
+                  className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm resize-none lg:min-h-[11rem]
                              focus:outline-none focus:ring-2 focus:ring-primary-300"
                 />
                 <button
