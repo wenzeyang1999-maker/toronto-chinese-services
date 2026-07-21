@@ -142,6 +142,7 @@ export default function Search() {
     supabase
       .from('community_posts')
       .select('id, title, content, type, area, like_count, created_at, author:author_id(name)')
+      .eq('is_active', true)
       .or(`title.ilike.%${kw}%,content.ilike.%${kw}%`)
       .order('created_at', { ascending: false })
       .limit(5)
@@ -197,7 +198,7 @@ export default function Search() {
       supabase.from('properties').select('id, title, listing_type, area').ilike('title', `%${q}%`).eq('is_active', true).limit(20),
       supabase.from('secondhand').select('id, title, category, area').ilike('title', `%${q}%`).eq('is_active', true).eq('is_sold', false).limit(20),
       supabase.from('events').select('id, title, event_type, event_date').ilike('title', `%${q}%`).eq('is_active', true).limit(20),
-      supabase.from('community_posts').select('id, title, content, type, area').or(`title.ilike.%${q}%,content.ilike.%${q}%`).limit(20),
+      supabase.from('community_posts').select('id, title, content, type, area').eq('is_active', true).or(`title.ilike.%${q}%,content.ilike.%${q}%`).limit(20),
     ]).then(([svc, jobs, props, sh, evts, comm]) => {
       setGlobalResults([
         ...(svc.data  ?? []).map((r: any) => ({ id: r.id, type: 'service'    as GlobalResultType, title: r.title, subtitle: [r.category_id, r.area].filter(Boolean).join(' · '), emoji: '🔧', path: `/service/${r.id}` })),

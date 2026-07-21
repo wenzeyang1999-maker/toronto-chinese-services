@@ -17,6 +17,7 @@ export default function HomeCommunityEntry() {
     supabase
       .from('community_posts')
       .select('id, title, like_count')
+      .eq('is_active', true)
       .order('created_at', { ascending: false })
       .limit(3)
       .then(({ data }) => { if (active && data) setPosts(data as Post[]) })

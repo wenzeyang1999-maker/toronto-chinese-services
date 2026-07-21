@@ -76,6 +76,7 @@ export default function CommunityDetail() {
       .from('community_posts')
       .select('id, title, content, images, type, area, like_count, created_at, author_id, author:author_id(id, name, avatar_url)')
       .eq('id', id)
+      .eq('is_active', true)
       .single()
       .then(({ data, error }) => {
         if (error || !data) { setLoading(false); return }

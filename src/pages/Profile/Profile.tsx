@@ -281,9 +281,11 @@ export default function Profile() {
     setUploading(true)
     try {
       const compressed = await compressImage(file)
-      const imgMod = await moderateImage(compressed)   // 黄暴血腥；fail-open
-      if (!imgMod.pass) {
-        toast(`头像未通过审核：${imgMod.reason ?? '含违规内容'}`, 'error')
+      // 头像必须"真正通过"审核：审核没跑成（额度用光/出错=deferred）也不放行，
+      // 让用户稍后再试，绝不让未经审核的头像上到公开身份位。
+      const imgMod = await moderateImage(compressed)
+      if (!imgMod.pass || imgMod.deferred) {
+        toast(imgMod.deferred ? '审核服务繁忙，请稍后再试' : `头像未通过审核：${imgMod.reason ?? '含违规内容'}`, 'error')
         setUploading(false)
         if (fileRef.current) fileRef.current.value = ''
         return

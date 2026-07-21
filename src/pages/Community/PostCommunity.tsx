@@ -8,7 +8,7 @@ import { ArrowLeft, ImagePlus, X, MapPin, Tag } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { useAuthStore } from '../../store/authStore'
 import { compressImage, validateImageFile } from '../../lib/compressImage'
-import { moderateImage } from '../../lib/moderateImage'
+import { moderateImage, reportUploadedImage } from '../../lib/moderateImage'
 import { POST_TYPE_CONFIG, AREA_CONFIG } from './config'
 import { toast } from '../../lib/toast'
 import { moderateContent } from '../../hooks/useContentModeration'
@@ -133,6 +133,7 @@ export default function PostCommunity() {
       }
       const { data: urlData } = supabase.storage.from('service-images').getPublicUrl(path)
       uploadedUrls.push(urlData.publicUrl)
+      void reportUploadedImage(file, urlData.publicUrl, 'community')   // 审核曾延迟则入队补审
     }
 
     const finalImages = [...keptUrls, ...uploadedUrls]

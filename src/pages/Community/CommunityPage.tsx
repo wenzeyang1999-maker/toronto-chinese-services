@@ -77,6 +77,7 @@ export default function CommunityPage() {
     let q = supabase
       .from('community_posts')
       .select('id, title, content, type, area, like_count, created_at, images, author:author_id(id, name, avatar_url)')
+      .eq('is_active', true)
       .order('created_at', { ascending: false })
       .limit(50)
 
