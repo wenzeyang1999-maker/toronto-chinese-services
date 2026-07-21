@@ -44,11 +44,15 @@ export default function HomeActionHero({
   const [showHistory, setShowHistory] = useState(false)
   const [view, setView] = useState<'feed' | 'map'>('feed')   // 推送 / 地图快照
   const searchWrapRef = useRef<HTMLDivElement>(null)
+  const pausedRef = useRef(false)   // 鼠标悬停面板时暂停轮播
 
   // 自动轮播：每 4.5s 在 推送/地图 间切换。dep=[view] 让手动切换后计时重置，
-  // 点了不会马上又跳走。
+  // 点了不会马上又跳走；悬停时（pausedRef）跳过切换。
   useEffect(() => {
-    const t = setInterval(() => setView((v) => (v === 'feed' ? 'map' : 'feed')), 4500)
+    const t = setInterval(() => {
+      if (pausedRef.current) return
+      setView((v) => (v === 'feed' ? 'map' : 'feed'))
+    }, 4500)
     return () => clearInterval(t)
   }, [view])
 
@@ -196,7 +200,11 @@ export default function HomeActionHero({
             transition={{ delay: 0.1 }}
             className="relative z-10 hidden lg:block"
           >
-            <div className="ml-auto max-w-[32rem] rounded-2xl border border-gray-200 bg-white p-4 shadow-lg">
+            <div
+              onMouseEnter={() => { pausedRef.current = true }}
+              onMouseLeave={() => { pausedRef.current = false }}
+              className="ml-auto max-w-[32rem] rounded-2xl border border-gray-200 bg-white p-4 shadow-lg"
+            >
 
               {/* Header */}
               <div className="mb-3 flex items-center justify-between rounded-xl border border-gray-100 bg-gray-50 px-4 py-3">
