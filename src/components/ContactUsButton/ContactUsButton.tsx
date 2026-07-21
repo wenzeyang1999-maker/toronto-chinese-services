@@ -229,7 +229,7 @@ export default function ContactUsButton() {
                   maxLength={800}
                   autoFocus
                   placeholder="简单介绍你的合作意向：公司/项目、合作方式、联系方式…"
-                  className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm resize-none
+                  className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm resize-none lg:min-h-[11rem]
                              focus:outline-none focus:ring-2 focus:ring-primary-300"
                 />
                 <button
