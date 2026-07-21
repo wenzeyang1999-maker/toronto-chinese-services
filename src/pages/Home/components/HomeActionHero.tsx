@@ -249,6 +249,17 @@ export default function HomeActionHero({
                   <MapPin size={14} className="absolute text-amber-500 fill-amber-200"   style={{ top: '58%', left: '18%' }} />
                   <MapPin size={15} className="absolute text-violet-500 fill-violet-200" style={{ top: '30%', right: '22%' }} />
                   <MapPin size={13} className="absolute text-emerald-500 fill-emerald-200" style={{ bottom: '20%', right: '30%' }} />
+                  {/* 真·地图截图：放 public/map-snapshot.jpg 即自动启用（覆盖上面的 CSS 底图）；
+                      文件缺失时 onError 隐藏自己，回退到 CSS 底图，不会显示裂图。 */}
+                  <img
+                    src="/map-snapshot.jpg"
+                    alt=""
+                    aria-hidden
+                    className="absolute inset-0 h-full w-full object-cover"
+                    onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none' }}
+                  />
+                  {/* 文字清晰度：底部白色渐隐（真图/CSS 底图都适用） */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-white/80 via-white/15 to-transparent" />
                   {/* center CTA */}
                   <div className="absolute inset-0 flex flex-col items-center justify-center gap-1.5">
                     <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary-600 text-white shadow-lg transition-transform group-hover:scale-105">
