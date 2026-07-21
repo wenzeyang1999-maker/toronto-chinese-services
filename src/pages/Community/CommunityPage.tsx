@@ -1,6 +1,6 @@
 // ─── Community Page (瀑布流 / 小红书风格) ────────────────────────────────────
 // Route: /community
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { Heart, MessageCircle, Share2, Check } from 'lucide-react'
@@ -29,6 +29,8 @@ interface Post {
   comment_count: number
 }
 
+const PAGE_SIZE = 10   // 每次抓一小批，滚到底再抓下一批，抓完就停
+
 export default function CommunityPage() {
   const navigate = useNavigate()
   const user     = useAuthStore((s) => s.user)
@@ -36,13 +38,17 @@ export default function CommunityPage() {
   const readSet  = useReadStore((s) => s.read)
   const markRead = useReadStore((s) => s.markRead)
 
-  const [posts,      setPosts]      = useState<Post[]>([])
-  const [loading,    setLoading]    = useState(true)
-  const [loadError,  setLoadError]  = useState(false)
-  const [typeFilter, setTypeFilter] = useState<string>('all')
-  const [areaFilter, setAreaFilter] = useState<string>('all')
-  const [followMode, setFollowMode] = useState(false)
-  const [copiedId,   setCopiedId]   = useState<string | null>(null)
+  const [posts,       setPosts]       = useState<Post[]>([])
+  const [loading,     setLoading]     = useState(true)
+  const [loadingMore, setLoadingMore] = useState(false)
+  const [hasMore,     setHasMore]     = useState(true)
+  const [loadError,   setLoadError]   = useState(false)
+  const [typeFilter,  setTypeFilter]  = useState<string>('all')
+  const [areaFilter,  setAreaFilter]  = useState<string>('all')
+  const [followMode,  setFollowMode]  = useState(false)
+  const [copiedId,    setCopiedId]    = useState<string | null>(null)
+  const offsetRef   = useRef(0)                       // 已加载条数（分页游标）
+  const sentinelRef = useRef<HTMLDivElement>(null)    // 触底哨兵
 
   const following    = useFollowsStore((s) => s.following)
   const fetchFollows = useFollowsStore((s) => s.fetchFollows)
@@ -67,49 +73,74 @@ export default function CommunityPage() {
     }
   }
 
-  const load = useCallback(async () => {
-    setLoading(true)
-    setLoadError(false)
-    // "关注" mode: only posts from authors the user follows.
+  // 分页加载：reset=true 从头拉第一批（换筛选/下拉刷新）；reset=false 追加下一批。
+  const loadPage = useCallback(async (reset: boolean) => {
     const followAuthorIds = followMode ? [...following] : null
-    if (followAuthorIds && followAuthorIds.length === 0) { setPosts([]); setLoading(false); return }
+    if (followAuthorIds && followAuthorIds.length === 0) {
+      setPosts([]); setHasMore(false); setLoading(false); setLoadingMore(false); return
+    }
+    if (reset) { setLoading(true); setLoadError(false); offsetRef.current = 0 }
+    else       { setLoadingMore(true) }
 
+    const from = reset ? 0 : offsetRef.current
     let q = supabase
       .from('community_posts')
       .select('id, title, content, type, area, like_count, created_at, images, author:author_id(id, name, avatar_url)')
       .eq('is_active', true)
       .order('created_at', { ascending: false })
-      .limit(50)
+      .range(from, from + PAGE_SIZE - 1)
 
     if (typeFilter !== 'all') q = q.eq('type', typeFilter)
     if (areaFilter !== 'all') q = q.eq('area', areaFilter)
     if (followAuthorIds) q = q.in('author_id', followAuthorIds)
 
     const { data, error } = await q
-    if (error || !data) { setLoadError(true); setPosts([]); setLoading(false); return }
+    if (error || !data) {
+      if (reset) { setLoadError(true); setPosts([]) }
+      setLoading(false); setLoadingMore(false); return
+    }
 
+    // 评论计数：只对这一小批的帖子查（不再一次拉全部）。
     const ids = data.map((p: any) => p.id)
-    if (!ids.length) { setPosts([]); setLoading(false); return }
-    const { data: counts } = await supabase
-      .from('community_comments').select('post_id').in('post_id', ids)
-
     const countMap: Record<string, number> = {}
-    counts?.forEach((c: any) => { countMap[c.post_id] = (countMap[c.post_id] ?? 0) + 1 })
-
-    // Keep newest-first order from the query — a stable feed lets users find
-    // a post where they last saw it (random shuffle made positions jump every load).
-    const mapped = data.map((p: any) => ({
+    if (ids.length) {
+      const { data: counts } = await supabase
+        .from('community_comments').select('post_id').in('post_id', ids)
+      counts?.forEach((c: any) => { countMap[c.post_id] = (countMap[c.post_id] ?? 0) + 1 })
+    }
+    const mapped: Post[] = data.map((p: any) => ({
       ...p,
       author:        Array.isArray(p.author) ? p.author[0] : p.author,
       comment_count: countMap[p.id] ?? 0,
     }))
-    setPosts(mapped)
-    setLoading(false)
+
+    setPosts((prev) => {
+      const next = reset ? mapped : [...prev, ...mapped]
+      offsetRef.current = next.length
+      return next
+    })
+    setHasMore(data.length === PAGE_SIZE)   // 不满一页 = 没有更多了
+    setLoading(false); setLoadingMore(false)
   }, [typeFilter, areaFilter, followMode, following])
 
-  useEffect(() => { load() }, [load])
+  const refresh = useCallback(() => loadPage(true), [loadPage])
 
-  const { distance, refreshing, threshold } = usePullToRefresh(load)
+  // 换筛选/首次进入 → 从头拉第一批
+  useEffect(() => { loadPage(true) }, [loadPage])
+
+  // 触底自动加载下一批（哨兵进入视口时）。没有更多 / 正在加载时不挂观察器。
+  useEffect(() => {
+    const el = sentinelRef.current
+    if (!el || !hasMore || loading || loadingMore) return
+    const io = new IntersectionObserver(
+      (entries) => { if (entries[0].isIntersecting) loadPage(false) },
+      { rootMargin: '300px' },
+    )
+    io.observe(el)
+    return () => io.disconnect()
+  }, [hasMore, loading, loadingMore, loadPage])
+
+  const { distance, refreshing, threshold } = usePullToRefresh(refresh)
 
   return (
     <div className="min-h-screen bg-gray-50 pb-24">
@@ -173,7 +204,7 @@ export default function CommunityPage() {
             ))}
           </div>
         ) : loadError && posts.length === 0 ? (
-          <ErrorState onRetry={load} />
+          <ErrorState onRetry={refresh} />
         ) : posts.length === 0 ? (
           <div className="text-center py-20 text-gray-400">
             <p className="text-4xl mb-3">🌱</p>
@@ -278,6 +309,13 @@ export default function CommunityPage() {
                 </motion.div>
               )
             })}
+          </div>
+        )}
+
+        {/* 触底哨兵：进入视口自动加载下一批；到底则提示，不再请求 */}
+        {!loading && posts.length > 0 && (
+          <div ref={sentinelRef} className="py-6 text-center text-xs text-gray-400">
+            {loadingMore ? '加载中…' : hasMore ? '' : '— 已经到底了 —'}
           </div>
         )}
       </div>
