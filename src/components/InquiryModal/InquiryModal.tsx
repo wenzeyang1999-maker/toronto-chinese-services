@@ -4,6 +4,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ensurePhoneVerified } from '../../lib/requirePhoneVerified'
+import { toast } from '../../lib/toast'
 import PhoneVerifyBanner from '../PhoneVerifyBanner/PhoneVerifyBanner'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X, ChevronDown, Sparkles, UserCheck, Clock3, ShieldCheck, Pencil, MapPin, Mic, MicOff, Siren, PhoneCall, Radio, MessageCircle, CheckCircle2 } from 'lucide-react'
@@ -163,7 +164,7 @@ export default function InquiryModal({ open, onClose }: Props) {
 
   function startVoice() {
     const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
-    if (!SR) return
+    if (!SR) { toast('当前浏览器不支持语音输入，请手动填写', 'error'); return }
     const rec = new SR()
     rec.lang = 'zh-CN'
     rec.continuous = true
@@ -176,10 +177,30 @@ export default function InquiryModal({ open, onClose }: Props) {
       setExtracted(null)
     }
     rec.onend = () => setIsListening(false)
-    rec.onerror = () => setIsListening(false)
+    // 不再静默失败：把错误原因告诉用户（最常见是麦克风权限没允许）。
+    rec.onerror = (e: any) => {
+      setIsListening(false)
+      const err = e?.error
+      if (err === 'not-allowed' || err === 'service-not-allowed') {
+        toast('麦克风被拦截。请点地址栏左侧🔒→允许「麦克风」后重试', 'error')
+      } else if (err === 'audio-capture') {
+        toast('未检测到麦克风设备，请检查后重试', 'error')
+      } else if (err === 'no-speech') {
+        toast('没听到声音，请靠近麦克风再说一次', 'info')
+      } else if (err === 'network') {
+        toast('语音识别网络异常，请稍后再试或手动填写', 'error')
+      } else if (err && err !== 'aborted') {
+        toast('语音识别出错，请重试或手动填写', 'error')
+      }
+    }
     recognitionRef.current = rec
-    rec.start()
-    setIsListening(true)
+    try {
+      rec.start()
+      setIsListening(true)
+    } catch {
+      setIsListening(false)
+      toast('无法开始录音，请重试或改用手动填写', 'error')
+    }
   }
 
   function stopVoice() {
