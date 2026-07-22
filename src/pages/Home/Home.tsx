@@ -71,18 +71,33 @@ export default function Home() {
     }
   }, [isProvider])
 
-  // Provider's own skill tags — used to fuzzy-match request title/description
+  // Provider's own skill tags — used to fuzzy-match request title/description.
+  // Also read is_online（上线接单）: an online provider is actively looking for
+  // orders, so returning to Home defaults them straight to the 急单地图·找客户 view.
   const [mySkillTags, setMySkillTags] = useState<string[]>([])
+  const [isOnline, setIsOnline] = useState(false)
+  const onlineDefaultApplied = useRef(false)
   useEffect(() => {
-    if (!user) { setMySkillTags([]); return }
+    if (!user) { setMySkillTags([]); setIsOnline(false); return }
     let cancelled = false
-    supabase.from('users').select('skill_tags').eq('id', user.id).single()
+    supabase.from('users').select('skill_tags, is_online').eq('id', user.id).single()
       .then(({ data, error }) => {
         if (cancelled || error) return
         setMySkillTags((data?.skill_tags as string[]) ?? [])
+        setIsOnline(!!data?.is_online)
       })
     return () => { cancelled = true }
   }, [user])
+
+  // 上线接单的服务商 → 回主页默认进「发现客户 + 地图」(急单地图·找客户)。
+  // 只在检测到上线时应用一次；之后用户手动切换不再被强制拉回。
+  useEffect(() => {
+    if (isOnline && !onlineDefaultApplied.current) {
+      onlineDefaultApplied.current = true
+      setFeedMode('requests')
+      setViewMode('map')
+    }
+  }, [isOnline])
 
   // Map radius (km) for the map views — continuous slider, persisted to localStorage
   const [mapRadiusKm, setMapRadiusKm] = useState<number>(() => {
@@ -411,8 +426,8 @@ export default function Home() {
             <section className="mb-6">
               <div className="flex items-center justify-between mb-3 gap-3">
                 <div className="min-w-0">
-                  <h3 className="text-sm font-semibold text-gray-800">附近求服务</h3>
-                  <p className="text-xs text-gray-400 mt-0.5">客户发布的服务需求，主动出击接单</p>
+                  <h3 className="text-sm font-semibold text-gray-800">🚨 急单地图 · 找客户</h3>
+                  <p className="text-xs text-gray-400 mt-0.5">附近客户发布的即时需求，主动出击接单赚钱</p>
                 </div>
               </div>
 
