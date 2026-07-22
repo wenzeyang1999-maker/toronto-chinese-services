@@ -13,6 +13,7 @@ import { useNavigate } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import { useAuthStore } from '../../store/authStore'
 import { COMPLAINT_REASON_TAGS as REPORT_REASON_TAGS } from '../../constants/reportReasons'
+import ContactUsButton from '../ContactUsButton/ContactUsButton'
 import type { ChatSession } from '../../pages/Profile/types'
 
 const SUPABASE_URL      = import.meta.env.VITE_SUPABASE_URL as string
@@ -499,6 +500,15 @@ export default function AiChatWidget({ grouped }: Props) {
                       >
                         🚩 举报
                       </button>
+                      <ContactUsButton renderTrigger={(open) => (
+                        <button
+                          onClick={open}
+                          className="text-xs bg-white border border-primary-200 text-primary-600
+                                     rounded-full px-3 py-1.5 hover:bg-primary-50 active:scale-95 transition-all"
+                        >
+                          📞 联系我们
+                        </button>
+                      )} />
                     </div>
                   </div>
                 </div>

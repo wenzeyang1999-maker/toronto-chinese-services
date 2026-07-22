@@ -5,7 +5,7 @@
 //   • 提交建议 → type 'suggestion' (free text)
 //   • 举报投诉 → type 'report'     (structured: 对象类型/对象/原因/说明)
 //   • 寻求合作 → type 'partner'    (free text) + optional direct email
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 import {
   Headphones, ChevronRight, ChevronLeft, Lightbulb, ShieldAlert, Handshake, X, CheckCircle2, Mail,
 } from 'lucide-react'
@@ -24,7 +24,8 @@ const MENU: { key: Exclude<View, 'menu' | 'done'>; label: string; desc: string; 
   { key: 'partner', label: '寻求合作', desc: '商务 · 推广 · 渠道',  icon: Handshake,    tint: 'bg-emerald-50', iconColor: 'text-emerald-600' },
 ]
 
-export default function ContactUsButton() {
+// renderTrigger: 传入自定义触发元素（用给定的 open 回调）。不传则渲染默认卡片按钮。
+export default function ContactUsButton({ renderTrigger }: { renderTrigger?: (open: () => void) => ReactNode } = {}) {
   const user = useAuthStore((s) => s.user)
   const [open, setOpen] = useState(false)
   const [view, setView] = useState<View>('menu')
@@ -62,22 +63,24 @@ export default function ContactUsButton() {
 
   return (
     <>
-      <button
-        onClick={() => setOpen(true)}
-        className="w-full bg-gradient-to-br from-primary-50 to-white rounded-2xl border border-primary-100
-                   shadow-sm p-4 flex items-center gap-3 hover:from-primary-100 transition-all
-                   active:scale-[0.99]"
-      >
-        <div className="w-11 h-11 rounded-xl bg-primary-600 flex items-center justify-center flex-shrink-0
-                        shadow-sm shadow-primary-200">
-          <Headphones size={20} className="text-white" />
-        </div>
-        <div className="flex-1 min-w-0 text-left">
-          <p className="text-sm font-bold text-gray-900">联系我们</p>
-          <p className="text-xs text-gray-500 mt-0.5">提交建议 · 举报投诉 · 寻求合作</p>
-        </div>
-        <ChevronRight size={16} className="text-primary-400 flex-shrink-0" />
-      </button>
+      {renderTrigger ? renderTrigger(() => setOpen(true)) : (
+        <button
+          onClick={() => setOpen(true)}
+          className="w-full bg-gradient-to-br from-primary-50 to-white rounded-2xl border border-primary-100
+                     shadow-sm p-4 flex items-center gap-3 hover:from-primary-100 transition-all
+                     active:scale-[0.99]"
+        >
+          <div className="w-11 h-11 rounded-xl bg-primary-600 flex items-center justify-center flex-shrink-0
+                          shadow-sm shadow-primary-200">
+            <Headphones size={20} className="text-white" />
+          </div>
+          <div className="flex-1 min-w-0 text-left">
+            <p className="text-sm font-bold text-gray-900">联系我们</p>
+            <p className="text-xs text-gray-500 mt-0.5">提交建议 · 举报投诉 · 寻求合作</p>
+          </div>
+          <ChevronRight size={16} className="text-primary-400 flex-shrink-0" />
+        </button>
+      )}
 
       {open && (
         <div
