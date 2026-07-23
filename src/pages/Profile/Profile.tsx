@@ -42,6 +42,7 @@ type MenuItem = { key: Section; icon: React.ReactNode; label: string; sub: strin
 
 const MENU: MenuItem[] = [
   { key: 'homepage',     icon: <LayoutDashboard size={18} />, label: '我的主页',         sub: '封面 · 简介 · 标签装修', modes: ['provider'] },
+  { key: 'services',     icon: <Store         size={18} />, label: '我的发布',         sub: '服务 · 招聘 · 房源 · 闲置 · 活动', modes: ['client', 'provider'] },
   { key: 'verification', icon: <BadgeCheck    size={18} />, label: '联系方式与资质验证', sub: '社交媒体、手机验证、商户认证', modes: ['provider'] },
   { key: 'transactions',      icon: <ClipboardList  size={18} />, label: '我的交易',     sub: '需求 · 接单 · 成交',       modes: ['client', 'provider'] },
   { key: 'account',      icon: <ShieldCheck   size={18} />, label: '帐号和安全',        sub: '个人信息 · 密码 · 通知设置', modes: ['client', 'provider'] },
