@@ -114,17 +114,17 @@ export default function ServiceCard({ service, layout = 'list' }: Props) {
           )}
         </div>
 
-        <div className="p-4 space-y-2">
-          <div className="flex items-start justify-between gap-2">
-            <h3 className={`font-semibold text-sm leading-snug line-clamp-2 ${isRead ? 'text-gray-400' : 'text-gray-900'}`}>
+        <div className="p-2.5 space-y-1.5">
+          <div className="flex items-start justify-between gap-1.5">
+            <h3 className={`font-semibold text-[13px] leading-snug line-clamp-2 ${isRead ? 'text-gray-400' : 'text-gray-900'}`}>
               {service.title}
             </h3>
-            <span className="text-sm font-bold text-primary-600 whitespace-nowrap">{priceLabel}</span>
+            <span className="text-[13px] font-bold text-primary-600 whitespace-nowrap">{priceLabel}</span>
           </div>
 
-          <p className="text-xs text-gray-500 leading-relaxed line-clamp-3">{service.description}</p>
+          <p className="text-[11px] text-gray-500 leading-relaxed line-clamp-2">{service.description}</p>
 
-          <div className="flex flex-wrap gap-1.5">
+          <div className="flex flex-wrap gap-1">
             <MembershipBadge level={service.provider.membershipLevel} variant="label" size="sm" />
             <TrustBadge />
             {activeLabel && (
@@ -134,12 +134,9 @@ export default function ServiceCard({ service, layout = 'list' }: Props) {
             )}
           </div>
 
-          <div className="flex items-center gap-2 min-w-0 overflow-hidden pt-1">
-            <span className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-semibold bg-gray-100 ${cat?.color ?? 'text-gray-500'}`}>
-              {cat?.emoji} {cat?.label}
-            </span>
-            <span className="text-[11px] text-gray-500 truncate">{service.provider.name}</span>
-            <div className="ml-auto">
+          <div className="flex items-center gap-1.5 min-w-0 overflow-hidden pt-0.5">
+            <span className="text-[11px] text-gray-500 truncate flex-1">{service.provider.name}</span>
+            <div className="flex-shrink-0">
               <RatingBadge />
             </div>
           </div>
