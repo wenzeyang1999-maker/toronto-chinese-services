@@ -7,7 +7,9 @@ import { motion, AnimatePresence } from 'framer-motion'
 import {
   Plus, Pencil, Trash2, X, Check, ToggleLeft, ToggleRight,
   ImagePlus, Wrench, Briefcase, Home, ShoppingBag, Calendar, ChevronDown, CheckCircle2, Zap,
+  MessageSquareText,
 } from 'lucide-react'
+import CommunitySection from './CommunitySection'
 import { supabase } from '../../../lib/supabase'
 import { useAuthStore } from '../../../store/authStore'
 import { notifyAdminPromoRequest } from '../../../lib/notify'
@@ -24,7 +26,7 @@ import type { Event } from '../../Events/types'
 import ViewCount from '../../../components/ViewCount/ViewCount'
 import { toast } from '../../../lib/toast'
 
-type Tab = 'services' | 'jobs' | 'properties' | 'secondhand' | 'events'
+type Tab = 'services' | 'jobs' | 'properties' | 'secondhand' | 'events' | 'community'
 
 interface ServiceItem {
   id: string; title: string; description: string; price: number | null
@@ -40,6 +42,7 @@ const TABS: { key: Tab; label: string; icon: React.ReactNode }[] = [
   { key: 'properties', label: '房源', icon: <Home        size={14} /> },
   { key: 'secondhand', label: '闲置', icon: <ShoppingBag size={14} /> },
   { key: 'events',     label: '活动', icon: <Calendar    size={14} /> },
+  { key: 'community',  label: '帖子', icon: <MessageSquareText size={14} /> },
 ]
 
 export default function ServicesSection() {
@@ -124,6 +127,7 @@ export default function ServicesSection() {
     properties: properties.length,
     secondhand: secondhand.length,
     events:     events.length,
+    community:  0,   // 帖子数由 CommunitySection 自管，这里不显示角标
   }
 
   // ── Service edit helpers ───────────────────────────────────────────────────
@@ -748,6 +752,13 @@ export default function ServicesSection() {
                   )
                 })}
               </AnimatePresence>
+            </div>
+          )}
+
+          {/* 帖子 —— 我的社区帖子并入「我的发布」*/}
+          {tab === 'community' && (
+            <div className="-mx-4 -my-1">
+              <CommunitySection />
             </div>
           )}
 

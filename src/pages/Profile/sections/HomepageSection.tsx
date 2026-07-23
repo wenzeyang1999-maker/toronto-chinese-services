@@ -12,25 +12,21 @@ import { supabase } from '../../../lib/supabase'
 import { useAuthStore } from '../../../store/authStore'
 import { useNavigate } from 'react-router-dom'
 import MembershipBadge, { type MemberLevel } from '../../../components/MembershipBadge/MembershipBadge'
-import ServicesSection from './ServicesSection'
-import CommunitySection from './CommunitySection'
 import StatsSection from './StatsSection'
-import SavesSection from './SavesSection'
-import FollowsSection from './FollowsSection'
 import BrowseSection from './BrowseSection'
+import MyEventsSection from './MyEventsSection'
 import type { BrowseEntry } from '../types'
 import { toast } from '../../../lib/toast'
 
-type Tab = 'edit' | 'services' | 'community' | 'stats' | 'saves' | 'follows' | 'browse'
+// 发布 / 收藏 / 关注 已提为顶层独立菜单项（帖子并入「我的发布」），
+// 此处仅保留主页装修相关 + 我报名的活动（从顶层下放为二级 tab）。
+type Tab = 'edit' | 'stats' | 'browse' | 'my_events'
 
 const TABS: { key: Tab; label: string }[] = [
   { key: 'edit',      label: '编辑主页' },
-  { key: 'services',  label: '📦 我的发布' },
-  { key: 'community', label: '💬 我的帖子' },
   { key: 'stats',     label: '📊 数据面板' },
-  { key: 'saves',     label: '❤️ 我的收藏' },
-  { key: 'follows',   label: '👤 我的关注' },
   { key: 'browse',    label: '🕐 浏览记录' },
+  { key: 'my_events', label: '📅 我报名的活动' },
 ]
 
 interface Profile {
@@ -705,11 +701,8 @@ export default function HomepageSection() {
         </div>
       )}
 
-      {tab === 'services'  && <div className="scroll-mt-28"><ServicesSection /></div>}
-      {tab === 'community' && <div className="scroll-mt-28"><CommunitySection /></div>}
       {tab === 'stats'     && <div className="scroll-mt-28"><StatsSection /></div>}
-      {tab === 'saves'     && <div className="scroll-mt-28 px-4 py-4 max-w-md lg:max-w-none mx-auto"><SavesSection /></div>}
-      {tab === 'follows'   && <div className="scroll-mt-28 px-4 py-4 max-w-md lg:max-w-none mx-auto"><FollowsSection /></div>}
+      {tab === 'my_events' && <div className="scroll-mt-28"><MyEventsSection /></div>}
       {tab === 'browse'    && (
         <div className="scroll-mt-28 px-4 py-4 max-w-md lg:max-w-none mx-auto">
           <BrowseSection
