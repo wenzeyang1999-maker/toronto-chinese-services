@@ -46,6 +46,7 @@ export default function Home() {
   })
   const [inquiryOpen, setInquiryOpen]  = useState(false)
   const [searchQuery, setSearchQuery]  = useState('')
+  const [servicesExpanded, setServicesExpanded] = useState(false)
   const [viewMode, setViewMode] = useState<'list' | 'map'>(() => {
     // List-first: default to list on first visit; a user's own toggle choice
     // (saved in localStorage) is still honored, and the map stays selectable.
@@ -255,14 +256,17 @@ export default function Home() {
           <div className="flex items-center justify-between gap-3 mb-3">
             <h3 className="text-sm font-semibold text-gray-800">热门服务</h3>
             <button
-              onClick={() => navigate('/search')}
+              onClick={() => setServicesExpanded((v) => !v)}
               className="flex items-center gap-0.5 text-xs font-semibold text-primary-600 hover:text-primary-700 flex-shrink-0 transition-colors"
             >
-              更多服务
-              <ChevronRight size={14} />
+              {servicesExpanded ? '收起' : '更多服务'}
+              <ChevronRight
+                size={14}
+                className={`transition-transform ${servicesExpanded ? 'rotate-90' : ''}`}
+              />
             </button>
           </div>
-          <CategoryButtons />
+          <CategoryButtons expanded={servicesExpanded} />
         </section>
 
         {/* ── Community entry — surfaces 社区圈子 directly (skips the /plaza hub) ─ */}

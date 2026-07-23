@@ -104,8 +104,6 @@ export default function Search() {
   const [communityResults, setCommunityResults] = useState<CommunityResult[]>([])
   const [communityLoading, setCommunityLoading] = useState(false)
   const [providerResults, setProviderResults] = useState<ProviderResult[]>([])
-  const [semanticTerms, setSemanticTerms] = useState<string[]>([])
-  const [semanticLoading, setSemanticLoading] = useState(false)
   const [dbResults, setDbResults] = useState<import('../../types').Service[] | null>(null)
   const [dbLoading, setDbLoading] = useState(false)
   const [page, setPage] = useState(1)
@@ -133,7 +131,6 @@ export default function Search() {
     if (!kw) {
       setCommunityResults([])
       setProviderResults([])
-      setSemanticTerms([])
       setDbResults(null)
       setSearchFilters({ keywordVariants: [] })
       return
@@ -174,12 +171,11 @@ export default function Search() {
       setDbResults(null)
     }
 
+    // 语义扩展仍用于结果匹配（keywordVariants），但不再展示联想芯片。
     const timer = window.setTimeout(() => {
-      setSemanticLoading(true)
       void expandSemanticSearch(kw).then((terms) => {
-        setSemanticTerms(terms)
         setSearchFilters({ keywordVariants: terms })
-      }).finally(() => setSemanticLoading(false))
+      })
     }, 250)
 
     return () => window.clearTimeout(timer)
@@ -600,31 +596,10 @@ export default function Search() {
         <SearchDecisionHeader
           query={localQuery.trim()}
           count={results.length + communityResults.length}
-          hasLocation={!!userLocation}
           sortBy={searchFilters.sortBy}
         />
         {query && (
-          <div className="mb-3 flex items-center justify-between gap-2">
-            <div className="flex flex-wrap items-center gap-2 flex-1 min-w-0">
-              {(semanticLoading || semanticTerms.length > 0) && (
-                <>
-                  <span className="text-[11px] font-semibold text-gray-400">语义联想</span>
-                  {semanticLoading && <span className="text-[11px] text-gray-400">生成中…</span>}
-                  {semanticTerms.map((term) => (
-                    <button
-                      key={term}
-                      onClick={() => {
-                        setLocalQuery(term)
-                        setSearchParams(searchFilters.category ? { q: term, cat: searchFilters.category } : { q: term })
-                      }}
-                      className="text-[11px] px-2.5 py-1 rounded-full bg-primary-50 text-primary-600 hover:bg-primary-100 transition-colors"
-                    >
-                      {term}
-                    </button>
-                  ))}
-                </>
-              )}
-            </div>
+          <div className="mb-3 flex items-center justify-end gap-2">
             <button
               onClick={handleToggleSave}
               className={`flex-shrink-0 flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-full border transition-colors ${

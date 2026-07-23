@@ -1,12 +1,13 @@
 import { useNavigate } from 'react-router-dom'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import {
   type LucideIcon,
   Truck, Sparkles, Car, Leaf, Hammer, Wrench, LifeBuoy, Cog,
+  Tv, Droplets, Plug, Paintbrush, Layers, Baby, PawPrint, Scissors,
 } from 'lucide-react'
 
-// ── 热门服务：生活服务 8 大类目直达（点击 → 搜索该类目）───────────────────────
-// 固定 8 类，4×2 两行铺满，不留空格。
+// ── 热门服务：生活服务类目直达（点击 → 搜索该类目）─────────────────────────────
+// 默认展示 8 大类（4×2）；点击「更多服务」在原框内展开第二排 8 类，不跳转。
 interface Category {
   label: string
   q: string           // search keyword
@@ -26,6 +27,18 @@ const CATEGORIES: Category[] = [
   { label: '汽车维修', q: '汽车维修', icon: Cog,      color: 'text-slate-600',  bgColor: 'bg-slate-100' },
 ]
 
+// 「更多服务」展开后追加的 8 类。
+const MORE_CATEGORIES: Category[] = [
+  { label: '家电维修', q: '家电维修', icon: Tv,        color: 'text-sky-600',     bgColor: 'bg-sky-50' },
+  { label: '管道疏通', q: '疏通',     icon: Droplets,  color: 'text-teal-600',    bgColor: 'bg-teal-50' },
+  { label: '水电',     q: '水电',     icon: Plug,      color: 'text-yellow-600',  bgColor: 'bg-yellow-50' },
+  { label: '油漆粉刷', q: '油漆',     icon: Paintbrush, color: 'text-orange-600', bgColor: 'bg-orange-50' },
+  { label: '地板安装', q: '地板',     icon: Layers,    color: 'text-lime-600',    bgColor: 'bg-lime-50' },
+  { label: '月嫂保姆', q: '月嫂',     icon: Baby,      color: 'text-pink-600',    bgColor: 'bg-pink-50' },
+  { label: '宠物服务', q: '宠物',     icon: PawPrint,  color: 'text-fuchsia-600', bgColor: 'bg-fuchsia-50' },
+  { label: '美容美发', q: '美发',     icon: Scissors,  color: 'text-red-600',     bgColor: 'bg-red-50' },
+]
+
 const containerVariants = {
   hidden: {},
   show: { transition: { staggerChildren: 0.05 } },
@@ -36,29 +49,60 @@ const itemVariants = {
   show: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 300, damping: 24 } },
 }
 
-export default function CategoryButtons() {
+function Tile({ cat, onClick }: { cat: Category; onClick: () => void }) {
+  return (
+    <motion.button
+      variants={itemVariants}
+      whileTap={{ scale: 0.93 }}
+      onClick={onClick}
+      className={`relative ${cat.bgColor} rounded-xl py-2.5 px-1 flex flex-col items-center gap-1.5
+                  border border-white/60 hover:shadow-md active:brightness-95 transition-all`}
+    >
+      <cat.icon size={20} strokeWidth={1.6} className={cat.color} />
+      <span className={`text-[11px] font-semibold whitespace-nowrap ${cat.color}`}>{cat.label}</span>
+    </motion.button>
+  )
+}
+
+export default function CategoryButtons({ expanded = false }: { expanded?: boolean }) {
   const navigate = useNavigate()
+  const go = (q: string) => navigate(`/search?q=${encodeURIComponent(q)}`)
 
   return (
-    <motion.div
-      variants={containerVariants}
-      initial="hidden"
-      animate="show"
-      className="grid grid-cols-4 gap-2"
-    >
-      {CATEGORIES.map((cat) => (
-        <motion.button
-          key={cat.label}
-          variants={itemVariants}
-          whileTap={{ scale: 0.93 }}
-          onClick={() => navigate(`/search?q=${encodeURIComponent(cat.q)}`)}
-          className={`relative ${cat.bgColor} rounded-xl py-2.5 px-1 flex flex-col items-center gap-1.5
-                      border border-white/60 hover:shadow-md active:brightness-95 transition-all`}
-        >
-          <cat.icon size={20} strokeWidth={1.6} className={cat.color} />
-          <span className={`text-[11px] font-semibold whitespace-nowrap ${cat.color}`}>{cat.label}</span>
-        </motion.button>
-      ))}
-    </motion.div>
+    <div>
+      <motion.div
+        variants={containerVariants}
+        initial="hidden"
+        animate="show"
+        className="grid grid-cols-4 gap-2"
+      >
+        {CATEGORIES.map((cat) => (
+          <Tile key={cat.label} cat={cat} onClick={() => go(cat.q)} />
+        ))}
+      </motion.div>
+
+      <AnimatePresence initial={false}>
+        {expanded && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.25 }}
+            className="overflow-hidden"
+          >
+            <motion.div
+              variants={containerVariants}
+              initial="hidden"
+              animate="show"
+              className="grid grid-cols-4 gap-2 mt-2"
+            >
+              {MORE_CATEGORIES.map((cat) => (
+                <Tile key={cat.label} cat={cat} onClick={() => go(cat.q)} />
+              ))}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
   )
 }
