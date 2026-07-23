@@ -4,6 +4,7 @@ import HeroBanner from '../../components/HeroBanner/HeroBanner'
 import CategoryButtons from '../../components/CategoryButtons/CategoryButtons'
 import InquiryModal from '../../components/InquiryModal/InquiryModal'
 import { useAppStore } from '../../store/appStore'
+import { useOnlineModeStore } from '../../store/onlineModeStore'
 import { useGeolocation, LOCATION_STALE_MS } from '../../hooks/useGeolocation'
 import RecommendedServices from '../../components/RecommendedServices/RecommendedServices'
 // 暂时隐藏社区入口（恢复时连同下方 <HomeCommunityEntry /> 一起取消注释）
@@ -72,32 +73,30 @@ export default function Home() {
   }, [isProvider])
 
   // Provider's own skill tags — used to fuzzy-match request title/description.
-  // Also read is_online（上线接单）: an online provider is actively looking for
-  // orders, so returning to Home defaults them straight to the 急单地图·找客户 view.
   const [mySkillTags, setMySkillTags] = useState<string[]>([])
-  const [isOnline, setIsOnline] = useState(false)
-  const onlineDefaultApplied = useRef(false)
   useEffect(() => {
-    if (!user) { setMySkillTags([]); setIsOnline(false); return }
+    if (!user) { setMySkillTags([]); return }
     let cancelled = false
-    supabase.from('users').select('skill_tags, is_online').eq('id', user.id).single()
+    supabase.from('users').select('skill_tags').eq('id', user.id).single()
       .then(({ data, error }) => {
         if (cancelled || error) return
         setMySkillTags((data?.skill_tags as string[]) ?? [])
-        setIsOnline(!!data?.is_online)
       })
     return () => { cancelled = true }
   }, [user])
 
-  // 上线接单的服务商 → 回主页默认进「发现客户 + 地图」(急单地图·找客户)。
-  // 只在检测到上线时应用一次；之后用户手动切换不再被强制拉回。
+  // 切换到「服务商」模式（useOnlineModeStore.online，与个人中心一键翻转同源）→
+  // 回主页默认进「急单地图·找客户」(发现客户 + 地图)。每次进主页应用一次；
+  // 之后手动切回「找服务」不再被强制拉回。
+  const providerMode = useOnlineModeStore((s) => s.online)
+  const providerDefaultApplied = useRef(false)
   useEffect(() => {
-    if (isOnline && !onlineDefaultApplied.current) {
-      onlineDefaultApplied.current = true
+    if (providerMode && !providerDefaultApplied.current) {
+      providerDefaultApplied.current = true
       setFeedMode('requests')
       setViewMode('map')
     }
-  }, [isOnline])
+  }, [providerMode])
 
   // Map radius (km) for the map views — continuous slider, persisted to localStorage
   const [mapRadiusKm, setMapRadiusKm] = useState<number>(() => {
