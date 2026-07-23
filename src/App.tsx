@@ -93,7 +93,8 @@ function MobileAiBubble() {
   if (hidden) return null
   return (
     <div className="md:hidden">
-      <AiChatWidget />
+      {/* 手机端取消悬浮 AI客服触发球，改由底部导航「AI客服」tab 打开；聊天窗仍挂载于此 */}
+      <AiChatWidget hideTrigger />
     </div>
   )
 }

@@ -12,6 +12,7 @@ import { Bot, Send, ChevronDown, RotateCcw, ArrowLeft } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import { useAuthStore } from '../../store/authStore'
+import { useAiChatStore } from '../../store/aiChatStore'
 import { COMPLAINT_REASON_TAGS as REPORT_REASON_TAGS } from '../../constants/reportReasons'
 import ContactUsButton from '../ContactUsButton/ContactUsButton'
 import type { ChatSession } from '../../pages/Profile/types'
@@ -54,10 +55,15 @@ const QUICK_REPLIES = [
 type ChatMode = 'chat' | 'report' | 'complaint'
 
 // ─────────────────────────────────────────────────────────────────────────────
-interface Props { grouped?: boolean }
+interface Props {
+  grouped?: boolean
+  hideTrigger?: boolean   // 隐藏悬浮触发球（手机端由底部导航「AI客服」tab 触发）
+}
 
-export default function AiChatWidget({ grouped }: Props) {
-  const [open, setOpen]         = useState(false)
+export default function AiChatWidget({ grouped, hideTrigger }: Props) {
+  // open 提到共享 store，使底部导航等外部入口也能打开聊天窗。
+  const open    = useAiChatStore((s) => s.open)
+  const setOpen = useAiChatStore((s) => s.setOpen)
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput]       = useState('')
   const [busy, setBusy]         = useState(false)
@@ -264,7 +270,7 @@ export default function AiChatWidget({ grouped }: Props) {
     <>
       {/* ── Floating trigger button ── */}
       <AnimatePresence>
-        {!open && (
+        {!open && !hideTrigger && (
           <motion.button
             key="trigger"
             initial={{ scale: 0, opacity: 0 }}

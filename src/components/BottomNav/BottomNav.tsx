@@ -1,9 +1,10 @@
-import { Home, Search, Plus, MessageSquare, User } from 'lucide-react'
+import { Home, Bot, Plus, MessageSquare, User } from 'lucide-react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuthStore } from '../../store/authStore'
 import { useCallback, useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabase'
 import { useLeadAlertsStore } from '../../store/leadAlertsStore'
+import { useAiChatStore } from '../../store/aiChatStore'
 import PublishSheet from '../PublishSheet/PublishSheet'
 
 export default function BottomNav() {
@@ -13,6 +14,7 @@ export default function BottomNav() {
   const [unread, setUnread] = useState(0)
   const leadCount = useLeadAlertsStore((s) => s.count)
   const [publishOpen, setPublishOpen] = useState(false)
+  const openAiChat = useAiChatStore((s) => s.setOpen)
 
   const hidden =
     /^\/(login|register|forgot-password|reset-password|map)$/.test(pathname) ||
@@ -59,10 +61,10 @@ export default function BottomNav() {
         />
 
         <NavTab
-          icon={<Search size={22} />}
-          label="搜索"
-          active={pathname.startsWith('/search')}
-          onClick={() => navigate('/search')}
+          icon={<Bot size={22} />}
+          label="AI客服"
+          active={false}
+          onClick={() => openAiChat(true)}
         />
 
         {/* Center FAB — opens the publish fan-out sheet */}
