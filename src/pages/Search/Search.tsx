@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useSearchParams, useNavigate } from 'react-router-dom'
-import { ArrowLeft, Search as SearchIcon, SlidersHorizontal, Sparkles, MessageSquare, Heart, LayoutList, Map, Bell, BellOff, Wrench, Briefcase, Home, ShoppingBag, Calendar, Users } from 'lucide-react'
+import { ArrowLeft, Search as SearchIcon, SlidersHorizontal, Sparkles, MessageSquare, Heart, LayoutList, Map, Wrench, Briefcase, Home, ShoppingBag, Calendar, Users } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import ServiceCard from '../../components/ServiceCard/ServiceCard'
 import ServiceMap from '../../components/ServiceMap/ServiceMap'
@@ -18,12 +18,6 @@ import { POST_TYPE_CONFIG } from '../Community/config'
 import { expandSemanticSearch } from '../../lib/aiTools'
 import PageMeta from '../../components/PageMeta/PageMeta'
 import { useAuthStore } from '../../store/authStore'
-import { subscribeToWebPush } from '../../lib/webPush'
-import { toast } from '../../lib/toast'
-import {
-  getSavedSearches, saveSearch, removeSavedSearch,
-  markSearchSeen, type SavedSearch,
-} from '../../lib/savedSearches'
 import { ServiceListSkeleton, GlobalSearchSkeleton, CommunityPostSkeleton } from '../../components/Skeleton/Skeleton'
 
 // ─── Global search types ──────────────────────────────────────────────────────
@@ -99,7 +93,6 @@ export default function Search() {
   const [localQuery, setLocalQuery] = useState(searchParams.get('q') ?? '')
   const [showFilters, setShowFilters] = useState(false)
   const [inquiryOpen, setInquiryOpen] = useState(false)
-  const [savedSearches, setSavedSearches] = useState<SavedSearch[]>([])
   const [viewMode, setViewMode] = useState<'list' | 'map'>('list')
   const [communityResults, setCommunityResults] = useState<CommunityResult[]>([])
   const [communityLoading, setCommunityLoading] = useState(false)
@@ -217,49 +210,6 @@ export default function Search() {
   }
 
   const query = searchParams.get('q') ?? ''
-  const currentCategory = searchFilters.category
-
-  // Load saved searches (DB-backed for logged-in users, localStorage otherwise)
-  useEffect(() => {
-    void getSavedSearches().then(setSavedSearches)
-  }, [user])
-
-  // Mark saved search as seen when the user lands on a matching query
-  useEffect(() => {
-    if (!query) return
-    const match = savedSearches.find(
-      s => s.keyword.toLowerCase() === query.toLowerCase() && s.category === currentCategory
-    )
-    if (match && match.newCount > 0) {
-      void markSearchSeen(match.id).then(getSavedSearches).then(setSavedSearches)
-    }
-  }, [query, currentCategory, savedSearches])
-
-  const currentlySaved = savedSearches.some(
-    s => s.keyword.toLowerCase() === query.toLowerCase() && s.category === currentCategory
-  )
-
-  async function handleToggleSave() {
-    if (!query) return
-    if (currentlySaved) {
-      const match = savedSearches.find(
-        s => s.keyword.toLowerCase() === query.toLowerCase() && s.category === currentCategory
-      )
-      if (match) await removeSavedSearch(match.id)
-      setSavedSearches(await getSavedSearches())
-      toast('已取消订阅', 'success')
-    } else {
-      await saveSearch(query, currentCategory)
-      setSavedSearches(await getSavedSearches())
-      toast('搜索已订阅，有新结果时在通知中心提醒你', 'success')
-      // Request push permission and subscribe if user is logged in
-      if (user && 'Notification' in window) {
-        const perm = await Notification.requestPermission()
-        if (perm === 'granted') subscribeToWebPush(user.id)
-      }
-    }
-  }
-
   const handleCategorySelect = (catId: string | undefined) => {
     const next = searchFilters.category === catId ? undefined : catId
     const params: Record<string, string> = {}
@@ -598,22 +548,6 @@ export default function Search() {
           count={results.length + communityResults.length}
           sortBy={searchFilters.sortBy}
         />
-        {query && (
-          <div className="mb-3 flex items-center justify-end gap-2">
-            <button
-              onClick={handleToggleSave}
-              className={`flex-shrink-0 flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-full border transition-colors ${
-                currentlySaved
-                  ? 'bg-amber-50 text-amber-600 border-amber-200 hover:bg-amber-100'
-                  : 'bg-gray-50 text-gray-500 border-gray-200 hover:bg-gray-100'
-              }`}
-            >
-              {currentlySaved
-                ? <><BellOff size={10} /> 已订阅</>
-                : <><Bell size={10} /> 订阅通知</>}
-            </button>
-          </div>
-        )}
         <SearchFilterSummary
           filters={searchFilters}
           onClearCategory={() => handleCategorySelect(undefined)}
