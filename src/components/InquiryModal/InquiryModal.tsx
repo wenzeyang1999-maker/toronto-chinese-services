@@ -597,36 +597,37 @@ export default function InquiryModal({ open, onClose, presetCategoryId }: Props)
                           描述您的需求
                           {voiceSupported && (
                             <span className="ml-2 text-[11px] font-normal text-gray-400">
-                              {isListening ? '🔴 正在聆听，点麦克风停止' : '可点麦克风语音输入'}
+                              {isListening ? '🔴 正在聆听，点下方按钮停止' : '可用下方语音按钮输入'}
                             </span>
                           )}
                         </label>
-                        <div className="relative">
-                          <textarea
-                            rows={4}
-                            value={rawInput}
-                            onChange={e => { setRawInput(e.target.value); setExtracted(null) }}
-                            placeholder={isListening ? '说话中，识别结果会自动显示…' : '例：明天下午从North York搬到Markham，三楼无电梯，5个大箱子加一张床'}
-                            className={`w-full border rounded-xl px-4 py-3 pr-12 text-sm text-gray-800
-                                       outline-none focus:ring-2 focus:ring-primary-400 focus:border-transparent
-                                       resize-none placeholder:text-gray-400 transition-colors
-                                       ${isListening ? 'border-red-300 bg-red-50/30' : 'border-gray-200'}`}
-                          />
-                          {voiceSupported && (
-                            <button
-                              type="button"
-                              onClick={isListening ? stopVoice : startVoice}
-                              className={`absolute bottom-3 right-3 p-2 rounded-full transition-all
-                                ${isListening
-                                  ? 'bg-red-500 text-white shadow-lg shadow-red-200 animate-pulse'
-                                  : 'bg-gray-100 text-gray-500 hover:bg-primary-50 hover:text-primary-600'}`}
-                              title={isListening ? '点击停止录音' : '点击语音输入'}
-                            >
-                              {isListening ? <MicOff size={16} /> : <Mic size={16} />}
-                            </button>
-                          )}
-                        </div>
+                        <textarea
+                          rows={4}
+                          value={rawInput}
+                          onChange={e => { setRawInput(e.target.value); setExtracted(null) }}
+                          placeholder={isListening ? '说话中，识别结果会自动显示…' : '例：明天下午从North York搬到Markham，三楼无电梯，5个大箱子加一张床'}
+                          className={`w-full border rounded-xl px-4 py-3 text-sm text-gray-800
+                                     outline-none focus:ring-2 focus:ring-primary-400 focus:border-transparent
+                                     resize-none placeholder:text-gray-400 transition-colors
+                                     ${isListening ? 'border-red-300 bg-red-50/30' : 'border-gray-200'}`}
+                        />
                       </div>
+
+                      {/* 语音输入 —— 做成和「AI 智能解析」同款的大按钮 */}
+                      {voiceSupported && (
+                        <button
+                          type="button"
+                          onClick={isListening ? stopVoice : startVoice}
+                          className={`w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold transition-all active:scale-[0.98]
+                            ${isListening
+                              ? 'bg-red-500 text-white shadow-lg shadow-red-200 animate-pulse'
+                              : 'bg-orange-50 text-orange-600 border border-orange-200 hover:bg-orange-100'}`}
+                        >
+                          {isListening
+                            ? <><MicOff size={18} /> 正在聆听…点击停止</>
+                            : <><Mic size={18} /> 点击语音输入</>}
+                        </button>
+                      )}
 
                       <button
                         type="button"
