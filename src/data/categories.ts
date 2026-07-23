@@ -374,3 +374,22 @@ export const CATEGORIES: CategoryConfig[] = [
 
 export const getCategoryById = (id: ServiceCategory): CategoryConfig | undefined =>
   CATEGORIES.find((c) => c.id === id)
+
+// Best-effort 关键词 → 类别 id：先按 id/label 精确命中，再按 searchTags 双向包含。
+// 用于「在某类别页/搜索页点+直接发需求」时推断当前页类别，命中不到返回 ''。
+export const resolveCategoryId = (keyword?: string | null): ServiceCategory | '' => {
+  const kw = (keyword ?? '').trim().toLowerCase()
+  if (!kw) return ''
+  for (const c of CATEGORIES) {
+    if (c.id === 'other') continue
+    if (c.id.toLowerCase() === kw || c.label.toLowerCase() === kw || c.postLabel.toLowerCase() === kw) return c.id
+  }
+  for (const c of CATEGORIES) {
+    if (c.id === 'other') continue
+    if (c.searchTags.some((t) => {
+      const tl = t.toLowerCase()
+      return tl === kw || tl.includes(kw) || kw.includes(tl)
+    })) return c.id
+  }
+  return ''
+}

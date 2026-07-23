@@ -24,6 +24,8 @@ import NotificationPrompt from './components/NotificationPrompt/NotificationProm
 import InstallPWA from './components/InstallPWA/InstallPWA'
 import FABGroup from './components/FABGroup/FABGroup'
 import AiChatWidget from './components/AiChatWidget/AiChatWidget'
+import InquiryModal from './components/InquiryModal/InquiryModal'
+import { useInquiryStore } from './store/inquiryStore'
 import BottomNav from './components/BottomNav/BottomNav'
 import CityGate from './components/GeofenceBanner/CityGate'
 
@@ -103,6 +105,15 @@ function MobileAiBubble() {
 // the provider is online. CSS (index.css) then turns the page CANVAS light green;
 // cards/map/nav keep their own opaque backgrounds, so only the background shifts
 // (day/night-mode style). Renders nothing — pure side effect.
+// 全局唯一的「发需求」弹窗，由 inquiryStore 驱动，可从任意页面(含 + 号/发布面板)
+// 打开并预填类别。各页不再各自挂载。
+function GlobalInquiryModal() {
+  const open   = useInquiryStore((s) => s.open)
+  const preset = useInquiryStore((s) => s.presetCategoryId)
+  const close  = useInquiryStore((s) => s.close)
+  return <InquiryModal open={open} onClose={close} presetCategoryId={preset} />
+}
+
 function OnlineModeTint() {
   const online = useOnlineModeStore((s) => s.online)
   useEffect(() => {
@@ -286,6 +297,7 @@ export default function App() {
       {isLoadingDone && <InstallPWA />}
       {isLoadingDone && <CityGate />}
       {isLoadingDone && <UrgentLeadPopup />}
+      {isLoadingDone && <GlobalInquiryModal />}
       {/* Provider inquiry alerts removed: it subscribed the provider's browser to
           the whole inquiries table (which carries customer name/phone/wechat),
           a PII-over-realtime risk. Providers are notified via email + the public

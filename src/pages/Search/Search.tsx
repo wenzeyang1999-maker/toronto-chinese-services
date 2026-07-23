@@ -7,8 +7,8 @@ import ServiceMap from '../../components/ServiceMap/ServiceMap'
 import { useAppStore } from '../../store/appStore'
 import type { SearchFilters } from '../../types'
 import Header from '../../components/Header/Header'
-import InquiryModal from '../../components/InquiryModal/InquiryModal'
-import { CATEGORIES } from '../../data/categories'
+import { useInquiryStore } from '../../store/inquiryStore'
+import { CATEGORIES, resolveCategoryId } from '../../data/categories'
 import { useGeolocation } from '../../hooks/useGeolocation'
 import SearchDecisionHeader from './components/SearchDecisionHeader'
 import SearchFilterSummary from './components/SearchFilterSummary'
@@ -92,7 +92,9 @@ export default function Search() {
   const isGlobal = searchParams.get('global') === '1'
   const [localQuery, setLocalQuery] = useState(searchParams.get('q') ?? '')
   const [showFilters, setShowFilters] = useState(false)
-  const [inquiryOpen, setInquiryOpen] = useState(false)
+  const openInquiry       = useInquiryStore((s) => s.openInquiry)
+  const setPageCategory   = useInquiryStore((s) => s.setPageCategory)
+  const clearPageCategory = useInquiryStore((s) => s.clearPageCategory)
   const [viewMode, setViewMode] = useState<'list' | 'map'>('list')
   const [communityResults, setCommunityResults] = useState<CommunityResult[]>([])
   const [communityLoading, setCommunityLoading] = useState(false)
@@ -210,6 +212,14 @@ export default function Search() {
   }
 
   const query = searchParams.get('q') ?? ''
+
+  // 当前搜索的类别语境：显式选中的类别优先，否则按关键词推断。+ 号/发需求据此预填。
+  const pageCatId = searchFilters.category || resolveCategoryId(query)
+  useEffect(() => {
+    setPageCategory(pageCatId)
+    return () => clearPageCategory()
+  }, [pageCatId, setPageCategory, clearPageCategory])
+
   const handleCategorySelect = (catId: string | undefined) => {
     const next = searchFilters.category === catId ? undefined : catId
     const params: Record<string, string> = {}
@@ -254,7 +264,6 @@ export default function Search() {
     <div className="min-h-[100dvh] bg-gray-50">
       <PageMeta title="服务搜索" description="搜索多伦多华人服务：搬家、保洁、装修、接送、育儿等，找到靠谱服务商" />
       <Header />
-      <InquiryModal open={inquiryOpen} onClose={() => setInquiryOpen(false)} />
 
       {/* Search header */}
       <div className="bg-white border-b border-gray-100 px-4 py-3">
@@ -282,7 +291,7 @@ export default function Search() {
             </button>
             <motion.button
               whileTap={{ scale: 0.95 }}
-              onClick={() => setInquiryOpen(true)}
+              onClick={() => openInquiry(pageCatId)}
               className="flex items-center gap-1 bg-primary-600 hover:bg-primary-700
                          text-white text-xs font-bold px-2.5 py-1.5 rounded-xl transition-colors flex-shrink-0 whitespace-nowrap"
             >
@@ -561,7 +570,7 @@ export default function Search() {
             {results.length === 0 && communityResults.length === 0 && (
               <SearchEmptyState
                 query={localQuery.trim()}
-                onOpenInquiry={() => setInquiryOpen(true)}
+                onOpenInquiry={() => openInquiry(pageCatId)}
                 onPost={() => navigate('/post')}
               />
             )}
@@ -571,7 +580,7 @@ export default function Search() {
         ) : results.length === 0 && communityResults.length === 0 ? (
           <SearchEmptyState
             query={localQuery.trim()}
-            onOpenInquiry={() => setInquiryOpen(true)}
+            onOpenInquiry={() => openInquiry(pageCatId)}
             onPost={() => navigate('/post')}
           />
         ) : (

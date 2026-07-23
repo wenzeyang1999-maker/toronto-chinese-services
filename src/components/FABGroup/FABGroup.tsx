@@ -3,11 +3,14 @@ import MessagesButton from '../MessagesButton/MessagesButton'
 import { useAuthStore } from '../../store/authStore'
 import { Plus, PlusCircle } from 'lucide-react'
 import { useNavigate, useLocation } from 'react-router-dom'
+import { useInquiryStore } from '../../store/inquiryStore'
 
 export default function FABGroup() {
   const user     = useAuthStore((s) => s.user)
   const navigate = useNavigate()
   const { pathname } = useLocation()
+  const openInquiry    = useInquiryStore((s) => s.openInquiry)
+  const pageCategoryId = useInquiryStore((s) => s.pageCategoryId)
 
   const hideMobileFAB =
     /^\/(login|register|forgot-password|reset-password)$/.test(pathname) ||
@@ -34,7 +37,7 @@ export default function FABGroup() {
           发布服务
         </button>
         <button
-          onClick={() => navigate('/?inquiry=1')}
+          onClick={() => user ? openInquiry(pageCategoryId) : navigate('/login', { state: { from: '/?inquiry=1' } })}
           className="flex items-center gap-2 bg-orange-500 hover:bg-orange-600
                      text-white rounded-full px-4 py-3
                      active:scale-95 transition-all duration-200 text-sm font-semibold whitespace-nowrap"

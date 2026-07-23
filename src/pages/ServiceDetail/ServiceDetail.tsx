@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useAppStore, mapRow } from '../../store/appStore'
 import { useAuthStore } from '../../store/authStore'
 import { useReadStore } from '../../store/readStore'
+import { useInquiryStore } from '../../store/inquiryStore'
 import { supabase } from '../../lib/supabase'
 import { getCategoryById } from '../../data/categories'
 import type { BrowseEntry } from '../../types/browse'
@@ -48,6 +49,14 @@ export default function ServiceDetail() {
   const storeService = services.find((s) => s.id === id)
   const [localService, setLocalService] = useState<ReturnType<typeof mapRow> | null>(null)
   const service = storeService ?? localService
+
+  // 声明当前服务的类别语境：+ 号/发需求据此预填类别，免用户再选。
+  const setPageCategory   = useInquiryStore((s) => s.setPageCategory)
+  const clearPageCategory = useInquiryStore((s) => s.clearPageCategory)
+  useEffect(() => {
+    if (service?.category) setPageCategory(service.category)
+    return () => clearPageCategory()
+  }, [service?.category, setPageCategory, clearPageCategory])
 
   const [loading,        setLoading]        = useState(!storeService)
   const [socialLinks,    setSocialLinks]    = useState<Record<string, string>>({})

@@ -6,12 +6,18 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
 import { Wrench, Megaphone, MessageSquareText, CalendarPlus, Briefcase, ShoppingBag, Home } from 'lucide-react'
 import { useAuthStore } from '../../store/authStore'
+import { useInquiryStore } from '../../store/inquiryStore'
 
 interface Props { open: boolean; onClose: () => void }
 
-const OPTIONS = [
+// 发需求走弹窗(inquiry)而非路由；用 inquiry:true 标记。
+type PublishOption = {
+  label: string; sub: string; icon: typeof Wrench; color: string
+  to?: string; inquiry?: boolean
+}
+const OPTIONS: PublishOption[] = [
   { label: '发服务',   sub: '我能提供的服务', to: '/post',            icon: Wrench,            color: 'text-primary-600 bg-primary-50' },
-  { label: '发需求',   sub: 'AI 帮你找 · 商家主动联系', to: '/?inquiry=1',      icon: Megaphone,         color: 'text-orange-600 bg-orange-50' },
+  { label: '发需求',   sub: 'AI 帮你找 · 商家主动联系', inquiry: true,         icon: Megaphone,         color: 'text-orange-600 bg-orange-50' },
   { label: '发帖子',   sub: '社区圈子',       to: '/community/post',  icon: MessageSquareText, color: 'text-rose-600 bg-rose-50' },
   { label: '发活动',   sub: '同城聚会',       to: '/events/post',     icon: CalendarPlus,      color: 'text-violet-600 bg-violet-50' },
   { label: '发招聘',   sub: '招聘 / 求职',    to: '/jobs/post',       icon: Briefcase,         color: 'text-blue-600 bg-blue-50' },
@@ -22,11 +28,20 @@ const OPTIONS = [
 export default function PublishSheet({ open, onClose }: Props) {
   const navigate = useNavigate()
   const user = useAuthStore((s) => s.user)
+  const openInquiry     = useInquiryStore((s) => s.openInquiry)
+  const pageCategoryId  = useInquiryStore((s) => s.pageCategoryId)
 
   function go(to: string) {
     onClose()
     if (!user) { navigate('/login', { state: { from: to } }); return }
     navigate(to)
+  }
+
+  // 发需求：就地打开发需求弹窗，并预填当前页类别（类别页/搜索页/服务详情）。
+  function goInquiry() {
+    onClose()
+    if (!user) { navigate('/login', { state: { from: '/?inquiry=1' } }); return }
+    openInquiry(pageCategoryId)
   }
 
   return (
@@ -49,7 +64,7 @@ export default function PublishSheet({ open, onClose }: Props) {
               {OPTIONS.map((o) => {
                 const Icon = o.icon
                 return (
-                  <button key={o.to} onClick={() => go(o.to)}
+                  <button key={o.label} onClick={() => (o.inquiry ? goInquiry() : go(o.to!))}
                     className="flex flex-col items-center gap-1.5 py-3 rounded-2xl hover:bg-gray-50 active:scale-95 transition-all">
                     <span className={`w-11 h-11 rounded-2xl flex items-center justify-center ${o.color}`}>
                       <Icon size={20} />

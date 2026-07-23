@@ -19,6 +19,7 @@ import { CATEGORIES } from '../../data/categories'
 interface Props {
   open: boolean
   onClose: () => void
+  presetCategoryId?: string   // 从类别页/搜索页/服务详情打开时预选类别，免再选
 }
 
 interface InquiryForm {
@@ -107,7 +108,7 @@ function SentToProvidersView({ categoryLabel, isUrgent, onClose, onGoMessages }:
   )
 }
 
-export default function InquiryModal({ open, onClose }: Props) {
+export default function InquiryModal({ open, onClose, presetCategoryId }: Props) {
   const navigate          = useNavigate()
   const user              = useAuthStore((s) => s.user)
   const userLocation      = useAppStore((s) => s.userLocation)
@@ -159,6 +160,15 @@ export default function InquiryModal({ open, onClose }: Props) {
       })
     return () => { cancelled = true }
   }, [open, user])
+  // 从类别页/搜索页/服务详情打开时：预选类别并直接进入手动表单，用户免选类别。
+  useEffect(() => {
+    if (open && presetCategoryId) {
+      setAiMode(false)
+      setForm((f) => ({ ...f, categoryId: presetCategoryId }))
+      setErrors((e) => ({ ...e, categoryId: undefined }))
+    }
+  }, [open, presetCategoryId])
+
   const voiceSupported = typeof window !== 'undefined' &&
     ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window)
 

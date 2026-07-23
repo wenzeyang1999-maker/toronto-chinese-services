@@ -3,7 +3,7 @@ import { ArrowLeft, SlidersHorizontal, List, Map, Sparkles } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { useEffect, useState, useCallback, useMemo, useRef, lazy, Suspense } from 'react'
 import ServiceCard from '../../components/ServiceCard/ServiceCard'
-import InquiryModal from '../../components/InquiryModal/InquiryModal'
+import { useInquiryStore } from '../../store/inquiryStore'
 import { useAppStore } from '../../store/appStore'
 import { useInfiniteScroll } from '../../hooks/useInfiniteScroll'
 import { getCategoryById, CATEGORIES } from '../../data/categories'
@@ -31,7 +31,15 @@ export default function Category() {
   const [viewMode, setViewMode] = useState<'list' | 'map'>(
     () => searchParams.get('view') === 'map' ? 'map' : 'list'
   )
-  const [inquiryOpen, setInquiryOpen] = useState(false)
+  const openInquiry      = useInquiryStore((s) => s.openInquiry)
+  const setPageCategory  = useInquiryStore((s) => s.setPageCategory)
+  const clearPageCategory = useInquiryStore((s) => s.clearPageCategory)
+
+  // 声明当前页类别语境：+ 号/发需求据此预填类别，免用户再选。
+  useEffect(() => {
+    if (id) setPageCategory(id)
+    return () => clearPageCategory()
+  }, [id, setPageCategory, clearPageCategory])
 
   // Fetch this category directly from the DB with real pagination (fixes the old
   // bug where Category filtered only the globally-loaded newest 40 services).
@@ -127,7 +135,7 @@ export default function Category() {
             </div>
             {/* AI 帮你找 */}
             <button
-              onClick={() => setInquiryOpen(true)}
+              onClick={() => openInquiry(id ?? '')}
               className="flex-shrink-0 flex items-center gap-1.5 bg-white/80 hover:bg-white
                          text-primary-700 font-semibold rounded-xl shadow-sm px-3 py-2
                          text-sm transition-colors border border-white/60"
@@ -138,8 +146,6 @@ export default function Category() {
           </div>
         </div>
       </div>
-
-      <InquiryModal open={inquiryOpen} onClose={() => setInquiryOpen(false)} />
 
       <div className="w-full px-3 md:w-[85%] md:px-0 lg:w-[70%] mx-auto mt-4">
         {/* 同级分类芯片 — 横滑一排，点即切换分类（SPA 异步刷新，不整页重载，说明书 V5.2）*/}

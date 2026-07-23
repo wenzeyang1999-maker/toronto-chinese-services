@@ -2,7 +2,7 @@ import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react'
 import { calcDistance } from '../../lib/geo'
 import HeroBanner from '../../components/HeroBanner/HeroBanner'
 import CategoryButtons from '../../components/CategoryButtons/CategoryButtons'
-import InquiryModal from '../../components/InquiryModal/InquiryModal'
+import { useInquiryStore } from '../../store/inquiryStore'
 import { useAppStore } from '../../store/appStore'
 import { useOnlineModeStore } from '../../store/onlineModeStore'
 import { useGeolocation, LOCATION_STALE_MS } from '../../hooks/useGeolocation'
@@ -44,7 +44,6 @@ export default function Home() {
     fetchServices()
     requestLocation({ maxAgeMs: LOCATION_STALE_MS })
   })
-  const [inquiryOpen, setInquiryOpen]  = useState(false)
   const [searchQuery, setSearchQuery]  = useState('')
   const [servicesExpanded, setServicesExpanded] = useState(false)
   const [viewMode, setViewMode] = useState<'list' | 'map'>(() => {
@@ -157,7 +156,7 @@ export default function Home() {
   // param so navigating back / refreshing doesn't re-open it unexpectedly.
   useEffect(() => {
     if (searchParams.get('inquiry') !== '1') return
-    setInquiryOpen(true)
+    useInquiryStore.getState().openInquiry()
     setSearchParams((prev) => {
       const n = new URLSearchParams(prev)
       n.delete('inquiry')
@@ -242,11 +241,9 @@ export default function Home() {
           searchQuery={searchQuery}
           onSearchQueryChange={setSearchQuery}
           onSearch={handleSearch}
-          onOpenInquiry={() => setInquiryOpen(true)}
+          onOpenInquiry={() => useInquiryStore.getState().openInquiry()}
         />
       </div>
-
-      <InquiryModal open={inquiryOpen} onClose={() => setInquiryOpen(false)} />
 
       <div className="relative z-10 w-full bg-[#f7f8fa] pt-6">
       <div className="w-full px-3 md:w-[85%] md:px-0 lg:w-[70%] mx-auto">
