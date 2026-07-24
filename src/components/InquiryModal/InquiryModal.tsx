@@ -131,8 +131,11 @@ export default function InquiryModal({ open, onClose, presetCategoryId }: Props)
   const [postPublic,  setPostPublic]  = useState(true)
   const [isUrgent,    setIsUrgent]    = useState(false)   // 紧急单：发给所有在线商家，每天限 1 次
   const [contactMode, setContactMode] = useState<'providers_contact' | 'self_contact'>('providers_contact')
-  const [isListening, setIsListening] = useState(false)
-  const recognitionRef = useRef<any>(null)
+  const [isListening,  setIsListening]  = useState(false)   // 录音中
+  const [transcribing, setTranscribing] = useState(false)   // 上传转写中
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null)
+  const chunksRef        = useRef<Blob[]>([])
+  const streamRef        = useRef<MediaStream | null>(null)
 
   // Auto-fill contact from the logged-in user's saved profile (name / phone /
   // wechat) when the modal opens — fills empty fields only, never overwrites what
@@ -169,53 +172,70 @@ export default function InquiryModal({ open, onClose, presetCategoryId }: Props)
     }
   }, [open, presetCategoryId])
 
-  const voiceSupported = typeof window !== 'undefined' &&
-    ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window)
+  // 语音输入：录音 → 上传给 transcribe-audio(Groq Whisper) 转写。
+  // 取代浏览器 Web Speech API —— 后者在 Safari/iOS 上给了麦克风权限也常无结果。
+  const voiceSupported = typeof navigator !== 'undefined' &&
+    !!navigator.mediaDevices?.getUserMedia && typeof MediaRecorder !== 'undefined'
 
-  function startVoice() {
-    const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
-    if (!SR) { toast('当前浏览器不支持语音输入，请手动填写', 'error'); return }
-    const rec = new SR()
-    rec.lang = 'zh-CN'
-    rec.continuous = true
-    rec.interimResults = true
-    rec.onresult = (e: any) => {
-      const transcript = Array.from(e.results as any[])
-        .map((r: any) => r[0].transcript)
-        .join('')
-      setRawInput(transcript)
-      setExtracted(null)
-    }
-    rec.onend = () => setIsListening(false)
-    // 不再静默失败：把错误原因告诉用户（最常见是麦克风权限没允许）。
-    rec.onerror = (e: any) => {
-      setIsListening(false)
-      const err = e?.error
-      if (err === 'not-allowed' || err === 'service-not-allowed') {
-        toast('麦克风被拦截。请点地址栏左侧🔒→允许「麦克风」后重试', 'error')
-      } else if (err === 'audio-capture') {
-        toast('未检测到麦克风设备，请检查后重试', 'error')
-      } else if (err === 'no-speech') {
-        toast('没听到声音，请靠近麦克风再说一次', 'info')
-      } else if (err === 'network') {
-        toast('语音识别网络异常，请稍后再试或手动填写', 'error')
-      } else if (err && err !== 'aborted') {
-        toast('语音识别出错，请重试或手动填写', 'error')
-      }
-    }
-    recognitionRef.current = rec
+  async function startVoice() {
     try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      streamRef.current = stream
+      chunksRef.current = []
+      const mime = MediaRecorder.isTypeSupported('audio/webm')
+        ? 'audio/webm'
+        : MediaRecorder.isTypeSupported('audio/mp4') ? 'audio/mp4' : ''
+      const rec = mime ? new MediaRecorder(stream, { mimeType: mime }) : new MediaRecorder(stream)
+      rec.ondataavailable = (e) => { if (e.data.size) chunksRef.current.push(e.data) }
+      rec.onstop = () => {
+        streamRef.current?.getTracks().forEach(t => t.stop())
+        streamRef.current = null
+        void transcribe()
+      }
+      mediaRecorderRef.current = rec
       rec.start()
       setIsListening(true)
-    } catch {
+    } catch (err: any) {
       setIsListening(false)
-      toast('无法开始录音，请重试或改用手动填写', 'error')
+      streamRef.current?.getTracks().forEach(t => t.stop())
+      streamRef.current = null
+      if (err?.name === 'NotAllowedError' || err?.name === 'SecurityError') {
+        toast('麦克风被拒绝。请在浏览器/系统设置里允许麦克风后重试', 'error')
+      } else if (err?.name === 'NotFoundError') {
+        toast('未检测到麦克风设备，请检查后重试', 'error')
+      } else {
+        toast('无法开始录音，请重试或改用手动填写', 'error')
+      }
     }
   }
 
   function stopVoice() {
-    recognitionRef.current?.stop()
+    const rec = mediaRecorderRef.current
+    if (rec && rec.state !== 'inactive') rec.stop()   // 触发 onstop → transcribe()
     setIsListening(false)
+  }
+
+  async function transcribe() {
+    const type = mediaRecorderRef.current?.mimeType || 'audio/webm'
+    const blob = new Blob(chunksRef.current, { type })
+    chunksRef.current = []
+    if (blob.size === 0) return
+    setTranscribing(true)
+    try {
+      const ext = type.includes('mp4') ? 'mp4' : type.includes('ogg') ? 'ogg' : 'webm'
+      const fd = new FormData()
+      fd.append('file', blob, `voice.${ext}`)
+      fd.append('language', 'zh')
+      const { data, error } = await supabase.functions.invoke('transcribe-audio', { body: fd })
+      const text = (data as { text?: string } | null)?.text?.trim()
+      if (error || !text) throw new Error('no text')
+      setRawInput(prev => (prev.trim() ? `${prev.trim()} ${text}` : text))
+      setExtracted(null)
+    } catch (_e) {
+      toast('语音识别失败，请重试或手动填写', 'error')
+    } finally {
+      setTranscribing(false)
+    }
   }
 
   const update = <K extends keyof InquiryForm>(field: K, value: InquiryForm[K]) => {
@@ -597,7 +617,7 @@ export default function InquiryModal({ open, onClose, presetCategoryId }: Props)
                           描述您的需求
                           {voiceSupported && (
                             <span className="ml-2 text-[11px] font-normal text-gray-400">
-                              {isListening ? '🔴 正在聆听，点下方按钮停止' : '可用下方语音按钮输入'}
+                              {transcribing ? '识别中…' : isListening ? '🔴 录音中，点下方按钮停止' : '可用下方语音按钮输入'}
                             </span>
                           )}
                         </label>
@@ -605,7 +625,7 @@ export default function InquiryModal({ open, onClose, presetCategoryId }: Props)
                           rows={4}
                           value={rawInput}
                           onChange={e => { setRawInput(e.target.value); setExtracted(null) }}
-                          placeholder={isListening ? '说话中，识别结果会自动显示…' : '例：明天下午从North York搬到Markham，三楼无电梯，5个大箱子加一张床'}
+                          placeholder={isListening ? '🔴 录音中，点「停止」后自动转成文字…' : transcribing ? '识别中…' : '例：明天下午从North York搬到Markham，三楼无电梯，5个大箱子加一张床'}
                           className={`w-full border rounded-xl px-4 py-3 text-sm text-gray-800
                                      outline-none focus:ring-2 focus:ring-primary-400 focus:border-transparent
                                      resize-none placeholder:text-gray-400 transition-colors
@@ -617,15 +637,18 @@ export default function InquiryModal({ open, onClose, presetCategoryId }: Props)
                       {voiceSupported && (
                         <button
                           type="button"
+                          disabled={transcribing}
                           onClick={isListening ? stopVoice : startVoice}
-                          className={`w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold transition-all active:scale-[0.98]
+                          className={`w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold transition-all active:scale-[0.98] disabled:opacity-70
                             ${isListening
                               ? 'bg-red-500 text-white shadow-lg shadow-red-200 animate-pulse'
                               : 'bg-orange-50 text-orange-600 border border-orange-200 hover:bg-orange-100'}`}
                         >
-                          {isListening
-                            ? <><MicOff size={18} /> 正在聆听…点击停止</>
-                            : <><Mic size={18} /> 点击语音输入</>}
+                          {transcribing
+                            ? <><span className="animate-spin inline-block w-4 h-4 border-2 border-orange-400 border-t-transparent rounded-full" /> 识别中…</>
+                            : isListening
+                              ? <><MicOff size={18} /> 正在聆听…点击停止</>
+                              : <><Mic size={18} /> 点击语音输入</>}
                         </button>
                       )}
 
