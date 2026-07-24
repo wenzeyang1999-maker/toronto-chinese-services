@@ -19,6 +19,51 @@ import { CATEGORIES } from '../../data/categories'
 const SUPABASE_URL      = import.meta.env.VITE_SUPABASE_URL as string
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string
 
+// 把 MediaRecorder 录音(webm/mp4)解码后重编码成 16kHz 单声道 WAV。
+// 目的：MediaRecorder 生成的 webm 头常缺时长信息，Groq/Whisper 服务端解码时会
+// 只读到极少/静音 → 幻觉("字幕志愿者""MING PAO")。WAV 头永远正确，稳定可解。
+// 返回 wav Blob + 音量 RMS(用于判断是否根本没录到声)。
+async function toWav16kMono(blob: Blob): Promise<{ wav: Blob; rms: number }> {
+  const arrayBuf = await blob.arrayBuffer()
+  const AudioCtx = (window.AudioContext || (window as any).webkitAudioContext) as typeof AudioContext
+  const decodeCtx = new AudioCtx()
+  const decoded = await decodeCtx.decodeAudioData(arrayBuf)
+  decodeCtx.close()
+
+  const targetRate = 16000
+  const frames = Math.max(1, Math.ceil(decoded.duration * targetRate))
+  const offline = new OfflineAudioContext(1, frames, targetRate)
+  const src = offline.createBufferSource()
+  src.buffer = decoded
+  src.connect(offline.destination)
+  src.start(0)
+  const rendered = await offline.startRendering()
+  const samples = rendered.getChannelData(0)
+
+  let sum = 0
+  for (let i = 0; i < samples.length; i++) sum += samples[i] * samples[i]
+  const rms = Math.sqrt(sum / samples.length)
+
+  return { wav: encodeWav(samples, targetRate), rms }
+}
+
+function encodeWav(samples: Float32Array, sampleRate: number): Blob {
+  const buffer = new ArrayBuffer(44 + samples.length * 2)
+  const view = new DataView(buffer)
+  const writeStr = (off: number, s: string) => { for (let i = 0; i < s.length; i++) view.setUint8(off + i, s.charCodeAt(i)) }
+  writeStr(0, 'RIFF'); view.setUint32(4, 36 + samples.length * 2, true); writeStr(8, 'WAVE')
+  writeStr(12, 'fmt '); view.setUint32(16, 16, true); view.setUint16(20, 1, true); view.setUint16(22, 1, true)
+  view.setUint32(24, sampleRate, true); view.setUint32(28, sampleRate * 2, true); view.setUint16(32, 2, true); view.setUint16(34, 16, true)
+  writeStr(36, 'data'); view.setUint32(40, samples.length * 2, true)
+  let off = 44
+  for (let i = 0; i < samples.length; i++) {
+    const s = Math.max(-1, Math.min(1, samples[i]))
+    view.setInt16(off, s < 0 ? s * 0x8000 : s * 0x7fff, true)
+    off += 2
+  }
+  return new Blob([view], { type: 'audio/wav' })
+}
+
 interface Props {
   open: boolean
   onClose: () => void
@@ -222,14 +267,26 @@ export default function InquiryModal({ open, onClose, presetCategoryId }: Props)
 
   async function transcribe() {
     const type = mediaRecorderRef.current?.mimeType || 'audio/webm'
-    const blob = new Blob(chunksRef.current, { type })
+    const raw  = new Blob(chunksRef.current, { type })
     chunksRef.current = []
-    if (blob.size === 0) return
+    if (raw.size === 0) return
     setTranscribing(true)
     try {
-      const ext = type.includes('mp4') ? 'mp4' : type.includes('ogg') ? 'ogg' : 'webm'
+      // 转成 16k 单声道 WAV（规避 webm 头缺时长导致 Whisper 读成静音）。
+      let file: Blob = raw
+      let filename = `voice.${type.includes('mp4') ? 'mp4' : type.includes('ogg') ? 'ogg' : 'webm'}`
+      try {
+        const { wav, rms } = await toWav16kMono(raw)
+        if (rms < 0.003) {   // 基本静音 → 采集问题，别浪费一次转写
+          toast('没检测到声音，请确认麦克风选对、音量足够后再试', 'error')
+          return
+        }
+        file = wav
+        filename = 'voice.wav'
+      } catch { /* 解码失败则退回原始音频直接上传 */ }
+
       const fd = new FormData()
-      fd.append('file', blob, `voice.${ext}`)
+      fd.append('file', file, filename)
       fd.append('language', 'zh')
       // 直接 fetch 上传 multipart（不手动设 Content-Type，让浏览器带上 boundary）；
       // 比 functions.invoke 更可靠地传输二进制音频。
