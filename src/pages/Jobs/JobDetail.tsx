@@ -1,6 +1,7 @@
 // ─── Job Detail Page ──────────────────────────────────────────────────────────
 // Route: /jobs/:id
 import { useEffect, useState } from 'react'
+import { cdnUrl } from '../../lib/cdnUrl'
 import { useParams, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import {
@@ -170,7 +171,7 @@ export default function JobDetail() {
               >
                 {job.poster?.avatar_url ? (
                   <ImgFallback
-                    src={job.poster.avatar_url}
+                    src={cdnUrl(job.poster.avatar_url, 160)}
                     alt={job.contact_name}
                     className="w-full h-full rounded-full object-cover"
                     fallback={<User size={18} className="text-primary-600" />}

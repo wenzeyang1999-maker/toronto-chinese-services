@@ -4,6 +4,7 @@
 // • Provider + any user can answer publicly
 // • Asker can delete their own question; answerer can edit/delete their answer
 import { useEffect, useState } from 'react'
+import { cdnUrl } from '../../lib/cdnUrl'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { HelpCircle, Send, ChevronDown, ChevronUp, Pencil, X, Check, CornerDownRight, Trash2 } from 'lucide-react'
@@ -258,7 +259,7 @@ export default function QASection({ serviceId, providerId }: Props) {
                     {/* Avatar */}
                     <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0 mt-0.5 border border-gray-100 bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center text-white text-xs font-bold">
                       {q.asker?.avatar_url ? (
-                        <img loading="lazy" src={q.asker.avatar_url} alt={q.asker.name}
+                        <img loading="lazy" src={cdnUrl(q.asker.avatar_url, 160)} alt={q.asker.name}
                           className="w-full h-full object-cover"
                           onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
                       ) : (q.asker?.name?.charAt(0) ?? '?')}

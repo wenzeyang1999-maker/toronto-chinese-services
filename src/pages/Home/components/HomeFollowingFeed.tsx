@@ -1,4 +1,5 @@
 import { useNavigate } from 'react-router-dom'
+import { cdnUrl } from '../../../lib/cdnUrl'
 import { motion } from 'framer-motion'
 import { Star, BadgeCheck, ShieldCheck, Phone, ChevronRight } from 'lucide-react'
 import { useAppStore } from '../../../store/appStore'
@@ -30,7 +31,7 @@ function FollowingCard({ service }: { service: Service }) {
       <div className={`w-full h-[92px] rounded-xl overflow-hidden mb-2 ${cat?.bgColor ?? 'bg-gray-100'}`}>
         {service.images?.[0] ? (
           <img
-            src={service.images[0]}
+            src={cdnUrl(service.images[0], 400)}
             alt={service.title}
             loading="lazy"
             className="w-full h-full object-cover"

@@ -1,6 +1,7 @@
 // ─── Event Detail Page ─────────────────────────────────────────────────────────
 // Route: /events/:id  (mobile)
 import { useEffect, useState } from 'react'
+import { cdnUrl } from '../../lib/cdnUrl'
 import { useParams, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { ChevronLeft, MapPin, Phone, MessageCircle, Copy, Calendar, CalendarPlus, Navigation, User, ExternalLink, Clock } from 'lucide-react'
@@ -106,7 +107,7 @@ export default function EventDetail() {
                   </div>
                 ) : (
                   <img loading="lazy"
-                    src={ev.images[imgIdx]}
+                    src={cdnUrl(ev.images[imgIdx], 800)}
                     alt={ev.title}
                     onClick={() => setLightboxOpen(true)}
                     className="w-full h-full object-cover cursor-zoom-in"
@@ -128,7 +129,7 @@ export default function EventDetail() {
                         </div>
                       ) : (
                         <img loading="lazy"
-                          src={img}
+                          src={cdnUrl(img, 400)}
                           alt=""
                           className="w-full h-full object-cover"
                           onError={() => setFailedImgs((s) => new Set(s).add(i))}
@@ -247,7 +248,7 @@ export default function EventDetail() {
                              cursor-pointer ring-2 ring-primary-200 hover:ring-primary-400 transition-all"
                 >
                   {ev.poster?.avatar_url
-                    ? <img loading="lazy" src={ev.poster.avatar_url} alt={ev.contact_name} className="w-full h-full rounded-full object-cover"
+                    ? <img loading="lazy" src={cdnUrl(ev.poster.avatar_url, 160)} alt={ev.contact_name} className="w-full h-full rounded-full object-cover"
                         onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
                     : <User size={18} className="text-primary-600" />
                   }

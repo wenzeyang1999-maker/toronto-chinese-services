@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { cdnUrl } from '../../../lib/cdnUrl'
 import { motion } from 'framer-motion'
 import {
   Camera, Check, ExternalLink, Pencil, Share2, Tag, X,
@@ -281,7 +282,7 @@ export default function HomepageSection() {
 
           {/* Cover */}
           <div className="relative h-40 bg-gradient-to-br from-primary-400 to-primary-700 rounded-t-3xl overflow-hidden">
-            {profile.cover_url && <img loading="lazy" src={profile.cover_url} alt="封面" className="w-full h-full object-cover" />}
+            {profile.cover_url && <img loading="lazy" src={cdnUrl(profile.cover_url, 800)} alt="封面" className="w-full h-full object-cover" />}
             <button onClick={() => coverRef.current?.click()} disabled={uploadingCover}
               className="absolute bottom-3 right-4 flex items-center gap-1.5 bg-black/40 hover:bg-black/60
                          text-white text-xs font-medium px-3 py-1.5 rounded-full backdrop-blur-sm transition-colors">
@@ -295,7 +296,7 @@ export default function HomepageSection() {
           <div className="px-5 -mt-10 flex items-end justify-between">
             <div className="w-20 h-20 rounded-full border-4 border-white shadow-lg overflow-hidden bg-primary-100 flex items-center justify-center flex-shrink-0 relative z-10">
               {profile.avatar_url
-                ? <img loading="lazy" src={profile.avatar_url} alt={profile.name} className="w-full h-full object-cover" />
+                ? <img loading="lazy" src={cdnUrl(profile.avatar_url, 160)} alt={profile.name} className="w-full h-full object-cover" />
                 : <span className="text-2xl font-bold text-primary-600">{profile.name.slice(0, 1)}</span>}
             </div>
             <div className="flex gap-2 mb-1">
@@ -616,7 +617,7 @@ export default function HomepageSection() {
               <div className="grid grid-cols-3 gap-2">
                 {profile.qualification_images.map((url, i) => (
                   <div key={i} className="relative aspect-square rounded-xl overflow-hidden border border-gray-200 bg-gray-50">
-                    <img loading="lazy" src={url} alt={`资质 ${i + 1}`} className="w-full h-full object-cover" />
+                    <img loading="lazy" src={cdnUrl(url, 400)} alt={`资质 ${i + 1}`} className="w-full h-full object-cover" />
                     <button
                       onClick={() => removeQualImage(i)}
                       className="absolute top-1 right-1 w-6 h-6 bg-black/55 rounded-full flex items-center justify-center

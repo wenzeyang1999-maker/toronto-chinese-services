@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { cdnUrl } from '../../lib/cdnUrl'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { Star, MapPin, ShieldCheck, Zap, BadgeCheck, Phone } from 'lucide-react'
@@ -97,7 +98,7 @@ export default function ServiceCard({ service, layout = 'list' }: Props) {
         <div className="relative aspect-[4/3] bg-gray-100">
           {showImage ? (
             <img
-              src={service.images![0]}
+              src={cdnUrl(service.images![0], 400)}
               alt={service.title}
               loading="lazy"
               className="w-full h-full object-cover"
@@ -161,7 +162,7 @@ export default function ServiceCard({ service, layout = 'list' }: Props) {
       <div className="relative w-[72px] h-[72px] flex-shrink-0 rounded-xl overflow-hidden">
         {showImage ? (
           <img
-            src={service.images![0]}
+            src={cdnUrl(service.images![0], 400)}
             alt={service.title}
             loading="lazy"
             className="w-full h-full object-cover"

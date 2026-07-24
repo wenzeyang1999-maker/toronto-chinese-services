@@ -1,6 +1,7 @@
 // ─── Real Estate Detail Page ──────────────────────────────────────────────────
 // Route: /realestate/:id  (mobile)
 import { useEffect, useState } from 'react'
+import { cdnUrl } from '../../lib/cdnUrl'
 import { useParams, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { ChevronLeft, MapPin, Phone, MessageCircle, Copy, Home, User, ExternalLink, BedDouble, Bath, Car, PawPrint, Zap, Maximize2 } from 'lucide-react'
@@ -94,7 +95,7 @@ export default function RealEstateDetail() {
                   </div>
                 ) : (
                   <img loading="lazy"
-                    src={prop.images[imgIdx]}
+                    src={cdnUrl(prop.images[imgIdx], 800)}
                     alt={prop.title}
                     className="w-full h-full object-cover"
                     onError={() => setFailedImgs((s) => new Set(s).add(imgIdx))}
@@ -115,7 +116,7 @@ export default function RealEstateDetail() {
                         </div>
                       ) : (
                         <img loading="lazy"
-                          src={img}
+                          src={cdnUrl(img, 400)}
                           alt=""
                           className="w-full h-full object-cover"
                           onError={() => setFailedImgs((s) => new Set(s).add(i))}
@@ -227,7 +228,7 @@ export default function RealEstateDetail() {
                              cursor-pointer ring-2 ring-primary-200 hover:ring-primary-400 transition-all"
                 >
                   {prop.poster?.avatar_url
-                    ? <img loading="lazy" src={prop.poster.avatar_url} alt={prop.contact_name} className="w-full h-full rounded-full object-cover"
+                    ? <img loading="lazy" src={cdnUrl(prop.poster.avatar_url, 160)} alt={prop.contact_name} className="w-full h-full rounded-full object-cover"
                         onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
                     : <User size={18} className="text-primary-600" />
                   }

@@ -3,6 +3,7 @@
 // Mobile: clicking an event navigates to /events/:id
 // Desktop: detail opens in right panel
 import { useEffect, useState } from 'react'
+import { cdnUrl } from '../../lib/cdnUrl'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
@@ -347,7 +348,7 @@ function DetailPanel({ ev, onClose }: { ev: Event; onClose: () => void }) {
               </div>
             ) : (
               <img loading="lazy"
-                src={ev.images[imgIdx]}
+                src={cdnUrl(ev.images[imgIdx], 800)}
                 alt={ev.title}
                 className="w-full h-full object-cover"
                 onError={() => setFailedImgs((s) => new Set(s).add(imgIdx))}
@@ -367,7 +368,7 @@ function DetailPanel({ ev, onClose }: { ev: Event; onClose: () => void }) {
                       {cfg.emoji}
                     </div>
                   ) : (
-                    <img loading="lazy" src={img} alt="" className="w-full h-full object-cover"
+                    <img loading="lazy" src={cdnUrl(img, 400)} alt="" className="w-full h-full object-cover"
                       onError={() => setFailedImgs((s) => new Set(s).add(i))} />
                   )}
                 </button>
@@ -436,7 +437,7 @@ function DetailPanel({ ev, onClose }: { ev: Event; onClose: () => void }) {
                          cursor-pointer ring-2 ring-primary-200 hover:ring-primary-400 transition-all"
             >
               {ev.poster?.avatar_url
-                ? <img loading="lazy" src={ev.poster.avatar_url} alt={ev.contact_name} className="w-full h-full rounded-full object-cover"
+                ? <img loading="lazy" src={cdnUrl(ev.poster.avatar_url, 160)} alt={ev.contact_name} className="w-full h-full rounded-full object-cover"
                     onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
                 : <User size={16} className="text-primary-600" />
               }

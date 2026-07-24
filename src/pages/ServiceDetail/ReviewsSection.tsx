@@ -5,6 +5,7 @@
 //   • 🚩 Report — sends to admin review queue
 //   • 💬 Provider reply — service owner can reply once per review
 import { useEffect, useState } from 'react'
+import { cdnUrl } from '../../lib/cdnUrl'
 import { useNavigate } from 'react-router-dom'
 import { Star, Send, Pencil, X, Check, ThumbsUp, ThumbsDown, Flag, MessageCircle, CornerDownRight } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -379,7 +380,7 @@ export default function ReviewsSection({ serviceId, providerId }: Props) {
                   {/* Avatar */}
                   <div className="w-9 h-9 rounded-full overflow-hidden flex-shrink-0 border border-gray-100 bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center text-white text-sm font-bold">
                     {r.reviewer?.avatar_url ? (
-                      <img loading="lazy" src={r.reviewer.avatar_url} alt={r.reviewer.name}
+                      <img loading="lazy" src={cdnUrl(r.reviewer.avatar_url, 160)} alt={r.reviewer.name}
                         className="w-full h-full object-cover"
                         onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
                     ) : (r.reviewer?.name?.charAt(0) ?? '?')}

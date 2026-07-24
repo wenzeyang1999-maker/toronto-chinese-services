@@ -2,6 +2,7 @@
 // Fullscreen image viewer (小红书-style). Controlled: pass the open index (or
 // null to close). Supports multi-image swipe / arrow / keyboard navigation.
 import { useCallback, useEffect, useState } from 'react'
+import { cdnUrl } from '../../lib/cdnUrl'
 import { createPortal } from 'react-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X, ChevronLeft, ChevronRight } from 'lucide-react'
@@ -96,7 +97,7 @@ export default function ImageLightbox({ images, openIndex, onClose }: Props) {
           {/* Image */}
           <motion.img
             key={index}
-            src={images[index]}
+            src={cdnUrl(images[index])}
             alt=""
             initial={{ opacity: 0.4, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.15 }}

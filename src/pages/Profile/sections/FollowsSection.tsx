@@ -2,6 +2,7 @@
 // Shows the list of providers the current user follows.
 // Each row links to the provider's public profile.
 import { useEffect, useState } from 'react'
+import { cdnUrl } from '../../../lib/cdnUrl'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { UserCheck, UserMinus } from 'lucide-react'
@@ -107,7 +108,7 @@ export default function FollowsSection() {
                 {/* Avatar */}
                 <button onClick={() => navigate(`/provider/${p.id}`)} className="flex-shrink-0">
                   {p.avatar_url ? (
-                    <img loading="lazy" src={p.avatar_url} alt={p.name}
+                    <img loading="lazy" src={cdnUrl(p.avatar_url, 160)} alt={p.name}
                       className="w-11 h-11 rounded-full object-cover border border-gray-100" />
                   ) : (
                     <div className="w-11 h-11 rounded-full bg-gradient-to-br from-primary-400 to-primary-600

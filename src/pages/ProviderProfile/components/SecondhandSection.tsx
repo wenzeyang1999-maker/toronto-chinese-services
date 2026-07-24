@@ -1,4 +1,5 @@
 import { motion } from 'framer-motion'
+import { cdnUrl } from '../../../lib/cdnUrl'
 import { useNavigate } from 'react-router-dom'
 import type { SecondhandItem } from '../../Secondhand/types'
 import { SECONDHAND_CATEGORY_CONFIG, ITEM_CONDITION_CONFIG, getPriceLabel } from '../../Secondhand/types'
@@ -28,7 +29,7 @@ export default function SecondhandSection({ items }: Props) {
             <div className="aspect-square bg-gray-100 overflow-hidden">
               {item.images.length > 0
                 ? <ImgFallback
-                    src={item.images[0]}
+                    src={cdnUrl(item.images[0], 400)}
                     alt={item.title}
                     className="w-full h-full object-cover"
                     loading="lazy"

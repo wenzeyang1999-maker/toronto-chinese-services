@@ -2,6 +2,7 @@
 // Route: /community/:id
 // Full post view + comments
 import { useEffect, useRef, useState } from 'react'
+import { cdnUrl } from '../../lib/cdnUrl'
 import { useParams, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ArrowLeft, Heart, MessageCircle, Send, Trash2, Flag, Share2, Check, Pencil } from 'lucide-react'
@@ -401,7 +402,7 @@ export default function CommunityDetail() {
             <div className="flex items-center gap-3 mb-4">
               <div className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0 border border-gray-100 bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center text-white font-bold">
                 {post.author?.avatar_url ? (
-                  <img loading="lazy" src={post.author.avatar_url} alt={post.author.name}
+                  <img loading="lazy" src={cdnUrl(post.author.avatar_url, 160)} alt={post.author.name}
                     className="w-full h-full object-cover"
                     onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
                 ) : (post.author?.name?.charAt(0) ?? '?')}
@@ -426,7 +427,7 @@ export default function CommunityDetail() {
             {post.images && post.images.length > 0 && (
               <div className="grid grid-cols-3 gap-2 mb-4">
                 {post.images.map((url, i) => (
-                  <img key={i} src={url} alt="" loading="lazy"
+                  <img key={i} src={cdnUrl(url, 800)} alt="" loading="lazy"
                     onClick={() => setLightboxIdx(i)}
                     className="w-full aspect-square object-cover rounded-xl cursor-zoom-in"
                     onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
@@ -534,7 +535,7 @@ export default function CommunityDetail() {
                 >
                   <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0 border border-gray-100 bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center text-white text-xs font-bold">
                     {c.author?.avatar_url ? (
-                      <img loading="lazy" src={c.author.avatar_url} alt={c.author.name}
+                      <img loading="lazy" src={cdnUrl(c.author.avatar_url, 160)} alt={c.author.name}
                         className="w-full h-full object-cover"
                         onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
                     ) : (c.author?.name?.charAt(0) ?? '?')}

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { cdnUrl } from '../../../lib/cdnUrl'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { MessageSquare, Send, Trash2, User } from 'lucide-react'
@@ -153,7 +154,7 @@ export default function SecondhandComments({ itemId, sellerId }: Props) {
                     className="w-8 h-8 rounded-full bg-primary-100 flex items-center justify-center flex-shrink-0 overflow-hidden"
                   >
                     {c.author?.avatar_url
-                      ? <img loading="lazy" src={c.author.avatar_url} alt="" className="w-full h-full object-cover"
+                      ? <img loading="lazy" src={cdnUrl(c.author.avatar_url, 160)} alt="" className="w-full h-full object-cover"
                           onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
                       : <User size={14} className="text-primary-500" />
                     }

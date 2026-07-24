@@ -1,4 +1,5 @@
 import { motion } from 'framer-motion'
+import { cdnUrl } from '../../../lib/cdnUrl'
 import { MapPin } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import type { Property } from '../../RealEstate/types'
@@ -29,7 +30,7 @@ export default function PropertiesSection({ properties }: Props) {
             <div className="w-20 h-20 flex-shrink-0 bg-gray-100 overflow-hidden">
               {p.images.length > 0
                 ? <ImgFallback
-                    src={p.images[0]}
+                    src={cdnUrl(p.images[0], 400)}
                     alt={p.title}
                     className="w-full h-full object-cover"
                     loading="lazy"

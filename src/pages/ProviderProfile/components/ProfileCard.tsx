@@ -1,4 +1,5 @@
 import { motion } from 'framer-motion'
+import { cdnUrl } from '../../../lib/cdnUrl'
 import { CheckCircle2, Clock, ExternalLink, MessageSquare, Phone, ShieldCheck, BadgeCheck, Wifi } from 'lucide-react'
 import type { ProviderUser } from '../types'
 import MembershipBadge from '../../../components/MembershipBadge/MembershipBadge'
@@ -28,7 +29,7 @@ export default function ProfileCard({ provider, followerCount, isOwnProfile, joi
       <div className="flex items-center gap-4">
         {provider.avatar_url ? (
           <ImgFallback
-            src={provider.avatar_url}
+            src={cdnUrl(provider.avatar_url, 160)}
             alt={provider.name}
             className="w-20 h-20 rounded-full object-cover flex-shrink-0 border border-gray-100"
             fallback={
@@ -161,7 +162,7 @@ export default function ProfileCard({ provider, followerCount, isOwnProfile, joi
               {provider.qualification_images.map((url, i) => (
                 <a key={i} href={url} target="_blank" rel="noopener noreferrer"
                   className="relative aspect-square rounded-xl overflow-hidden border border-gray-200 bg-gray-50 hover:opacity-90 transition-opacity">
-                  <img src={url} alt={`资质与设备 ${i + 1}`} loading="lazy" className="w-full h-full object-cover"
+                  <img src={cdnUrl(url, 400)} alt={`资质与设备 ${i + 1}`} loading="lazy" className="w-full h-full object-cover"
                     onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
                 </a>
               ))}

@@ -4,6 +4,7 @@
 // (is_online) as a 名片墙 — the customer reaches out directly (站内私信 or 主页).
 // No dispatch/notification is sent to providers in this mode; it's pull, not push.
 import { useEffect, useRef, useState } from 'react'
+import { cdnUrl } from '../../lib/cdnUrl'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { Star, ExternalLink, MessageCircle, MapPin, BadgeCheck, Shield, CheckCircle, Radio } from 'lucide-react'
@@ -170,7 +171,7 @@ export default function OnlineProvidersPanel({ categoryId, categoryLabel, custom
         >
           <div className="w-11 h-11 rounded-full overflow-hidden flex-shrink-0 border border-gray-100 bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center text-white font-bold">
             {p.avatar_url ? (
-              <img loading="lazy" src={p.avatar_url} alt={p.name}
+              <img loading="lazy" src={cdnUrl(p.avatar_url, 160)} alt={p.name}
                 className="w-full h-full object-cover"
                 onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
             ) : p.name.charAt(0)}

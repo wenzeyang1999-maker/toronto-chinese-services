@@ -2,6 +2,7 @@
 // Shows up to 4 services in the same category, excluding the current one.
 // Pure frontend — reads from appStore, no extra DB calls.
 import { useNavigate } from 'react-router-dom'
+import { cdnUrl } from '../../lib/cdnUrl'
 import { motion } from 'framer-motion'
 import { ChevronRight } from 'lucide-react'
 import { useAppStore } from '../../store/appStore'
@@ -58,7 +59,7 @@ export default function RelatedServices({ currentId, categoryId }: Props) {
               {/* Thumbnail */}
               {svc.images?.[0] ? (
                 <img
-                  src={svc.images[0]} alt={svc.title}
+                  src={cdnUrl(svc.images[0], 400)} alt={svc.title}
                   className="w-14 h-14 rounded-xl object-cover flex-shrink-0 border border-gray-100"
                   loading="lazy"
                 />

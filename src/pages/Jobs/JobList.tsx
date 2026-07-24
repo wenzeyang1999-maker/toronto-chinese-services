@@ -1,6 +1,7 @@
 // ─── Job List Page ────────────────────────────────────────────────────────────
 // Route: /jobs
 import { useEffect, useState, useRef } from 'react'
+import { cdnUrl } from '../../lib/cdnUrl'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
@@ -380,7 +381,7 @@ function DetailPanel({ job, salaryLabel, onClose }: { job: Job; salaryLabel: str
             className="w-9 h-9 rounded-full bg-primary-100 flex items-center justify-center flex-shrink-0 cursor-pointer ring-2 ring-primary-200 hover:ring-primary-400 transition-all"
           >
             {job.poster?.avatar_url
-              ? <ImgFallback src={job.poster.avatar_url} className="w-full h-full rounded-full object-cover" fallback={<User size={16} className="text-primary-600" />} />
+              ? <ImgFallback src={cdnUrl(job.poster.avatar_url, 160)} className="w-full h-full rounded-full object-cover" fallback={<User size={16} className="text-primary-600" />} />
               : <User size={16} className="text-primary-600" />
             }
           </div>

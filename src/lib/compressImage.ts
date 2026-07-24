@@ -3,8 +3,13 @@
 // Shrinks the longer edge and lowers JPEG quality until the file is
 // under `maxBytes`. Falls back to the original file if compression fails.
 
-const MAX_EDGE    = 1920   // max width or height in px
+// Display-oriented targets. Originals are only ever shown on detail pages, and
+// the /api/img proxy downsizes further for list thumbnails — so there's no reason
+// to keep multi-MB uploads. 1280px @ ~400KB looks sharp on phones and cuts image
+// egress ~3-5x vs the old 1920px / 2.5MB ceiling.
+const MAX_EDGE    = 1280   // max width or height in px
 const MIN_QUALITY = 0.5    // never go below 50% JPEG quality
+const DEFAULT_MAX_BYTES = 400 * 1024   // 400 KB
 
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/heic', 'image/heif']
 
@@ -23,7 +28,7 @@ export function validateImageFile(file: File): string | null {
 export async function cropAndCompressImage(
   file: File,
   targetRatio = 3,          // width / height — e.g. 3 means 3:1
-  maxBytes    = 2.5 * 1024 * 1024,
+  maxBytes    = DEFAULT_MAX_BYTES,
 ): Promise<File> {
   return new Promise((resolve) => {
     const img = new Image()
@@ -78,9 +83,10 @@ export async function cropAndCompressImage(
 
 export async function compressImage(
   file: File,
-  maxBytes = 2.5 * 1024 * 1024,   // 2.5 MB — safely under the 3 MB bucket limit
+  maxBytes = DEFAULT_MAX_BYTES,   // 400 KB — display size, not the 3 MB bucket limit
 ): Promise<File> {
-  // Already small enough — skip
+  // Already small enough AND likely small-dimension — skip. A large-byte file
+  // still gets resized/re-encoded below.
   if (file.size <= maxBytes) return file
 
   return new Promise((resolve) => {

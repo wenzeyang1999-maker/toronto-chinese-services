@@ -1,6 +1,7 @@
 // ─── Secondhand List Page ─────────────────────────────────────────────────────
 // Route: /secondhand
 import { useEffect, useState, useRef } from 'react'
+import { cdnUrl } from '../../lib/cdnUrl'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
@@ -223,7 +224,7 @@ export default function SecondhandList() {
             )}
             {item.images.length > 0 ? (
               <ImgFallback
-                src={item.images[0]}
+                src={cdnUrl(item.images[0], 400)}
                 alt={item.title}
                 loading="lazy"
                 className="w-full h-full object-cover"
@@ -347,7 +348,7 @@ function DetailPanel({ item, onClose }: { item: SecondhandItem; onClose: () => v
               </div>
             ) : (
               <img loading="lazy"
-                src={item.images[imgIdx]}
+                src={cdnUrl(item.images[imgIdx], 800)}
                 alt={item.title}
                 className="w-full h-full object-contain"
                 onError={() => setFailedImgs((s) => new Set(s).add(imgIdx))}
@@ -367,7 +368,7 @@ function DetailPanel({ item, onClose }: { item: SecondhandItem; onClose: () => v
                       {SECONDHAND_CATEGORY_CONFIG[item.category].emoji}
                     </div>
                   ) : (
-                    <img loading="lazy" src={img} alt="" className="w-full h-full object-cover"
+                    <img loading="lazy" src={cdnUrl(img, 400)} alt="" className="w-full h-full object-cover"
                       onError={() => setFailedImgs((s) => new Set(s).add(i))} />
                   )}
                 </button>
@@ -451,7 +452,7 @@ function DetailPanel({ item, onClose }: { item: SecondhandItem; onClose: () => v
                          cursor-pointer ring-2 ring-primary-200 hover:ring-primary-400 transition-all"
             >
               {item.seller?.avatar_url
-                ? <img loading="lazy" src={item.seller.avatar_url} className="w-full h-full rounded-full object-cover" alt="" />
+                ? <img loading="lazy" src={cdnUrl(item.seller.avatar_url, 160)} className="w-full h-full rounded-full object-cover" alt="" />
                 : <User size={16} className="text-primary-600" />
               }
             </div>

@@ -3,6 +3,7 @@
 // Live-updates as providers claim "抢单" slots.
 // Customer picks one; the inquiry is then marked matched + assigned.
 import { useEffect, useRef, useState } from 'react'
+import { cdnUrl } from '../../lib/cdnUrl'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { CheckCircle, Star, ExternalLink, Zap, Clock, Users, Phone, MessageCircle, Copy, Check, MapPin, BadgeCheck, Shield } from 'lucide-react'
@@ -247,7 +248,7 @@ export default function InquiryResultPanel({ inquiryId, categoryId, categoryLabe
         <div className="bg-gray-50 border border-gray-200 rounded-2xl p-4 flex items-center gap-3">
           <div className="w-12 h-12 rounded-full overflow-hidden flex-shrink-0 border border-gray-100 bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center text-white font-bold">
             {assignedCard.avatar_url ? (
-              <img loading="lazy" src={assignedCard.avatar_url} alt={assignedCard.name}
+              <img loading="lazy" src={cdnUrl(assignedCard.avatar_url, 160)} alt={assignedCard.name}
                 className="w-full h-full object-cover"
                 onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
             ) : assignedCard.name.charAt(0)}
@@ -380,7 +381,7 @@ export default function InquiryResultPanel({ inquiryId, categoryId, categoryLabe
           >
             <div className="w-11 h-11 rounded-full overflow-hidden flex-shrink-0 border border-gray-100 bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center text-white font-bold">
               {p.avatar_url ? (
-                <img loading="lazy" src={p.avatar_url} alt={p.name}
+                <img loading="lazy" src={cdnUrl(p.avatar_url, 160)} alt={p.name}
                   className="w-full h-full object-cover"
                   onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
               ) : p.name.charAt(0)}

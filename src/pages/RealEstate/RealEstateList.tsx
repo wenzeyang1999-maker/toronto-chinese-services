@@ -1,6 +1,7 @@
 // ─── Real Estate List Page ────────────────────────────────────────────────────
 // Route: /realestate
 import { useEffect, useState, useRef } from 'react'
+import { cdnUrl } from '../../lib/cdnUrl'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
@@ -253,7 +254,7 @@ export default function RealEstateList() {
           <div className="w-full aspect-[16/9] bg-gray-100 overflow-hidden relative">
             {p.images.length > 0 ? (
               <ImgFallback
-                src={p.images[0]}
+                src={cdnUrl(p.images[0], 400)}
                 alt={p.title}
                 loading="lazy"
                 className="w-full h-full object-cover"
@@ -350,7 +351,7 @@ function DetailPanel({ prop, onClose }: { prop: Property; onClose: () => void })
               </div>
             ) : (
               <img loading="lazy"
-                src={prop.images[imgIdx]}
+                src={cdnUrl(prop.images[imgIdx], 800)}
                 alt={prop.title}
                 className="w-full h-full object-cover"
                 onError={() => setFailedImgs((s) => new Set(s).add(imgIdx))}
@@ -370,7 +371,7 @@ function DetailPanel({ prop, onClose }: { prop: Property; onClose: () => void })
                       {PROPERTY_TYPE_CONFIG[prop.property_type].emoji}
                     </div>
                   ) : (
-                    <img loading="lazy" src={img} alt="" className="w-full h-full object-cover"
+                    <img loading="lazy" src={cdnUrl(img, 400)} alt="" className="w-full h-full object-cover"
                       onError={() => setFailedImgs((s) => new Set(s).add(i))} />
                   )}
                 </button>
@@ -476,7 +477,7 @@ function DetailPanel({ prop, onClose }: { prop: Property; onClose: () => void })
                          cursor-pointer ring-2 ring-primary-200 hover:ring-primary-400 transition-all"
             >
               {prop.poster?.avatar_url
-                ? <img loading="lazy" src={prop.poster.avatar_url} className="w-full h-full rounded-full object-cover" alt=""
+                ? <img loading="lazy" src={cdnUrl(prop.poster.avatar_url, 160)} className="w-full h-full rounded-full object-cover" alt=""
                     onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
                 : <User size={16} className="text-primary-600" />
               }

@@ -1,6 +1,7 @@
 // ─── Secondhand Detail Page ───────────────────────────────────────────────────
 // Route: /secondhand/:id  (used on mobile)
 import { useEffect, useState } from 'react'
+import { cdnUrl } from '../../lib/cdnUrl'
 import { useParams, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ChevronLeft, MapPin, Phone, MessageCircle, Copy, Package, User, ExternalLink, MessageSquare, Star, Flag } from 'lucide-react'
@@ -249,7 +250,7 @@ export default function SecondhandDetail() {
                   </div>
                 ) : (
                   <img loading="lazy"
-                    src={item.images[imgIdx]}
+                    src={cdnUrl(item.images[imgIdx], 800)}
                     alt={item.title}
                     className="w-full h-full object-contain"
                     onError={() => setFailedImgs((s) => new Set(s).add(imgIdx))}
@@ -280,7 +281,7 @@ export default function SecondhandDetail() {
                         </div>
                       ) : (
                         <img loading="lazy"
-                          src={img}
+                          src={cdnUrl(img, 400)}
                           alt=""
                           className="w-full h-full object-cover"
                           onError={() => setFailedImgs((s) => new Set(s).add(i))}
@@ -431,7 +432,7 @@ export default function SecondhandDetail() {
                                cursor-pointer ring-2 ring-primary-200 hover:ring-primary-400 transition-all"
                   >
                     {item.seller?.avatar_url
-                      ? <img loading="lazy" src={item.seller.avatar_url} alt={item.contact_name}
+                      ? <img loading="lazy" src={cdnUrl(item.seller.avatar_url, 160)} alt={item.contact_name}
                           className="w-full h-full rounded-full object-cover"
                           onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
                       : <User size={18} className="text-primary-600" />
@@ -568,7 +569,7 @@ export default function SecondhandDetail() {
                     >
                       <div className="w-8 h-8 rounded-full bg-primary-100 overflow-hidden flex items-center justify-center flex-shrink-0 text-sm font-bold text-primary-600">
                         {r.reviewer?.avatar_url
-                          ? <img loading="lazy" src={r.reviewer.avatar_url} alt="" className="w-full h-full object-cover"
+                          ? <img loading="lazy" src={cdnUrl(r.reviewer.avatar_url, 160)} alt="" className="w-full h-full object-cover"
                               onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
                           : (r.reviewer?.name?.slice(0, 1) ?? '?')
                         }

@@ -1,6 +1,7 @@
 // ─── Community Page (瀑布流 / 小红书风格) ────────────────────────────────────
 // Route: /community
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { cdnUrl } from '../../lib/cdnUrl'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { Heart, MessageCircle, Share2, Check } from 'lucide-react'
@@ -231,7 +232,7 @@ export default function CommunityPage() {
                   {/* Cover image */}
                   {hasImg && (
                     <img
-                      src={coverImg}
+                      src={cdnUrl(coverImg, 400)}
                       alt={post.title}
                       loading="lazy"
                       className="w-full object-cover"
@@ -261,7 +262,7 @@ export default function CommunityPage() {
                     <div className="flex items-center gap-1.5">
                       {post.author?.avatar_url ? (
                         <ImgFallback
-                          src={post.author.avatar_url}
+                          src={cdnUrl(post.author.avatar_url, 160)}
                           alt=""
                           className="w-5 h-5 rounded-full object-cover flex-shrink-0"
                           fallback={
