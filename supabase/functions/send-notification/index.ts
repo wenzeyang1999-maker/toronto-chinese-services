@@ -403,37 +403,50 @@ async function createInAppNotification(recipientUserId: string, type: string, da
   const listingUrls: Record<string, string> = {
     job: '/jobs', property: '/realestate', event: '/events', secondhand: '/secondhand',
   }
-  const title = type === 'admin_community_report'
-    ? `新的社区${data.reportType === 'comment' ? '评论' : '帖子'}举报`
-    : type === 'new_service_post'
-      ? `${data.providerName} 发布了新服务`
-      : type === 'new_community_post'
-        ? `${data.authorName} 发布了新帖`
-        : type === 'new_listing_post'
-          ? `${data.authorName} 发布了新${listingLabels[data.contentType] ?? '内容'}`
-          : '新通知'
-  const body = type === 'admin_community_report'
-    ? `${data.reporterName} 举报了「${data.postTitle}」，原因：${data.reasonLabel}`
-    : type === 'new_service_post'
-      ? `新服务：${data.serviceTitle}`
-      : type === 'new_community_post'
-        ? `新帖：${data.postTitle}`
-        : type === 'new_listing_post'
-          ? `新${listingLabels[data.contentType] ?? '内容'}：${data.title}`
-          : ''
+  // Now that most of these are in-app-only (no email), give each a meaningful
+  // title/body/link so the notification bell is actually useful on its own.
+  let title = '新通知', body = '', link_url = '/'
+  switch (type) {
+    case 'new_message':
+      title = `${data.senderName} 给你发了消息`; body = data.preview ?? ''
+      link_url = `/conversation/${data.conversationId}`; break
+    case 'new_follower':
+      title = `${data.followerName} 关注了你`; link_url = '/profile'; break
+    case 'new_review':
+      title = `你收到一条 ${data.rating} 星评价`; body = data.comment ?? ''
+      link_url = `/service/${data.serviceId}`; break
+    case 'new_question':
+      title = `${data.askerName} 在你的服务下提问`; body = data.question ?? ''
+      link_url = `/service/${data.serviceId}`; break
+    case 'new_service_post':
+      title = `${data.providerName} 发布了新服务`; body = `新服务：${data.serviceTitle}`
+      link_url = `/service/${data.serviceId}`; break
+    case 'new_community_post':
+      title = `${data.authorName} 发布了新帖`; body = `新帖：${data.postTitle}`
+      link_url = `/community/${data.postId}`; break
+    case 'new_listing_post':
+      title = `${data.authorName} 发布了新${listingLabels[data.contentType] ?? '内容'}`
+      body = `新${listingLabels[data.contentType] ?? '内容'}：${data.title}`
+      link_url = `${listingUrls[data.contentType] ?? ''}/${data.contentId}`; break
+    case 'provider_inquiry':
+      title = `有客户在找「${data.categoryLabel}」服务`; body = data.description ?? ''
+      link_url = '/profile?section=transactions'; break
+    case 'inquiry_selected':
+      title = `🎉 客户选择了你！「${data.categoryLabel}」`; link_url = '/profile?section=transactions'; break
+    case 'admin_community_report':
+      title = `新的社区${data.reportType === 'comment' ? '评论' : '帖子'}举报`
+      body = `${data.reporterName} 举报了「${data.postTitle}」，原因：${data.reasonLabel}`
+      link_url = '/admin'; break
+    case 'admin_promo_request':
+      title = `置顶申请：${data.serviceName}`; link_url = '/admin'; break
+  }
 
   const { error } = await admin.from('notifications').insert({
     recipient_id: recipientUserId,
     type,
     title,
     body,
-    link_url: type === 'new_service_post'
-      ? `/service/${data.serviceId}`
-      : type === 'new_community_post'
-        ? `/community/${data.postId}`
-        : type === 'new_listing_post'
-          ? `${listingUrls[data.contentType] ?? ''}/${data.contentId}`
-          : data.postId ? `/community/${data.postId}` : '/admin',
+    link_url,
     metadata: data,
   })
 
@@ -506,6 +519,16 @@ Deno.serve(async (req: Request) => {
     admin_promo_request: 'admin',
   }
 
+  // Email is the scarce resource (Resend free tier: 100/day, 3000/mo). Only these
+  // transactional types actually send email; everything else is in-app-only (the
+  // notification is still created, and messages/community also get free web push).
+  // The big email multipliers — follower broadcasts (new_service/community/listing
+  // _post) and social pings (message/follow/review/question) — no longer email.
+  const EMAIL_ALLOWED_TYPES = new Set([
+    'provider_inquiry', 'inquiry_selected', 'welcome',
+    'admin_promo_request', 'admin_community_report',
+  ])
+
   try {
     const actor = await getActor(req)
     const { type, recipientUserId, recipientRole, data } = await req.json()
@@ -547,21 +570,30 @@ Deno.serve(async (req: Request) => {
 
     if (recipientRole) {
       const recipients = await getRecipientsByRole(recipientRole)
+      const willEmail = EMAIL_ALLOWED_TYPES.has(type)
       for (const recipient of recipients) {
         await createInAppNotification(recipient.id, type, data ?? {})
-        await sendEmail(recipient, type, data ?? {})
+        if (willEmail) await sendEmail(recipient, type, data ?? {})
       }
 
-      return new Response(JSON.stringify({ ok: true, count: recipients.length }), {
+      return new Response(JSON.stringify({ ok: true, count: recipients.length, emailed: willEmail }), {
+        headers: { ...CORS, 'Content-Type': 'application/json' },
+      })
+    }
+
+    await createInAppNotification(recipientUserId, type, data ?? {})
+
+    // In-app only for non-transactional types — skip the email + recipient lookup.
+    if (!EMAIL_ALLOWED_TYPES.has(type)) {
+      return new Response(JSON.stringify({ ok: true, emailed: false }), {
         headers: { ...CORS, 'Content-Type': 'application/json' },
       })
     }
 
     const recipient = await getRecipient(recipientUserId)
-    await createInAppNotification(recipientUserId, type, data ?? {})
     const result = await sendEmail(recipient, type, data ?? {})
 
-    return new Response(JSON.stringify({ ok: true, id: result.id }), {
+    return new Response(JSON.stringify({ ok: true, id: result.id, emailed: true }), {
       headers: { ...CORS, 'Content-Type': 'application/json' },
     })
   } catch (err) {
