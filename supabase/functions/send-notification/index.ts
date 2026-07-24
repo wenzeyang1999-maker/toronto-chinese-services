@@ -511,7 +511,7 @@ Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS })
 
   // Types that a regular authenticated user may trigger (directed at a specific recipient).
-  const USER_ALLOWED_TYPES = new Set(['new_message', 'new_follower', 'new_review', 'new_question', 'new_service_post', 'new_community_post', 'new_listing_post'])
+  const USER_ALLOWED_TYPES = new Set(['new_message', 'new_follower', 'new_review', 'new_question', 'new_service_post', 'new_community_post', 'new_listing_post', 'inquiry_selected'])
   // Types that may be broadcast to a role. Keep this list narrow to prevent
   // authenticated users from spamming whole roles through the Edge Function.
   const ROLE_BROADCAST_RULES: Record<string, string> = {
@@ -524,8 +524,11 @@ Deno.serve(async (req: Request) => {
   // notification is still created, and messages/community also get free web push).
   // The big email multipliers — follower broadcasts (new_service/community/listing
   // _post) and social pings (message/follow/review/question) — no longer email.
+  //
+  // NOTE: 'inquiry_selected'(成交通知)现在只建站内红点、暂不发邮件。要启用成交
+  // 邮件,把 'inquiry_selected' 加回下面这个集合即可(关系校验/站内已就绪)。
   const EMAIL_ALLOWED_TYPES = new Set([
-    'provider_inquiry', 'inquiry_selected', 'welcome',
+    'provider_inquiry', 'welcome',
     'admin_promo_request', 'admin_community_report',
   ])
 
