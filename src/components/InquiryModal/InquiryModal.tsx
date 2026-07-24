@@ -431,6 +431,12 @@ export default function InquiryModal({ open, onClose, presetCategoryId }: Props)
       // 触发在线商家实时弹窗。「主动联系」是拉模式，公开帖按用户勾选可选。
       const broadcastUrgent = isUrgent && contactMode === 'providers_contact'
       const doPublic = postPublic || contactMode === 'providers_contact'
+
+      // 「我主动联系」且不发公开帖：只是浏览在线商家、不派单、不发帖，
+      // 因此完全不写 inquiries/service_requests → 不占用会员「最多 N 条需求」配额
+      //（配额触发器挂在 inquiries 表上）。仅当 doPublic 时才落库。
+      let insertedInquiryId: string | null = null
+      if (doPublic) {
       const { data: inserted, error } = await supabase.from('inquiries').insert({
         category_id: form.categoryId,
         description: finalDescription,
@@ -449,8 +455,9 @@ export default function InquiryModal({ open, onClose, presetCategoryId }: Props)
         contact_mode: contactMode,
       }).select('id').single()
       if (error) throw error
+      insertedInquiryId = inserted.id
 
-      if (user?.id && doPublic) {
+      {
         // Direct-dispatch means matched merchants reach out right away, so the
         // public post only needs a short life. Keep it fresh: 3 days.
         const expiryDays = 3
@@ -535,8 +542,9 @@ export default function InquiryModal({ open, onClose, presetCategoryId }: Props)
           },
         })
       }
+      } // end if (doPublic) —— 「我主动联系」且不发帖时以上落库/派单全部跳过
 
-      setInsertedId(inserted.id)
+      setInsertedId(insertedInquiryId)
       setDone(true)
     } catch (e: unknown) {
       const msg = (e as { message?: string })?.message ?? ''
@@ -656,7 +664,7 @@ export default function InquiryModal({ open, onClose, presetCategoryId }: Props)
 
             {/* Content */}
             <div className="overflow-y-auto" style={{ maxHeight: 'calc(92vh - 130px)' }}>
-              {done && insertedId ? (
+              {done ? (
                 contactMode === 'self_contact' ? (
                   <OnlineProvidersPanel
                     categoryId={form.categoryId}
