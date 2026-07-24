@@ -68,6 +68,27 @@ Deno.serve(async (req) => {
   }
   const to = phone.startsWith('+') ? phone : `+${phone.replace(/\D/g, '')}`
 
+  // Shared daily budget guard across both SMS senders. Blocks once the daily cap
+  // is hit (cost/abuse protection) and alerts admins at the threshold. Fail-open
+  // on a check error so a counter glitch never blocks legit login SMS.
+  try {
+    const svcKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    const budgetRes = await fetch(`${Deno.env.get('SUPABASE_URL')}/rest/v1/rpc/record_sms_send`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', apikey: svcKey, Authorization: `Bearer ${svcKey}` },
+      body: JSON.stringify({}),
+    })
+    const budget = await budgetRes.json()
+    if (budget && budget.allowed === false) {
+      console.error('SMS daily cap reached:', budget.count)
+      return new Response(JSON.stringify({ error: { message: 'daily sms cap reached', http_code: 429 } }), {
+        status: 429, headers: { 'Content-Type': 'application/json' },
+      })
+    }
+  } catch (e) {
+    console.warn('sms budget check failed (fail-open):', e)
+  }
+
   const smsRes = await fetch('https://api.telnyx.com/v2/messages', {
     method: 'POST',
     headers: { Authorization: `Bearer ${TELNYX_API_KEY}`, 'Content-Type': 'application/json' },

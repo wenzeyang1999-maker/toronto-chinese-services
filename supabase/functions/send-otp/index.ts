@@ -110,6 +110,19 @@ Deno.serve(async (req: Request) => {
     })
   }
 
+  // Shared daily budget guard across both SMS senders (Telnyx costs $/SMS).
+  // Fail-open on a counter glitch so a DB hiccup doesn't block legit sends.
+  try {
+    const { data: budget } = await admin.rpc('record_sms_send')
+    if (budget && (budget as { allowed?: boolean }).allowed === false) {
+      return new Response(JSON.stringify({ error: '今日短信发送已达上限，请明天再试' }), {
+        status: 429, headers: { ...CORS, 'Content-Type': 'application/json' },
+      })
+    }
+  } catch (e) {
+    console.warn('sms budget check failed (fail-open):', e)
+  }
+
   // Send SMS via Telnyx V2
   const smsRes = await fetch('https://api.telnyx.com/v2/messages', {
     method: 'POST',
