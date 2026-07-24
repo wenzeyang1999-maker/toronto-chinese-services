@@ -83,11 +83,19 @@ Deno.serve(async (req) => {
     const apiKey = Deno.env.get('GROQ_API_KEY')
     if (!apiKey) throw new Error('GROQ_API_KEY not configured')
 
-    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+    // Minimal structure used whenever the LLM is unavailable (rate-limited/down)
+    // or returns unparseable JSON — a posted inquiry must never be blocked by Groq.
+    const minimal: Record<string, string | null> = {
+      category: 'other', timing: 'flexible', description: text.trim(),
+      location_from: null, location_to: null, special_notes: null, items: null,
+    }
+
+    // 70B first; on rate-limit/error retry the wider-limit 8B before giving up.
+    const callGroq = (model: string) => fetch('https://api.groq.com/openai/v1/chat/completions', {
       method:  'POST',
       headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model:       'llama-3.3-70b-versatile',
+        model,
         temperature: 0.1,
         max_tokens:  300,
         messages: [
@@ -98,9 +106,17 @@ Deno.serve(async (req) => {
       signal: AbortSignal.timeout(10_000),
     })
 
+    let res = await callGroq('llama-3.3-70b-versatile')
     if (!res.ok) {
-      const err = await res.text()
-      throw new Error(`Groq error ${res.status}: ${err}`)
+      console.warn(`extract-inquiry 70B failed (${res.status}), falling back to 8B`)
+      res = await callGroq('llama-3.1-8b-instant')
+    }
+    if (!res.ok) {
+      // Groq unavailable → return minimal structure so the inquiry still posts.
+      console.error(`extract-inquiry Groq error ${res.status}`)
+      return new Response(JSON.stringify(minimal), {
+        headers: { ...cors, 'Content-Type': 'application/json' },
+      })
     }
 
     const data = await res.json()
@@ -111,9 +127,7 @@ Deno.serve(async (req) => {
     try {
       extracted = JSON.parse(raw)
     } catch {
-      // Fallback: return minimal structure if JSON parse fails
-      extracted = { category: 'other', timing: 'flexible', description: text.trim(),
-                    location_from: null, location_to: null, special_notes: null, items: null }
+      extracted = minimal   // parse fail → minimal structure
     }
 
     return new Response(JSON.stringify(extracted), {

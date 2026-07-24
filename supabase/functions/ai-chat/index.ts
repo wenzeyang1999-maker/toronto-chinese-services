@@ -144,7 +144,10 @@ Deno.serve(async (req: Request) => {
     const servicesList = await fetchServicesSummary()
     const systemPrompt = servicesList ? `${BASE_PROMPT}\n\n${servicesList}` : BASE_PROMPT
 
-    const groqRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+    // Try the strong 70B model first; on rate-limit/error fall back to the much
+    // wider-limit 8B so AI search keeps working during traffic spikes instead of
+    // erroring out. Both stream.
+    const callGroq = (model: string) => fetch('https://api.groq.com/openai/v1/chat/completions', {
       method:  'POST',
       signal:  AbortSignal.timeout(20_000),
       headers: {
@@ -152,7 +155,7 @@ Deno.serve(async (req: Request) => {
         'Authorization': `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model:      'llama-3.3-70b-versatile',
+        model,
         max_tokens: 1024,
         stream:     true,
         messages: [
@@ -161,6 +164,12 @@ Deno.serve(async (req: Request) => {
         ],
       }),
     })
+
+    let groqRes = await callGroq('llama-3.3-70b-versatile')
+    if (!groqRes.ok || !groqRes.body) {
+      console.warn(`ai-chat 70B failed (${groqRes.status}), falling back to 8B`)
+      groqRes = await callGroq('llama-3.1-8b-instant')
+    }
 
     if (!groqRes.ok || !groqRes.body) {
       const errText = await groqRes.text()
