@@ -30,6 +30,22 @@ function json(status: number, obj: unknown, cors: Record<string, string>) {
   })
 }
 
+// 领域提示词：把 Whisper 往"本地生活服务需求"的语境上引，显著降低它在音频不清时
+// 瞎编中文视频字幕落款(如「字幕志愿者 XXX」「谢谢观看」)的概率。
+const WHISPER_PROMPT =
+  '以下是一段普通话语音，用户在描述需要的本地生活服务需求，例如搬家、保洁、厨师、接送、维修、装修等。'
+
+// Whisper 在音频偏短/偏轻/含噪时的典型幻觉落款。命中即视为没听清，返回空文本让前端提示重说。
+const HALLUCINATION_MARKERS = [
+  '字幕志愿者', '字幕君', '字幕组', '中文字幕',
+  '谢谢观看', '感谢观看', '谢谢大家观看', '谢谢收看',
+  '请不吝点赞', '点赞订阅', '订阅转发', '打赏支持',
+  'Amara.org', '点点栏目', '明镜与点点',
+]
+function isLikelyHallucination(text: string): boolean {
+  return HALLUCINATION_MARKERS.some((m) => text.includes(m))
+}
+
 Deno.serve(async (req) => {
   const origin = req.headers.get('origin')
   const cors   = corsHeaders(origin)
@@ -55,8 +71,9 @@ Deno.serve(async (req) => {
 
     const groqForm = new FormData()
     groqForm.append('file', file, file.name || 'audio.webm')
-    groqForm.append('model', 'whisper-large-v3-turbo')  // 多语种、快；支持中文
+    groqForm.append('model', 'whisper-large-v3')  // 中文精度优于 turbo，短句更稳
     groqForm.append('language', lang)
+    groqForm.append('prompt', WHISPER_PROMPT)
     groqForm.append('response_format', 'json')
     groqForm.append('temperature', '0')
 
@@ -73,7 +90,10 @@ Deno.serve(async (req) => {
     }
 
     const data = await res.json()
-    return json(200, { text: String(data.text ?? '').trim() }, cors)
+    let text = String(data.text ?? '').trim()
+    // Whisper 幻觉落款 → 视为没听清，返回空+empty 标记，前端提示重说而非填入垃圾。
+    if (isLikelyHallucination(text)) text = ''
+    return json(200, { text, empty: text === '' }, cors)
   } catch (_e) {
     return json(500, { error: '转写失败，请重试或改用手动填写' }, cors)
   }

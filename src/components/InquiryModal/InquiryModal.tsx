@@ -179,7 +179,9 @@ export default function InquiryModal({ open, onClose, presetCategoryId }: Props)
 
   async function startVoice() {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
+      })
       streamRef.current = stream
       chunksRef.current = []
       const mime = MediaRecorder.isTypeSupported('audio/webm')
@@ -227,8 +229,13 @@ export default function InquiryModal({ open, onClose, presetCategoryId }: Props)
       fd.append('file', blob, `voice.${ext}`)
       fd.append('language', 'zh')
       const { data, error } = await supabase.functions.invoke('transcribe-audio', { body: fd })
+      if (error) throw error
       const text = (data as { text?: string } | null)?.text?.trim()
-      if (error || !text) throw new Error('no text')
+      if (!text) {
+        // Whisper 没听清或识别为幻觉落款，已被后端清空 → 提示重说，不填入垃圾。
+        toast('没听清，请靠近麦克风、稍慢些再说一次', 'info')
+        return
+      }
       setRawInput(prev => (prev.trim() ? `${prev.trim()} ${text}` : text))
       setExtracted(null)
     } catch (_e) {
