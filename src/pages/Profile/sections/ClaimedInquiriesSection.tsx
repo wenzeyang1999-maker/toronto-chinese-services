@@ -101,7 +101,7 @@ export default function ClaimedInquiriesSection() {
             onClick={() => navigate('/profile?section=homepage')}
             className="px-5 py-2.5 bg-primary-600 text-white text-sm font-semibold rounded-2xl hover:bg-primary-700 transition-colors"
           >
-            完善我的主页
+            完善我的名片
           </button>
         </div>
       ) : (

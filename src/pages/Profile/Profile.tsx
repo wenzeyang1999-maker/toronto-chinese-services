@@ -41,7 +41,7 @@ import CreditStars from '../../components/CreditStars/CreditStars'
 type MenuItem = { key: Section; icon: React.ReactNode; label: string; sub: string; modes: ('client' | 'provider')[] }
 
 const MENU: MenuItem[] = [
-  { key: 'homepage',     icon: <LayoutDashboard size={18} />, label: '我的主页',         sub: '封面 · 简介 · 标签装修', modes: ['provider'] },
+  { key: 'homepage',     icon: <LayoutDashboard size={18} />, label: '我的名片',         sub: '业务简介 · 资质 · 设备 · 标签', modes: ['provider'] },
   { key: 'services',     icon: <Store         size={18} />, label: '我的发布',         sub: '服务 · 招聘 · 房源 · 闲置 · 活动 · 帖子', modes: ['client', 'provider'] },
   { key: 'saves',        icon: <Heart         size={18} />, label: '我的收藏',         sub: '收藏的服务 · 帖子', modes: ['client', 'provider'] },
   { key: 'follows',      icon: <UserCheck     size={18} />, label: '我的关注',         sub: '关注的商家 · 用户', modes: ['client', 'provider'] },

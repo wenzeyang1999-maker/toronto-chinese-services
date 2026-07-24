@@ -23,7 +23,7 @@ import { toast } from '../../../lib/toast'
 type Tab = 'edit' | 'stats' | 'browse' | 'my_events'
 
 const TABS: { key: Tab; label: string }[] = [
-  { key: 'edit',      label: '编辑主页' },
+  { key: 'edit',      label: '编辑名片' },
   { key: 'stats',     label: '📊 数据面板' },
   { key: 'browse',    label: '🕐 浏览记录' },
   { key: 'my_events', label: '📅 我报名的活动' },
@@ -232,7 +232,9 @@ export default function HomepageSection() {
           setUploadingQual(false)
           return
         }
-        const path = `qualifications/${user!.id}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.jpg`
+        // 路径首段必须 = 自己的 uid，才能过 service-images 桶的 owner-folder 上传策略；
+        // 之前用 qualifications/<uid>/ 首段是 qualifications → 上传被 RLS 拒 → 资质照传不上、显示 404。
+        const path = `${user!.id}/qualifications/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.jpg`
         const { error } = await supabase.storage.from('service-images').upload(path, compressed, { upsert: false })
         if (error) throw error
         const { data: { publicUrl } } = supabase.storage.from('service-images').getPublicUrl(path)
@@ -305,7 +307,7 @@ export default function HomepageSection() {
               <button onClick={() => navigate(`/provider/${user.id}`)}
                 className="flex items-center gap-1.5 bg-primary-600 text-white text-xs font-semibold px-3 py-2 rounded-full hover:bg-primary-700 transition-colors shadow-sm">
                 <ExternalLink size={13} />
-                查看主页
+                查看名片
               </button>
             </div>
           </div>
@@ -349,7 +351,7 @@ export default function HomepageSection() {
 
             {profile.bio
               ? <p className="text-sm text-gray-500 leading-relaxed line-clamp-3">{profile.bio}</p>
-              : <p className="text-sm text-gray-400 italic">还没有简介，点击「编辑主页」填写吧</p>
+              : <p className="text-sm text-gray-400 italic">还没有简介，点击「编辑名片」填写吧</p>
             }
             {profile.skill_tags.length > 0 && (
               <div className="flex flex-wrap gap-2 mt-3">

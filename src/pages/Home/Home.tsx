@@ -462,7 +462,7 @@ export default function Home() {
                 </p>
               ) : (
                 <p className="text-xs text-gray-400 mt-2 mb-4 text-center">
-                  💡 在「我的主页 → 业务标签」设置标签，地图将自动按你能接的单类型过滤
+                  💡 在「我的名片 → 技能标签」设置标签，地图将自动按你能接的单类型过滤
                 </p>
               )}
 
