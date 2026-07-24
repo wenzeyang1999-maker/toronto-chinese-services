@@ -41,6 +41,7 @@ const HALLUCINATION_MARKERS = [
   '谢谢观看', '感谢观看', '谢谢大家观看', '谢谢收看',
   '请不吝点赞', '点赞订阅', '订阅转发', '打赏支持',
   'Amara.org', '点点栏目', '明镜与点点',
+  'MING PAO', 'MINGPAO', '明報', '明报', 'MING PAO CANADA', 'MING PAO TORONTO',
 ]
 function isLikelyHallucination(text: string): boolean {
   return HALLUCINATION_MARKERS.some((m) => text.includes(m))
@@ -65,6 +66,7 @@ Deno.serve(async (req) => {
     if (file.size > MAX_BYTES)   return json(400, { error: '录音过长，请分段录入' }, cors)
 
     const lang = String(inForm.get('language') ?? 'zh') || 'zh'
+    console.log('[transcribe] recv audio', { type: file.type, name: file.name, size: file.size })
 
     const apiKey = Deno.env.get('GROQ_API_KEY')
     if (!apiKey) throw new Error('GROQ_API_KEY not configured')
@@ -91,6 +93,7 @@ Deno.serve(async (req) => {
 
     const data = await res.json()
     let text = String(data.text ?? '').trim()
+    console.log('[transcribe] whisper raw =', JSON.stringify(text))
     // Whisper 幻觉落款 → 视为没听清，返回空+empty 标记，前端提示重说而非填入垃圾。
     if (isLikelyHallucination(text)) text = ''
     return json(200, { text, empty: text === '' }, cors)

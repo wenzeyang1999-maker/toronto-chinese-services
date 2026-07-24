@@ -16,6 +16,9 @@ import LocationInput from '../LocationInput/LocationInput'
 import { useAppStore } from '../../store/appStore'
 import { CATEGORIES } from '../../data/categories'
 
+const SUPABASE_URL      = import.meta.env.VITE_SUPABASE_URL as string
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string
+
 interface Props {
   open: boolean
   onClose: () => void
@@ -228,8 +231,15 @@ export default function InquiryModal({ open, onClose, presetCategoryId }: Props)
       const fd = new FormData()
       fd.append('file', blob, `voice.${ext}`)
       fd.append('language', 'zh')
-      const { data, error } = await supabase.functions.invoke('transcribe-audio', { body: fd })
-      if (error) throw error
+      // 直接 fetch 上传 multipart（不手动设 Content-Type，让浏览器带上 boundary）；
+      // 比 functions.invoke 更可靠地传输二进制音频。
+      const res = await fetch(`${SUPABASE_URL}/functions/v1/transcribe-audio`, {
+        method: 'POST',
+        headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` },
+        body: fd,
+      })
+      const data = await res.json().catch(() => null)
+      if (!res.ok) throw new Error((data as { error?: string } | null)?.error || 'fail')
       const text = (data as { text?: string } | null)?.text?.trim()
       if (!text) {
         // Whisper 没听清或识别为幻觉落款，已被后端清空 → 提示重说，不填入垃圾。
