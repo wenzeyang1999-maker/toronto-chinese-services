@@ -19,32 +19,31 @@ import { CATEGORIES } from '../../data/categories'
 const SUPABASE_URL      = import.meta.env.VITE_SUPABASE_URL as string
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string
 
-// 把 MediaRecorder 录音(webm/mp4)解码后重编码成 16kHz 单声道 WAV。
+// 把 MediaRecorder 录音(webm/mp4/ogg)解码后重编码成单声道 WAV(保持原采样率)。
 // 目的：MediaRecorder 生成的 webm 头常缺时长信息，Groq/Whisper 服务端解码时会
 // 只读到极少/静音 → 幻觉("字幕志愿者""MING PAO")。WAV 头永远正确，稳定可解。
-// 返回 wav Blob + 音量 RMS(用于判断是否根本没录到声)。
-async function toWav16kMono(blob: Blob): Promise<{ wav: Blob; rms: number }> {
+// 不做重采样：Safari 的 OfflineAudioContext 不支持 16kHz 会抛错，直接按原始采样率
+// 编码最跨浏览器（Whisper 会自行重采样）。返回 wav Blob + 音量 RMS。
+async function toWavMono(blob: Blob): Promise<{ wav: Blob; rms: number }> {
   const arrayBuf = await blob.arrayBuffer()
   const AudioCtx = (window.AudioContext || (window as any).webkitAudioContext) as typeof AudioContext
-  const decodeCtx = new AudioCtx()
-  const decoded = await decodeCtx.decodeAudioData(arrayBuf)
-  decodeCtx.close()
+  const ctx = new AudioCtx()
+  const decoded = await ctx.decodeAudioData(arrayBuf)
+  ctx.close()
 
-  const targetRate = 16000
-  const frames = Math.max(1, Math.ceil(decoded.duration * targetRate))
-  const offline = new OfflineAudioContext(1, frames, targetRate)
-  const src = offline.createBufferSource()
-  src.buffer = decoded
-  src.connect(offline.destination)
-  src.start(0)
-  const rendered = await offline.startRendering()
-  const samples = rendered.getChannelData(0)
+  const n  = decoded.length
+  const ch = decoded.numberOfChannels
+  const mono = new Float32Array(n)
+  for (let c = 0; c < ch; c++) {
+    const d = decoded.getChannelData(c)
+    for (let i = 0; i < n; i++) mono[i] += d[i] / ch
+  }
 
   let sum = 0
-  for (let i = 0; i < samples.length; i++) sum += samples[i] * samples[i]
-  const rms = Math.sqrt(sum / samples.length)
+  for (let i = 0; i < n; i++) sum += mono[i] * mono[i]
+  const rms = Math.sqrt(sum / Math.max(1, n))
 
-  return { wav: encodeWav(samples, targetRate), rms }
+  return { wav: encodeWav(mono, decoded.sampleRate), rms }
 }
 
 function encodeWav(samples: Float32Array, sampleRate: number): Blob {
@@ -276,7 +275,7 @@ export default function InquiryModal({ open, onClose, presetCategoryId }: Props)
       let file: Blob = raw
       let filename = `voice.${type.includes('mp4') ? 'mp4' : type.includes('ogg') ? 'ogg' : 'webm'}`
       try {
-        const { wav, rms } = await toWav16kMono(raw)
+        const { wav, rms } = await toWavMono(raw)
         if (rms < 0.003) {   // 基本静音 → 采集问题，别浪费一次转写
           toast('没检测到声音，请确认麦克风选对、音量足够后再试', 'error')
           return
