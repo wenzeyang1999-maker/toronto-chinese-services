@@ -30,10 +30,13 @@ function json(status: number, obj: unknown, cors: Record<string, string>) {
   })
 }
 
-// 领域提示词：把 Whisper 往"本地生活服务需求"的语境上引，显著降低它在音频不清时
-// 瞎编中文视频字幕落款(如「字幕志愿者 XXX」「谢谢观看」)的概率。
+// 领域提示词：把 Whisper 往"本地生活服务需求"的语境上引（降低幻觉落款概率），
+// 并明确要求保留英文街道/地名——客人常在普通话里夹英文(North York、Finch 等)，
+// 锁死中文会把这些音译成汉字。给出大多伦多常见地名示例作为参照。
 const WHISPER_PROMPT =
-  '以下是一段普通话语音，用户在描述需要的本地生活服务需求，例如搬家、保洁、厨师、接送、维修、装修等。'
+  '这是一段以普通话为主、可能夹杂英文街道和地名的语音，用户在描述本地生活服务需求' +
+  '（搬家、保洁、厨师、接送、维修、装修等）。英文地名与街道请保留英文，例如：' +
+  'North York、Scarborough、Markham、Richmond Hill、Mississauga、Finch、Yonge Street、Highway 7。'
 
 // Whisper 在音频偏短/偏轻/含噪时的典型幻觉落款。命中即视为没听清，返回空文本让前端提示重说。
 const HALLUCINATION_MARKERS = [
@@ -65,16 +68,19 @@ Deno.serve(async (req) => {
     if (file.size === 0)         return json(400, { error: '录音为空，请再说一次' }, cors)
     if (file.size > MAX_BYTES)   return json(400, { error: '录音过长，请分段录入' }, cors)
 
-    const lang = String(inForm.get('language') ?? 'zh') || 'zh'
-    console.log('[transcribe] recv audio', { type: file.type, name: file.name, size: file.size })
+    // 语言：默认自动识别（同时支持普通话 / 英语 / 中英混说）。只有前端明确传 zh/en
+    // 时才锁定语言；传 'auto' 或不传则交给 Whisper 自动判定，避免锁死中文误伤纯英文。
+    const langRaw = String(inForm.get('language') ?? '').trim().toLowerCase()
+    console.log('[transcribe] recv audio', { type: file.type, name: file.name, size: file.size, lang: langRaw || 'auto' })
 
     const apiKey = Deno.env.get('GROQ_API_KEY')
     if (!apiKey) throw new Error('GROQ_API_KEY not configured')
 
     const groqForm = new FormData()
     groqForm.append('file', file, file.name || 'audio.webm')
-    groqForm.append('model', 'whisper-large-v3')  // 中文精度优于 turbo，短句更稳
-    groqForm.append('language', lang)
+    groqForm.append('model', 'whisper-large-v3')  // 中文精度优于 turbo；也支持中英混说
+    // 仅在明确指定 zh/en 时锁定；否则(auto/空)让 Whisper 自动识别，覆盖普通话+英语。
+    if (langRaw && langRaw !== 'auto') groqForm.append('language', langRaw)
     groqForm.append('prompt', WHISPER_PROMPT)
     groqForm.append('response_format', 'json')
     groqForm.append('temperature', '0')

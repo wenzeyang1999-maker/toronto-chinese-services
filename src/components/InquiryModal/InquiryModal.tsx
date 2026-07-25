@@ -286,7 +286,7 @@ export default function InquiryModal({ open, onClose, presetCategoryId }: Props)
 
       const fd = new FormData()
       fd.append('file', file, filename)
-      fd.append('language', 'zh')
+      fd.append('language', 'auto')   // 自动识别：支持普通话 / 英语 / 中英混说
       // 直接 fetch 上传 multipart（不手动设 Content-Type，让浏览器带上 boundary）；
       // 比 functions.invoke 更可靠地传输二进制音频。
       const res = await fetch(`${SUPABASE_URL}/functions/v1/transcribe-audio`, {
