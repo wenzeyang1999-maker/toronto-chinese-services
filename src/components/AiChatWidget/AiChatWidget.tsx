@@ -8,13 +8,14 @@
 // ─────────────────────────────────────────────────────────────────────────────
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Bot, Send, ChevronDown, RotateCcw, ArrowLeft } from 'lucide-react'
+import { Bot, Send, ChevronDown, RotateCcw, ArrowLeft, Mic, MicOff } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import { useAuthStore } from '../../store/authStore'
 import { useAiChatStore } from '../../store/aiChatStore'
 import { COMPLAINT_REASON_TAGS as REPORT_REASON_TAGS } from '../../constants/reportReasons'
 import ContactUsButton from '../ContactUsButton/ContactUsButton'
+import { useVoiceInput } from '../../hooks/useVoiceInput'
 import type { ChatSession } from '../../pages/Profile/types'
 
 const SUPABASE_URL      = import.meta.env.VITE_SUPABASE_URL as string
@@ -72,6 +73,11 @@ export default function AiChatWidget({ grouped, hideTrigger }: Props) {
   const abortRef                = useRef<AbortController | null>(null)
   const navigate                = useNavigate()
   const user                    = useAuthStore((s) => s.user)
+
+  // 语音输入（录音 → Whisper 转写；支持普通话/英语/中英混说），结果追加到输入框。
+  const voice = useVoiceInput((t) =>
+    setInput((prev) => (prev.trim() ? `${prev.trim()} ${t}` : t)),
+  )
 
   // Support form state
   const [mode,           setMode]           = useState<ChatMode>('chat')
@@ -329,7 +335,7 @@ export default function AiChatWidget({ grouped, hideTrigger }: Props) {
                   </button>
                 )}
                 <button
-                  onClick={() => setOpen(false)}
+                  onClick={() => { voice.stop(); setOpen(false) }}
                   className="p-1 rounded-lg hover:bg-white/20 transition-colors"
                   aria-label="关闭"
                 >
@@ -583,6 +589,22 @@ export default function AiChatWidget({ grouped, hideTrigger }: Props) {
                            disabled:opacity-60 max-h-28"
                 style={{ lineHeight: '1.45' }}
               />
+              {voice.supported && (
+                <button
+                  onClick={voice.toggle}
+                  disabled={busy || voice.transcribing}
+                  title={voice.isListening ? '点击停止录音' : '语音输入'}
+                  aria-label="语音输入"
+                  className={`flex-shrink-0 w-9 h-9 rounded-xl flex items-center justify-center transition-all active:scale-95 disabled:opacity-60
+                    ${voice.isListening
+                      ? 'bg-red-500 text-white shadow-sm shadow-red-200 animate-pulse'
+                      : 'bg-gray-100 text-gray-500 hover:bg-orange-50 hover:text-orange-600'}`}
+                >
+                  {voice.transcribing
+                    ? <span className="animate-spin inline-block w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full" />
+                    : voice.isListening ? <MicOff size={16} /> : <Mic size={16} />}
+                </button>
+              )}
               <button
                 onClick={() => send(input)}
                 disabled={busy || !input.trim()}
