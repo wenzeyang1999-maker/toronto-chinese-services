@@ -8,7 +8,8 @@ export interface GoogleMapPoint {
   lng: number
   title: string
   promoted?: boolean
-  demandPin?: boolean    // orange "求服务" pin
+  demandPin?: boolean    // "求服务" pin — orange 普通 / red 急单
+  urgent?: boolean       // 急单 → 红色标
   onlineProv?: boolean   // green "在线接单" pin
   infoContent?: string | HTMLElement
   onInfoReady?: (content: HTMLElement) => void
@@ -177,7 +178,9 @@ const GoogleMapCanvas = forwardRef<GoogleMapCanvasHandle, Props>(function Google
           title: point.title,
           icon: {
             url: point.demandPin
-              ? 'https://maps.google.com/mapfiles/ms/icons/orange-dot.png'
+              ? (point.urgent
+                  ? 'https://maps.google.com/mapfiles/ms/icons/red-dot.png'      // 急单
+                  : 'https://maps.google.com/mapfiles/ms/icons/orange-dot.png')  // 普通需求
               : point.onlineProv
                 ? 'https://maps.google.com/mapfiles/ms/icons/green-dot.png'
                 : point.promoted

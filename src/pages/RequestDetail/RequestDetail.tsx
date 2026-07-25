@@ -55,6 +55,7 @@ export default function RequestDetail() {
           expiresAt: data.expires_at,
           status: data.status,
           createdAt: data.created_at,
+          isUrgent: data.is_urgent ?? false,
           requester: {
             id: data.requester?.id ?? data.user_id,
             name: data.requester?.name ?? '用户',

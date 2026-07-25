@@ -166,6 +166,7 @@ function mapRequestRow(row: any): ServiceRequest {
     expiresAt: row.expires_at,
     status: row.status,
     createdAt: row.created_at,
+    isUrgent: row.is_urgent ?? false,
     requester: {
       id: row.requester?.id ?? row.user_id,
       name: row.requester?.name ?? '用户',

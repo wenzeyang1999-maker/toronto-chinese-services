@@ -109,6 +109,7 @@ export interface ServiceRequest {
   expiresAt: string
   status: 'open' | 'closed'
   createdAt: string
+  isUrgent: boolean   // 急单：地图上红色标识，可单独筛选
   requester: {
     id: string
     name: string

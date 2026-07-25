@@ -119,8 +119,9 @@ export default function ServiceMap({ services, requests = [], count, requestsOnl
         title: r.title,
         promoted: false,
         demandPin: true,
+        urgent: r.isUrgent,   // 急单 → 红色标；普通需求 → 橙色标
         infoContent: buildDemandInfo(r, () => navigate(`/requests/${r.id}`)),
-      } as GoogleMapPoint & { demandPin?: boolean }))
+      } as GoogleMapPoint & { demandPin?: boolean; urgent?: boolean }))
   , [requests, navigate])
 
   // Online provider pins (green) — broadcast real-time locations

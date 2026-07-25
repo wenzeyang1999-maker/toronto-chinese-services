@@ -513,6 +513,7 @@ export default function InquiryModal({ open, onClose, presetCategoryId }: Props)
             expiresAt: reqData.expires_at,
             status: 'open',
             createdAt: reqData.created_at,
+            isUrgent: broadcastUrgent,
             requester: {
               id: reqData.requester?.id ?? user.id,
               name: reqData.requester?.name ?? form.name,
