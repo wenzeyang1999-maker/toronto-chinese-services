@@ -55,6 +55,21 @@ const QUICK_REPLIES = [
 
 type ChatMode = 'chat' | 'report' | 'complaint'
 
+// 服务支持(投诉/举报/联系)不再默认展示，仅当用户在对话里问到相关内容时才作为选项出现。
+const SUPPORT_KEYWORDS = {
+  complaint: ['投诉', '建议', '意见', '反馈', '不满', '差评', '态度差', '服务差', '体验差', '吐槽', '退款', '纠纷'],
+  report:    ['举报', '诈骗', '骗子', '被骗', '骚扰', '虚假', '违规', '假的', '乱收费', '报警', '危险', '色情', '骂人'],
+  contact:   ['联系', '客服', '人工', '联系方式', '找你们', '找人工', '怎么联系', '转人工', '电话'],
+}
+function detectSupport(text: string) {
+  const t = (text ?? '').toLowerCase()
+  return {
+    complaint: SUPPORT_KEYWORDS.complaint.some((k) => t.includes(k)),
+    report:    SUPPORT_KEYWORDS.report.some((k) => t.includes(k)),
+    contact:   SUPPORT_KEYWORDS.contact.some((k) => t.includes(k)),
+  }
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 interface Props {
   grouped?: boolean
@@ -493,36 +508,6 @@ export default function AiChatWidget({ grouped, hideTrigger }: Props) {
                       </button>
                     ))}
                   </div>
-
-                  {/* Support actions */}
-                  <div className="pl-8 mt-1">
-                    <p className="text-[10px] font-semibold text-gray-400 mb-1.5 uppercase tracking-wide">服务支持</p>
-                    <div className="flex gap-2 flex-wrap">
-                      <button
-                        onClick={() => setMode('complaint')}
-                        className="text-xs bg-white border border-orange-200 text-orange-600
-                                   rounded-full px-3 py-1.5 hover:bg-orange-50 active:scale-95 transition-all"
-                      >
-                        💬 投诉建议
-                      </button>
-                      <button
-                        onClick={() => setMode('report')}
-                        className="text-xs bg-white border border-red-200 text-red-600
-                                   rounded-full px-3 py-1.5 hover:bg-red-50 active:scale-95 transition-all"
-                      >
-                        🚩 举报
-                      </button>
-                      <ContactUsButton renderTrigger={(open) => (
-                        <button
-                          onClick={open}
-                          className="text-xs bg-white border border-primary-200 text-primary-600
-                                     rounded-full px-3 py-1.5 hover:bg-primary-50 active:scale-95 transition-all"
-                        >
-                          📞 联系我们
-                        </button>
-                      )} />
-                    </div>
-                  </div>
                 </div>
               )}
 
@@ -555,6 +540,43 @@ export default function AiChatWidget({ grouped, hideTrigger }: Props) {
                             🔍 查看搜索结果
                           </button>
                         )}
+                        {/* 服务支持：仅当用户问到投诉/举报/联系相关时才出现 */}
+                        {(() => {
+                          const s = detectSupport(query)
+                          return (
+                            <>
+                              {s.complaint && (
+                                <button
+                                  onClick={() => setMode('complaint')}
+                                  className="text-xs bg-white border border-orange-200 text-orange-600
+                                             rounded-full px-3 py-1.5 hover:bg-orange-50 active:scale-95 transition-all"
+                                >
+                                  💬 投诉建议
+                                </button>
+                              )}
+                              {s.report && (
+                                <button
+                                  onClick={() => setMode('report')}
+                                  className="text-xs bg-white border border-red-200 text-red-600
+                                             rounded-full px-3 py-1.5 hover:bg-red-50 active:scale-95 transition-all"
+                                >
+                                  🚩 举报
+                                </button>
+                              )}
+                              {s.contact && (
+                                <ContactUsButton renderTrigger={(open) => (
+                                  <button
+                                    onClick={open}
+                                    className="text-xs bg-white border border-primary-200 text-primary-600
+                                               rounded-full px-3 py-1.5 hover:bg-primary-50 active:scale-95 transition-all"
+                                  >
+                                    📞 联系我们
+                                  </button>
+                                )} />
+                              )}
+                            </>
+                          )
+                        })()}
                         <button
                           onClick={resetChat}
                           className="text-xs bg-gray-100 border border-gray-200 text-gray-500
