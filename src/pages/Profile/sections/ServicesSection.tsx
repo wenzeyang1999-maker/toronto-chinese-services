@@ -37,7 +37,7 @@ interface ServiceItem {
 interface EditForm { title: string; description: string; price: string; area: string; images: string[] }
 
 const TABS: { key: Tab; label: string; icon: React.ReactNode }[] = [
-  { key: 'services',   label: '服务', icon: <Wrench      size={14} /> },
+  { key: 'services',   label: '服务卡片', icon: <Wrench      size={14} /> },
   { key: 'jobs',       label: '招聘', icon: <Briefcase   size={14} /> },
   { key: 'properties', label: '房源', icon: <Home        size={14} /> },
   { key: 'secondhand', label: '闲置', icon: <ShoppingBag size={14} /> },
@@ -502,7 +502,7 @@ export default function ServicesSection() {
           {/* SERVICES */}
           {tab === 'services' && (
             <div className="space-y-3">
-              {services.length === 0 && <Empty label="还没有发布过服务" action={() => navigate('/post')} actionLabel="发布服务" />}
+              {services.length === 0 && <Empty label="还没有服务卡片" action={() => navigate('/post')} actionLabel="发布服务卡片" />}
               <AnimatePresence>
                 {services.map(svc => (
                   <motion.div key={svc.id}
@@ -773,7 +773,7 @@ export default function ServicesSection() {
               className="absolute bottom-16 right-0 bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden w-44"
             >
               {[
-                { label: '发布服务',  path: '/post',              icon: '🔧' },
+                { label: '发布服务卡片',  path: '/post',          icon: '🔧' },
                 { label: '发布招聘',  path: '/jobs/post?type=hiring',   icon: '💼' },
                 { label: '发布求职',  path: '/jobs/post?type=seeking',  icon: '🙋' },
                 { label: '发布房源',  path: '/realestate/post',   icon: '🏠' },

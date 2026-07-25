@@ -19,7 +19,7 @@ export default function SuccessScreen({ newServiceId, onGoHome, onContinue }: Pr
       >
         <CheckCircle size={72} className="text-green-500 mx-auto mb-4" />
         <h2 className="text-2xl font-bold text-gray-900 mb-2">发布成功！</h2>
-        <p className="text-gray-500 mb-6">您的服务已发布，附近的客户可以找到您了</p>
+        <p className="text-gray-500 mb-6">您的服务卡片已发布，附近的客户可以找到您了</p>
         {newServiceId && (
           <button
             onClick={async () => {
@@ -43,7 +43,7 @@ export default function SuccessScreen({ newServiceId, onGoHome, onContinue }: Pr
             返回首页
           </button>
           <button onClick={onContinue} className="text-gray-500 text-sm underline">
-            继续发布服务
+            继续发布服务卡片
           </button>
         </div>
       </motion.div>

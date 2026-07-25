@@ -200,7 +200,7 @@ export default function StatsSection() {
         <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-12 text-center">
           <Briefcase size={36} className="text-gray-200 mx-auto mb-3" />
           <p className="text-sm text-gray-400">暂无活跃服务</p>
-          <p className="text-xs text-gray-300 mt-1">发布服务后可在此查看数据</p>
+          <p className="text-xs text-gray-300 mt-1">发布服务卡片后可在此查看数据</p>
         </div>
       ) : (
         <>
