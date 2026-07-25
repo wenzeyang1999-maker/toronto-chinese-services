@@ -22,6 +22,10 @@ interface OrderRow {
   provider: { name: string | null } | null
 }
 
+// 双向评价快捷标签（按方向）
+const PROVIDER_TAGS = ['准时到达', '技术过硬', '明码标价', '干净整洁', '中途加价', '态度不好'] // 客户评师傅
+const CLIENT_TAGS   = ['付款极速', '描述准确', '非常客气', '临时加活', '恶意挑刺', '沟通困难'] // 师傅评客户
+
 const STATUS: Record<string, { label: string; tone: 'success' | 'warning' | 'neutral' }> = {
   pending:   { label: '待确认', tone: 'warning' },
   confirmed: { label: '已成交', tone: 'success' },
@@ -39,6 +43,7 @@ export default function OrdersSection() {
   const [reviewingId, setReviewingId] = useState<string | null>(null)
   const [stars, setStars]     = useState(0)
   const [reviewText, setReviewText] = useState('')
+  const [reviewTags, setReviewTags] = useState<string[]>([])
   const [submittingReview, setSubmittingReview] = useState(false)
   const [disputeMap, setDisputeMap] = useState<Record<string, string>>({}) // order_id → dispute status
   const [disputingId, setDisputingId] = useState<string | null>(null)
@@ -89,11 +94,12 @@ export default function OrdersSection() {
     setSubmittingReview(true)
     const { error } = await supabase.rpc('submit_review', {
       p_order_id: orderId, p_rating: stars, p_comment: reviewText.trim() || null,
+      p_tags: reviewTags.length ? reviewTags : null,
     })
     setSubmittingReview(false)
     if (error) { toast(error.message || '提交失败，请重试', 'error'); return }
-    toast('评价已提交，谢谢 ✓', 'success')
-    setReviewingId(null); setStars(0); setReviewText('')
+    toast('评价已提交 ✓ 对方评价或满 48h 后同时公开', 'success')
+    setReviewingId(null); setStars(0); setReviewText(''); setReviewTags([])
     void load()
   }
   useEffect(() => { void load() /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [user])
@@ -212,11 +218,14 @@ export default function OrdersSection() {
               <p className="text-[11px] text-amber-600 mt-2">等待对方确认…</p>
             )}
 
-            {/* Review — client only, on any 成交/完工 order (含无服务的询价成交), once.
-                评价锚定师傅(provider_id)，不再要求 service_id；completed 也可评。*/}
-            {['confirmed', 'completed'].includes(o.status) && !isProvider && !reviewedIds.has(o.id) && (
+            {/* 双向盲评：客户评师傅 / 师傅评客户，各一次。提交后对方看不到，
+                双方都评或满 48h 才同时公开（防报复）。*/}
+            {['confirmed', 'completed'].includes(o.status) && !reviewedIds.has(o.id) && (
               reviewingId === o.id ? (
                 <div className="mt-3 border-t border-gray-50 pt-3">
+                  <p className="text-xs font-semibold text-gray-700 mb-2">
+                    {isProvider ? '评价这位客户' : '评价这位商家'}
+                  </p>
                   <div className="flex items-center gap-1 mb-2">
                     {[1, 2, 3, 4, 5].map((n) => (
                       <button key={n} onClick={() => setStars(n)}>
@@ -224,27 +233,43 @@ export default function OrdersSection() {
                       </button>
                     ))}
                   </div>
+                  {/* 快捷标签（按方向）*/}
+                  <div className="flex flex-wrap gap-1.5 mb-2">
+                    {(isProvider ? CLIENT_TAGS : PROVIDER_TAGS).map((tag) => {
+                      const on = reviewTags.includes(tag)
+                      return (
+                        <button key={tag} type="button"
+                          onClick={() => setReviewTags((prev) => on ? prev.filter((t) => t !== tag) : [...prev, tag])}
+                          className={`text-[11px] px-2.5 py-1 rounded-full border transition-colors ${
+                            on ? 'bg-primary-600 text-white border-primary-600' : 'bg-white text-gray-500 border-gray-200 hover:border-primary-300'
+                          }`}>
+                          {tag}
+                        </button>
+                      )
+                    })}
+                  </div>
                   <textarea value={reviewText} onChange={(e) => setReviewText(e.target.value)} rows={2}
                     placeholder="分享你的体验（选填）"
                     className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary-300" />
+                  <p className="text-[11px] text-gray-400 mt-1.5">🔒 盲评：对方在双方都评价（或满 48 小时）前看不到你的评价</p>
                   <div className="flex gap-2 mt-2">
                     <button onClick={() => submitReview(o.id)} disabled={submittingReview}
                       className="flex-1 py-2 rounded-xl bg-primary-600 text-white text-sm font-semibold disabled:opacity-60">
                       {submittingReview ? '提交中…' : '提交评价'}
                     </button>
-                    <button onClick={() => { setReviewingId(null); setStars(0); setReviewText('') }}
+                    <button onClick={() => { setReviewingId(null); setStars(0); setReviewText(''); setReviewTags([]) }}
                       className="px-4 py-2 rounded-xl border border-gray-200 text-gray-500 text-sm">取消</button>
                   </div>
                 </div>
               ) : (
-                <button onClick={() => { setReviewingId(o.id); setStars(0); setReviewText('') }}
+                <button onClick={() => { setReviewingId(o.id); setStars(0); setReviewText(''); setReviewTags([]) }}
                   className="mt-3 w-full py-2 rounded-xl border border-primary-200 bg-primary-50 text-primary-700 text-sm font-semibold hover:bg-primary-100">
-                  写评价
+                  {isProvider ? '评价客户' : '评价商家'}
                 </button>
               )
             )}
-            {['confirmed', 'completed'].includes(o.status) && !isProvider && reviewedIds.has(o.id) && (
-              <p className="text-[11px] text-gray-400 mt-2">已评价 ✓</p>
+            {['confirmed', 'completed'].includes(o.status) && reviewedIds.has(o.id) && (
+              <p className="text-[11px] text-gray-400 mt-2">已评价 ✓ 双方都评或满 48h 后公开</p>
             )}
 
             {/* 完工存证 — 仅服务商，confirmed 订单上传 1-3 张现场照片（§5.2）*/}

@@ -11,6 +11,7 @@ import Header from '../../components/Header/Header'
 import { toast } from '../../lib/toast'
 import { openNavToCoords } from '../../lib/navigation'
 import { formatRequestTime } from '../../lib/formatRequestTime'
+import ClientTrustBadge from '../../components/ClientTrustBadge/ClientTrustBadge'
 
 export default function RequestDetail() {
   const { id }     = useParams<{ id: string }>()
@@ -209,7 +210,11 @@ export default function RequestDetail() {
                 }
               </div>
               <div className="flex-1 min-w-0">
-                <p className="font-semibold text-gray-900 text-sm">{req.requester.name}</p>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <p className="font-semibold text-gray-900 text-sm">{req.requester.name}</p>
+                  {/* 客户可信度 —— 仅对师傅(非本人)展示，抢单前参考 */}
+                  {req.userId !== user?.id && <ClientTrustBadge clientId={req.userId} />}
+                </div>
                 <p className="text-xs text-gray-400 flex items-center gap-1 mt-0.5">
                   <Calendar size={10} />
                   发布于 {new Date(req.createdAt).toLocaleDateString('zh-CN')}
