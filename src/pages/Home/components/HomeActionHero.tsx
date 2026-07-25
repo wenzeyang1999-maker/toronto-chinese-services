@@ -117,7 +117,7 @@ export default function HomeActionHero({
               <span className="text-primary-600">少走弯路</span>，直接联系。
             </h1>
             <p className="mt-4 max-w-xl text-sm leading-6 text-gray-500 md:text-base md:leading-7">
-              先搜索，也可以把需求交给 AI 帮你找。搬家、保洁、接送、装修、现金工，一步进入，更快看到评价、地图和真实联系方式。
+              先搜索，也可以把需求交给 AI 智能匹配。搬家、保洁、接送、装修、现金工，一步进入，更快看到评价、地图和真实联系方式。
             </p>
 
             <div className="mt-6 flex min-w-0 flex-col gap-3 md:flex-row md:items-stretch">
@@ -169,7 +169,7 @@ export default function HomeActionHero({
                 className="flex items-center justify-center gap-2 rounded-2xl bg-primary-600 px-5 py-3 text-sm font-bold text-white shadow-md transition-colors hover:bg-primary-700"
               >
                 <Sparkles size={15} />
-                AI 帮你找
+                AI 智能匹配
               </motion.button>
             </div>
 

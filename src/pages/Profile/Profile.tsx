@@ -244,7 +244,7 @@ export default function Profile() {
         </div>
         <div className="w-full max-w-sm bg-white rounded-2xl border border-gray-100 shadow-sm divide-y divide-gray-100">
           {[
-            { icon: '🔍', label: '智能AI帮你找服务', sub: '描述需求，自动匹配服务商' },
+            { icon: '🔍', label: 'AI 智能匹配服务', sub: '描述需求，自动匹配服务商' },
             { icon: '💬', label: '一键发起询价', sub: '5分钟内获得多家报价' },
             { icon: '❤️', label: '收藏喜欢的服务', sub: '随时查看，对比不迷路' },
             { icon: '🎁', label: '邀请好友得奖励', sub: '专属邀请码，双方都受益' },

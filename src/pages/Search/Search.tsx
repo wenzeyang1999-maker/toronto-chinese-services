@@ -297,7 +297,7 @@ export default function Search() {
                          text-white text-xs font-bold px-2.5 py-1.5 rounded-xl transition-colors flex-shrink-0 whitespace-nowrap"
             >
               <Sparkles size={12} className="flex-shrink-0" />
-              AI帮你找
+              AI 智能匹配
             </motion.button>
             {/* Map / List toggle */}
             <button

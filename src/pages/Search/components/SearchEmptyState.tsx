@@ -23,7 +23,7 @@ export default function SearchEmptyState({ query, onOpenInquiry, onPost }: Props
           className="inline-flex items-center justify-center gap-2 rounded-2xl bg-primary-600 px-5 py-3 text-sm font-semibold text-white hover:bg-primary-700"
         >
           <Sparkles size={16} />
-          让 AI 帮你找
+          让 AI 智能匹配
         </button>
         <button
           onClick={onPost}

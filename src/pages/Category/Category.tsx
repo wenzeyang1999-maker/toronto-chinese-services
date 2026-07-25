@@ -141,7 +141,7 @@ export default function Category() {
                          text-sm transition-colors border border-white/60"
             >
               <Sparkles size={14} className="text-primary-500" />
-              AI 帮你找
+              AI 智能匹配
             </button>
           </div>
         </div>

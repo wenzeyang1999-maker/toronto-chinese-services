@@ -188,7 +188,7 @@ export default function InquiriesSection() {
           <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-10 text-center">
             <ClipboardList size={36} className="text-gray-300 mx-auto mb-3" />
             <p className="text-sm text-gray-600 font-medium">还没有报价请求</p>
-            <p className="text-xs text-gray-400 mt-1 mb-4">点击首页的"AI帮你找"提交需求，平台自动匹配服务商</p>
+            <p className="text-xs text-gray-400 mt-1 mb-4">点击首页的"AI 智能匹配"提交需求，平台自动匹配服务商</p>
             <button
               onClick={() => navigate('/')}
               className="px-5 py-2.5 bg-primary-600 text-white text-sm font-semibold rounded-2xl hover:bg-primary-700 transition-colors"
