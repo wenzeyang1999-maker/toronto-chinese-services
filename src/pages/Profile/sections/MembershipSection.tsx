@@ -106,7 +106,7 @@ export default function MembershipSection({ level, expiresAt }: Props) {
           <div className="flex items-start gap-2.5">
             <Gift size={15} className="text-amber-500 flex-shrink-0 mt-0.5" />
             <p className="text-xs text-gray-700 leading-relaxed">
-              <strong>邀请好友送会员</strong> — 每邀请 <strong>10 人</strong>注册，送 <strong>1 个月</strong>黄金会员（可累计叠加）
+              <strong>邀请好友送会员</strong> — 每邀请 <strong>3 人</strong>注册，送 <strong>10 天</strong>黄金会员（可累计叠加）
             </p>
           </div>
           <div className="flex items-start gap-2.5">
@@ -216,7 +216,7 @@ export default function MembershipSection({ level, expiresAt }: Props) {
             {/* Upgrade hint — 邀请只能拿到 L2；L3 目前仅管理员授予 */}
             {isLocked && tier.level === 'L2' && (
               <p className="mt-3 text-xs text-gray-400">
-                每邀请 10 位好友注册即可解锁 —{' '}
+                每邀请 3 位好友注册即可解锁 —{' '}
                 <button
                   onClick={() => navigate('/profile?section=referral')}
                   className="text-primary-500 underline"
