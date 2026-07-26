@@ -282,22 +282,26 @@ Deno.serve(async (req) => {
       targets = (pref.length >= DIRECT_LIMIT ? pref : [...pref, ...rest]).slice(0, DIRECT_LIMIT)
     }
 
-    await Promise.all(targets.map(async (provider) => {
-      const email = buildProviderInquiryEmail(provider.name, payload)
-      await fetch('https://api.resend.com/emails', {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${resendApiKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          from: FROM,
-          to: [provider.email],
-          subject: email.subject,
-          html: email.html,
-        }),
-      })
-    }))
+    // 邮件只在【紧急单】发：普通需求只走站内通知/弹窗，不再发邮件（减少打扰）。
+    // 紧急单仍发邮件，把不一定开着 App 的在线商家立刻拉回来接单。
+    if (isUrgent) {
+      await Promise.all(targets.map(async (provider) => {
+        const email = buildProviderInquiryEmail(provider.name, payload)
+        await fetch('https://api.resend.com/emails', {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${resendApiKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            from: FROM,
+            to: [provider.email],
+            subject: email.subject,
+            html: email.html,
+          }),
+        })
+      }))
+    }
 
     if (targets.length > 0) {
       await admin.from('inquiry_matches').insert(
@@ -306,7 +310,7 @@ Deno.serve(async (req) => {
           provider_id: provider.id,
           provider_name: provider.name,
           provider_email: provider.email,
-          email_sent: true,
+          email_sent: isUrgent,
         }))
       )
       // ★ 统一「只走站内私信」：任何派给商家的单（普通 / 紧急）都【绝不】发放客户
