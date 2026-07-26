@@ -248,12 +248,39 @@ Deno.serve(async (req) => {
       return b.rating - a.rating
     })
 
+    // 门槛：跳过「受限」师傅（≥5 有效投诉 或 严重仲裁判负）。但若合规师傅不够，
+    // 只能把受限的也派上（宁可派给风险高的，也别派给没人）。
+    const restricted = new Set<string>()
+    if (providers.length > 0) {
+      const { data: dRows } = await admin
+        .from('disputes')
+        .select('against_id, status, severe')
+        .eq('status', 'resolved')
+        .in('against_id', providers.map((p) => p.id))
+      const vc = new Map<string, number>()
+      const sev = new Set<string>()
+      for (const d of (dRows ?? []) as { against_id: string; severe: boolean }[]) {
+        vc.set(d.against_id, (vc.get(d.against_id) ?? 0) + 1)
+        if (d.severe) sev.add(d.against_id)
+      }
+      for (const p of providers) {
+        if ((vc.get(p.id) ?? 0) >= 5 || sev.has(p.id)) restricted.add(p.id)
+      }
+    }
+    const pref = providers.filter((p) => !restricted.has(p.id))  // 合规优先
+    const rest = providers.filter((p) => restricted.has(p.id))   // 受限兜底
+
     // 派单对象：紧急单发给「上线接单」(is_online) 的全部匹配商家（不止 top5，上限
-    // MAX_NOTIFY 兜底防炸）；普通单取最匹配的 ≤DIRECT_LIMIT 家。
+    // MAX_NOTIFY 兜底防炸）；普通单取最匹配的 ≤DIRECT_LIMIT 家。合规不足才补受限。
     const isUrgent = payload.isUrgent === true
-    const targets = isUrgent
-      ? providers.filter((p) => p.isOnline).slice(0, MAX_NOTIFY)
-      : providers.slice(0, DIRECT_LIMIT)
+    let targets: typeof providers
+    if (isUrgent) {
+      const onPref = pref.filter((p) => p.isOnline)
+      const onRest = rest.filter((p) => p.isOnline)
+      targets = (onPref.length >= 3 ? onPref : [...onPref, ...onRest]).slice(0, MAX_NOTIFY)
+    } else {
+      targets = (pref.length >= DIRECT_LIMIT ? pref : [...pref, ...rest]).slice(0, DIRECT_LIMIT)
+    }
 
     await Promise.all(targets.map(async (provider) => {
       const email = buildProviderInquiryEmail(provider.name, payload)

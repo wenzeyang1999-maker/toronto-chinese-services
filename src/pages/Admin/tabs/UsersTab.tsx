@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import { Search, BadgeCheck, CheckCircle2, Ban, UserCheck, ExternalLink, X } from 'lucide-react'
 import { supabase } from '../../../lib/supabase'
+import AdminCreditControl from '../components/AdminCreditControl'
 import { type UserRow } from '../types'
 import { useAdminContext } from '../AdminContext'
 import { attachEmails } from '../adminEmails'
@@ -148,6 +149,9 @@ export default function UsersTab() {
                     </p>
                   </div>
                 </div>
+
+                {/* 信用分 + 手动调分 */}
+                {!isAdmin && <AdminCreditControl userId={u.id} />}
 
                 {/* Actions */}
                 {!isAdmin && (

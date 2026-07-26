@@ -45,6 +45,7 @@ export default function DisputesTab() {
   const [ctx, setCtx]               = useState<DisputeContext | null>(null)
   const [ctxLoading, setCtxLoading] = useState(false)
   const [resolution, setResolution] = useState('')
+  const [severe, setSevere]         = useState(false)
   const [acting, setActing]         = useState(false)
 
   async function load() {
@@ -68,11 +69,12 @@ export default function DisputesTab() {
     setActing(true)
     const { error } = await supabase.rpc('admin_resolve_dispute', {
       p_dispute_id: id, p_status: status, p_resolution: resolution.trim() || null,
+      p_severe: status === 'resolved' ? severe : false,
     })
     setActing(false)
     if (error) { toast(error.message, 'error'); return }
     toast(status === 'resolved' ? '已标记处理' : '已关闭纠纷', 'success')
-    setOpenId(null); setCtx(null); void load()
+    setOpenId(null); setCtx(null); setSevere(false); void load()
   }
 
   const visible = rows.filter(r => showAll || r.status === 'open' || r.status === 'reviewing')
@@ -184,6 +186,10 @@ export default function DisputesTab() {
                             <textarea value={resolution} onChange={e => setResolution(e.target.value)} rows={2}
                               placeholder="终判说明（选填，会通知双方）"
                               className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary-300" />
+                            <label className="flex items-center gap-2 mt-2 text-xs text-red-600 font-medium cursor-pointer">
+                              <input type="checkbox" checked={severe} onChange={e => setSevere(e.target.checked)} className="accent-red-500" />
+                              标记为「严重」（诈骗/恶意，判负一次即触发受限）
+                            </label>
                             <div className="flex gap-2 mt-2">
                               <button onClick={() => resolve(d.id, 'resolved')} disabled={acting}
                                 className="flex-1 py-2 rounded-xl bg-green-500 text-white text-sm font-semibold hover:bg-green-600 disabled:opacity-60">
