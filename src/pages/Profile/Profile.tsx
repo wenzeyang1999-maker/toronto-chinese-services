@@ -6,7 +6,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import {
   ChevronLeft, ChevronRight, Camera, LogOut,
-  ShieldCheck, Clock, MessageSquare, BadgeCheck, Crown, Heart, UserCheck, Gift, LayoutDashboard, ClipboardList, Store, Calendar, User as UserIcon, RefreshCw,
+  ShieldCheck, Clock, MessageSquare, BadgeCheck, Crown, Heart, Gift, LayoutDashboard, ClipboardList, Store, Calendar, User as UserIcon, RefreshCw,
 } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { offsetLocation } from '../../lib/geo'
@@ -20,12 +20,11 @@ import type { MemberLevel } from '../../components/MembershipBadge/MembershipBad
 import MembershipBadge from '../../components/MembershipBadge/MembershipBadge'
 import AccountSection      from './sections/AccountSection'
 import ServicesSection     from './sections/ServicesSection'
-import SavesSection        from './sections/SavesSection'
+import CollectionSection   from './sections/CollectionSection'
 import BrowseSection       from './sections/BrowseSection'
 import MessagesSection     from './sections/MessagesSection'
 import VerificationSection from './sections/VerificationSection'
 import MembershipSection   from './sections/MembershipSection'
-import FollowsSection      from './sections/FollowsSection'
 import StatsSection        from './sections/StatsSection'
 import CommunitySection    from './sections/CommunitySection'
 import ReferralSection     from './sections/ReferralSection'
@@ -43,8 +42,7 @@ type MenuItem = { key: Section; icon: React.ReactNode; label: string; sub: strin
 const MENU: MenuItem[] = [
   { key: 'homepage',     icon: <LayoutDashboard size={18} />, label: '我的名片',         sub: '业务简介 · 资质 · 设备 · 标签', modes: ['provider'] },
   { key: 'services',     icon: <Store         size={18} />, label: '我的发布',         sub: '服务 · 招聘 · 房源 · 闲置 · 活动 · 帖子', modes: ['client', 'provider'] },
-  { key: 'saves',        icon: <Heart         size={18} />, label: '我的收藏',         sub: '收藏的服务 · 帖子', modes: ['client', 'provider'] },
-  { key: 'follows',      icon: <UserCheck     size={18} />, label: '我的关注',         sub: '关注的商家 · 用户', modes: ['client', 'provider'] },
+  { key: 'saves',        icon: <Heart         size={18} />, label: '我的收藏',         sub: '收藏的帖子 · 关注的商家', modes: ['client', 'provider'] },
   { key: 'verification', icon: <BadgeCheck    size={18} />, label: '联系方式与资质验证', sub: '社交媒体、手机验证、商户认证', modes: ['provider'] },
   { key: 'transactions',      icon: <ClipboardList  size={18} />, label: '我的交易',     sub: '需求 · 接单 · 成交',       modes: ['client', 'provider'] },
   { key: 'account',      icon: <ShieldCheck   size={18} />, label: '帐号和安全',        sub: '个人信息 · 密码 · 通知设置', modes: ['client', 'provider'] },
@@ -484,8 +482,9 @@ export default function Profile() {
       case 'verification': return <VerificationSection user={user!} />
       case 'membership':   return <MembershipSection level={memberLevel} expiresAt={memberExpiresAt} />
       case 'services':     return <ServicesSection />
-      case 'saves':        return <SavesSection />
-      case 'follows':      return <FollowsSection />
+      case 'saves':        return <CollectionSection />
+      case 'follows':      return <CollectionSection initialSeg="follows" />
+
       case 'stats':        return <StatsSection />
       case 'community':    return <CommunitySection />
       case 'referral':     return <ReferralSection user={user!} />
