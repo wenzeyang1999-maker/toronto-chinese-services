@@ -437,6 +437,13 @@ export default function InquiryModal({ open, onClose, presetCategoryId }: Props)
       //（配额触发器挂在 inquiries 表上）。仅当 doPublic 时才落库。
       let insertedInquiryId: string | null = null
       if (doPublic) {
+      // 门槛：受限账号（≥5 有效投诉或严重仲裁判负）限制发单
+      const { data: canPost } = await supabase.rpc('can_participate', { p_user: user.id })
+      if (canPost === false) {
+        setServerError('您的账号因多次有效投诉被限制发单，请先处理纠纷或联系客服')
+        setSubmitting(false)
+        return
+      }
       const { data: inserted, error } = await supabase.from('inquiries').insert({
         category_id: form.categoryId,
         description: finalDescription,

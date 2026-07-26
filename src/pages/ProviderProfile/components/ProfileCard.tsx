@@ -7,6 +7,7 @@ import CreditStars from '../../../components/CreditStars/CreditStars'
 import Badge from '../../../components/Badge/Badge'
 import FollowButton from '../../../components/FollowButton/FollowButton'
 import ReplyTimeBadge from '../../../components/ReplyTimeBadge/ReplyTimeBadge'
+import ClientTrustBadge from '../../../components/ClientTrustBadge/ClientTrustBadge'
 import ImgFallback from '../../../components/ImgFallback/ImgFallback'
 import { SOCIAL_PLATFORMS } from '../../../lib/socialPlatforms'
 
@@ -49,6 +50,7 @@ export default function ProfileCard({ provider, followerCount, isOwnProfile, joi
           <div className="flex items-center gap-2 flex-wrap">
             <h1 className="text-xl font-bold text-gray-900 truncate">{provider.name}</h1>
             <MembershipBadge level={provider.membership_level} size="md" />
+            <ClientTrustBadge userId={provider.id} />
           </div>
           <div className="mt-1">
             <CreditStars

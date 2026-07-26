@@ -71,6 +71,13 @@ export default function RequestDetail() {
     if (!user) { navigate('/login', { state: { from: `/requests/${id}` } }); return }
     if (!req) return
 
+    // 门槛：受限账号（≥5 有效投诉或严重仲裁判负）停止抢单/接单
+    const { data: ok } = await supabase.rpc('can_participate', { p_user: user.id })
+    if (ok === false) {
+      toast('您的账号因多次有效投诉被暂停接单，请先处理纠纷或联系客服', 'error')
+      return
+    }
+
     const { data, error } = await supabase.rpc('get_or_create_conversation', {
       p_provider_id: user.id,      // current user is the provider reaching out
       p_client_id:   req.userId,   // requester is the client who needs the service
@@ -213,7 +220,7 @@ export default function RequestDetail() {
                 <div className="flex items-center gap-2 flex-wrap">
                   <p className="font-semibold text-gray-900 text-sm">{req.requester.name}</p>
                   {/* 客户可信度 —— 仅对师傅(非本人)展示，抢单前参考 */}
-                  {req.userId !== user?.id && <ClientTrustBadge clientId={req.userId} />}
+                  {req.userId !== user?.id && <ClientTrustBadge userId={req.userId} />}
                 </div>
                 <p className="text-xs text-gray-400 flex items-center gap-1 mt-0.5">
                   <Calendar size={10} />
