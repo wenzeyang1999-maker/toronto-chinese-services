@@ -20,7 +20,7 @@ export type MembershipTier = 'h1' | 'h2' | 'h3'
 export const FREE_GRAB_QUOTA_PER_MONTH = 3
 
 // ─── 计费动作：只对「变现动作」收费，其余永久免费 ────────────────────────────
-// 消耗额度/华邻币的动作（其余：浏览、搜索、发需求、AI 解析、主动联系不发帖 —— 永久免费）。
+// 消耗额度/邻豆的动作（其余：浏览、搜索、发需求、AI 解析、主动联系不发帖 —— 永久免费）。
 export const BILLABLE_ACTIONS = ['grab_order', 'reveal_client_contact', 'boost_post'] as const
 export type BillableAction = (typeof BILLABLE_ACTIONS)[number]
 
@@ -31,7 +31,7 @@ export interface TierDef {
   audience: string
   monthlyPrice: number | null   // null = 免费；单位 CAD
   yearlyPrice: number | null
-  perUsePrice: number | null    // 不订月费时的单次价（华邻币）
+  perUsePrice: number | null    // 不订月费时的单次价（邻豆）
   grabQuota: number | 'unlimited'
   socialLinks: boolean          // 社媒外链跳转（付费权益，非信任本身）
   maxCards: number
@@ -61,7 +61,7 @@ export const TIERS: Record<MembershipTier, TierDef> = {
   },
 }
 
-// ─── 华邻币（平台内预付点数，SaaS 额度，非代收订单钱款）──────────────────────
+// ─── 邻豆（平台内预付点数，SaaS 额度，非代收订单钱款）──────────────────────
 export const COIN_PRICING = {
   perGrab: 2.99,          // 单次抢单
   boostPost3d: 4.99,      // 商业帖置顶 3 天
@@ -116,7 +116,7 @@ export function decideGrab(params: {
   canParticipate: boolean          // 1. 信用门槛（最先，付费不参与）
   tier?: MembershipTier            // 2. 会员等级
   freeGrabsUsedThisMonth?: number  // 3. 本月已用免费次数
-  coinBalance?: number             // 3. 华邻币余额
+  coinBalance?: number             // 3. 邻豆余额
 }): GrabDecision {
   // 1. 信用门槛永远最先判：受限直接拦截，付费状态完全不参与（原则 1）。
   if (!params.canParticipate) return { allow: false, reason: 'credit_restricted' }
@@ -124,7 +124,7 @@ export function decideGrab(params: {
   // 2. 启动阶段：总开关关闭 → 无限放行，不计费。
   if (!MONETIZATION_ENABLED) return { allow: true, reason: 'ok' }
 
-  // 3. 额度：付费档无限；免费档看剩余免费次数或华邻币。
+  // 3. 额度：付费档无限；免费档看剩余免费次数或邻豆。
   const ent = resolveEntitlements(params.tier ?? 'h1')
   if (ent.grabQuota === 'unlimited') return { allow: true, reason: 'ok' }
   const used = params.freeGrabsUsedThisMonth ?? 0
