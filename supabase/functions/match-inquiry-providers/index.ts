@@ -19,12 +19,15 @@ function corsHeaders(origin: string | null) {
   }
 }
 
-const FROM = 'HuaLin <noreply@huarenq.com>'
+// 发件人（Brevo 需要 name + email 分开）。
+const SENDER = { name: 'HuaLin', email: 'noreply@huarenq.com' }
 const SITE = 'https://toronto-chinese-services.vercel.app'
-// 上限兜底：紧急单最多同时通知 MAX_NOTIFY 位在线商家；普通单取最匹配的 DIRECT_LIMIT 位。
+// 上限兜底：紧急单最多【站内通知】MAX_NOTIFY 位在线商家；普通单取最匹配的 DIRECT_LIMIT 位。
+// EMAIL_LIMIT：紧急单【邮件】最多只发前几家（省邮件额度）；站内通知仍发全部 targets。
 // 无论普通 / 紧急，都【只走站内私信】，绝不发放客户联系方式（见下方 dispatch 说明）。
 const MAX_NOTIFY = 20
 const DIRECT_LIMIT = 5
+const EMAIL_LIMIT = 5
 
 // Escape user-supplied strings before interpolating them into the email HTML.
 // Without this, a malicious inquiry description like `<img src=x onerror=...>`
@@ -129,9 +132,9 @@ Deno.serve(async (req) => {
   try {
     const url = Deno.env.get('SUPABASE_URL')
     const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
-    const resendApiKey = Deno.env.get('RESEND_API_KEY')
+    // 邮件 key 缺失不致命：仅跳过邮件，站内通知/匹配照常（避免派单整体失败）。
+    const brevoApiKey = Deno.env.get('BREVO_API_KEY')
     if (!url || !serviceRoleKey) throw new Error('Supabase service role not configured')
-    if (!resendApiKey) throw new Error('RESEND_API_KEY not set')
 
     const payload = await req.json() as InquiryPayload
     if (!payload.inquiryId || !payload.categoryId || !payload.name || !payload.phone) {
@@ -282,22 +285,26 @@ Deno.serve(async (req) => {
       targets = (pref.length >= DIRECT_LIMIT ? pref : [...pref, ...rest]).slice(0, DIRECT_LIMIT)
     }
 
-    // 邮件只在【紧急单】发：普通需求只走站内通知/弹窗，不再发邮件（减少打扰）。
-    // 紧急单仍发邮件，把不一定开着 App 的在线商家立刻拉回来接单。
-    if (isUrgent) {
-      await Promise.all(targets.map(async (provider) => {
+    // 邮件只在【紧急单】发，且最多发前 EMAIL_LIMIT 家（最匹配/最近的在线商家），
+    // 省邮件额度；普通需求只走站内通知/弹窗，不发邮件。站内通知仍发全部 targets。
+    const emailTargets = (isUrgent && brevoApiKey) ? targets.slice(0, EMAIL_LIMIT) : []
+    const emailedIds = new Set(emailTargets.map((p) => p.id))
+    if (emailTargets.length > 0) {
+      await Promise.all(emailTargets.map(async (provider) => {
         const email = buildProviderInquiryEmail(provider.name, payload)
-        await fetch('https://api.resend.com/emails', {
+        // Brevo 事务邮件 API：POST /v3/smtp/email，头部 api-key。
+        await fetch('https://api.brevo.com/v3/smtp/email', {
           method: 'POST',
           headers: {
-            Authorization: `Bearer ${resendApiKey}`,
+            'api-key': brevoApiKey!,
             'Content-Type': 'application/json',
+            'Accept': 'application/json',
           },
           body: JSON.stringify({
-            from: FROM,
-            to: [provider.email],
+            sender: SENDER,
+            to: [{ email: provider.email, name: provider.name }],
             subject: email.subject,
-            html: email.html,
+            htmlContent: email.html,
           }),
         })
       }))
@@ -310,7 +317,7 @@ Deno.serve(async (req) => {
           provider_id: provider.id,
           provider_name: provider.name,
           provider_email: provider.email,
-          email_sent: isUrgent,
+          email_sent: emailedIds.has(provider.id),
         }))
       )
       // ★ 统一「只走站内私信」：任何派给商家的单（普通 / 紧急）都【绝不】发放客户
