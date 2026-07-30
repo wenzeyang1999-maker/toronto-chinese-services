@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { ArrowLeft, Star, MapPin, Phone, ShieldCheck, Clock, Tag, MessageSquare, CheckCircle2, ExternalLink, ChevronDown, ChevronUp, Flag } from 'lucide-react'
 import { toast } from '../../lib/toast'
@@ -24,7 +24,7 @@ import ContactActions from './components/ContactActions'
 import ImgFallback from '../../components/ImgFallback/ImgFallback'
 import ImageLightbox from '../../components/ImageLightbox/ImageLightbox'
 import { useCopy } from '../../hooks/useCopy'
-import GoogleMapCanvas, { type GoogleMapPoint } from '../../components/ServiceMap/GoogleMapCanvas'
+import { staticMapUrl } from '../../lib/staticMap'
 import { ServiceDetailSkeleton } from '../../components/Skeleton/Skeleton'
 import { CONTENT_REPORT_REASONS as REPORT_REASONS } from '../../constants/reportReasons'
 
@@ -152,39 +152,6 @@ export default function ServiceDetail() {
       })
     }
   }, [service?.id])
-
-  const detailMapPoints = useMemo<GoogleMapPoint[]>(() => {
-    if (!service || service.location.lat == null || service.location.lng == null) return []
-
-    const content = document.createElement('div')
-    content.className = 'text-sm space-y-1.5 py-0.5 min-w-[190px]'
-
-    const title = document.createElement('p')
-    title.className = 'font-semibold text-gray-900 leading-snug'
-    title.textContent = service.title
-    content.appendChild(title)
-
-    const address = document.createElement('p')
-    address.className = 'text-gray-500 text-xs'
-    address.textContent = `${service.location.area ?? service.location.address}，${service.location.city}`
-    content.appendChild(address)
-
-    const link = document.createElement('a')
-    link.href = `https://www.google.com/maps?q=${service.location.lat},${service.location.lng}`
-    link.target = '_blank'
-    link.rel = 'noopener noreferrer'
-    link.className = 'block text-center bg-primary-600 hover:bg-primary-700 text-white text-xs font-semibold py-1.5 px-3 rounded-lg transition-colors'
-    link.textContent = '在 Google Maps 打开'
-    content.appendChild(link)
-
-    return [{
-      id: service.id,
-      lat: service.location.lat,
-      lng: service.location.lng,
-      title: service.title,
-      infoContent: content,
-    }]
-  }, [service])
 
   async function submitReport() {
     if (!id || !user || !reportReason) return
@@ -613,27 +580,31 @@ export default function ServiceDetail() {
               transition={{ duration: 0.25 }}
               className="mt-3 space-y-2"
             >
-              <div className="rounded-xl overflow-hidden border border-gray-200" style={{ height: 220 }}>
-                <div className="relative h-full w-full">
-                  <GoogleMapCanvas
-                    center={{ lat: service.location.lat, lng: service.location.lng }}
-                    zoom={15}
-                    points={detailMapPoints}
-                    scrollWheel={false}
-                  />
-                </div>
-              </div>
-
-              {/* One-tap navigation — Apple Maps on iOS, Google Maps elsewhere */}
+              {/* Static map thumbnail (cheap + cacheable) — tap to navigate.
+                  Replaces the interactive dynamic map to cut Google Maps cost. */}
               <a
                 href={navUrlToCoords(service.location.lat, service.location.lng)}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl border border-gray-200
-                           bg-white hover:bg-gray-50 text-sm text-gray-700 font-medium transition-colors"
+                className="block rounded-xl overflow-hidden border border-gray-200 relative group"
+                style={{ height: 220 }}
               >
-                <span>🗺️</span>
-                一键导航
+                {staticMapUrl(service.location.lat, service.location.lng) ? (
+                  <img
+                    src={staticMapUrl(service.location.lat, service.location.lng, { height: 220 })}
+                    alt="服务位置"
+                    loading="lazy"
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center bg-gray-50 text-gray-400 text-sm">
+                    点击查看导航
+                  </div>
+                )}
+                <span className="absolute bottom-2 right-2 bg-black/55 text-white text-xs px-2.5 py-1 rounded-full
+                                 flex items-center gap-1 group-hover:bg-black/70 transition-colors">
+                  🗺️ 一键导航
+                </span>
               </a>
             </motion.div>
           )}

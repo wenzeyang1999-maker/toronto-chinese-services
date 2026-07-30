@@ -66,7 +66,7 @@ export default function Home() {
     return saved === 'requests' || saved === 'services' ? saved : 'services'
   })
   const [requestSearch, setRequestSearch] = useState('')
-  const [urgentOnly, setUrgentOnly] = useState(false)   // 急单地图：只看急单
+  const [urgentOnly, setUrgentOnly] = useState(true)   // 急单地图：默认只看急单（H1，减压；可切回看全部）
   useEffect(() => {
     if (!localStorage.getItem('tcs_feed_mode')) {
       setFeedMode(isProvider ? 'requests' : 'services')
