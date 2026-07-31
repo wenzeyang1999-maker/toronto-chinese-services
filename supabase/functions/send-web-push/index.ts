@@ -22,8 +22,8 @@ import webpush from 'npm:web-push@3.6.7'
 
 const ALLOWED_ORIGINS = new Set([
   'https://toronto-chinese-services.vercel.app',
-  'https://huarenq.com',
-  'https://www.huarenq.com',
+  'https://hualinlife.com',
+  'https://www.hualinlife.com',
   'http://localhost:5173',
   'http://localhost:4173',
 ])
@@ -71,7 +71,7 @@ interface FollowerNotifyBody {
 
 const VAPID_PUBLIC  = Deno.env.get('VAPID_PUBLIC_KEY')  ?? ''
 const VAPID_PRIVATE = Deno.env.get('VAPID_PRIVATE_KEY') ?? ''
-const VAPID_SUBJECT = Deno.env.get('VAPID_SUBJECT')     ?? 'mailto:noreply@huarenq.com'
+const VAPID_SUBJECT = Deno.env.get('VAPID_SUBJECT')     ?? 'mailto:noreply@hualinlife.com'
 
 if (VAPID_PUBLIC && VAPID_PRIVATE) {
   webpush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC, VAPID_PRIVATE)

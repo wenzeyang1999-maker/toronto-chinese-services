@@ -15,7 +15,7 @@ const CORS = {
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 }
 
-const FROM = 'HuaLin <noreply@huarenq.com>'
+const FROM = 'HuaLin <noreply@hualinlife.com>'
 const SITE = 'https://toronto-chinese-services.vercel.app'
 
 // ── HTML escaping — must be applied to ALL user-supplied values in templates ──
@@ -61,7 +61,7 @@ function template(title: string, body: string, ctaText: string, ctaUrl: string):
     <a href="${ctaUrl}" class="cta">${ctaText}</a>
   </div>
   <div class="footer">
-    <p>您收到此邮件是因为您在 <a href="${SITE}" style="color:#e63946;">huarenq.com</a> 上有新的动态。</p>
+    <p>您收到此邮件是因为您在 <a href="${SITE}" style="color:#e63946;">hualinlife.com</a> 上有新的动态。</p>
   </div>
 </div>
 </body>

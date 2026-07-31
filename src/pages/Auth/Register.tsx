@@ -170,7 +170,7 @@ export default function Register() {
       password: form.password,
       options: {
         // Return the confirmation link to the SAME domain the user registered on
-        // (both vercel + huarenq are in the redirect allow-list), so verifying
+        // (both vercel + hualinlife are in the redirect allow-list), so verifying
         // doesn't bounce them to a different origin where they'd appear logged out.
         emailRedirectTo: `${window.location.origin}/`,
         data: {

@@ -14,7 +14,7 @@ import { supabase } from '../../lib/supabase'
 import { useAuthStore } from '../../store/authStore'
 import { COMPLAINT_REASON_TAGS } from '../../constants/reportReasons'
 
-const SUPPORT_EMAIL = 'support@huarenq.com'
+const SUPPORT_EMAIL = 'support@hualinlife.com'
 
 type View = 'menu' | 'suggest' | 'report' | 'partner' | 'done'
 

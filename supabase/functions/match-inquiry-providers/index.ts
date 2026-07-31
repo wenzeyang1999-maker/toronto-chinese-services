@@ -2,8 +2,8 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.57.4'
 
 const ALLOWED_ORIGINS = new Set([
   'https://toronto-chinese-services.vercel.app',
-  'https://huarenq.com',
-  'https://www.huarenq.com',
+  'https://hualinlife.com',
+  'https://www.hualinlife.com',
   'http://localhost:5173',
   'http://localhost:4173',
 ])
@@ -20,7 +20,7 @@ function corsHeaders(origin: string | null) {
 }
 
 // 发件人（Brevo 需要 name + email 分开）。
-const SENDER = { name: 'HuaLin', email: 'noreply@huarenq.com' }
+const SENDER = { name: 'HuaLin', email: 'noreply@hualinlife.com' }
 const SITE = 'https://toronto-chinese-services.vercel.app'
 // 上限兜底：紧急单最多【站内通知】MAX_NOTIFY 位在线商家；普通单取最匹配的 DIRECT_LIMIT 位。
 // EMAIL_LIMIT：紧急单【邮件】最多只发前几家（省邮件额度）；站内通知仍发全部 targets。

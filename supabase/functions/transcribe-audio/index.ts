@@ -9,14 +9,14 @@ const MAX_BYTES  = 12 * 1024 * 1024   // 12MB 上限（约数分钟录音）
 
 const ALLOWED_ORIGINS = new Set([
   'https://toronto-chinese-services.vercel.app',
-  'https://huarenq.com',
-  'https://www.huarenq.com',
+  'https://hualinlife.com',
+  'https://www.hualinlife.com',
   'http://localhost:5173',
   'http://localhost:4173',
 ])
 
 function corsHeaders(origin: string | null) {
-  const allowed = origin && ALLOWED_ORIGINS.has(origin) ? origin : 'https://huarenq.com'
+  const allowed = origin && ALLOWED_ORIGINS.has(origin) ? origin : 'https://hualinlife.com'
   return {
     'Access-Control-Allow-Origin':  allowed,
     'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
