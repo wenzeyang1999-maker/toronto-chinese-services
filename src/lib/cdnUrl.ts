@@ -12,11 +12,10 @@
 
 const STORAGE_RE = /\/storage\/v1\/object\/public\/([^?]+)/
 
-// ⚠️ 止血开关 (2026-07-31)：/api/img Vercel 函数当前未成功部署(线上返回
-// x-vercel-error: NOT_FOUND),导致全站经代理的图片 404、满屏裂图。设为 false 后
-// cdnUrl 直接返回 Supabase 公开 URL(图片立刻恢复,仅暂时失去 egress 缩图优化)。
-// 待 Vercel 上 api/img 函数修好(多半是 sharp 打包问题)后，改回 true 即恢复代理。
-const PROXY_ENABLED = false
+// 代理开关。2026-07-31 曾因 /api/img 函数未部署(catch-all [...path] 路由不被
+// 裸 Vite /api 识别)导致全站裂图,临时置 false 止血;函数改为静态路由 api/img.ts
+// (?path= 查询参数)后已验证正常(200 + sharp WebP 缩图),故恢复为 true。
+const PROXY_ENABLED = true
 
 export function cdnUrl(url: string | null | undefined, width?: number): string {
   if (!url) return ''
