@@ -57,7 +57,11 @@ export default function ClaimedInquiriesSection() {
 
     void load()
     return () => { isActive = false }
-  }, [user])
+    // Depend on the stable id, not the user object — onAuthStateChange replaces the
+    // user object on every auth event, and [user] would re-run this effect each time,
+    // aborting the in-flight load (isActive=false) before it can clear `loading` → 骨架永远转。
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id])
 
   // 站内私信客户 —— 唯一的联系通道（get_or_create_conversation 不暴露任何联系方式）
   async function startChat(item: ClaimedInquiry) {

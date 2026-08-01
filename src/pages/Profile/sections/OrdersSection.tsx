@@ -102,7 +102,7 @@ export default function OrdersSection() {
     setReviewingId(null); setStars(0); setReviewText(''); setReviewTags([])
     void load()
   }
-  useEffect(() => { void load() /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [user])
+  useEffect(() => { void load() /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [user?.id])
 
   async function act(id: string, fn: 'confirm_order' | 'cancel_order') {
     setActing(id)

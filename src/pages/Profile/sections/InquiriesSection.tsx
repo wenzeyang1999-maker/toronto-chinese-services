@@ -118,7 +118,8 @@ export default function InquiriesSection() {
 
     void load()
     return () => { isActive = false }
-  }, [user])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id])
 
   async function closeInquiry(id: string) {
     if (!user) return
