@@ -1,6 +1,6 @@
 {
   "functions": {
-    "api/img/[...path].ts": { "memory": 1024, "maxDuration": 30 }
+    "api/img.ts": { "maxDuration": 30 }
   },
   "rewrites": [
     { "source": "/((?!api/).*)", "destination": "/index.html" }

@@ -28,6 +28,6 @@ export function cdnUrl(url: string | null | undefined, width?: number): string {
   // Carry it through as ?v so the edge cache key changes when the image changes —
   // otherwise the 1-year immutable cache would freeze the old avatar/cover.
   const t = url.match(/[?&]t=(\d+)/)?.[1]
-  const params = [width ? `w=${width}` : '', t ? `v=${t}` : ''].filter(Boolean).join('&')
-  return `/api/img/${path}${params ? `?${params}` : ''}`
+  const extra = [width ? `w=${width}` : '', t ? `v=${t}` : ''].filter(Boolean).join('&')
+  return `/api/img?path=${path}${extra ? `&${extra}` : ''}`
 }

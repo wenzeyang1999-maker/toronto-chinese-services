@@ -1,15 +1,13 @@
 // ─── Image proxy + on-demand resize, cached at the Vercel edge ────────────────
-// Fronts Supabase Storage so repeat views are served from Vercel's CDN instead
-// of counting against Supabase's tiny 5GB egress. Also downsizes on the fly, so
-// list pages can request small thumbnails (?w=400) of ANY image — old or new —
-// without storing separate thumbnail files.
+// Query-param variant (no [...catch-all] dynamic route, which wasn't being
+// picked up in this bare Vite /api setup). Storage path is passed as ?path=.
 //
-//   /api/img/<bucket>/<object/path>?w=400   → 400px-wide WebP thumbnail
-//   /api/img/<bucket>/<object/path>         → original bytes (passthrough)
+//   /api/img?path=<bucket>/<object/path>&w=400   → 400px-wide WebP thumbnail
+//   /api/img?path=<bucket>/<object/path>         → original bytes (passthrough)
 //
-// Cache-Control s-maxage=1y + immutable: storage paths are unique (timestamped),
-// so a cached transform never goes stale. Fail-open: any resize error falls back
-// to the original bytes rather than a broken image.
+// Fronts Supabase Storage so repeat views hit Vercel's CDN instead of Supabase
+// egress. Cache-Control s-maxage=1y immutable (storage paths are timestamped).
+// Fail-open: any resize error falls back to the original bytes.
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import sharp from 'sharp'
 
@@ -19,9 +17,9 @@ const ALLOWED_WIDTHS  = new Set([160, 200, 400, 800, 1080])
 const ONE_YEAR = 31536000
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  const parts = ([] as string[]).concat((req.query.path as string[] | string) ?? [])
-  const bucket = parts[0]
-  const objectPath = parts.slice(1).map(encodeURIComponent).join('/')
+  const rawPath = String(req.query.path ?? '')          // "<bucket>/<object/path>" (Vercel-decoded)
+  const [bucket, ...rest] = rawPath.split('/')
+  const objectPath = rest.map(encodeURIComponent).join('/')
 
   if (!bucket || !ALLOWED_BUCKETS.has(bucket) || !objectPath) {
     res.status(400).send('bad request'); return
@@ -60,7 +58,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     res.setHeader('Content-Type', 'image/webp')
     res.status(200).send(out)
   } catch {
-    // Fail open — serve the original rather than a broken image.
     res.setHeader('Content-Type', contentType)
     res.status(200).send(buf)
   }
