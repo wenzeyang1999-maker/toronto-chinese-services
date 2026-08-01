@@ -133,7 +133,7 @@ Deno.serve(async (req: Request) => {
     body: JSON.stringify({
       from: telnyxFrom,
       to:   phone,
-      text: `您的北美华人圈验证码是 ${code}，${OTP_TTL_MINUTES} 分钟内有效，请勿告知他人。`,
+      text: `您的华邻验证码是 ${code}，${OTP_TTL_MINUTES} 分钟内有效，请勿告知他人。`,
     }),
   })
 
