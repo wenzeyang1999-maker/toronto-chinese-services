@@ -15,7 +15,8 @@ const CORS = {
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 }
 
-const FROM = 'HuaLin <noreply@hualinlife.com>'
+// Brevo 发件人（需要 name + email 分开）。
+const SENDER = { name: 'HuaLin', email: 'noreply@hualinlife.com' }
 const SITE = 'https://toronto-chinese-services.vercel.app'
 
 // ── HTML escaping — must be applied to ALL user-supplied values in templates ──
@@ -460,22 +461,23 @@ async function sendEmail(recipient: { email: string; name?: string | null }, typ
   const email = buildEmail(type, recipient.name ?? '用户', data ?? {})
   if (!email) throw new Error('unknown type')
 
-  const apiKey = Deno.env.get('RESEND_API_KEY')
-  if (!apiKey) throw new Error('RESEND_API_KEY not set')
+  const apiKey = Deno.env.get('BREVO_API_KEY')
+  if (!apiKey) throw new Error('BREVO_API_KEY not set')
 
-  const res = await fetch('https://api.resend.com/emails', {
+  // Brevo 事务邮件 API：POST /v3/smtp/email，头部 api-key，sender 用 name+email。
+  const res = await fetch('https://api.brevo.com/v3/smtp/email', {
     method: 'POST',
-    headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+    headers: { 'api-key': apiKey, 'Content-Type': 'application/json', 'Accept': 'application/json' },
     body: JSON.stringify({
-      from: FROM,
-      to: [recipient.email],
+      sender: SENDER,
+      to: [{ email: recipient.email, name: recipient.name ?? undefined }],
       subject: email.subject,
-      html: email.html,
+      htmlContent: email.html,
     }),
   })
 
   const result = await res.json()
-  if (!res.ok) throw new Error(result.message ?? 'Resend error')
+  if (!res.ok) throw new Error(result.message ?? 'Brevo error')
   return result
 }
 
