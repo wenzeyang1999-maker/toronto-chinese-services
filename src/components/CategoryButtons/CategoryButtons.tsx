@@ -18,14 +18,14 @@ interface Category {
 }
 
 const CATEGORIES: Category[] = [
-  { label: '搬运',     q: '搬运',     icon: Truck,    color: 'text-blue-600',   bgColor: 'bg-blue-50' },
-  { label: '保洁',     q: '保洁',     icon: Sparkles, color: 'text-cyan-600',   bgColor: 'bg-cyan-50' },
-  { label: '接送',     q: '接送',     icon: Car,      color: 'text-indigo-600', bgColor: 'bg-indigo-50' },
-  { label: '园艺除雪', q: '园艺',     icon: Leaf,     color: 'text-green-600',  bgColor: 'bg-green-50' },
-  { label: '装修',     q: '装修',     icon: Hammer,   color: 'text-amber-600',  bgColor: 'bg-amber-50' },
-  { label: 'Handyman', q: 'Handyman', icon: Wrench,   color: 'text-violet-600', bgColor: 'bg-violet-50' },
-  { label: '道路救援', q: '道路救援', icon: LifeBuoy, color: 'text-rose-600',   bgColor: 'bg-rose-50' },
-  { label: '汽车维修', q: '汽车维修', icon: Cog,      color: 'text-slate-600',  bgColor: 'bg-slate-100' },
+  { label: '搬运',     q: '搬运',     icon: Truck,    img: '/mascot/cat-moving.png',     color: 'text-blue-600',   bgColor: 'bg-blue-50' },
+  { label: '保洁',     q: '保洁',     icon: Sparkles, img: '/mascot/cat-cleaning.png',   color: 'text-cyan-600',   bgColor: 'bg-cyan-50' },
+  { label: '接送',     q: '接送',     icon: Car,      img: '/mascot/cat-ride.png',       color: 'text-indigo-600', bgColor: 'bg-indigo-50' },
+  { label: '园艺除雪', q: '园艺',     icon: Leaf,     img: '/mascot/cat-garden.png',     color: 'text-green-600',  bgColor: 'bg-green-50' },
+  { label: '装修',     q: '装修',     icon: Hammer,   img: '/mascot/cat-renovation.png', color: 'text-amber-600',  bgColor: 'bg-amber-50' },
+  { label: 'Handyman', q: 'Handyman', icon: Wrench,   img: '/mascot/cat-handyman.png',   color: 'text-violet-600', bgColor: 'bg-violet-50' },
+  { label: '道路救援', q: '道路救援', icon: LifeBuoy, img: '/mascot/cat-roadside.png',   color: 'text-rose-600',   bgColor: 'bg-rose-50' },
+  { label: '汽车维修', q: '汽车维修', icon: Cog,      img: '/mascot/cat-auto.png',       color: 'text-slate-600',  bgColor: 'bg-slate-100' },
 ]
 
 // 「更多服务」展开后追加的 8 类。
@@ -60,7 +60,7 @@ function Tile({ cat, onClick }: { cat: Category; onClick: () => void }) {
                   border border-white/60 hover:shadow-md active:brightness-95 transition-all`}
     >
       {cat.img
-        ? <img src={cat.img} alt="" className="w-9 h-9 object-contain flex-shrink-0" draggable={false} />
+        ? <img src={cat.img} alt="" className="w-11 h-11 object-contain flex-shrink-0" draggable={false} />
         : <cat.icon size={22} strokeWidth={1.6} className={`${cat.color} flex-shrink-0`} />}
       <span className={`text-xs font-semibold whitespace-nowrap ${cat.color}`}>{cat.label}</span>
     </motion.button>
