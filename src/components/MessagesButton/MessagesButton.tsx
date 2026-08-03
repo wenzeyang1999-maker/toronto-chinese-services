@@ -104,7 +104,7 @@ export default function MessagesButton({ grouped }: Props) {
       style={{ boxShadow: '0 8px 28px rgba(0,0,0,0.10), 0 2px 8px rgba(0,0,0,0.07)' }}
       aria-label="消息"
     >
-      <Mascot pose="front" size={32} className="flex-shrink-0 -my-1.5" />
+      <Mascot pose="hello" size={40} className="flex-shrink-0 -my-2" />
       <span className="text-sm font-semibold whitespace-nowrap">消息</span>
       {unread > 0 && (
         <span className="absolute top-0 right-0 w-4 h-4 bg-red-500 rounded-full border-2 border-white" />
