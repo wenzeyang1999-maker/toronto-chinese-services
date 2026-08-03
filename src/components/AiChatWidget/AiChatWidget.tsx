@@ -8,7 +8,8 @@
 // ─────────────────────────────────────────────────────────────────────────────
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Bot, Send, ChevronDown, RotateCcw, ArrowLeft, Mic, MicOff } from 'lucide-react'
+import { Send, ChevronDown, RotateCcw, ArrowLeft, Mic, MicOff } from 'lucide-react'
+import Mascot from '../Mascot/Mascot'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import { useAuthStore } from '../../store/authStore'
@@ -307,7 +308,9 @@ export default function AiChatWidget({ grouped, hideTrigger }: Props) {
             style={{ boxShadow: '0 8px 28px rgba(37,99,235,0.45), 0 2px 8px rgba(37,99,235,0.25)' }}
             aria-label="打开 AI 客服"
           >
-            <Bot size={20} />
+            <span className="w-6 h-6 rounded-full bg-white flex items-center justify-center overflow-hidden flex-shrink-0">
+              <Mascot pose="hello" size={22} />
+            </span>
             <span className="text-sm font-semibold whitespace-nowrap">AI 客服</span>
           </motion.button>
         )}
@@ -331,11 +334,11 @@ export default function AiChatWidget({ grouped, hideTrigger }: Props) {
             <div className="flex items-center justify-between px-4 py-3
                             bg-primary-600 text-white flex-shrink-0">
               <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center">
-                  <Bot size={18} />
+                <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center overflow-hidden">
+                  <Mascot pose="hello" size={30} />
                 </div>
                 <div>
-                  <p className="text-sm font-semibold leading-tight">华邻智能助手</p>
+                  <p className="text-sm font-semibold leading-tight">邻邻 · 智能助手</p>
                   <p className="text-xs text-blue-200 leading-tight">在线 · 即时回复</p>
                 </div>
               </div>
@@ -652,8 +655,8 @@ export default function AiChatWidget({ grouped, hideTrigger }: Props) {
 function BotBubble({ text, streaming }: { text: string; streaming?: boolean }) {
   return (
     <div className="flex items-start gap-2">
-      <div className="w-7 h-7 rounded-full bg-primary-100 flex items-center justify-center flex-shrink-0 mt-0.5">
-        <Bot size={14} className="text-primary-600" />
+      <div className="w-7 h-7 rounded-full bg-white border border-primary-100 flex items-center justify-center flex-shrink-0 mt-0.5 overflow-hidden">
+        <Mascot pose="front" size={26} />
       </div>
       <div className="bg-white rounded-2xl rounded-tl-sm px-3.5 py-2.5
                       text-sm text-gray-800 shadow-sm border border-gray-100
