@@ -12,6 +12,7 @@ interface Category {
   label: string
   q: string           // search keyword
   icon: LucideIcon
+  img?: string        // 吉祥物图路径（有则替代 icon），如 '/mascot/cat-moving.png'
   color: string
   bgColor: string
 }
@@ -55,11 +56,13 @@ function Tile({ cat, onClick }: { cat: Category; onClick: () => void }) {
       variants={itemVariants}
       whileTap={{ scale: 0.93 }}
       onClick={onClick}
-      className={`relative ${cat.bgColor} rounded-xl py-2.5 px-1 flex flex-col items-center gap-1.5
+      className={`relative ${cat.bgColor} rounded-xl py-2 px-2.5 flex items-center justify-center gap-2
                   border border-white/60 hover:shadow-md active:brightness-95 transition-all`}
     >
-      <cat.icon size={20} strokeWidth={1.6} className={cat.color} />
-      <span className={`text-[11px] font-semibold whitespace-nowrap ${cat.color}`}>{cat.label}</span>
+      {cat.img
+        ? <img src={cat.img} alt="" className="w-9 h-9 object-contain flex-shrink-0" draggable={false} />
+        : <cat.icon size={22} strokeWidth={1.6} className={`${cat.color} flex-shrink-0`} />}
+      <span className={`text-xs font-semibold whitespace-nowrap ${cat.color}`}>{cat.label}</span>
     </motion.button>
   )
 }
@@ -74,7 +77,7 @@ export default function CategoryButtons({ expanded = false }: { expanded?: boole
         variants={containerVariants}
         initial="hidden"
         animate="show"
-        className="grid grid-cols-4 gap-2"
+        className="grid grid-cols-2 sm:grid-cols-4 gap-2"
       >
         {CATEGORIES.map((cat) => (
           <Tile key={cat.label} cat={cat} onClick={() => go(cat.q)} />
@@ -94,7 +97,7 @@ export default function CategoryButtons({ expanded = false }: { expanded?: boole
               variants={containerVariants}
               initial="hidden"
               animate="show"
-              className="grid grid-cols-4 gap-2 mt-2"
+              className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-2"
             >
               {MORE_CATEGORIES.map((cat) => (
                 <Tile key={cat.label} cat={cat} onClick={() => go(cat.q)} />
