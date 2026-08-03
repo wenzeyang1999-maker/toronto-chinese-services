@@ -1,9 +1,9 @@
-// ─── Onboarding / 新手引导（聚光灯式） ─────────────────────────────────────────
+// ─── Onboarding / 新手引导（聚光灯式，多页） ───────────────────────────────────
 // Highlights real UI elements one-by-one: dims everything else, spotlights the
-// target, points an arrow at it, and explains it. First-visit visitors get it
-// automatically; on desktop a small semi-transparent「再来一次」dot lets anyone
-// replay it. Steps whose target element is missing (e.g. desktop-only FABs on
-// mobile) are skipped automatically.
+// target, points an arrow at it, explains it. Route-aware — a separate tour for
+// the home page and for「我的」(profile). First visit to each runs automatically;
+// on desktop a small semi-transparent replay dot (bottom-left) re-runs the tour
+// for the current page. Steps whose element is missing are skipped.
 import { useCallback, useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -11,12 +11,12 @@ import { X, ArrowRight, Sparkles } from 'lucide-react'
 import { useLocation } from 'react-router-dom'
 import Mascot from '../Mascot/Mascot'
 
-const SEEN_KEY = 'tcs_onboarded_v2'
 const PAD = 8  // spotlight padding around target
 
 interface Step { sel: string; title: string; desc: string }
+interface Tour { key: string; steps: Step[] }
 
-const STEPS: Step[] = [
+const HOME_STEPS: Step[] = [
   { sel: '[data-tour="search"]',       title: '搜本地服务',   desc: '一句话搜你要的师傅或商家，附近结果优先展示。' },
   { sel: '[data-tour="ai-match"]',     title: 'AI 帮你找',    desc: '懒得逐个找？描述需求，AI 自动把单派给最近的几家商户，坐等联系。' },
   { sel: '[data-tour="categories"]',   title: '热门服务直达', desc: '搬家、保洁、接送、维修… 常用类目一键进入。' },
@@ -25,41 +25,53 @@ const STEPS: Step[] = [
   { sel: '[data-tour="ai-chat"]',      title: '随时问邻邻',   desc: 'AI 客服帮你答疑、找服务、提交建议或举报。' },
 ]
 
+const PROFILE_STEPS: Step[] = [
+  { sel: '[data-tour="p-role"]',          title: '一键切换身份', desc: '客户找服务，或翻转成「服务商」就上线接单、显示到地图上。' },
+  { sel: '[data-tour="p-homepage"]',      title: '装修你的名片', desc: '填简介、传资质、加技能标签，让客户和商家更了解你。' },
+  { sel: '[data-tour="p-services"]',      title: '我的发布',     desc: '你发布的服务、招聘、房源、闲置、活动、帖子都在这里管理。' },
+  { sel: '[data-tour="p-transactions"]',  title: '我的交易',     desc: '需求、接单、成交记录一站查看。' },
+  { sel: '[data-tour="p-verification"]',  title: '联系方式与认证', desc: '绑定联系方式、完成认证，更容易获得信任和曝光。' },
+]
+
+const TOURS: Record<string, Tour> = {
+  '/':        { key: 'tcs_onboarded_v2',         steps: HOME_STEPS },
+  '/profile': { key: 'tcs_onboarded_profile_v1', steps: PROFILE_STEPS },
+}
+
 interface Rect { top: number; left: number; width: number; height: number }
 
 export default function Onboarding() {
   const { pathname } = useLocation()
+  const tour = TOURS[pathname]
+  const steps = tour?.steps ?? []
+
   const [running, setRunning] = useState(false)
   const [step, setStep] = useState(0)
   const [rect, setRect] = useState<Rect | null>(null)
-  // Desktop replay dot appears once the first tour is done/skipped.
-  const [seen, setSeen] = useState(() => {
-    try { return localStorage.getItem(SEEN_KEY) === 'true' } catch { return false }
-  })
+  const [tick, setTick] = useState(0)   // bump to re-read localStorage after finishing
 
   const isDesktop = typeof window !== 'undefined' && window.matchMedia('(min-width: 768px)').matches
+  const seen = tour ? (() => { try { return localStorage.getItem(tour.key) === 'true' } catch { return true } })() : true
 
-  // Resolve the current step's element → viewport rect. Returns null if missing.
   const measure = useCallback((idx: number): Rect | null => {
-    const el = document.querySelector(STEPS[idx]?.sel) as HTMLElement | null
+    const el = document.querySelector(steps[idx]?.sel) as HTMLElement | null
     if (!el) return null
     const r = el.getBoundingClientRect()
     if (r.width === 0 && r.height === 0) return null
     return { top: r.top, left: r.left, width: r.width, height: r.height }
-  }, [])
+  }, [steps])
 
-  // Find the next step index (from `from`, inclusive) whose element exists.
   const nextExisting = useCallback((from: number): number => {
-    for (let i = from; i < STEPS.length; i++) if (measure(i)) return i
+    for (let i = from; i < steps.length; i++) if (measure(i)) return i
     return -1
-  }, [measure])
+  }, [measure, steps.length])
 
   const finish = useCallback(() => {
     setRunning(false)
     setRect(null)
-    try { localStorage.setItem(SEEN_KEY, 'true') } catch { /* ignore */ }
-    setSeen(true)
-  }, [])
+    if (tour) { try { localStorage.setItem(tour.key, 'true') } catch { /* ignore */ } }
+    setTick(t => t + 1)
+  }, [tour])
 
   const start = useCallback(() => {
     const first = nextExisting(0)
@@ -68,18 +80,20 @@ export default function Onboarding() {
     setRunning(true)
   }, [nextExisting])
 
-  // Auto-start for first-time visitors, only on the home page (targets live there).
+  // Reset any running tour when the route changes.
+  useEffect(() => { setRunning(false); setRect(null); setStep(0) }, [pathname])
+
+  // Auto-start for first-time visitors of a tour-enabled route.
   useEffect(() => {
-    if (seen || running || pathname !== '/') return
-    // Wait a beat for the home page to paint before measuring.
+    if (!tour || seen || running) return
     const t = window.setTimeout(() => { if (nextExisting(0) >= 0) start() }, 900)
     return () => window.clearTimeout(t)
-  }, [seen, running, pathname, nextExisting, start])
+  }, [tour, seen, running, nextExisting, start, tick])
 
-  // Scroll the target into view, then measure (and keep measuring on scroll/resize).
+  // Scroll target into view, then measure (keep updating on scroll/resize).
   useEffect(() => {
     if (!running) return
-    const el = document.querySelector(STEPS[step]?.sel) as HTMLElement | null
+    const el = document.querySelector(steps[step]?.sel) as HTMLElement | null
     if (!el) { advance(); return }
     el.scrollIntoView({ behavior: 'smooth', block: 'center' })
     const update = () => setRect(measure(step))
@@ -100,14 +114,14 @@ export default function Onboarding() {
     else setStep(nxt)
   }
 
-  // ── Replay dot (desktop only, after first run) ──
-  const replayDot = isDesktop && seen && !running && pathname === '/' ? (
+  // Replay dot — desktop only, after this route's tour was seen (bottom-left).
+  const replayDot = isDesktop && tour && seen && !running ? (
     <button
       onClick={start}
       aria-label="再看一次新手引导"
-      className="fixed bottom-3 right-3 z-[130] w-9 h-9 rounded-full bg-black/20 hover:bg-black/40
-                 backdrop-blur text-white flex items-center justify-center transition-colors shadow-md"
       title="再来一次新手引导"
+      className="fixed bottom-3 left-3 z-[130] w-9 h-9 rounded-full bg-black/20 hover:bg-black/40
+                 backdrop-blur text-white flex items-center justify-center transition-colors shadow-md"
     >
       <Sparkles size={16} />
     </button>
@@ -117,13 +131,11 @@ export default function Onboarding() {
     return replayDot ? createPortal(replayDot, document.body) : null
   }
 
-  const s = STEPS[step]
+  const s = steps[step]
   const vw = window.innerWidth, vh = window.innerHeight
   const spotTop = rect.top - PAD, spotLeft = rect.left - PAD
   const spotW = rect.width + PAD * 2, spotH = rect.height + PAD * 2
 
-  // Tooltip placement — prefer below, flip above when it would run off-screen,
-  // then clamp fully inside the viewport so it's never cut off / too low.
   const TIP_W = 300, TIP_H = 200
   const spotBottom = spotTop + spotH
   const below = spotBottom + 14 + TIP_H < vh - 12
@@ -131,16 +143,14 @@ export default function Onboarding() {
   tipTop = Math.max(12, Math.min(tipTop, vh - TIP_H - 12))
   const tipLeftRaw = rect.left + rect.width / 2 - TIP_W / 2
   const tipLeft = Math.max(12, Math.min(tipLeftRaw, vw - TIP_W - 12))
-  // Arrow x within the card, pointing at the target centre.
   const arrowX = Math.max(16, Math.min(rect.left + rect.width / 2 - tipLeft - 9, TIP_W - 34))
   const stepNum = step + 1
 
   const overlay = (
     <div className="fixed inset-0 z-[140]">
-      {/* Click catcher — tap anywhere (outside the tooltip) to advance */}
       <div className="absolute inset-0" onClick={advance} />
 
-      {/* Spotlight: box-shadow dims everything except this hole */}
+      {/* Spotlight */}
       <motion.div
         initial={false}
         animate={{ top: spotTop, left: spotLeft, width: spotW, height: spotH }}
@@ -149,10 +159,10 @@ export default function Onboarding() {
         style={{ boxShadow: '0 0 0 9999px rgba(15,23,42,0.72)' }}
       />
 
-      {/* Tooltip card (arrow attached to its edge → always aligned) */}
+      {/* Tooltip (arrow attached to its edge) */}
       <AnimatePresence mode="wait">
         <motion.div
-          key={step}
+          key={`${pathname}-${step}`}
           initial={{ opacity: 0, y: below ? 8 : -8 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0 }}
@@ -160,16 +170,13 @@ export default function Onboarding() {
           className="absolute w-[300px] bg-white rounded-2xl shadow-2xl p-4"
           style={{ left: tipLeft, top: tipTop }}
         >
-          {/* Arrow pointing at the target */}
           <div
             className="absolute w-0 h-0"
             style={{
               left: arrowX,
               borderLeft: '9px solid transparent',
               borderRight: '9px solid transparent',
-              ...(below
-                ? { top: -9, borderBottom: '10px solid white' }
-                : { bottom: -9, borderTop: '10px solid white' }),
+              ...(below ? { top: -9, borderBottom: '10px solid white' } : { bottom: -9, borderTop: '10px solid white' }),
             }}
           />
           <div className="flex items-start gap-3">
@@ -183,7 +190,7 @@ export default function Onboarding() {
             </button>
           </div>
           <div className="flex items-center justify-between mt-3">
-            <span className="text-[11px] text-gray-400">{stepNum} / {STEPS.length}</span>
+            <span className="text-[11px] text-gray-400">{stepNum} / {steps.length}</span>
             <div className="flex items-center gap-2">
               <button onClick={finish} className="text-xs text-gray-400 hover:text-gray-600 px-2 py-1.5">跳过</button>
               <button onClick={advance}

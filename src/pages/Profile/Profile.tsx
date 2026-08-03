@@ -347,6 +347,7 @@ export default function Profile() {
       {/* 一键身份翻转 — 双栖用户在「用户/服务商」视角间切换（说明书 §5.1）*/}
       {SHOW_MODE_TOGGLE && (
         <button
+          data-tour="p-role"
           onClick={() => switchMode(mode === 'client' ? 'provider' : 'client')}
           disabled={flipping}
           className={`w-full rounded-2xl p-3.5 flex items-center justify-between gap-3 shadow-sm border transition-colors active:scale-[0.99] disabled:opacity-70
@@ -385,7 +386,7 @@ export default function Profile() {
         {(SHOW_MODE_TOGGLE ? MENU.filter(item => item.modes.includes(mode)) : MENU).map(item => {
           const active = section === item.key
           return (
-            <button key={item.key} onClick={() => setSection(item.key)}
+            <button key={item.key} data-tour={`p-${item.key}`} onClick={() => setSection(item.key)}
               className={`w-full flex items-center gap-4 px-5 py-4 transition-colors text-left
                 ${active
                   ? 'bg-primary-50 hover:bg-primary-50'
