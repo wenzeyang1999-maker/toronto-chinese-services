@@ -308,9 +308,7 @@ export default function AiChatWidget({ grouped, hideTrigger }: Props) {
             style={{ boxShadow: '0 8px 28px rgba(37,99,235,0.45), 0 2px 8px rgba(37,99,235,0.25)' }}
             aria-label="打开 AI 客服"
           >
-            <span className="w-6 h-6 rounded-full bg-white flex items-center justify-center overflow-hidden flex-shrink-0">
-              <Mascot pose="hello" size={22} />
-            </span>
+            <Mascot pose="hello" size={40} className="flex-shrink-0 -my-2 drop-shadow" />
             <span className="text-sm font-semibold whitespace-nowrap">AI 客服</span>
           </motion.button>
         )}
