@@ -301,6 +301,7 @@ export default function AiChatWidget({ grouped, hideTrigger }: Props) {
             whileHover={{ scale: 1.08 }}
             whileTap={{ scale: 0.93 }}
             onClick={() => setOpen(true)}
+            data-tour="ai-chat"
             className={`${grouped ? '' : 'fixed bottom-24 right-5 lg:bottom-6 lg:right-16 z-50 '}flex items-center gap-2
                        bg-primary-600 hover:bg-primary-700
                        text-white rounded-full px-4 py-3

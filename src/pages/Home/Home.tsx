@@ -265,7 +265,7 @@ export default function Home() {
               />
             </button>
           </div>
-          <CategoryButtons expanded={servicesExpanded} />
+          <div data-tour="categories"><CategoryButtons expanded={servicesExpanded} /></div>
         </section>
 
         {/* ── Community entry — surfaces 社区圈子 directly (skips the /plaza hub) ─ */}

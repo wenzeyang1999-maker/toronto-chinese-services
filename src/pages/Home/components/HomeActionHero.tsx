@@ -121,7 +121,7 @@ export default function HomeActionHero({
             </p>
 
             <div className="mt-6 flex min-w-0 flex-col gap-3 md:flex-row md:items-stretch">
-              <div className="min-w-0 flex-1 relative" ref={searchWrapRef}
+              <div data-tour="search" className="min-w-0 flex-1 relative" ref={searchWrapRef}
                 onFocus={() => setShowHistory(true)}
                 onBlur={(e) => {
                   if (!searchWrapRef.current?.contains(e.relatedTarget as Node)) setShowHistory(false)
@@ -164,6 +164,7 @@ export default function HomeActionHero({
                 </AnimatePresence>
               </div>
               <motion.button
+                data-tour="ai-match"
                 whileTap={{ scale: 0.97 }}
                 onClick={onOpenInquiry}
                 className="flex items-center justify-center gap-2 rounded-2xl bg-primary-600 px-5 py-3 text-sm font-bold text-white shadow-md transition-colors hover:bg-primary-700"
@@ -203,6 +204,7 @@ export default function HomeActionHero({
             <div
               onMouseEnter={() => { pausedRef.current = true }}
               onMouseLeave={() => { pausedRef.current = false }}
+              data-tour="map"
               className="ml-auto max-w-[32rem] rounded-2xl border border-gray-200 bg-white p-4 shadow-lg"
             >
 

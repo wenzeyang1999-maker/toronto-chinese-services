@@ -37,6 +37,7 @@ export default function FABGroup() {
           服务卡片
         </button>
         <button
+          data-tour="post-request"
           onClick={() => user ? openInquiry(pageCategoryId) : navigate('/login', { state: { from: '/?inquiry=1' } })}
           className="flex items-center gap-2 bg-orange-500 hover:bg-orange-600
                      text-white rounded-full px-4 py-3
