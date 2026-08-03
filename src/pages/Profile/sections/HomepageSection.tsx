@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { cdnUrl } from '../../../lib/cdnUrl'
+import Mascot from '../../../components/Mascot/Mascot'
 import { motion } from 'framer-motion'
 import {
   Camera, Check, ExternalLink, Pencil, Share2, Tag, X,
@@ -282,7 +283,12 @@ export default function HomepageSection() {
 
           {/* Cover */}
           <div className="relative h-40 bg-gradient-to-br from-primary-400 to-primary-700 rounded-t-3xl overflow-hidden">
-            {profile.cover_url && <img loading="lazy" src={cdnUrl(profile.cover_url, 800)} alt="封面" className="w-full h-full object-cover" />}
+            {profile.cover_url
+              ? <img loading="lazy" src={cdnUrl(profile.cover_url, 800)} alt="封面" className="w-full h-full object-cover" />
+              : <div className="absolute inset-0 flex items-center justify-center gap-2 text-white/90">
+                  <Mascot pose="photo" size={80} className="drop-shadow" />
+                  <span className="text-xs font-medium">点「更换封面」上传一张吧</span>
+                </div>}
             <button onClick={() => coverRef.current?.click()} disabled={uploadingCover}
               className="absolute bottom-3 right-4 flex items-center gap-1.5 bg-black/40 hover:bg-black/60
                          text-white text-xs font-medium px-3 py-1.5 rounded-full backdrop-blur-sm transition-colors">

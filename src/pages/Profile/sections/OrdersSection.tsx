@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Store, Star, Camera, AlertTriangle } from 'lucide-react'
+import Mascot from '../../../components/Mascot/Mascot'
 import { useAuthStore } from '../../../store/authStore'
 import { supabase } from '../../../lib/supabase'
 import { toast } from '../../../lib/toast'
@@ -171,8 +172,8 @@ export default function OrdersSection() {
     </div>
   )
   if (!orders.length) return (
-    <div className="py-16 text-center text-gray-400">
-      <Store size={40} className="mx-auto mb-3 opacity-30" />
+    <div className="py-16 text-center text-gray-400 flex flex-col items-center">
+      <Mascot pose="delivery" size={100} className="mb-2" />
       <p className="text-sm">还没有成交记录</p>
       <p className="text-xs text-gray-300 mt-1">在与对方的站内对话里点「标记成交」即可发起</p>
     </div>

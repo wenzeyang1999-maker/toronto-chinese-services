@@ -3,6 +3,7 @@
 // Aggregates across all active services belonging to the user.
 import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
+import Mascot from '../../../components/Mascot/Mascot'
 import { Eye, Heart, MessageSquare, Star, TrendingUp, Briefcase, ArrowUp, ArrowDown, Minus } from 'lucide-react'
 import { supabase } from '../../../lib/supabase'
 import { useAuthStore } from '../../../store/authStore'
@@ -197,8 +198,8 @@ export default function StatsSection() {
       </div>
 
       {serviceStats.length === 0 ? (
-        <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-12 text-center">
-          <Briefcase size={36} className="text-gray-200 mx-auto mb-3" />
+        <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-12 text-center flex flex-col items-center">
+          <Mascot pose="computer" size={104} className="mb-2" />
           <p className="text-sm text-gray-400">暂无活跃服务</p>
           <p className="text-xs text-gray-300 mt-1">发布服务卡片后可在此查看数据</p>
         </div>

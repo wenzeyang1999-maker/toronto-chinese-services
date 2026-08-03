@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ChevronLeft } from 'lucide-react'
+import Mascot from '../../components/Mascot/Mascot'
 
 const LAST_UPDATED = '2026年5月25日'
 const COMPANY_EMAIL = 'privacy@hualinlife.com'
@@ -23,6 +24,7 @@ export default function PrivacyPolicy() {
       </div>
 
       <div className="max-w-2xl mx-auto px-5 py-8 space-y-8 text-sm text-gray-700 leading-relaxed">
+        <div className="flex justify-center"><Mascot pose="book" size={96} /></div>
         <div>
           <p className="text-xs text-gray-400">最后更新：{LAST_UPDATED}</p>
           <p className="mt-3">

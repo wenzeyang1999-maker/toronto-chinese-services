@@ -4,6 +4,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
+import Mascot from '../../../components/Mascot/Mascot'
 import { Inbox, CheckCircle2, Clock, XCircle, ChevronDown, ChevronUp, MessageCircle } from 'lucide-react'
 import { supabase } from '../../../lib/supabase'
 import { useAuthStore } from '../../../store/authStore'
@@ -97,8 +98,8 @@ export default function ClaimedInquiriesSection() {
       className="flex-1 px-4 py-6 max-w-md lg:max-w-none mx-auto w-full"
     >
       {items.length === 0 ? (
-        <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-10 text-center">
-          <Inbox size={36} className="text-gray-300 mx-auto mb-3" />
+        <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-10 text-center flex flex-col items-center">
+          <Mascot pose="delivery" size={104} className="mb-2" />
           <p className="text-sm text-gray-600 font-medium">还没有接过单</p>
           <p className="text-xs text-gray-400 mt-1 mb-4">有客户发布符合你类目的需求时，会以 🔔 通知 + 邮件送达；点开通知里的需求即可<b>站内私信客户</b>。保持「上线接单」能收到更多急单。</p>
           <button

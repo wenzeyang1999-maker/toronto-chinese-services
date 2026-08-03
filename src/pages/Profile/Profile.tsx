@@ -13,6 +13,7 @@ import { offsetLocation } from '../../lib/geo'
 import { useAuthStore } from '../../store/authStore'
 import { useLeadAlertsStore } from '../../store/leadAlertsStore'
 import { useOnlineModeStore } from '../../store/onlineModeStore'
+import Mascot from '../../components/Mascot/Mascot'
 import { compressImage } from '../../lib/compressImage'
 import { moderateImage } from '../../lib/moderateImage'
 import type { BrowseEntry, Section } from './types'
@@ -89,6 +90,7 @@ export default function Profile() {
   const [creditPenalty, setCreditPenalty] = useState(0)
   const [isAdmin, setIsAdmin] = useState(false)
   const [flipping, setFlipping] = useState(false)   // 身份翻转 / 上下线进行中
+  const [celebrate, setCelebrate] = useState(false) // 上线成功 邻邻庆祝浮层
   const [mode, setMode] = useState<'client' | 'provider'>(() => {
     const saved = localStorage.getItem('tcs_profile_mode')
     if (saved === 'provider' || saved === 'client') return saved
@@ -163,6 +165,8 @@ export default function Profile() {
           last_seen_at: new Date().toISOString(),
         }).eq('id', user.id)
         if (lat != null) toast('已上线接单 · 显示到地图', 'success')
+        setCelebrate(true)
+        window.setTimeout(() => setCelebrate(false), 1900)
       } else {
         await supabase.from('users').update({
           is_online: false, online_lat: null, online_lng: null,
@@ -230,10 +234,8 @@ export default function Profile() {
         <span className="font-semibold text-gray-800">我的账号</span>
       </div>
       <div className="flex-1 flex flex-col items-center justify-center px-6 py-12 text-center gap-6">
-        <div className="w-20 h-20 rounded-full bg-gradient-to-br from-primary-400 to-primary-600
-                        flex items-center justify-center text-white text-3xl shadow-lg">
-          👤
-        </div>
+        <Mascot pose="home" size={132} />
+
         <div>
           <h2 className="text-xl font-bold text-gray-900 mb-2">登录后解锁完整功能</h2>
           <p className="text-sm text-gray-500 leading-relaxed max-w-xs mx-auto">
@@ -502,6 +504,27 @@ export default function Profile() {
 
   return (
     <div className="min-h-screen flex flex-col transition-colors duration-300 bg-gray-50">
+
+      {/* 上线接单成功 — 邻邻庆祝浮层 */}
+      <AnimatePresence>
+        {celebrate && (
+          <motion.div
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[120] flex items-center justify-center bg-black/30 pointer-events-none"
+          >
+            <motion.div
+              initial={{ scale: 0.6, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.8, opacity: 0 }}
+              transition={{ type: 'spring', stiffness: 300, damping: 18 }}
+              className="flex flex-col items-center gap-2 bg-white rounded-3xl px-8 py-6 shadow-2xl"
+            >
+              <Mascot pose="cheer" size={128} />
+              <p className="text-base font-bold text-emerald-600">已上线接单！</p>
+              <p className="text-xs text-gray-400">邻邻帮你把位置亮到地图上啦</p>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
 
       {/* ── Top bar ─────────────────────────────────────────────────────────── */}
       <div className="w-full bg-white border-b-2 border-gray-200 px-4 h-14 flex items-center gap-3 sticky top-0 z-20">

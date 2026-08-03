@@ -1,11 +1,12 @@
 import { useNavigate } from 'react-router-dom'
 import { Home, ArrowLeft } from 'lucide-react'
+import Mascot from '../../components/Mascot/Mascot'
 
 export default function NotFound() {
   const navigate = useNavigate()
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center px-6 text-center gap-6">
-      <div className="text-7xl select-none">🗺️</div>
+      <Mascot pose="surprised" size={140} />
       <div>
         <h1 className="text-2xl font-bold text-gray-900 mb-2">页面不存在</h1>
         <p className="text-sm text-gray-500 leading-relaxed max-w-xs mx-auto">

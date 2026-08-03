@@ -9,6 +9,7 @@
 import { Component } from 'react'
 import type { ReactNode, ErrorInfo } from 'react'
 import { Sentry } from '../../lib/sentry'
+import Mascot from '../Mascot/Mascot'
 
 interface Props {
   children: ReactNode
@@ -44,7 +45,7 @@ export default class ErrorBoundary extends Component<Props, State> {
 
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 px-6 text-center">
-        <div className="text-5xl mb-4">😵</div>
+        <Mascot pose="surprised" size={128} className="mb-3" />
         <h2 className="text-lg font-bold text-gray-800 mb-2">页面出错了</h2>
         <p className="text-sm text-gray-500 mb-6 max-w-xs leading-relaxed">
           抱歉，这个页面遇到了一个意外错误。请刷新重试，或返回首页。
