@@ -122,11 +122,17 @@ export default function Onboarding() {
   const spotTop = rect.top - PAD, spotLeft = rect.left - PAD
   const spotW = rect.width + PAD * 2, spotH = rect.height + PAD * 2
 
-  // Tooltip: below the spotlight if room, else above.
-  const below = spotTop + spotH + 170 < vh
-  const tipTop = below ? spotTop + spotH + 14 : spotTop - 14
-  const tipLeftRaw = rect.left + rect.width / 2 - 150
-  const tipLeft = Math.max(12, Math.min(tipLeftRaw, vw - 312))
+  // Tooltip placement — prefer below, flip above when it would run off-screen,
+  // then clamp fully inside the viewport so it's never cut off / too low.
+  const TIP_W = 300, TIP_H = 200
+  const spotBottom = spotTop + spotH
+  const below = spotBottom + 14 + TIP_H < vh - 12
+  let tipTop = below ? spotBottom + 14 : spotTop - 14 - TIP_H
+  tipTop = Math.max(12, Math.min(tipTop, vh - TIP_H - 12))
+  const tipLeftRaw = rect.left + rect.width / 2 - TIP_W / 2
+  const tipLeft = Math.max(12, Math.min(tipLeftRaw, vw - TIP_W - 12))
+  // Arrow x within the card, pointing at the target centre.
+  const arrowX = Math.max(16, Math.min(rect.left + rect.width / 2 - tipLeft - 9, TIP_W - 34))
   const stepNum = step + 1
 
   const overlay = (
@@ -143,22 +149,7 @@ export default function Onboarding() {
         style={{ boxShadow: '0 0 0 9999px rgba(15,23,42,0.72)' }}
       />
 
-      {/* Arrow pointing at the target */}
-      <div
-        className="absolute w-0 h-0 pointer-events-none"
-        style={{
-          left: Math.max(20, Math.min(rect.left + rect.width / 2 - 8, vw - 28)),
-          top: below ? tipTop - 9 : tipTop - 1,
-          borderLeft: '9px solid transparent',
-          borderRight: '9px solid transparent',
-          ...(below
-            ? { borderBottom: '10px solid white' }
-            : { borderTop: '10px solid white' }),
-          transform: below ? 'none' : 'translateY(-100%)',
-        }}
-      />
-
-      {/* Tooltip card */}
+      {/* Tooltip card (arrow attached to its edge → always aligned) */}
       <AnimatePresence mode="wait">
         <motion.div
           key={step}
@@ -167,8 +158,20 @@ export default function Onboarding() {
           exit={{ opacity: 0 }}
           transition={{ duration: 0.2 }}
           className="absolute w-[300px] bg-white rounded-2xl shadow-2xl p-4"
-          style={{ left: tipLeft, top: below ? tipTop : tipTop, transform: below ? 'none' : 'translateY(-100%)' }}
+          style={{ left: tipLeft, top: tipTop }}
         >
+          {/* Arrow pointing at the target */}
+          <div
+            className="absolute w-0 h-0"
+            style={{
+              left: arrowX,
+              borderLeft: '9px solid transparent',
+              borderRight: '9px solid transparent',
+              ...(below
+                ? { top: -9, borderBottom: '10px solid white' }
+                : { bottom: -9, borderTop: '10px solid white' }),
+            }}
+          />
           <div className="flex items-start gap-3">
             <Mascot pose="curious" size={44} className="flex-shrink-0 -mt-1" />
             <div className="flex-1 min-w-0">
