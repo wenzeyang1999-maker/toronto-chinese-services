@@ -23,6 +23,7 @@ import MessageToast from './components/MessageToast/MessageToast'
 import NotificationPrompt from './components/NotificationPrompt/NotificationPrompt'
 import InstallPWA from './components/InstallPWA/InstallPWA'
 import FABGroup from './components/FABGroup/FABGroup'
+import Onboarding from './components/Onboarding/Onboarding'
 import AiChatWidget from './components/AiChatWidget/AiChatWidget'
 import InquiryModal from './components/InquiryModal/InquiryModal'
 import { useInquiryStore } from './store/inquiryStore'
@@ -284,6 +285,9 @@ export default function App() {
         </Suspense>
         </ErrorBoundary>
       )}
+
+      {/* First-visit guided tour (自身用 localStorage 只对新访客显示一次) */}
+      {isLoadingDone && <Onboarding />}
 
       {/* App-wide「上线接单」blue tint (cosmetic, non-blocking) */}
       {isLoadingDone && <OnlineModeTint />}
