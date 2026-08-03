@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { cdnUrl } from '../../lib/cdnUrl'
 import { useSearchParams, useNavigate } from 'react-router-dom'
+import Mascot from '../../components/Mascot/Mascot'
 import { ArrowLeft, Search as SearchIcon, SlidersHorizontal, Sparkles, MessageSquare, Heart, LayoutList, Map, Wrench, Briefcase, Home, ShoppingBag, Calendar, Users } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import ServiceCard from '../../components/ServiceCard/ServiceCard'
@@ -508,7 +509,8 @@ export default function Search() {
           ) : (() => {
             const filtered = globalTab === 'all' ? globalResults : globalResults.filter(r => r.type === globalTab)
             return filtered.length === 0 ? (
-              <div className="text-center py-20 text-gray-400">
+              <div className="flex flex-col items-center py-16 text-gray-400">
+                <Mascot pose="curious" size={96} className="mb-2" />
                 <p className="text-sm">未找到相关结果</p>
                 <p className="text-xs text-gray-300 mt-1">试试其他关键词，或切换"服务搜索"查看专项结果</p>
               </div>

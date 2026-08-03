@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { ArrowLeft, Search, Navigation, X, RefreshCw } from 'lucide-react'
+import Mascot from '../../components/Mascot/Mascot'
 import { useAppStore } from '../../store/appStore'
 import { useAuthStore } from '../../store/authStore'
 import { useGeolocation, useUpdateLocation, LOCATION_STALE_MS } from '../../hooks/useGeolocation'
@@ -230,8 +231,8 @@ export default function MapPage() {
 
       {/* 无结果 */}
       {kw && points.length === 0 && (
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-20 bg-white rounded-2xl shadow-lg p-6 text-center">
-          <p className="text-3xl mb-2">🔍</p>
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-20 bg-white rounded-2xl shadow-lg p-6 text-center flex flex-col items-center">
+          <Mascot pose="curious" size={80} className="mb-1" />
           <p className="text-sm font-semibold text-gray-700 mb-1">没有找到「{search}」</p>
           <p className="text-xs text-gray-400">换个关键词试试</p>
         </div>

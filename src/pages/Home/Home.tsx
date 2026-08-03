@@ -2,6 +2,7 @@ import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react'
 import { calcDistance } from '../../lib/geo'
 import HeroBanner from '../../components/HeroBanner/HeroBanner'
 import CategoryButtons from '../../components/CategoryButtons/CategoryButtons'
+import Mascot from '../../components/Mascot/Mascot'
 import { useInquiryStore } from '../../store/inquiryStore'
 import { useAppStore } from '../../store/appStore'
 import { useOnlineModeStore } from '../../store/onlineModeStore'
@@ -497,7 +498,7 @@ export default function Home() {
               {/* Card grid — always visible below map */}
               {forList.length === 0 ? (
                 <div className="card p-10 flex flex-col items-center gap-3 text-center">
-                  <span className="text-4xl">{kw ? '🔍' : '📭'}</span>
+                  <Mascot pose={kw ? 'curious' : 'sleep'} size={96} />
                   <p className="text-sm font-semibold text-gray-600">
                     {kw ? `没有找到"${requestSearch}"相关需求` : '暂无客户需求'}
                   </p>

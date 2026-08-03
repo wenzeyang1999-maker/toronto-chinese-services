@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
+import Mascot from '../../../components/Mascot/Mascot'
 import { MessageSquare, ChevronRight } from 'lucide-react'
 import { supabase } from '../../../lib/supabase'
 import { useAuthStore } from '../../../store/authStore'
@@ -73,7 +74,7 @@ export default function MessagesSection() {
   if (convs.length === 0) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center gap-2 px-8 text-center">
-        <span className="text-5xl mb-2 select-none">💬</span>
+        <Mascot pose="sleep" size={112} className="mb-1" />
         <p className="text-base font-semibold text-gray-700">还没有消息</p>
         <p className="text-sm text-gray-400 leading-relaxed">在服务详情页点击「发消息」<br />即可和服务商开始对话</p>
         <button

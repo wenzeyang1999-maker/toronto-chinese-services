@@ -7,6 +7,7 @@ import type { Service } from '../../../types'
 import ServiceCard from '../../../components/ServiceCard/ServiceCard'
 import { fuzzyFilterServices } from '../../../lib/fuzzySearch'
 import { ServiceListSkeleton } from '../../../components/Skeleton/Skeleton'
+import Mascot from '../../../components/Mascot/Mascot'
 import { useAppStore } from '../../../store/appStore'
 
 class MapErrorBoundary extends Component<{ onError: () => void; children: ReactNode }, { err: boolean }> {
@@ -127,9 +128,9 @@ export default function HomeServiceShelf({
           {filteredList.length > 0
             ? filteredList.map((svc) => <ServiceCard key={svc.id} service={svc} />)
             : q
-              ? <p className="py-6 text-center text-sm text-gray-400">没有找到相关服务</p>
+              ? <div className="py-8 flex flex-col items-center gap-2 text-center"><Mascot pose="curious" size={88} /><p className="text-sm text-gray-400">没有找到相关服务</p></div>
               : servicesLoaded
-                ? <p className="py-6 text-center text-sm text-gray-400">附近暂无服务，换个区域看看～</p>
+                ? <div className="py-8 flex flex-col items-center gap-2 text-center"><Mascot pose="sleep" size={88} /><p className="text-sm text-gray-400">附近暂无服务，换个区域看看～</p></div>
                 : <ServiceListSkeleton count={4} />
           }
         </div>

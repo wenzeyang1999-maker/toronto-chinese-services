@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useAppStore } from '../../store/appStore'
+import Mascot from '../Mascot/Mascot'
 
 export default function LoadingScreen() {
   const setLoadingDone = useAppStore((s) => s.setLoadingDone)
@@ -39,6 +40,20 @@ export default function LoadingScreen() {
         transition={{ duration: 0.5 }}
         className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-gradient-to-br from-blue-600 via-blue-700 to-blue-900"
       >
+        {/* 邻邻 — bouncing while loading */}
+        <motion.div
+          initial={{ scale: 0, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1, y: [0, -10, 0] }}
+          transition={{
+            scale: { duration: 0.5, ease: 'backOut' },
+            opacity: { duration: 0.4 },
+            y: { duration: 1.1, repeat: Infinity, ease: 'easeInOut' },
+          }}
+          className="mb-6 drop-shadow-xl"
+        >
+          <Mascot pose="run" size={128} priority />
+        </motion.div>
+
         {/* Main text */}
         <motion.div
           initial={{ y: 30, opacity: 0 }}
