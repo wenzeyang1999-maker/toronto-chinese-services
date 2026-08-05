@@ -21,7 +21,7 @@ import AdminNotificationsBell from '../AdminNotifications/AdminNotificationsBell
 // ── Section definitions ───────────────────────────────────────────────────────
 const NAV_SECTIONS = [
   { id: 'urgent',     label: '急单地图', href: '/?view=urgent' },
-  { id: 'services',   label: '生活服务', href: '/' },
+  { id: 'services',   label: '生活服务', href: '/?view=services' },
   { id: 'realestate', label: '房产租售', href: '/realestate' },
   { id: 'jobs',       label: '求职招聘', href: '/jobs' },
   { id: 'secondhand', label: '二手交易', href: '/secondhand' },

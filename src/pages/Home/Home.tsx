@@ -55,6 +55,7 @@ export default function Home() {
   })
   const searchRef = useRef<HTMLDivElement>(null)
   const feedRef   = useRef<HTMLDivElement>(null)   // 「急单地图」入口滚动目标
+  const catRef    = useRef<HTMLDivElement>(null)   // 「生活服务」入口滚动目标（热门服务）
 
   // Detect if current user is a provider (has published at least one service)
   const isProvider = useMemo(
@@ -105,16 +106,27 @@ export default function Home() {
   // 导航「急单地图」入口 → /?view=urgent：强制进「发现客户 + 地图」急单视图。
   // 保留参数(不抹除)以便导航该 tab 正确高亮;effect 仅在 URL 变化时触发,
   // 之后用户手动切「找服务/列表」不会被反复拉回。与生活服务共用首页,靠此参数分流。
+  // 导航「急单地图」/「生活服务」入口 → 强制对应视图 + 滚动到那一块,
+  // 否则从另一个 tab 切过来会卡在旧 feedMode、且停在顶部 hero 看不到跳转。
   useEffect(() => {
-    if (searchParams.get('view') !== 'urgent') return
-    setFeedMode('requests')
-    setViewMode('map')
-    // 视图在下方,主动滚过去,否则用户停在顶部 hero 看不到"跳转"效果。
-    const t = setTimeout(() => {
-      const el = feedRef.current
-      if (el) window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - 64, behavior: 'smooth' })
-    }, 150)
-    return () => clearTimeout(t)
+    const view = searchParams.get('view')
+    if (view === 'urgent') {
+      setFeedMode('requests')
+      setViewMode('map')
+      const t = setTimeout(() => {
+        const el = feedRef.current
+        if (el) window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - 64, behavior: 'smooth' })
+      }, 150)
+      return () => clearTimeout(t)
+    }
+    if (view === 'services') {
+      setFeedMode('services')
+      const t = setTimeout(() => {
+        const el = catRef.current
+        if (el) window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - 64, behavior: 'smooth' })
+      }, 150)
+      return () => clearTimeout(t)
+    }
   }, [searchParams])
 
   // Map radius (km) for the map views — continuous slider, persisted to localStorage
@@ -268,7 +280,7 @@ export default function Home() {
       <div className="w-full px-3 md:w-[85%] md:px-0 lg:w-[70%] mx-auto">
 
         {/* Category buttons */}
-        <section className="mb-4 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+        <section ref={catRef} className="mb-4 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
           <div className="flex items-center justify-between gap-3 mb-3">
             <h3 className="text-sm font-semibold text-gray-800">热门服务</h3>
             <button
