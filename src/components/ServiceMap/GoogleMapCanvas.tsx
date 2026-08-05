@@ -27,6 +27,8 @@ interface Props {
   scrollWheel?: boolean
   /** Search radius in km — draws a circle around the user and fits the map to it. */
   radiusKm?: number
+  /** Fired with the current zoom level whenever it changes (+ once on init). */
+  onZoomChanged?: (zoom: number) => void
 }
 
 const GoogleMapCanvas = forwardRef<GoogleMapCanvasHandle, Props>(function GoogleMapCanvas({
@@ -36,7 +38,10 @@ const GoogleMapCanvas = forwardRef<GoogleMapCanvasHandle, Props>(function Google
   userLocation = null,
   scrollWheel = true,
   radiusKm,
+  onZoomChanged,
 }, ref) {
+  const onZoomChangedRef = useRef(onZoomChanged)
+  onZoomChangedRef.current = onZoomChanged
   const containerRef = useRef<HTMLDivElement | null>(null)
   const mapRef = useRef<any>(null)
   const markersRef = useRef<any[]>([])
@@ -76,6 +81,12 @@ const GoogleMapCanvas = forwardRef<GoogleMapCanvasHandle, Props>(function Google
             zoomControlOptions: { position: maps.ControlPosition.RIGHT_TOP },
           })
           infoWindowRef.current = new maps.InfoWindow()
+          // Report zoom changes so overlays (e.g. the distance ruler) can react.
+          mapRef.current.addListener('zoom_changed', () => {
+            const z = mapRef.current?.getZoom()
+            if (typeof z === 'number') onZoomChangedRef.current?.(z)
+          })
+          onZoomChangedRef.current?.(mapRef.current.getZoom() ?? zoom)
         }
         setReady(true)
       })

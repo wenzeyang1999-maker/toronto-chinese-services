@@ -11,6 +11,9 @@ import GoogleMapCanvas, { type GoogleMapCanvasHandle, type GoogleMapPoint } from
 import RadiusSlider from '../RadiusSlider/RadiusSlider'
 import { buildServiceInfo, buildDemandInfo, buildOnlineProviderInfo } from '../../lib/mapInfoWindows'
 
+// 距离尺「放大后才显示」的缩放阈值：默认定位缩放为 13，放大一级(≥14)才出现。
+const ZOOM_SHOW_RULER = 14
+
 interface Props {
   services: Service[]
   requests?: ServiceRequest[]  // optional demand pins
@@ -48,6 +51,7 @@ export default function ServiceMap({ services, requests = [], count, requestsOnl
   const mapRef = useRef<GoogleMapCanvasHandle>(null)
   const mapped = useMemo(() => services.filter(hasCoordinates), [services])
   const [onlineProviders, setOnlineProviders] = useState<OnlineProvider[]>([])
+  const [mapZoom, setMapZoom] = useState(0)   // 距离尺「放大后才显示」用（内测 一.2）
   const { locating, updateLocation } = useUpdateLocation()
 
   // On mount, refresh location if we have none OR the cached fix is stale
@@ -161,24 +165,27 @@ export default function ServiceMap({ services, requests = [], count, requestsOnl
         points={points}
         userLocation={userLocation}
         radiusKm={radiusKm}
+        onZoomChanged={setMapZoom}
       />
 
-      {/* Distance slider — floats on the map (Google Maps style) */}
-      {onRadiusChange && (
+      {/* Distance ruler (距离尺) — 放大到 ZOOM_SHOW_RULER 才显示（内测 一.2）。
+          未定位时仍给一个「开启定位」入口。 */}
+      {onRadiusChange && !userLocation && (
         <div className="absolute top-3 left-3 z-[400]">
-          {userLocation ? (
-            <RadiusSlider value={radiusKm ?? 5} onChange={onRadiusChange} />
-          ) : (
-            <button
-              onClick={() => requestLocation()}
-              className="flex items-center gap-1.5 bg-white/95 backdrop-blur-sm rounded-xl shadow-md
-                         border border-gray-200 px-3 py-2 text-xs font-semibold text-primary-600
-                         active:scale-95 transition-all"
-            >
-              <MapPin size={13} />
-              开启定位筛选距离
-            </button>
-          )}
+          <button
+            onClick={() => requestLocation()}
+            className="flex items-center gap-1.5 bg-white/95 backdrop-blur-sm rounded-xl shadow-md
+                       border border-gray-200 px-3 py-2 text-xs font-semibold text-primary-600
+                       active:scale-95 transition-all"
+          >
+            <MapPin size={13} />
+            开启定位筛选距离
+          </button>
+        </div>
+      )}
+      {onRadiusChange && userLocation && mapZoom >= ZOOM_SHOW_RULER && (
+        <div className="absolute top-3 left-3 z-[400]">
+          <RadiusSlider value={radiusKm ?? 5} onChange={onRadiusChange} />
         </div>
       )}
 
