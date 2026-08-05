@@ -54,6 +54,7 @@ export default function Home() {
     return saved === 'list' || saved === 'map' ? saved : 'list'
   })
   const searchRef = useRef<HTMLDivElement>(null)
+  const feedRef   = useRef<HTMLDivElement>(null)   // 「急单地图」入口滚动目标
 
   // Detect if current user is a provider (has published at least one service)
   const isProvider = useMemo(
@@ -108,6 +109,12 @@ export default function Home() {
     if (searchParams.get('view') !== 'urgent') return
     setFeedMode('requests')
     setViewMode('map')
+    // 视图在下方,主动滚过去,否则用户停在顶部 hero 看不到"跳转"效果。
+    const t = setTimeout(() => {
+      const el = feedRef.current
+      if (el) window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - 64, behavior: 'smooth' })
+    }, 150)
+    return () => clearTimeout(t)
   }, [searchParams])
 
   // Map radius (km) for the map views — continuous slider, persisted to localStorage
@@ -283,7 +290,7 @@ export default function Home() {
         {/* <HomeCommunityEntry /> */}
 
         {/* ── Feed mode toggle — headline dual-marketplace switcher ──────────── */}
-        <div className="mb-4">
+        <div ref={feedRef} className="mb-4">
           <div className="grid grid-cols-2 gap-3">
             {/* 找服务 */}
             <button
