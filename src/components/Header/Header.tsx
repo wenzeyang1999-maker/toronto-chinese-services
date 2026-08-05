@@ -20,16 +20,18 @@ import AdminNotificationsBell from '../AdminNotifications/AdminNotificationsBell
 
 // ── Section definitions ───────────────────────────────────────────────────────
 const NAV_SECTIONS = [
+  { id: 'urgent',     label: '急单地图', href: '/?view=urgent' },
   { id: 'services',   label: '生活服务', href: '/' },
+  { id: 'realestate', label: '房产租售', href: '/realestate' },
   { id: 'jobs',       label: '求职招聘', href: '/jobs' },
   { id: 'secondhand', label: '二手交易', href: '/secondhand' },
-  { id: 'realestate', label: '房产租售', href: '/realestate' },
   { id: 'plaza',      label: '大多广场', href: '/plaza' },
 ] as const
 
 type SectionId = typeof NAV_SECTIONS[number]['id']
 
 const PLACEHOLDER: Record<SectionId, string> = {
+  urgent:     '在附近急单中搜索…',
   services:   '在 7 大生活服务中搜索师傅…',
   jobs:       '在招聘信息中搜索…',
   secondhand: '在二手物品中搜索…',
@@ -40,7 +42,7 @@ const PLACEHOLDER: Record<SectionId, string> = {
 // Pages that render their own search bar — Header row 3 would be redundant there
 const PAGES_WITH_OWN_SEARCH = new Set(['/jobs', '/secondhand', '/realestate', '/search'])
 
-function getActiveSection(pathname: string): SectionId | null {
+function getActiveSection(pathname: string, search = ''): SectionId | null {
   if (pathname.startsWith('/jobs'))        return 'jobs'
   if (pathname.startsWith('/secondhand'))  return 'secondhand'
   if (pathname.startsWith('/realestate'))  return 'realestate'
@@ -49,6 +51,8 @@ function getActiveSection(pathname: string): SectionId | null {
     pathname.startsWith('/events') ||
     pathname.startsWith('/community')
   ) return 'plaza'
+  // 「急单地图」与「生活服务」共用首页 '/'，靠 ?view=urgent 区分高亮。
+  if (pathname === '/' && new URLSearchParams(search).get('view') === 'urgent') return 'urgent'
   if (
     pathname === '/' ||
     pathname.startsWith('/category') ||
@@ -66,7 +70,7 @@ function buildSearchUrl(query: string, active: SectionId | null, global: boolean
   if (active === 'jobs')        return `/jobs?keyword=${q}`
   if (active === 'secondhand')  return `/secondhand?keyword=${q}`
   if (active === 'realestate')  return `/realestate?keyword=${q}`
-  if (active === 'services')    return `/search?q=${q}`
+  if (active === 'services' || active === 'urgent') return `/search?q=${q}`
   return `/search?q=${q}&global=1`
 }
 
@@ -78,7 +82,7 @@ export default function Header({ sticky = true }: HeaderProps) {
   const navigate  = useNavigate()
   const location  = useLocation()
   const user      = useAuthStore((s) => s.user)
-  const active    = getActiveSection(location.pathname)
+  const active    = getActiveSection(location.pathname, location.search)
   const scrollRef = useRef<HTMLDivElement>(null)
   const city      = useCityStore((s) => s.city)
   const [cityPickerOpen, setCityPickerOpen] = useState(false)

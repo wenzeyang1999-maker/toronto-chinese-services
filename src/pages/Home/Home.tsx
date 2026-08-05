@@ -100,6 +100,15 @@ export default function Home() {
     }
   }, [providerMode])
 
+  // 导航「急单地图」入口 → /?view=urgent：强制进「发现客户 + 地图」急单视图。
+  // 保留参数(不抹除)以便导航该 tab 正确高亮;effect 仅在 URL 变化时触发,
+  // 之后用户手动切「找服务/列表」不会被反复拉回。与生活服务共用首页,靠此参数分流。
+  useEffect(() => {
+    if (searchParams.get('view') !== 'urgent') return
+    setFeedMode('requests')
+    setViewMode('map')
+  }, [searchParams])
+
   // Map radius (km) for the map views — continuous slider, persisted to localStorage
   const [mapRadiusKm, setMapRadiusKm] = useState<number>(() => {
     const saved = Number(localStorage.getItem('tcs_map_radius_km'))
