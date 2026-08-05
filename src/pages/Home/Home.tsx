@@ -67,7 +67,8 @@ export default function Home() {
     return saved === 'requests' || saved === 'services' ? saved : 'services'
   })
   const [requestSearch, setRequestSearch] = useState('')
-  const [urgentOnly, setUrgentOnly] = useState(true)   // 急单地图：默认只看急单（H1，减压；可切回看全部）
+  // 急单地图：急单(紧急) / 预约单(非紧急、约时间) 二选一，默认急单（H1，减压）
+  const [leadFilter, setLeadFilter] = useState<'urgent' | 'scheduled'>('urgent')
   useEffect(() => {
     if (!localStorage.getItem('tcs_feed_mode')) {
       setFeedMode(isProvider ? 'requests' : 'services')
@@ -389,9 +390,10 @@ export default function Home() {
           // Step 1: fuzzy search — handles synonyms, typos, cross-language matching
           const searched = fuzzyFilterRequests(serviceRequests, kw)
 
-          // Step 1.5: 「只看急单」筛选（同时作用于地图与列表）
-          const filtered = urgentOnly ? searched.filter(r => r.isUrgent) : searched
-          const urgentCount = searched.filter(r => r.isUrgent).length
+          // Step 1.5: 急单 / 预约单 筛选（同时作用于地图与列表）
+          const filtered = searched.filter(r => leadFilter === 'urgent' ? r.isUrgent : !r.isUrgent)
+          const urgentCount    = searched.filter(r => r.isUrgent).length
+          const scheduledCount = searched.length - urgentCount
 
           // Step 2: skill-tag filter for map (keeps all for card grid)
           const tagFiltered = mySkillTags.length > 0
@@ -444,23 +446,37 @@ export default function Home() {
                   <h3 className="text-sm font-semibold text-gray-800">🚨 急单地图 · 找客户</h3>
                   <p className="text-xs text-gray-400 mt-0.5">附近客户发布的即时需求，主动出击接单赚钱</p>
                 </div>
-                {/* 只看急单 筛选 */}
-                <button
-                  onClick={() => setUrgentOnly(v => !v)}
-                  aria-pressed={urgentOnly}
-                  className={`flex-shrink-0 flex items-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-full border transition-colors ${
-                    urgentOnly
-                      ? 'bg-red-500 text-white border-red-500 shadow-sm'
-                      : 'bg-white text-red-600 border-red-200 hover:bg-red-50'
-                  }`}
-                >
-                  🚨 {urgentOnly ? '只看急单' : '筛选急单'}
-                  {urgentCount > 0 && (
-                    <span className={`ml-0.5 px-1.5 rounded-full text-[10px] ${urgentOnly ? 'bg-white/25' : 'bg-red-100 text-red-600'}`}>
-                      {urgentCount}
-                    </span>
-                  )}
-                </button>
+                {/* 急单 / 预约单 二选一切换 */}
+                <div className="flex-shrink-0 flex gap-1 p-1 rounded-full bg-gray-100 border border-gray-200">
+                  <button
+                    onClick={() => setLeadFilter('urgent')}
+                    aria-pressed={leadFilter === 'urgent'}
+                    className={`flex items-center gap-1 text-xs font-semibold px-3 py-1 rounded-full transition-colors ${
+                      leadFilter === 'urgent' ? 'bg-red-500 text-white shadow-sm' : 'text-red-600 hover:bg-red-50'
+                    }`}
+                  >
+                    🚨 急单
+                    {urgentCount > 0 && (
+                      <span className={`px-1.5 rounded-full text-[10px] ${leadFilter === 'urgent' ? 'bg-white/25' : 'bg-red-100 text-red-600'}`}>
+                        {urgentCount}
+                      </span>
+                    )}
+                  </button>
+                  <button
+                    onClick={() => setLeadFilter('scheduled')}
+                    aria-pressed={leadFilter === 'scheduled'}
+                    className={`flex items-center gap-1 text-xs font-semibold px-3 py-1 rounded-full transition-colors ${
+                      leadFilter === 'scheduled' ? 'bg-primary-600 text-white shadow-sm' : 'text-primary-600 hover:bg-primary-50'
+                    }`}
+                  >
+                    🗓️ 预约单
+                    {scheduledCount > 0 && (
+                      <span className={`px-1.5 rounded-full text-[10px] ${leadFilter === 'scheduled' ? 'bg-white/25' : 'bg-primary-100 text-primary-600'}`}>
+                        {scheduledCount}
+                      </span>
+                    )}
+                  </button>
+                </div>
               </div>
 
               {/* 颜色图例 */}
