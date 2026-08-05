@@ -83,6 +83,9 @@ export default function Header({ sticky = true }: HeaderProps) {
   const location  = useLocation()
   const user      = useAuthStore((s) => s.user)
   const active    = getActiveSection(location.pathname, location.search)
+  // 初始首页(裸 '/' 无 ?view=)：不高亮任何 tab；用户点了某个 tab(带 ?view=)才高亮。
+  // 仅影响高亮显示,不改 active(搜索框/placeholder 仍按 services 走)。
+  const bareHome  = location.pathname === '/' && !new URLSearchParams(location.search).get('view')
   const scrollRef = useRef<HTMLDivElement>(null)
   const city      = useCityStore((s) => s.city)
   const [cityPickerOpen, setCityPickerOpen] = useState(false)
@@ -125,7 +128,7 @@ export default function Header({ sticky = true }: HeaderProps) {
         {/* Desktop section nav (lg+) */}
         <nav className="hidden lg:flex items-center gap-0.5 flex-shrink-0">
           {NAV_SECTIONS.map((sec) => {
-            const isActive = active === sec.id
+            const isActive = active === sec.id && !bareHome
             return (
               <button
                 key={sec.id}
@@ -225,7 +228,7 @@ export default function Header({ sticky = true }: HeaderProps) {
         style={{ scrollbarWidth: 'none' }}
       >
         {NAV_SECTIONS.map((sec) => {
-          const isActive = active === sec.id
+          const isActive = active === sec.id && !bareHome
           return (
             <button
               key={sec.id}
