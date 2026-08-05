@@ -68,8 +68,12 @@ const GoogleMapCanvas = forwardRef<GoogleMapCanvasHandle, Props>(function Google
             mapTypeControl: false,
             fullscreenControl: false,
             streetViewControl: false,
+            rotateControl: false,          // 去掉右下角罗盘/「菱形」控件（内测 一.2）
             clickableIcons: false,
             scrollwheel: scrollWheel,
+            // 「放大箭头」缩放控件移到右上角（内测 一.2）
+            zoomControl: true,
+            zoomControlOptions: { position: maps.ControlPosition.RIGHT_TOP },
           })
           infoWindowRef.current = new maps.InfoWindow()
         }

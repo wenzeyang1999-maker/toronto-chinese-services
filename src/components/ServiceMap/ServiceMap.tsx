@@ -182,11 +182,11 @@ export default function ServiceMap({ services, requests = [], count, requestsOnl
         </div>
       )}
 
-      {/* Locate-me button — Google Maps style */}
+      {/* Locate-me button — moved to bottom-right (内测 一.2) */}
       <button
         onClick={handleLocate}
         title="定位到我的位置"
-        className={`absolute top-3 right-3 z-[400] w-10 h-10 rounded-full shadow-md
+        className={`absolute bottom-3 right-3 z-[400] w-10 h-10 rounded-full shadow-md
                    flex items-center justify-center active:scale-95 transition-all
                    ${userLocation
                      ? 'bg-red-500 hover:bg-red-600'
@@ -200,7 +200,7 @@ export default function ServiceMap({ services, requests = [], count, requestsOnl
         onClick={() => updateLocation(() => mapRef.current?.panToUser())}
         disabled={locating}
         title="更新我的位置（最多每 5 分钟一次）"
-        className="absolute top-14 right-3 z-[400] h-8 pl-2 pr-2.5 rounded-full shadow-md
+        className="absolute bottom-16 right-3 z-[400] h-8 pl-2 pr-2.5 rounded-full shadow-md
                    bg-white hover:bg-gray-50 flex items-center gap-1 active:scale-95 transition-all
                    disabled:opacity-70 text-xs font-medium text-gray-700"
       >
@@ -212,7 +212,7 @@ export default function ServiceMap({ services, requests = [], count, requestsOnl
       <button
         onClick={() => navigate(requestsOnly ? '/map?type=requests' : '/map')}
         title="全屏地图"
-        className="absolute top-3 right-14 z-[400] w-10 h-10 rounded-full shadow-md bg-white hover:bg-gray-50
+        className="absolute bottom-28 right-3 z-[400] w-10 h-10 rounded-full shadow-md bg-white hover:bg-gray-50
                    flex items-center justify-center active:scale-95 transition-all"
       >
         <Maximize2 size={16} className="text-gray-700" />
