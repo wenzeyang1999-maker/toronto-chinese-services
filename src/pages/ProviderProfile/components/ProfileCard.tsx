@@ -89,7 +89,7 @@ export default function ProfileCard({ provider, followerCount, isOwnProfile, joi
             )}
             <span className={`flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-medium
               ${provider.business_type === 'business' ? 'text-blue-700 bg-blue-50 border border-blue-200' : 'text-gray-500 bg-gray-100'}`}>
-              {provider.business_type === 'business' ? '🏢 企业商户' : '👤 个人服务商'}
+              {provider.business_type === 'business' ? '🏢 企业商户' : '👤 自雇'}
             </span>
           </div>
 

@@ -344,41 +344,35 @@ export default function Profile() {
         </div>
       </div>
 
-      {/* 一键身份翻转 — 双栖用户在「用户/服务商」视角间切换（说明书 §5.1）*/}
+      {/* 接单状态切换 — 两个明确的状态按钮「上线接单 / 停止接单」（内测三）*/}
       {SHOW_MODE_TOGGLE && (
-        <button
-          data-tour="p-role"
-          onClick={() => switchMode(mode === 'client' ? 'provider' : 'client')}
-          disabled={flipping}
-          className={`w-full rounded-2xl p-3.5 flex items-center justify-between gap-3 shadow-sm border transition-colors active:scale-[0.99] disabled:opacity-70
-            ${mode === 'client'
-              ? 'bg-gradient-to-r from-green-50 to-emerald-50 border-green-200'
-              : 'bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200'}`}
-        >
-          <div className="flex items-center gap-2.5 min-w-0">
-            <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0
-              ${mode === 'client' ? 'bg-green-100' : 'bg-blue-100'}`}>
-              {mode === 'client'
-                ? <UserIcon size={20} className="text-green-600" />
-                : <Store size={20} className="text-blue-600" />}
-            </div>
-            <div className="text-left min-w-0">
-              <p className={`text-lg font-bold truncate ${mode === 'client' ? 'text-green-700' : 'text-blue-700'}`}>
-                {mode === 'client' ? '下线休息' : '上线接单'}
-              </p>
-              <p className="text-[11px] text-gray-400 truncate">
-                {flipping ? '定位中…' : mode === 'client' ? '客户模式（下线）' : '服务商模式（上线）'}
-              </p>
-            </div>
-          </div>
-          <span className={`flex items-center gap-1 px-3 py-2 rounded-xl text-sm font-semibold text-white flex-shrink-0 shadow-sm relative
-            ${mode === 'client' ? 'bg-blue-600' : 'bg-green-600'}`}>
-            <RefreshCw size={14} className={flipping ? 'animate-spin' : ''} /> {flipping ? '处理中' : '一键翻转'}
+        <div data-tour="p-role" className="w-full rounded-2xl p-1 flex gap-1 bg-gray-100 border border-gray-200 shadow-sm">
+          <button
+            onClick={() => mode !== 'provider' && switchMode('provider')}
+            disabled={flipping}
+            className={`relative flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold transition-all disabled:opacity-70
+              ${mode === 'provider' ? 'bg-green-600 text-white shadow-sm' : 'text-gray-500 hover:bg-white/60'}`}
+          >
+            {flipping && mode === 'provider'
+              ? <RefreshCw size={15} className="animate-spin" />
+              : <Store size={16} />}
+            上线接单
             {mode === 'client' && !hasServices && (
-              <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-orange-400 rounded-full border-2 border-white" />
+              <span className="absolute top-1.5 right-2.5 w-2 h-2 bg-orange-400 rounded-full" />
             )}
-          </span>
-        </button>
+          </button>
+          <button
+            onClick={() => mode !== 'client' && switchMode('client')}
+            disabled={flipping}
+            className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold transition-all disabled:opacity-70
+              ${mode === 'client' ? 'bg-gray-600 text-white shadow-sm' : 'text-gray-500 hover:bg-white/60'}`}
+          >
+            {flipping && mode === 'client'
+              ? <RefreshCw size={15} className="animate-spin" />
+              : <UserIcon size={16} />}
+            停止接单
+          </button>
+        </div>
       )}
 
       {/* Menu items */}

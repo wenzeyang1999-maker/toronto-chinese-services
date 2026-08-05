@@ -62,6 +62,7 @@ export default function HomepageSection() {
   const [bioInput,   setBioInput]   = useState('')
   const [editingName, setEditingName] = useState(false)
   const [nameInput,   setNameInput]   = useState('')
+  const [editingBizType, setEditingBizType] = useState(false)   // 身份类型默认只显示选中,点编辑才出两个选项
 
   // Skill tags
   const [editingTags, setEditingTags] = useState(false)
@@ -346,7 +347,7 @@ export default function HomepageSection() {
                   ? 'bg-blue-100 text-blue-700'
                   : 'bg-gray-100 text-gray-600'
               }`}>
-                {profile.business_type === 'business' ? '🏢 企业' : '👤 个人'}
+                {profile.business_type === 'business' ? '🏢 企业' : '👤 自雇'}
               </span>
               {profile.is_online && (
                 <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 flex items-center gap-0.5">
@@ -439,32 +440,47 @@ export default function HomepageSection() {
               )}
             </div>
 
-            {/* ② 自雇/企业 */}
+            {/* ② 身份类型：自雇 / 企业 —— 默认只显示选中的,点「编辑」才出两个选项 */}
             <div className="px-5 py-4">
-              <div className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-3">
-                <Briefcase size={15} className="text-primary-400" />
-                身份类型
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2 text-sm font-semibold text-gray-700">
+                  <Briefcase size={15} className="text-primary-400" />
+                  身份类型
+                </div>
+                {!editingBizType && <EditChip onClick={() => setEditingBizType(true)} />}
               </div>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => saveBusinessType('individual')}
-                  className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold border transition-all ${
-                    profile.business_type === 'individual'
-                      ? 'bg-primary-600 text-white border-primary-600'
-                      : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'
-                  }`}>
-                  <User size={15} /> 个人 / 自雇
-                </button>
-                <button
-                  onClick={() => saveBusinessType('business')}
-                  className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold border transition-all ${
-                    profile.business_type === 'business'
-                      ? 'bg-blue-600 text-white border-blue-600'
-                      : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'
-                  }`}>
-                  <Building2 size={15} /> 企业
-                </button>
-              </div>
+              {editingBizType ? (
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => { void saveBusinessType('individual'); setEditingBizType(false) }}
+                    className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold border transition-all ${
+                      profile.business_type === 'individual'
+                        ? 'bg-primary-600 text-white border-primary-600'
+                        : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'
+                    }`}>
+                    <User size={15} /> 自雇
+                  </button>
+                  <button
+                    onClick={() => { void saveBusinessType('business'); setEditingBizType(false) }}
+                    className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold border transition-all ${
+                      profile.business_type === 'business'
+                        ? 'bg-blue-600 text-white border-blue-600'
+                        : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'
+                    }`}>
+                    <Building2 size={15} /> 企业
+                  </button>
+                </div>
+              ) : (
+                <span className={`inline-flex items-center gap-2 py-2 px-4 rounded-xl text-sm font-semibold border ${
+                  profile.business_type === 'business'
+                    ? 'bg-blue-50 text-blue-700 border-blue-200'
+                    : 'bg-primary-50 text-primary-700 border-primary-200'
+                }`}>
+                  {profile.business_type === 'business'
+                    ? <><Building2 size={15} /> 企业</>
+                    : <><User size={15} /> 自雇</>}
+                </span>
+              )}
             </div>
 
             {/* ③ 自我简介 */}
