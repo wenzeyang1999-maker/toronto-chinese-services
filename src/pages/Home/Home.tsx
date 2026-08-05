@@ -110,23 +110,18 @@ export default function Home() {
   // 否则从另一个 tab 切过来会卡在旧 feedMode、且停在顶部 hero 看不到跳转。
   useEffect(() => {
     const view = searchParams.get('view')
-    if (view === 'urgent') {
-      setFeedMode('requests')
-      setViewMode('map')
-      const t = setTimeout(() => {
-        const el = feedRef.current
-        if (el) window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - 64, behavior: 'smooth' })
-      }, 150)
-      return () => clearTimeout(t)
-    }
-    if (view === 'services') {
-      setFeedMode('services')
-      const t = setTimeout(() => {
-        const el = catRef.current
-        if (el) window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - 64, behavior: 'smooth' })
-      }, 150)
-      return () => clearTimeout(t)
-    }
+    if (view !== 'urgent' && view !== 'services') return
+    if (view === 'urgent') { setFeedMode('requests'); setViewMode('map') }
+    else                   { setFeedMode('services') }
+    const t = setTimeout(() => {
+      const el = view === 'urgent' ? feedRef.current : catRef.current
+      if (!el) return
+      // 动态测量吸顶 header 高度,滚到目标顶部时不被 header 盖住。
+      const header = document.querySelector('header')
+      const headerH = header ? header.getBoundingClientRect().height : 120
+      window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - headerH - 8, behavior: 'smooth' })
+    }, 150)
+    return () => clearTimeout(t)
   }, [searchParams])
 
   // Map radius (km) for the map views — continuous slider, persisted to localStorage
