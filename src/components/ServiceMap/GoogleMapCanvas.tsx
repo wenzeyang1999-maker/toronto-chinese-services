@@ -75,6 +75,8 @@ const GoogleMapCanvas = forwardRef<GoogleMapCanvasHandle, Props>(function Google
             disableDefaultUI: true,
             clickableIcons: false,
             scrollwheel: scrollWheel,
+            // 单指即可拖动地图、双指捏合/滚轮缩放（默认 cooperative 要两指，手机上像"动不了"）
+            gestureHandling: 'greedy',
             zoomControl: true,
             zoomControlOptions: { position: maps.ControlPosition.RIGHT_TOP },
           })
