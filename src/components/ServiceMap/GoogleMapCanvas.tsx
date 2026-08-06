@@ -70,13 +70,11 @@ const GoogleMapCanvas = forwardRef<GoogleMapCanvasHandle, Props>(function Google
           mapRef.current = new maps.Map(containerRef.current, {
             center,
             zoom,
-            mapTypeControl: false,
-            fullscreenControl: false,
-            streetViewControl: false,
-            rotateControl: false,          // 去掉右下角罗盘/「菱形」控件（内测 一.2）
+            // 关掉所有 Google 原生控件（含右下角白色罗盘/「菱形」— 内测 一.2），
+            // 再单独把缩放放回右上角。
+            disableDefaultUI: true,
             clickableIcons: false,
             scrollwheel: scrollWheel,
-            // 「放大箭头」缩放控件移到右上角（内测 一.2）
             zoomControl: true,
             zoomControlOptions: { position: maps.ControlPosition.RIGHT_TOP },
           })
