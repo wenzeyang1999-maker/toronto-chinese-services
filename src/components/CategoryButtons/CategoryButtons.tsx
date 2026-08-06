@@ -56,12 +56,12 @@ function Tile({ cat, onClick }: { cat: Category; onClick: () => void }) {
       variants={itemVariants}
       whileTap={{ scale: 0.93 }}
       onClick={onClick}
-      className={`relative ${cat.bgColor} rounded-xl py-1.5 px-3 flex items-center justify-center gap-2
+      className={`relative ${cat.bgColor} rounded-xl py-1.5 pl-2 pr-3 flex items-center justify-start gap-1.5
                   border border-white/60 hover:shadow-md active:brightness-95 transition-all`}
     >
       {cat.img
         ? <img src={cat.img} alt="" className="w-20 h-20 object-contain flex-shrink-0 -my-3" draggable={false} />
-        : <cat.icon size={22} strokeWidth={1.6} className={`${cat.color} flex-shrink-0`} />}
+        : <cat.icon size={22} strokeWidth={1.6} className={`${cat.color} flex-shrink-0 ml-1`} />}
       <span className={`text-sm font-semibold whitespace-nowrap ${cat.color}`}>{cat.label}</span>
     </motion.button>
   )
