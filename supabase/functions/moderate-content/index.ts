@@ -106,6 +106,11 @@ Deno.serve(async (req: Request) => {
             model:       'qwen/qwen3.6-27b',   // Groq 多模态（可看图）
             max_tokens:  128,
             temperature: 0,
+            // qwen3.6 是「思考型」模型：默认把 token 花在 <think> 推理上，
+            // 128 token 被吃光后正式输出为空 → Groq json_object 校验失败(400
+            // json_validate_failed) → 审核每次 deferred → 头像永远「审核繁忙」。
+            // 关掉思考后直接产出目标 JSON。(合法值仅 none / default)
+            reasoning_effort: 'none',
             response_format: { type: 'json_object' },
             messages: [
               { role: 'system', content: IMAGE_PROMPT },
