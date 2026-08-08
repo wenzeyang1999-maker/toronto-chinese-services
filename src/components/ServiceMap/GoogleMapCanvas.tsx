@@ -194,8 +194,8 @@ const GoogleMapCanvas = forwardRef<GoogleMapCanvasHandle, Props>(function Google
           icon: {
             url: point.demandPin
               ? (point.urgent
-                  ? 'https://maps.google.com/mapfiles/ms/icons/red-dot.png'      // 急单
-                  : 'https://maps.google.com/mapfiles/ms/icons/orange-dot.png')  // 普通需求
+                  ? 'https://maps.google.com/mapfiles/ms/icons/red-dot.png'      // 🔴 急单
+                  : 'https://maps.google.com/mapfiles/ms/icons/blue-dot.png')    // 🔵 预约单(内测#9)
               : point.onlineProv
                 ? 'https://maps.google.com/mapfiles/ms/icons/green-dot.png'
                 : point.promoted

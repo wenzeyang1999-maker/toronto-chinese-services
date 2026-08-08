@@ -328,7 +328,7 @@ export default function Home() {
                 <Sparkles size={18} strokeWidth={2.4} />
               </div>
               <div className="flex-1 min-w-0">
-                <p className={`text-sm font-bold truncate ${feedMode === 'requests' ? 'text-amber-700' : 'text-gray-700'}`}>发现客户</p>
+                <p className={`text-sm font-bold truncate ${feedMode === 'requests' ? 'text-amber-700' : 'text-gray-700'}`}>找订单</p>
                 <p className="text-[11px] text-gray-400 truncate mt-0.5">接附近订单 · 赚钱</p>
               </div>
               {unreadRequestCount > 0 && (

@@ -239,24 +239,7 @@ export default function ServiceMap({ services, requests = [], count, requestsOnl
         {requestsOnly && requestPoints.length > 0 && (
           <span>共 <strong>{requestPoints.length}</strong> 条需求</span>
         )}
-        {mapped.some((s) => s.isPromoted) && (
-          <span className="flex items-center gap-1">
-            <span className="w-2 h-2 rounded-full bg-red-500 inline-block" />
-            推广
-          </span>
-        )}
-        {requestPoints.length > 0 && (
-          <span className="flex items-center gap-1">
-            <span className="w-2 h-2 rounded-full bg-orange-500 inline-block" />
-            求服务 {requestPoints.length}
-          </span>
-        )}
-        {onlinePoints.length > 0 && (
-          <span className="flex items-center gap-1">
-            <span className="w-2 h-2 rounded-full bg-green-500 inline-block" />
-            在线服务商 {onlinePoints.length}
-          </span>
-        )}
+        {/* 颜色说明已删除(内测#9)：🔴急单 / 🔵预约单 / 绿在线 直接看针色即可 */}
       </div>
     </div>
   )
