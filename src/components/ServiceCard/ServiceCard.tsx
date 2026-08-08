@@ -57,15 +57,15 @@ export default function ServiceCard({ service, layout = 'list' }: Props) {
   // ── Trust badge: highest tier wins ──────────────────────────────────────
   const TrustBadge = () => service.provider.businessVerified ? (
     <span className="inline-flex items-center gap-1 rounded-full border border-amber-300 bg-amber-50 px-2 py-0.5 text-[10px] font-semibold text-amber-700">
-      <BadgeCheck size={9} /> 商户认证
+      <BadgeCheck size={9} /> 商业资料已验证
     </span>
   ) : service.provider.verified ? (
     <span className="inline-flex items-center gap-1 rounded-full border border-blue-200 bg-blue-50 px-2 py-0.5 text-[10px] font-semibold text-blue-700">
-      <ShieldCheck size={9} /> 平台审核
+      <ShieldCheck size={9} /> 资料已验证
     </span>
   ) : service.provider.phoneVerified ? (
     <span className="inline-flex items-center gap-1 rounded-full border border-sky-200 bg-sky-50 px-2 py-0.5 text-[10px] font-semibold text-sky-600">
-      <Phone size={9} /> 电话认证
+      <Phone size={9} /> 手机已验证
     </span>
   ) : null
 

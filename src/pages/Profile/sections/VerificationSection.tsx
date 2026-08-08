@@ -517,10 +517,10 @@ export default function VerificationSection({ user }: Props) {
       {/* ── 商户资质认证 ──────────────────────────────────────────────────── */}
       <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
         <div className="px-5 pt-5 pb-3">
-          <h3 className="text-sm font-semibold text-gray-700">商户资质认证</h3>
+          <h3 className="text-sm font-semibold text-gray-700">商户资料验证</h3>
           <p className="text-xs text-gray-400 mt-0.5">
-            上传资质图片并提交审核，通过后你的服务将显示
-            <span className="text-blue-600 font-medium"> ✓ 已认证</span> 标志
+            上传资料图片并提交审核，通过后你的服务将显示
+            <span className="text-blue-600 font-medium"> ✓ 资料已验证</span> 标志
           </p>
           <div className="mt-3 flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5">
             <span className="text-amber-500 flex-shrink-0 mt-0.5">⚠️</span>
@@ -537,8 +537,8 @@ export default function VerificationSection({ user }: Props) {
             <div className="flex items-center gap-3 bg-green-50 border border-green-200 rounded-2xl p-4">
               <BadgeCheck size={22} className="text-green-600 flex-shrink-0" />
               <div className="flex-1">
-                <p className="text-sm font-semibold text-green-700">已通过商户认证</p>
-                <p className="text-xs text-green-600 mt-0.5">你的服务卡片已显示「已认证」标志</p>
+                <p className="text-sm font-semibold text-green-700">商户资料已通过验证</p>
+                <p className="text-xs text-green-600 mt-0.5">你的服务卡片已显示「资料已验证」标志</p>
               </div>
             </div>
           ) : verifStatus === 'pending' ? (
@@ -588,7 +588,7 @@ export default function VerificationSection({ user }: Props) {
                 disabled={submitting || qualImages.length === 0}
                 className="w-full py-3 rounded-2xl bg-primary-600 text-white text-sm font-semibold hover:bg-primary-700 transition-colors disabled:opacity-60"
               >
-                {submitting ? '提交中…' : qualImages.length === 0 ? '请先上传资质图片' : '申请商户认证'}
+                {submitting ? '提交中…' : qualImages.length === 0 ? '请先上传资质图片' : '提交资料验证'}
               </button>
             </div>
           )}

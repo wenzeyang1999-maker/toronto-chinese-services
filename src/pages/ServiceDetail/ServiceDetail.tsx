@@ -319,7 +319,7 @@ export default function ServiceDetail() {
             {service.provider.verified && (
               <span className="inline-flex items-center gap-1 rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-medium text-blue-700">
                 <ShieldCheck size={11} />
-                已认证
+                资料已验证
               </span>
             )}
             {service.distance !== undefined && (
@@ -466,7 +466,7 @@ export default function ServiceDetail() {
                 <span className="font-semibold text-gray-900">{service.provider.name}</span>
                 {service.provider.verified && (
                   <span className="flex items-center gap-0.5 text-xs text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded-full">
-                    <ShieldCheck size={10} /> 已认证
+                    <ShieldCheck size={10} /> 资料已验证
                   </span>
                 )}
               </div>

@@ -98,16 +98,16 @@ export default function ProfileCard({ provider, followerCount, isOwnProfile, joi
             provider.is_email_verified || provider.qualification_images.length > 0 ||
             provider.has_license || provider.has_insurance) && (
             <div className="mt-2.5 pt-2.5 border-t border-gray-100">
-              <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-1.5">认证信息</p>
+              <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-1.5">资料验证</p>
               <div className="flex flex-wrap gap-1.5">
                 {provider.business_verified && (
-                  <Badge tone="warning"><BadgeCheck size={11} /> 商户认证</Badge>
+                  <Badge tone="warning"><BadgeCheck size={11} /> 商业资料已验证</Badge>
                 )}
                 {provider.has_license && (
-                  <Badge tone="success"><BadgeCheck size={11} /> 持牌资质</Badge>
+                  <Badge tone="success"><BadgeCheck size={11} /> 资质资料已审核</Badge>
                 )}
                 {provider.has_insurance && (
-                  <Badge tone="info"><ShieldCheck size={11} /> 商业保险</Badge>
+                  <Badge tone="info"><ShieldCheck size={11} /> 保险资料已审核</Badge>
                 )}
                 {provider.phone_verified && (
                   <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-full bg-sky-50 text-sky-600 border border-sky-200">
