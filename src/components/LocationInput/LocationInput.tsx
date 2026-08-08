@@ -3,7 +3,8 @@
 // geocodes it → parent receives { address, lat, lng }.
 // Fully optional — parent still submits even if user skips.
 import { useState } from 'react'
-import { MapPin, Loader2, CheckCircle2, AlertCircle } from 'lucide-react'
+import { MapPin, Loader2, CheckCircle2, AlertCircle, Map } from 'lucide-react'
+import MapPointPicker, { type PickedPoint } from '../MapPointPicker/MapPointPicker'
 
 export interface LocationResult {
   address: string
@@ -20,6 +21,18 @@ export default function LocationInput({ onChange }: Props) {
   const [status, setStatus] = useState<'idle' | 'loading' | 'ok' | 'error'>('idle')
   const [confirmed, setConfirmed] = useState('')
   const [errMsg, setErrMsg] = useState('')
+  const [picking, setPicking] = useState(false)
+  const [picked, setPicked] = useState<{ lat: number; lng: number } | null>(null)
+
+  function handlePicked(p: PickedPoint) {
+    setPicking(false)
+    setPicked({ lat: p.lat, lng: p.lng })
+    setInput(p.address)
+    setConfirmed(p.address)
+    setErrMsg('')
+    setStatus('ok')
+    onChange({ address: p.address, lat: p.lat, lng: p.lng })
+  }
 
   async function geocode() {
     const q = input.trim()
@@ -79,6 +92,24 @@ export default function LocationInput({ onChange }: Props) {
           定位
         </button>
       </div>
+
+      {/* 地图选点(内测#11) */}
+      <button
+        type="button"
+        onClick={() => setPicking(true)}
+        className="w-full flex items-center justify-center gap-1.5 border border-gray-200 rounded-xl py-2.5
+                   text-sm font-semibold text-primary-600 hover:bg-primary-50 transition-colors"
+      >
+        <Map size={14} /> 在地图上选点
+      </button>
+
+      {picking && (
+        <MapPointPicker
+          initial={picked}
+          onCancel={() => setPicking(false)}
+          onConfirm={handlePicked}
+        />
+      )}
 
       {status === 'ok' && (
         <p className="text-xs text-green-600 flex items-center gap-1">

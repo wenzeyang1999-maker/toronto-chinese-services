@@ -15,7 +15,7 @@ import { postFormInput } from '../../components/PostForm/postFormInput'
 import PostFormAreaPicker from '../../components/PostForm/PostFormAreaPicker'
 import PostFormContact from '../../components/PostForm/PostFormContact'
 import PostFormSuccess from '../../components/PostForm/PostFormSuccess'
-import type { LocationResult } from '../../components/LocationInput/LocationInput'
+import LocationInput, { type LocationResult } from '../../components/LocationInput/LocationInput'
 import { useImageUpload } from '../../lib/useImageUpload'
 import {
   SECONDHAND_CATEGORY_CONFIG, ITEM_CONDITION_CONFIG,
@@ -303,6 +303,10 @@ export default function PostListing() {
           {/* Area multi-select */}
           <Field label="交易地区" required error={errors.area}>
             <PostFormAreaPicker selected={form.area} onChange={(areas) => set('area', areas)} error={errors.area} />
+          </Field>
+
+          <Field label="交接地点(选填)">
+            <LocationInput onChange={setLocation} />
           </Field>
         </Card>
 

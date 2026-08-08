@@ -16,7 +16,7 @@ import { postFormInput } from '../../components/PostForm/postFormInput'
 import PostFormAreaPicker from '../../components/PostForm/PostFormAreaPicker'
 import PostFormContact from '../../components/PostForm/PostFormContact'
 import PostFormSuccess from '../../components/PostForm/PostFormSuccess'
-import type { LocationResult } from '../../components/LocationInput/LocationInput'
+import LocationInput, { type LocationResult } from '../../components/LocationInput/LocationInput'
 import {
   JOB_CATEGORY_CONFIG, JOB_TYPE_CONFIG, SALARY_TYPE_LABEL,
   type JobCategory, type JobType, type SalaryType, type Job, type ListingType,
@@ -299,6 +299,10 @@ export default function PostJob() {
               selected={form.area}
               onChange={(areas) => set('area', areas)}
             />
+          </Field>
+
+          <Field label={isHiring ? '精确地址(选填)' : '精确位置(选填)'}>
+            <LocationInput onChange={setLocation} />
           </Field>
         </Card>
 
