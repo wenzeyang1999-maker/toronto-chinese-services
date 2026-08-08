@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { calcDistance } from '../../lib/geo'
 import HeroBanner from '../../components/HeroBanner/HeroBanner'
 import CategoryButtons from '../../components/CategoryButtons/CategoryButtons'
@@ -24,7 +24,7 @@ import { supabase } from '../../lib/supabase'
 import { getCategoryById } from '../../data/categories'
 import { fuzzyFilterRequests } from '../../lib/fuzzySearch'
 
-const ServiceMap = lazy(() => import('../../components/ServiceMap/ServiceMap'))
+import MapPreviewCard from './components/MapPreviewCard'
 
 export default function Home() {
   const requestLocation = useGeolocation()
@@ -357,23 +357,15 @@ export default function Home() {
               services={recent}
               allServices={services.filter((s) => s.available)}
               defaultMapServices={nearbyForMap}
-              mapContent={(filtered, mapKeyword) => {
-                // Distance filter — keep services within mapRadiusKm of the user
+              mapContent={(filtered) => {
+                // 首页只放预览卡,点击进独立地图页 /map(内测#5/#7)
                 const radiusFiltered = userLocation
                   ? filtered.filter(s => {
                       if (s.location.lat == null || s.location.lng == null) return true
                       return calcDistance(userLocation.lat, userLocation.lng, s.location.lat, s.location.lng) <= mapRadiusKm
                     })
                   : filtered
-                return (
-                  <ServiceMap
-                    services={radiusFiltered}
-                    count={radiusFiltered.length}
-                    keyword={mapKeyword}
-                    radiusKm={mapRadiusKm}
-                    onRadiusChange={handleMapRadius}
-                  />
-                )
+                return <MapPreviewCard to="/map" count={radiusFiltered.length} label="在华邻地图查看附近服务" />
               }}
             />
             {viewMode === 'list' && servicesHasMore && (
@@ -510,17 +502,8 @@ export default function Home() {
                 )}
               </div>
 
-              {/* Map — always visible */}
-              <Suspense fallback={<div className="h-80 rounded-2xl bg-gray-100 animate-pulse" />}>
-                <ServiceMap
-                  services={[]}
-                  requests={forMap}
-                  count={forMap.length}
-                  requestsOnly
-                  radiusKm={mapRadiusKm}
-                  onRadiusChange={handleMapRadius}
-                />
-              </Suspense>
+              {/* 地图预览卡 → 点击进独立华邻地图(找订单)(内测#5/#7) */}
+              <MapPreviewCard to="/map?type=requests" count={forMap.length} label="在华邻地图查看附近订单" />
               {mySkillTags.length > 0 ? (
                 <p className="text-xs text-gray-400 mt-2 mb-4 text-center truncate">
                   已按你的标签过滤：{mySkillTags.slice(0, 3).join('、')}{mySkillTags.length > 3 ? '…' : ''}
