@@ -151,14 +151,28 @@ export default function MapPage() {
       {/* 顶部站点导航栏(内测#7:华邻地图作为独立页面,带全站导航) */}
       <Header />
 
-      {/* 找服务 / 找订单 切换卡片(与首页一致) */}
-      <div className="px-3 pt-2 pb-2 border-b border-gray-100 bg-white">
-        <div className="grid grid-cols-2 gap-2 lg:max-w-2xl lg:mx-auto">
+      {/* 地图区域：填满导航栏下方,控件悬浮其上 */}
+      <div className="relative flex-1 min-h-0">
+      <div className="absolute inset-0">
+        <GoogleMapCanvas
+          ref={mapRef}
+          center={center}
+          zoom={userLocation ? 13 : 11}
+          points={points}
+          userLocation={userLocation}
+        />
+      </div>
+
+      {/* 悬浮·切换卡片 + 搜索框（叠放在地图顶部） */}
+      <div className="absolute top-3 left-3 right-3 z-30 space-y-2
+                      lg:left-1/2 lg:right-auto lg:w-[680px] lg:-translate-x-1/2">
+        {/* 找服务 / 找订单 悬浮切换卡片 */}
+        <div className="grid grid-cols-2 gap-2">
           <button
             onClick={() => setMode('services')}
             aria-pressed={!requestsMode}
-            className={`relative flex items-center gap-2.5 p-2.5 rounded-2xl border-2 text-left transition-all active:scale-[0.98] bg-white
-              ${!requestsMode ? 'border-primary-500 shadow-sm' : 'border-gray-200 hover:border-gray-300'}`}
+            className={`relative flex items-center gap-2.5 p-2.5 rounded-2xl border-2 text-left transition-all active:scale-[0.98] bg-white shadow-lg
+              ${!requestsMode ? 'border-primary-500' : 'border-transparent hover:border-gray-200'}`}
           >
             <div className={`flex-shrink-0 w-9 h-9 rounded-xl flex items-center justify-center transition-colors
               ${!requestsMode ? 'bg-primary-600 text-white' : 'bg-gray-100 text-gray-400'}`}>
@@ -172,8 +186,8 @@ export default function MapPage() {
           <button
             onClick={() => setMode('requests')}
             aria-pressed={requestsMode}
-            className={`relative flex items-center gap-2.5 p-2.5 rounded-2xl border-2 text-left transition-all active:scale-[0.98] bg-white
-              ${requestsMode ? 'border-amber-500 shadow-sm' : 'border-gray-200 hover:border-gray-300'}`}
+            className={`relative flex items-center gap-2.5 p-2.5 rounded-2xl border-2 text-left transition-all active:scale-[0.98] bg-white shadow-lg
+              ${requestsMode ? 'border-amber-500' : 'border-transparent hover:border-gray-200'}`}
           >
             <div className={`flex-shrink-0 w-9 h-9 rounded-xl flex items-center justify-center transition-colors
               ${requestsMode ? 'bg-amber-500 text-white' : 'bg-gray-100 text-gray-400'}`}>
@@ -185,24 +199,8 @@ export default function MapPage() {
             </div>
           </button>
         </div>
-      </div>
-
-      {/* 地图区域：填满导航栏下方,控件悬浮其上 */}
-      <div className="relative flex-1 min-h-0">
-      <div className="absolute inset-0">
-        <GoogleMapCanvas
-          ref={mapRef}
-          center={center}
-          zoom={userLocation ? 13 : 11}
-          points={points}
-          userLocation={userLocation}
-        />
-      </div>
-
-      {/* 悬浮·搜索框（常驻，居中偏上）—— 模式切换已移到上方卡片 */}
-      <div className="absolute top-3 left-3 right-3 z-30 flex items-center gap-2
-                      lg:left-1/2 lg:right-auto lg:w-[680px] lg:-translate-x-1/2">
-        <div className="flex-1 min-w-0 flex items-center gap-2 bg-white rounded-full px-4 py-2.5 shadow-lg">
+        {/* 搜索框 */}
+        <div className="flex items-center gap-2 bg-white rounded-full px-4 py-2.5 shadow-lg">
           <Search size={16} className="text-gray-400 flex-shrink-0" />
           <input
             value={search}
@@ -219,7 +217,7 @@ export default function MapPage() {
       </div>
 
       {/* 悬浮·结果计数（搜索框下方，左侧） */}
-      <div className="absolute top-[4.25rem] left-3 z-20 bg-white/95 backdrop-blur rounded-full px-3 py-1.5 shadow-md text-xs font-semibold text-gray-700">
+      <div className="absolute top-[9.5rem] left-3 z-20 bg-white/95 backdrop-blur rounded-full px-3 py-1.5 shadow-md text-xs font-semibold text-gray-700">
         {kw ? `找到 ${points.length} 项` : `${points.length} ${requestsMode ? '条需求' : '项服务'}`}
       </div>
 
