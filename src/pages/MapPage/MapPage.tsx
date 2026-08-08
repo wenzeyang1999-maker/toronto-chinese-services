@@ -2,7 +2,7 @@
 // Route: /map  — Google Maps-style fullscreen experience with top search bar
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { Search, Navigation, X, RefreshCw } from 'lucide-react'
+import { Search, Navigation, X, RefreshCw, Sparkles } from 'lucide-react'
 import Header from '../../components/Header/Header'
 import Mascot from '../../components/Mascot/Mascot'
 import { useAppStore } from '../../store/appStore'
@@ -151,6 +151,42 @@ export default function MapPage() {
       {/* 顶部站点导航栏(内测#7:华邻地图作为独立页面,带全站导航) */}
       <Header />
 
+      {/* 找服务 / 找订单 切换卡片(与首页一致) */}
+      <div className="px-3 pt-2 pb-2 border-b border-gray-100 bg-white">
+        <div className="grid grid-cols-2 gap-2 lg:max-w-2xl lg:mx-auto">
+          <button
+            onClick={() => setMode('services')}
+            aria-pressed={!requestsMode}
+            className={`relative flex items-center gap-2.5 p-2.5 rounded-2xl border-2 text-left transition-all active:scale-[0.98] bg-white
+              ${!requestsMode ? 'border-primary-500 shadow-sm' : 'border-gray-200 hover:border-gray-300'}`}
+          >
+            <div className={`flex-shrink-0 w-9 h-9 rounded-xl flex items-center justify-center transition-colors
+              ${!requestsMode ? 'bg-primary-600 text-white' : 'bg-gray-100 text-gray-400'}`}>
+              <Search size={16} strokeWidth={2.4} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className={`text-sm font-bold truncate ${!requestsMode ? 'text-primary-700' : 'text-gray-700'}`}>找服务</p>
+              <p className="text-[11px] text-gray-400 truncate mt-0.5">附近商家 · 师傅</p>
+            </div>
+          </button>
+          <button
+            onClick={() => setMode('requests')}
+            aria-pressed={requestsMode}
+            className={`relative flex items-center gap-2.5 p-2.5 rounded-2xl border-2 text-left transition-all active:scale-[0.98] bg-white
+              ${requestsMode ? 'border-amber-500 shadow-sm' : 'border-gray-200 hover:border-gray-300'}`}
+          >
+            <div className={`flex-shrink-0 w-9 h-9 rounded-xl flex items-center justify-center transition-colors
+              ${requestsMode ? 'bg-amber-500 text-white' : 'bg-gray-100 text-gray-400'}`}>
+              <Sparkles size={16} strokeWidth={2.4} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className={`text-sm font-bold truncate ${requestsMode ? 'text-amber-700' : 'text-gray-700'}`}>找订单</p>
+              <p className="text-[11px] text-gray-400 truncate mt-0.5">接附近订单 · 赚钱</p>
+            </div>
+          </button>
+        </div>
+      </div>
+
       {/* 地图区域：填满导航栏下方,控件悬浮其上 */}
       <div className="relative flex-1 min-h-0">
       <div className="absolute inset-0">
@@ -163,7 +199,7 @@ export default function MapPage() {
         />
       </div>
 
-      {/* 悬浮·搜索框（常驻）+ 找服务/找需求 切换（居中偏上） */}
+      {/* 悬浮·搜索框（常驻，居中偏上）—— 模式切换已移到上方卡片 */}
       <div className="absolute top-3 left-3 right-3 z-30 flex items-center gap-2
                       lg:left-1/2 lg:right-auto lg:w-[680px] lg:-translate-x-1/2">
         <div className="flex-1 min-w-0 flex items-center gap-2 bg-white rounded-full px-4 py-2.5 shadow-lg">
@@ -179,24 +215,6 @@ export default function MapPage() {
               <X size={16} />
             </button>
           )}
-        </div>
-        <div className="flex-shrink-0 inline-flex items-center gap-0.5 rounded-full bg-white p-0.5 shadow-lg text-sm">
-          <button
-            onClick={() => setMode('services')}
-            className={`px-3 py-1.5 rounded-full font-semibold transition-colors ${
-              mode === 'services' ? 'bg-primary-600 text-white' : 'text-gray-500 hover:text-gray-700'
-            }`}
-          >
-            找服务
-          </button>
-          <button
-            onClick={() => setMode('requests')}
-            className={`px-3 py-1.5 rounded-full font-semibold transition-colors ${
-              mode === 'requests' ? 'bg-orange-500 text-white' : 'text-gray-500 hover:text-gray-700'
-            }`}
-          >
-            找需求
-          </button>
         </div>
       </div>
 
