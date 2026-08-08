@@ -2,7 +2,8 @@
 // Route: /map  — Google Maps-style fullscreen experience with top search bar
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { ArrowLeft, Search, Navigation, X, RefreshCw } from 'lucide-react'
+import { Search, Navigation, X, RefreshCw } from 'lucide-react'
+import Header from '../../components/Header/Header'
 import Mascot from '../../components/Mascot/Mascot'
 import { useAppStore } from '../../store/appStore'
 import { useAuthStore } from '../../store/authStore'
@@ -146,9 +147,12 @@ export default function MapPage() {
   }
 
   return (
-    <div className="fixed inset-0 z-50 bg-white">
+    <div className="flex flex-col h-[100dvh] bg-white">
+      {/* 顶部站点导航栏(内测#7:华邻地图作为独立页面,带全站导航) */}
+      <Header />
 
-      {/* Map fills the whole screen；控件全部悬浮其上 */}
+      {/* 地图区域：填满导航栏下方,控件悬浮其上 */}
+      <div className="relative flex-1 min-h-0">
       <div className="absolute inset-0">
         <GoogleMapCanvas
           ref={mapRef}
@@ -159,17 +163,8 @@ export default function MapPage() {
         />
       </div>
 
-      {/* 悬浮·返回（左上） */}
-      <button
-        onClick={() => navigate(-1)}
-        className="absolute top-3 left-3 z-30 w-11 h-11 rounded-full bg-white shadow-lg hover:bg-gray-50 active:scale-95 flex items-center justify-center transition-all"
-        aria-label="返回"
-      >
-        <ArrowLeft size={20} className="text-gray-700" />
-      </button>
-
       {/* 悬浮·搜索框（常驻）+ 找服务/找需求 切换（居中偏上） */}
-      <div className="absolute top-3 left-16 right-3 z-30 flex items-center gap-2
+      <div className="absolute top-3 left-3 right-3 z-30 flex items-center gap-2
                       lg:left-1/2 lg:right-auto lg:w-[680px] lg:-translate-x-1/2">
         <div className="flex-1 min-w-0 flex items-center gap-2 bg-white rounded-full px-4 py-2.5 shadow-lg">
           <Search size={16} className="text-gray-400 flex-shrink-0" />
@@ -240,6 +235,7 @@ export default function MapPage() {
           <p className="text-xs text-gray-400">换个关键词试试</p>
         </div>
       )}
+      </div>
     </div>
   )
 }

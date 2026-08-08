@@ -20,7 +20,7 @@ import AdminNotificationsBell from '../AdminNotifications/AdminNotificationsBell
 
 // ── Section definitions ───────────────────────────────────────────────────────
 const NAV_SECTIONS = [
-  { id: 'urgent',     label: '急单地图', href: '/?view=urgent' },
+  { id: 'urgent',     label: '急单地图', href: '/map' },
   { id: 'services',   label: '生活服务', href: '/?view=services' },
   { id: 'realestate', label: '房产租售', href: '/realestate' },
   { id: 'jobs',       label: '求职招聘', href: '/jobs' },
@@ -40,7 +40,7 @@ const PLACEHOLDER: Record<SectionId, string> = {
 }
 
 // Pages that render their own search bar — Header row 3 would be redundant there
-const PAGES_WITH_OWN_SEARCH = new Set(['/jobs', '/secondhand', '/realestate', '/search'])
+const PAGES_WITH_OWN_SEARCH = new Set(['/jobs', '/secondhand', '/realestate', '/search', '/map'])
 
 function getActiveSection(pathname: string, search = ''): SectionId | null {
   if (pathname.startsWith('/jobs'))        return 'jobs'
@@ -51,7 +51,8 @@ function getActiveSection(pathname: string, search = ''): SectionId | null {
     pathname.startsWith('/events') ||
     pathname.startsWith('/community')
   ) return 'plaza'
-  // 「急单地图」与「生活服务」共用首页 '/'，靠 ?view=urgent 区分高亮。
+  // 「急单地图」现为独立页 /map(内测#7)。旧首页 ?view=urgent 仍兼容高亮。
+  if (pathname.startsWith('/map')) return 'urgent'
   if (pathname === '/' && new URLSearchParams(search).get('view') === 'urgent') return 'urgent'
   if (
     pathname === '/' ||
