@@ -7,7 +7,7 @@
 //   • 寻求合作 → type 'partner'    (free text) + optional direct email
 import { useState, type ReactNode } from 'react'
 import {
-  Headphones, ChevronRight, ChevronLeft, Lightbulb, ShieldAlert, Handshake, X, CheckCircle2, Mail,
+  Headphones, ChevronRight, ChevronLeft, Lightbulb, ShieldAlert, Handshake, Gavel, X, CheckCircle2, Mail,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
@@ -16,11 +16,15 @@ import { COMPLAINT_REASON_TAGS } from '../../constants/reportReasons'
 
 const SUPPORT_EMAIL = 'support@hualinlife.com'
 
-type View = 'menu' | 'suggest' | 'report' | 'partner' | 'done'
+type View = 'menu' | 'suggest' | 'report' | 'partner' | 'appeal' | 'done'
+
+// 申诉子类型(内测#2)
+const APPEAL_TYPES = ['封号申诉', '商户认证申诉', '举报申诉', '评价申诉'] as const
 
 const MENU: { key: Exclude<View, 'menu' | 'done'>; label: string; desc: string; icon: LucideIcon; tint: string; iconColor: string }[] = [
   { key: 'suggest', label: '提交建议', desc: '功能想法 · 使用体验', icon: Lightbulb,   tint: 'bg-amber-50',   iconColor: 'text-amber-500' },
   { key: 'report',  label: '举报投诉', desc: '违规内容 · 纠纷处理', icon: ShieldAlert,  tint: 'bg-rose-50',    iconColor: 'text-rose-500' },
+  { key: 'appeal',  label: '申诉',     desc: '封号 · 认证 · 举报 · 评价', icon: Gavel,   tint: 'bg-indigo-50',  iconColor: 'text-indigo-500' },
   { key: 'partner', label: '寻求合作', desc: '商务 · 推广 · 渠道',  icon: Handshake,    tint: 'bg-emerald-50', iconColor: 'text-emerald-600' },
 ]
 
@@ -38,6 +42,9 @@ export default function ContactUsButton({ renderTrigger }: { renderTrigger?: (op
   const [reportReason,   setReportReason]   = useState('')
   const [reportDetail,   setReportDetail]   = useState('')
   const [partnerText,    setPartnerText]    = useState('')
+  const [appealType,     setAppealType]     = useState<typeof APPEAL_TYPES[number]>('封号申诉')
+  const [appealTarget,   setAppealTarget]   = useState('')
+  const [appealDetail,   setAppealDetail]   = useState('')
 
   function close() {
     setOpen(false)
@@ -46,6 +53,7 @@ export default function ContactUsButton({ renderTrigger }: { renderTrigger?: (op
       setView('menu')
       setSuggestText(''); setReportTarget(''); setReportReason(''); setReportDetail('')
       setReportType('user'); setPartnerText('')
+      setAppealType('封号申诉'); setAppealTarget(''); setAppealDetail('')
     }, 0)
   }
 
@@ -76,7 +84,7 @@ export default function ContactUsButton({ renderTrigger }: { renderTrigger?: (op
           </div>
           <div className="flex-1 min-w-0 text-left">
             <p className="text-sm font-bold text-gray-900">联系我们</p>
-            <p className="text-xs text-gray-500 mt-0.5">提交建议 · 举报投诉 · 寻求合作</p>
+            <p className="text-xs text-gray-500 mt-0.5">建议 · 举报投诉 · 申诉 · 合作</p>
           </div>
           <ChevronRight size={16} className="text-primary-400 flex-shrink-0" />
         </button>
@@ -102,6 +110,7 @@ export default function ContactUsButton({ renderTrigger }: { renderTrigger?: (op
                 {view === 'menu' ? '联系我们'
                   : view === 'suggest' ? '提交建议'
                   : view === 'report' ? '举报投诉'
+                  : view === 'appeal' ? '申诉'
                   : view === 'partner' ? '寻求合作'
                   : '已提交'}
               </h3>
@@ -218,6 +227,61 @@ export default function ContactUsButton({ renderTrigger }: { renderTrigger?: (op
                              text-white font-bold rounded-xl text-sm transition-colors"
                 >
                   {submitting ? '提交中…' : '提交举报'}
+                </button>
+              </div>
+            )}
+
+            {/* ── 申诉 ── */}
+            {view === 'appeal' && (
+              <div className="space-y-3">
+                <div>
+                  <p className="text-xs text-gray-500 mb-1.5">申诉类型</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    {APPEAL_TYPES.map((t) => (
+                      <button key={t} onClick={() => setAppealType(t)}
+                        className={`py-2 rounded-xl text-xs font-semibold border transition-colors ${
+                          appealType === t ? 'bg-indigo-500 text-white border-indigo-500' : 'bg-white text-gray-600 border-gray-200'
+                        }`}>
+                        {t}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500 mb-1.5">
+                    {appealType === '封号申诉' ? '被封账号 / 手机号'
+                      : appealType === '商户认证申诉' ? '商户名 / 服务标题'
+                      : appealType === '举报申诉' ? '被举报的内容标题'
+                      : '相关订单 / 评价（可选）'}
+                  </p>
+                  <input
+                    value={appealTarget}
+                    onChange={(e) => setAppealTarget(e.target.value)}
+                    maxLength={80}
+                    placeholder="填写相关对象，便于我们核实"
+                    className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm
+                               focus:outline-none focus:ring-2 focus:ring-indigo-300"
+                  />
+                </div>
+                <textarea
+                  value={appealDetail}
+                  onChange={(e) => setAppealDetail(e.target.value)}
+                  rows={4}
+                  maxLength={800}
+                  placeholder="说明申诉理由、经过与诉求（越具体越有利于核实）"
+                  className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm resize-none lg:min-h-[11rem]
+                             focus:outline-none focus:ring-2 focus:ring-indigo-300"
+                />
+                <button
+                  onClick={() => submit({
+                    type: 'appeal', reason_tag: appealType,
+                    target: appealTarget.trim() || null, detail: appealDetail.trim() || null,
+                  })}
+                  disabled={submitting || !appealDetail.trim()}
+                  className="w-full py-3 bg-indigo-500 hover:bg-indigo-600 disabled:opacity-50
+                             text-white font-bold rounded-xl text-sm transition-colors"
+                >
+                  {submitting ? '提交中…' : '提交申诉'}
                 </button>
               </div>
             )}

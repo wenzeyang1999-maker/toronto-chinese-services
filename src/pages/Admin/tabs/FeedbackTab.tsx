@@ -4,11 +4,11 @@
 // resolved / dismissed.
 import { useCallback, useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
-import { Lightbulb, ShieldAlert, Handshake, MessageSquare } from 'lucide-react'
+import { Lightbulb, ShieldAlert, Handshake, MessageSquare, Gavel } from 'lucide-react'
 import { supabase } from '../../../lib/supabase'
 import { useAdminContext } from '../AdminContext'
 
-type FeedbackType = 'suggestion' | 'complaint' | 'report' | 'partner'
+type FeedbackType = 'suggestion' | 'complaint' | 'report' | 'partner' | 'appeal'
 type FeedbackStatus = 'open' | 'reviewing' | 'resolved' | 'dismissed'
 
 interface FeedbackRow {
@@ -28,6 +28,7 @@ const TYPE_META: Record<FeedbackType, { label: string; icon: typeof Lightbulb; c
   suggestion: { label: '建议',    icon: Lightbulb,   color: 'text-amber-600',   bg: 'bg-amber-50' },
   complaint:  { label: '投诉',    icon: MessageSquare, color: 'text-orange-600', bg: 'bg-orange-50' },
   report:     { label: '举报',    icon: ShieldAlert, color: 'text-rose-600',    bg: 'bg-rose-50' },
+  appeal:     { label: '申诉',    icon: Gavel,       color: 'text-indigo-600',  bg: 'bg-indigo-50' },
   partner:    { label: '合作',    icon: Handshake,   color: 'text-emerald-600', bg: 'bg-emerald-50' },
 }
 
@@ -117,6 +118,9 @@ export default function FeedbackTab() {
                     <span className="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">
                       {REPORT_TYPE_LABEL[r.report_type]}：{r.target || '—'}
                     </span>
+                  )}
+                  {r.type === 'appeal' && r.target && (
+                    <span className="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">对象：{r.target}</span>
                   )}
                   {r.reason_tag && (
                     <span className="text-xs bg-rose-50 text-rose-500 px-2 py-0.5 rounded-full">{r.reason_tag}</span>
