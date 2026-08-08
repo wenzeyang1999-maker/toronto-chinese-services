@@ -120,8 +120,10 @@ export default function MapPage() {
       } as GoogleMapPoint))
   }, [serviceRequests, isProvider, navigate, kw, requestsMode])
 
-  const onlinePoints = useMemo<GoogleMapPoint[]>(() =>
-    onlineProviders
+  const onlinePoints = useMemo<GoogleMapPoint[]>(() => {
+    // 找订单模式只显示需求(急单/预约单),不显示在线商家(避免切模式后残留)
+    if (requestsMode) return []
+    return onlineProviders
       .filter((p) => matches(p.name) || p.skill_tags.some(t => matches(t)))
       .map((p) => ({
         id: `online-${p.id}`,
@@ -132,7 +134,7 @@ export default function MapPage() {
         onlineProv: true,
         infoContent: buildOnlineProviderInfo(p, () => navigate(`/provider/${p.id}`)),
       } as GoogleMapPoint))
-  , [onlineProviders, navigate, kw])
+  }, [onlineProviders, navigate, kw, requestsMode])
 
   const points = useMemo(
     () => [...servicePoints, ...requestPoints, ...onlinePoints],
