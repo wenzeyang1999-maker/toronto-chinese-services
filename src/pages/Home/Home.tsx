@@ -457,7 +457,7 @@ export default function Home() {
             <section className="mb-6">
               <div className="flex items-center justify-between mb-3 gap-3">
                 <div className="min-w-0">
-                  <h3 className="text-sm font-semibold text-gray-800">🚨 急单地图 · 找客户</h3>
+                  <h3 className="text-sm font-semibold text-gray-800">🚨 附近急单 · 找订单</h3>
                   <p className="text-xs text-gray-400 mt-0.5">附近客户发布的即时需求，主动出击接单赚钱</p>
                 </div>
                 {/* 急单 / 预约单 二选一切换 */}
