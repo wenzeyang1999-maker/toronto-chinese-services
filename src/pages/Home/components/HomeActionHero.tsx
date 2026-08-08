@@ -1,49 +1,25 @@
-import { MapPin, Sparkles, ArrowRight, ShieldCheck, Star, Clock, X } from 'lucide-react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { MapPin, Sparkles, ArrowRight, Star } from 'lucide-react'
+import { motion } from 'framer-motion'
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import SearchBar from '../../../components/SearchBar/SearchBar'
 import { useAppStore } from '../../../store/appStore'
 import { getCategoryById } from '../../../data/categories'
 import { useDelayedLoading } from '../../../hooks/useDelayedLoading'
 
-const HISTORY_KEY = 'tcs_search_history'
-const MAX_HISTORY = 5
-
-function getHistory(): string[] {
-  try { return JSON.parse(localStorage.getItem(HISTORY_KEY) ?? '[]') } catch { return [] }
-}
-function addToHistory(kw: string) {
-  const prev = getHistory().filter(h => h.toLowerCase() !== kw.toLowerCase())
-  localStorage.setItem(HISTORY_KEY, JSON.stringify([kw, ...prev].slice(0, MAX_HISTORY)))
-}
-function removeFromHistory(kw: string) {
-  localStorage.setItem(HISTORY_KEY, JSON.stringify(getHistory().filter(h => h !== kw)))
-}
-
 interface Props {
   userHasLocation: boolean
-  searchQuery: string
-  onSearchQueryChange: (value: string) => void
-  onSearch: (keyword: string) => void
   onOpenInquiry: () => void
 }
 
 export default function HomeActionHero({
   userHasLocation,
-  searchQuery,
-  onSearchQueryChange,
-  onSearch,
   onOpenInquiry,
 }: Props) {
   const navigate = useNavigate()
   const services = useAppStore((s) => s.services)
   const servicesLoaded = useAppStore((s) => s.servicesLoaded)
   const showSkeleton = useDelayedLoading(!servicesLoaded)
-  const [history, setHistory] = useState<string[]>(getHistory)
-  const [showHistory, setShowHistory] = useState(false)
   const [view, setView] = useState<'feed' | 'map'>('feed')   // 推送 / 地图快照
-  const searchWrapRef = useRef<HTMLDivElement>(null)
   const pausedRef = useRef(false)   // 鼠标悬停面板时暂停轮播
 
   // 自动轮播：每 4.5s 在 推送/地图 间切换。dep=[view] 让手动切换后计时重置，
@@ -55,19 +31,6 @@ export default function HomeActionHero({
     }, 4500)
     return () => clearInterval(t)
   }, [view])
-
-  function handleSearch(kw: string) {
-    if (!kw.trim()) return
-    addToHistory(kw.trim())
-    setHistory(getHistory())
-    setShowHistory(false)
-    onSearch(kw)
-  }
-
-  function handleRemoveHistory(kw: string) {
-    removeFromHistory(kw)
-    setHistory(getHistory())
-  }
 
   const ticker = services
     .filter((s) => s.available)
@@ -120,78 +83,18 @@ export default function HomeActionHero({
               先搜索，也可以把需求交给 AI 智能匹配。搬家、保洁、接送、装修、现金工，一步进入，更快看到评价、地图和真实联系方式。
             </p>
 
-            <div className="mt-6 flex min-w-0 flex-col gap-3 md:flex-row md:items-stretch">
-              {/* 手机上隐藏:与顶部 Header 搜索框重复(内测#5) */}
-              <div data-tour="search" className="hidden md:block min-w-0 flex-1 relative" ref={searchWrapRef}
-                onFocus={() => setShowHistory(true)}
-                onBlur={(e) => {
-                  if (!searchWrapRef.current?.contains(e.relatedTarget as Node)) setShowHistory(false)
-                }}
-              >
-                <SearchBar
-                  value={searchQuery}
-                  onChange={onSearchQueryChange}
-                  onSearch={handleSearch}
-                />
-                <AnimatePresence>
-                  {showHistory && history.length > 0 && (
-                    <motion.div
-                      initial={{ opacity: 0, y: -4 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -4 }}
-                      transition={{ duration: 0.15 }}
-                      className="absolute top-full left-0 right-0 mt-1.5 bg-white border border-gray-200 rounded-2xl shadow-lg z-50 overflow-hidden"
-                    >
-                      <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest px-4 pt-3 pb-1">最近搜索</p>
-                      {history.map(h => (
-                        <div key={h} className="flex items-center gap-2 px-4 py-2.5 hover:bg-gray-50 group">
-                          <Clock size={13} className="text-gray-300 flex-shrink-0" />
-                          <button
-                            className="flex-1 text-sm text-gray-700 text-left truncate"
-                            onMouseDown={() => handleSearch(h)}
-                          >
-                            {h}
-                          </button>
-                          <button
-                            onMouseDown={(e) => { e.stopPropagation(); handleRemoveHistory(h) }}
-                            className="opacity-0 group-hover:opacity-100 text-gray-300 hover:text-gray-500 transition-opacity"
-                          >
-                            <X size={13} />
-                          </button>
-                        </div>
-                      ))}
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
+            {/* 首页统一入口:只保留 AI 智能匹配(内测#5/#6),搜索走顶部 Header,
+                原重复搜索框与信任胶囊已移除。 */}
+            <div className="mt-6">
               <motion.button
                 data-tour="ai-match"
                 whileTap={{ scale: 0.97 }}
                 onClick={onOpenInquiry}
-                className="w-full md:w-auto flex items-center justify-center gap-2 rounded-2xl bg-primary-600 px-5 py-3.5 md:py-3 text-sm font-bold text-white shadow-md transition-colors hover:bg-primary-700"
+                className="w-full md:w-auto flex items-center justify-center gap-2 rounded-2xl bg-primary-600 px-6 py-3.5 text-sm font-bold text-white shadow-md transition-colors hover:bg-primary-700"
               >
-                <Sparkles size={15} />
+                <Sparkles size={16} />
                 AI 智能匹配
               </motion.button>
-            </div>
-
-            <div className="mt-4 hidden md:flex flex-wrap gap-2">
-              {['优先看真实评价', '支持微信、电话、站内消息', '需要时才启用定位'].map(t => (
-                <span key={t} className="rounded-full border border-gray-200 bg-white px-3 py-1 text-xs text-gray-500 shadow-sm">
-                  {t}
-                </span>
-              ))}
-            </div>
-
-            <div className="mt-5 hidden md:flex flex-wrap gap-3 text-sm text-gray-600">
-              <div className="inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2.5 shadow-sm">
-                <ShieldCheck size={14} className="text-emerald-500 flex-shrink-0" />
-                <span className="text-xs">优先展示更值得联系的商家</span>
-              </div>
-              <div className="inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2.5 shadow-sm">
-                <ArrowRight size={14} className="text-primary-500 flex-shrink-0" />
-                <span className="text-xs">搜索、比价、联系一条线完成</span>
-              </div>
             </div>
           </motion.div>
 

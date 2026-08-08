@@ -264,9 +264,6 @@ export default function Home() {
       <div ref={searchRef}>
         <HomeActionHero
           userHasLocation={!!userLocation}
-          searchQuery={searchQuery}
-          onSearchQueryChange={setSearchQuery}
-          onSearch={handleSearch}
           onOpenInquiry={() => useInquiryStore.getState().openInquiry()}
         />
       </div>
