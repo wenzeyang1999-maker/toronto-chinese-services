@@ -80,7 +80,10 @@ export default function MapPage() {
   // （Fuse.js + 同义词扩展 + 类目标签），相关的都出来。
   const mapped = useMemo(() => {
     const withCoords = services.filter(hasCoordinates)
-    return kw ? fuzzyFilterServices(withCoords, kw) : withCoords
+    const filtered = kw ? fuzzyFilterServices(withCoords, kw) : withCoords
+    // 内测#8：找服务「搜索关键词」后，只显示当前【上线接单】的服务商，
+    // 隐藏【停止接单】的(离线)。无搜索时仍展示全部,方便浏览。
+    return kw ? filtered.filter((s) => s.provider.isOnline) : filtered
   }, [services, kw])
 
   const servicePoints = useMemo<GoogleMapPoint[]>(() => {
