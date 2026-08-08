@@ -11,6 +11,7 @@ import {
 } from 'lucide-react'
 import { supabase } from '../../../lib/supabase'
 import { compressImage, validateImageFile } from '../../../lib/compressImage'
+import { useImageEditorStore } from '../../../store/imageEditorStore'
 import { toast } from '../../../lib/toast'
 import type { User as SupabaseUser } from '@supabase/supabase-js'
 
@@ -109,7 +110,9 @@ export default function VerificationSection({ user }: Props) {
     try {
       const uploaded: string[] = []
       for (const file of toProcess) {
-        const compressed = await compressImage(file)
+        const edited = await useImageEditorStore.getState().editImage(file)   // 内测#4
+        if (!edited) continue
+        const compressed = await compressImage(edited)
         const path = `qualifications/${user.id}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.jpg`
         const { error } = await supabase.storage.from('service-images').upload(path, compressed, { upsert: false })
         if (error) throw error

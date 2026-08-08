@@ -5,6 +5,7 @@ import { useAuthStore } from '../../../store/authStore'
 import { supabase } from '../../../lib/supabase'
 import { toast } from '../../../lib/toast'
 import { compressImage } from '../../../lib/compressImage'
+import { useImageEditorStore } from '../../../store/imageEditorStore'
 import { moderateImage } from '../../../lib/moderateImage'
 import Badge from '../../../components/Badge/Badge'
 
@@ -122,7 +123,9 @@ export default function OrdersSection() {
     try {
       const urls: string[] = []
       for (const f of list) {
-        const compressed = await compressImage(f)
+        const edited = await useImageEditorStore.getState().editImage(f)   // 内测#4
+        if (!edited) continue
+        const compressed = await compressImage(edited)
         const imgMod = await moderateImage(compressed)   // 黄暴血腥；fail-open
         if (!imgMod.pass) {
           toast(`完工照未通过审核：${imgMod.reason ?? '含违规内容'}`, 'error')

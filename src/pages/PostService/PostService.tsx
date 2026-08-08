@@ -11,6 +11,7 @@ import { supabase } from '../../lib/supabase'
 import type { PostServiceForm } from '../../types'
 import Header from '../../components/Header/Header'
 import { compressImage, validateImageFile } from '../../lib/compressImage'
+import { useImageEditorStore } from '../../store/imageEditorStore'
 import { moderateImages, reportUploadedImage } from '../../lib/moderateImage'
 import type { LocationResult } from '../../components/LocationInput/LocationInput'
 import { generateServiceDraft } from '../../lib/aiTools'
@@ -108,14 +109,19 @@ export default function PostService() {
     setErrors((e) => ({ ...e, [field]: undefined }))
   }
 
-  const handleImageAdd = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageAdd = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files ?? [])
-    const invalid = files.map(validateImageFile).filter(Boolean)
-    if (invalid.length > 0) { toast(invalid[0] ?? '图片格式不支持', 'error'); e.target.value = ''; return }
-    const toAdd = files.slice(0, 3 - images.length)
-    setImages((prev) => [...prev, ...toAdd])
-    setPreviews((prev) => [...prev, ...toAdd.map((f) => URL.createObjectURL(f))])
     e.target.value = ''
+    const invalid = files.map(validateImageFile).filter(Boolean)
+    if (invalid.length > 0) { toast(invalid[0] ?? '图片格式不支持', 'error'); return }
+    const toAdd = files.slice(0, 3 - images.length)
+    // 内测#4：逐张进编辑器(裁剪/缩放/旋转)。取消某张则跳过。
+    const editImage = useImageEditorStore.getState().editImage
+    const edited: File[] = []
+    for (const f of toAdd) { const out = await editImage(f); if (out) edited.push(out) }
+    if (!edited.length) return
+    setImages((prev) => [...prev, ...edited])
+    setPreviews((prev) => [...prev, ...edited.map((f) => URL.createObjectURL(f))])
   }
 
   const handleImageRemove = (index: number) => {

@@ -8,6 +8,7 @@ import { ArrowLeft, ImagePlus, X, MapPin, Tag } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { useAuthStore } from '../../store/authStore'
 import { compressImage, validateImageFile } from '../../lib/compressImage'
+import { useImageEditorStore } from '../../store/imageEditorStore'
 import { moderateImage, reportUploadedImage } from '../../lib/moderateImage'
 import { POST_TYPE_CONFIG, AREA_CONFIG } from './config'
 import { toast } from '../../lib/toast'
@@ -75,8 +76,13 @@ export default function PostCommunity() {
       const err = validateImageFile(file)
       if (err) { setSubmitError(err); return }
     }
+    // 内测#4：逐张进编辑器
+    const editImage = useImageEditorStore.getState().editImage
+    const edited: File[] = []
+    for (const f of toProcess) { const out = await editImage(f); if (out) edited.push(out) }
+    if (!edited.length) return
     setUploadingImg(true)
-    const compressed = await Promise.all(toProcess.map(f => compressImage(f)))
+    const compressed = await Promise.all(edited.map(f => compressImage(f)))
     // 图片审核（黄暴血腥）：违规的剔除并提示；fail-open。
     const accepted: File[] = []
     let rejectReason: string | null = null

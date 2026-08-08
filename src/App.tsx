@@ -29,6 +29,7 @@ import InquiryModal from './components/InquiryModal/InquiryModal'
 import { useInquiryStore } from './store/inquiryStore'
 import BottomNav from './components/BottomNav/BottomNav'
 import CityGate from './components/GeofenceBanner/CityGate'
+import ImageEditorHost from './components/ImageEditor/ImageEditorHost'
 
 const Category        = lazy(() => import('./pages/Category/Category'))
 const Search          = lazy(() => import('./pages/Search/Search'))
@@ -302,6 +303,7 @@ export default function App() {
       {isLoadingDone && <CityGate />}
       {isLoadingDone && <UrgentLeadPopup />}
       {isLoadingDone && <GlobalInquiryModal />}
+      {isLoadingDone && <ImageEditorHost />}
       {/* Provider inquiry alerts removed: it subscribed the provider's browser to
           the whole inquiries table (which carries customer name/phone/wechat),
           a PII-over-realtime risk. Providers are notified via email + the public

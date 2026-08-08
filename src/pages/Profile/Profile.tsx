@@ -15,6 +15,7 @@ import { useLeadAlertsStore } from '../../store/leadAlertsStore'
 import { useOnlineModeStore } from '../../store/onlineModeStore'
 import Mascot from '../../components/Mascot/Mascot'
 import { compressImage } from '../../lib/compressImage'
+import { useImageEditorStore } from '../../store/imageEditorStore'
 import { moderateImage } from '../../lib/moderateImage'
 import type { BrowseEntry, Section } from './types'
 import type { MemberLevel } from '../../components/MembershipBadge/MembershipBadge'
@@ -280,9 +281,13 @@ export default function Profile() {
   async function handleAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
+    if (fileRef.current) fileRef.current.value = ''
+    // 内测#4：头像先进编辑器裁成正方形(1:1)
+    const edited = await useImageEditorStore.getState().editImage(file, { aspect: 1 })
+    if (!edited) return
     setUploading(true)
     try {
-      const compressed = await compressImage(file)
+      const compressed = await compressImage(edited)
       // 头像必须"真正通过"审核：审核没跑成（额度用光/出错=deferred）也不放行，
       // 让用户稍后再试，绝不让未经审核的头像上到公开身份位。
       const imgMod = await moderateImage(compressed)

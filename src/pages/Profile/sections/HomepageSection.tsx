@@ -8,7 +8,8 @@ import {
   Plus, ImagePlus, ShieldCheck, Link2,
 } from 'lucide-react'
 import { SOCIAL_PLATFORMS } from '../../../lib/socialPlatforms'
-import { cropAndCompressImage, compressImage, validateImageFile } from '../../../lib/compressImage'
+import { compressImage, validateImageFile } from '../../../lib/compressImage'
+import { useImageEditorStore } from '../../../store/imageEditorStore'
 import { moderateImage } from '../../../lib/moderateImage'
 import { supabase } from '../../../lib/supabase'
 import { useAuthStore } from '../../../store/authStore'
@@ -122,9 +123,13 @@ export default function HomepageSection() {
   async function handleCoverUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
+    if (coverRef.current) coverRef.current.value = ''
+    // 内测#4：封面进编辑器裁 3:1(替代自动居中裁，用户可自己框)
+    const edited = await useImageEditorStore.getState().editImage(file, { aspect: 3 })
+    if (!edited) return
     setUploadingCover(true)
     try {
-      const compressed = await cropAndCompressImage(file, 3)
+      const compressed = await compressImage(edited)
       const imgMod = await moderateImage(compressed)   // 黄暴血腥；fail-open
       if (!imgMod.pass) {
         toast(`封面未通过审核：${imgMod.reason ?? '含违规内容'}`, 'error')
@@ -228,7 +233,9 @@ export default function HomepageSection() {
     try {
       const uploaded: string[] = []
       for (const file of toProcess) {
-        const compressed = await compressImage(file)
+        const edited = await useImageEditorStore.getState().editImage(file)   // 内测#4
+        if (!edited) continue
+        const compressed = await compressImage(edited)
         const imgMod = await moderateImage(compressed)   // 黄暴血腥；fail-open
         if (!imgMod.pass) {
           toast(`图片未通过审核：${imgMod.reason ?? '含违规内容'}`, 'error')

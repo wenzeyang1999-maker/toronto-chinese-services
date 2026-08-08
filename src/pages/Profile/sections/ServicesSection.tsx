@@ -14,6 +14,7 @@ import { supabase } from '../../../lib/supabase'
 import { useAuthStore } from '../../../store/authStore'
 import { notifyAdminPromoRequest } from '../../../lib/notify'
 import { compressImage, validateImageFile } from '../../../lib/compressImage'
+import { useImageEditorStore } from '../../../store/imageEditorStore'
 import { moderateImage } from '../../../lib/moderateImage'
 import { JOB_CATEGORY_CONFIG, getCategoryLabel } from '../../Jobs/types'
 import type { Job } from '../../Jobs/types'
@@ -141,15 +142,20 @@ export default function ServicesSection() {
     newPreviews.forEach(URL.revokeObjectURL)
     setNewImgFiles([]); setNewPreviews([])
   }
-  function handleImgAdd(e: React.ChangeEvent<HTMLInputElement>) {
+  async function handleImgAdd(e: React.ChangeEvent<HTMLInputElement>) {
     const files = Array.from(e.target.files ?? [])
+    e.target.value = ''
     const invalid = files.map(validateImageFile).filter(Boolean)
-    if (invalid.length > 0) { toast(invalid[0] ?? '图片格式不支持', 'error'); e.target.value = ''; return }
+    if (invalid.length > 0) { toast(invalid[0] ?? '图片格式不支持', 'error'); return }
     const slots = 3 - editForm.images.length - newImgFiles.length
     const toAdd = files.slice(0, slots)
-    setNewImgFiles(prev => [...prev, ...toAdd])
-    setNewPreviews(prev => [...prev, ...toAdd.map(f => URL.createObjectURL(f))])
-    e.target.value = ''
+    // 内测#4：逐张进编辑器
+    const editImage = useImageEditorStore.getState().editImage
+    const edited: File[] = []
+    for (const f of toAdd) { const out = await editImage(f); if (out) edited.push(out) }
+    if (!edited.length) return
+    setNewImgFiles(prev => [...prev, ...edited])
+    setNewPreviews(prev => [...prev, ...edited.map(f => URL.createObjectURL(f))])
   }
   async function saveEdit() {
     if (!editingId || !user) return

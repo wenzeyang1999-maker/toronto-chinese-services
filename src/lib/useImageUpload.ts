@@ -10,6 +10,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { compressImage, validateImageFile } from './compressImage'
 import { moderateImage } from './moderateImage'
+import { useImageEditorStore } from '../store/imageEditorStore'
 
 export interface ImageUpload {
   images:      File[]
@@ -44,8 +45,17 @@ export function useImageUpload(maxImages: number): ImageUpload {
       if (err) { setError(err); return }
     }
 
+    // 内测#4：逐张进编辑器(裁剪/缩放/旋转)。取消某张 → 跳过该张。
+    const editImage = useImageEditorStore.getState().editImage
+    const edited: File[] = []
+    for (const f of toProcess) {
+      const out = await editImage(f)
+      if (out) edited.push(out)
+    }
+    if (!edited.length) return
+
     setUploading(true)
-    const compressed = await Promise.all(toProcess.map((f) => compressImage(f)))
+    const compressed = await Promise.all(edited.map((f) => compressImage(f)))
     // 图片审核（黄暴血腥）：逐张审，违规的当场剔除并提示；出错/限流一律放行(fail-open)。
     const accepted: File[] = []
     let rejectReason: string | null = null

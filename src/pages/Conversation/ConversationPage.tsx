@@ -10,6 +10,7 @@ import { useAuthStore } from '../../store/authStore'
 import { notifyNewMessage } from '../../lib/notify'
 import { toast } from '../../lib/toast'
 import { compressImage } from '../../lib/compressImage'
+import { useImageEditorStore } from '../../store/imageEditorStore'
 import { moderateImage } from '../../lib/moderateImage'
 
 interface Message {
@@ -305,9 +306,11 @@ export default function ConversationPage() {
     const file = e.target.files?.[0]
     e.target.value = ''
     if (!file || !id || !user || !conv) return
+    const edited = await useImageEditorStore.getState().editImage(file)   // 内测#4
+    if (!edited) return
     setUploadingPhoto(true)
     try {
-      const compressed = await compressImage(file)
+      const compressed = await compressImage(edited)
       const imgMod = await moderateImage(compressed)   // 黄暴血腥；fail-open
       if (!imgMod.pass) {
         toast(`图片未通过审核：${imgMod.reason ?? '含违规内容'}`, 'error')
