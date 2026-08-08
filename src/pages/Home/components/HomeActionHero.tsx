@@ -121,7 +121,8 @@ export default function HomeActionHero({
             </p>
 
             <div className="mt-6 flex min-w-0 flex-col gap-3 md:flex-row md:items-stretch">
-              <div data-tour="search" className="min-w-0 flex-1 relative" ref={searchWrapRef}
+              {/* 手机上隐藏:与顶部 Header 搜索框重复(内测#5) */}
+              <div data-tour="search" className="hidden md:block min-w-0 flex-1 relative" ref={searchWrapRef}
                 onFocus={() => setShowHistory(true)}
                 onBlur={(e) => {
                   if (!searchWrapRef.current?.contains(e.relatedTarget as Node)) setShowHistory(false)
@@ -167,14 +168,14 @@ export default function HomeActionHero({
                 data-tour="ai-match"
                 whileTap={{ scale: 0.97 }}
                 onClick={onOpenInquiry}
-                className="flex items-center justify-center gap-2 rounded-2xl bg-primary-600 px-5 py-3 text-sm font-bold text-white shadow-md transition-colors hover:bg-primary-700"
+                className="w-full md:w-auto flex items-center justify-center gap-2 rounded-2xl bg-primary-600 px-5 py-3.5 md:py-3 text-sm font-bold text-white shadow-md transition-colors hover:bg-primary-700"
               >
                 <Sparkles size={15} />
                 AI 智能匹配
               </motion.button>
             </div>
 
-            <div className="mt-4 flex flex-wrap gap-2">
+            <div className="mt-4 hidden md:flex flex-wrap gap-2">
               {['优先看真实评价', '支持微信、电话、站内消息', '需要时才启用定位'].map(t => (
                 <span key={t} className="rounded-full border border-gray-200 bg-white px-3 py-1 text-xs text-gray-500 shadow-sm">
                   {t}
@@ -182,7 +183,7 @@ export default function HomeActionHero({
               ))}
             </div>
 
-            <div className="mt-5 flex flex-wrap gap-3 text-sm text-gray-600">
+            <div className="mt-5 hidden md:flex flex-wrap gap-3 text-sm text-gray-600">
               <div className="inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2.5 shadow-sm">
                 <ShieldCheck size={14} className="text-emerald-500 flex-shrink-0" />
                 <span className="text-xs">优先展示更值得联系的商家</span>
