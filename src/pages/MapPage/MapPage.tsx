@@ -2,9 +2,10 @@
 // Route: /map  — Google Maps-style fullscreen experience with top search bar
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { Search, Navigation, X, RefreshCw, Sparkles } from 'lucide-react'
+import { Search, Navigation, X, RefreshCw, Sparkles, Map as MapIcon, List, Loader2 } from 'lucide-react'
 import Header from '../../components/Header/Header'
 import Mascot from '../../components/Mascot/Mascot'
+import ServiceCard from '../../components/ServiceCard/ServiceCard'
 import { useAppStore } from '../../store/appStore'
 import { useAuthStore } from '../../store/authStore'
 import { useGeolocation, useUpdateLocation, LOCATION_STALE_MS } from '../../hooks/useGeolocation'
@@ -13,6 +14,7 @@ import GoogleMapCanvas, { type GoogleMapCanvasHandle, type GoogleMapPoint } from
 import type { Service, OnlineProvider } from '../../types'
 import { buildServiceInfo, buildDemandInfo, buildOnlineProviderInfo } from '../../lib/mapInfoWindows'
 import { fuzzyFilterServices, fuzzyFilterRequests } from '../../lib/fuzzySearch'
+import { smartSearch, smartRouteToUrl } from '../../lib/smartSearch'
 
 function hasCoordinates(service: Service): service is Service & {
   location: { lat: number; lng: number; address: string; city: string; area?: string }
@@ -36,6 +38,19 @@ export default function MapPage() {
   const mapRef = useRef<GoogleMapCanvasHandle>(null)
   const [search, setSearch] = useState('')
   const [onlineProviders, setOnlineProviders] = useState<OnlineProvider[]>([])
+  const [display, setDisplay] = useState<'map' | 'list'>('map')   // 地图 / 列表(内测#10)
+  const [routing, setRouting] = useState(false)                   // AI 全站搜索跳转中
+
+  // 地图搜索回车 → AI 全站解析:跨板块(房产/二手/招聘/社区)跳对应板块,
+  // 服务/订单留在本页(已由输入实时筛选)。(内测#6+#10)
+  async function handleSmartEnter() {
+    const q = search.trim()
+    if (!q || routing) return
+    setRouting(true)
+    const r = await smartSearch(q)
+    setRouting(false)
+    if (r && r.domain !== 'service') navigate(smartRouteToUrl(r))
+  }
 
   // Auto-request location on mount; refresh if the cached fix is stale (>10 min).
   useEffect(() => {
@@ -86,6 +101,12 @@ export default function MapPage() {
     // 隐藏【停止接单】的(离线)。无搜索时仍展示全部,方便浏览。
     return kw ? filtered.filter((s) => s.provider.isOnline) : filtered
   }, [services, kw])
+
+  // 找订单 列表数据(列表视图不强制要坐标)(内测#10)
+  const requestList = useMemo(
+    () => (kw ? fuzzyFilterRequests(serviceRequests, kw) : serviceRequests),
+    [serviceRequests, kw],
+  )
 
   const servicePoints = useMemo<GoogleMapPoint[]>(() => {
     if (requestsMode) return []
@@ -201,13 +222,16 @@ export default function MapPage() {
             </div>
           </button>
         </div>
-        {/* 搜索框 */}
+        {/* 搜索框 — 回车走 AI 全站解析(内测#6/#10) */}
         <div className="flex items-center gap-2 bg-white rounded-full px-4 py-2.5 shadow-lg">
-          <Search size={16} className="text-gray-400 flex-shrink-0" />
+          {routing
+            ? <Loader2 size={16} className="text-primary-500 animate-spin flex-shrink-0" />
+            : <Search size={16} className="text-gray-400 flex-shrink-0" />}
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder={requestsMode ? '搜索需求、关键词、地点…' : '搜索服务、商家、地点…'}
+            onKeyDown={(e) => { if (e.key === 'Enter') handleSmartEnter() }}
+            placeholder={requestsMode ? '搜索需求、关键词…' : '想找什么直接说，回车全站搜索'}
             className="flex-1 bg-transparent outline-none text-sm text-gray-800 placeholder-gray-400 min-w-0"
           />
           {search && (
@@ -216,14 +240,73 @@ export default function MapPage() {
             </button>
           )}
         </div>
+
+        {/* 结果计数 + 地图/列表 切换(内测#10) */}
+        <div className="flex items-center justify-between gap-2">
+          <span className="bg-white/95 backdrop-blur rounded-full px-3 py-1 shadow text-xs font-semibold text-gray-700">
+            {requestsMode ? `${requestList.length} 条需求` : `${mapped.length} 项服务`}
+          </span>
+          <div className="inline-flex items-center gap-0.5 rounded-full bg-white p-0.5 shadow text-xs">
+            <button
+              onClick={() => setDisplay('map')}
+              className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full font-semibold transition-colors
+                ${display === 'map' ? 'bg-primary-600 text-white' : 'text-gray-500 hover:text-gray-700'}`}
+            >
+              <MapIcon size={12} /> 地图
+            </button>
+            <button
+              onClick={() => setDisplay('list')}
+              className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full font-semibold transition-colors
+                ${display === 'list' ? 'bg-primary-600 text-white' : 'text-gray-500 hover:text-gray-700'}`}
+            >
+              <List size={12} /> 列表
+            </button>
+          </div>
+        </div>
       </div>
 
-      {/* 悬浮·结果计数（搜索框下方，左侧） */}
-      <div className="absolute top-[9.5rem] left-3 z-20 bg-white/95 backdrop-blur rounded-full px-3 py-1.5 shadow-md text-xs font-semibold text-gray-700">
-        {kw ? `找到 ${points.length} 项` : `${points.length} ${requestsMode ? '条需求' : '项服务'}`}
-      </div>
+      {/* 列表视图(内测#10):覆盖地图,与地图同一批结果 */}
+      {display === 'list' && (
+        <div className="absolute inset-0 z-20 bg-gray-50 overflow-y-auto pt-[11.75rem] px-3 pb-24">
+          {requestsMode ? (
+            requestList.length === 0 ? (
+              <div className="flex flex-col items-center pt-16 text-center">
+                <Mascot pose="curious" size={72} className="mb-2" />
+                <p className="text-sm text-gray-500">{kw ? `没有找到「${search}」相关订单` : '附近暂无订单'}</p>
+              </div>
+            ) : (
+              <div className="grid gap-2.5 max-w-2xl mx-auto">
+                {requestList.map((r) => (
+                  <button key={r.id} onClick={() => navigate(`/requests/${r.id}`)}
+                    className="w-full text-left bg-white rounded-2xl border border-gray-100 shadow-sm p-3 flex items-start gap-3 active:scale-[0.99] transition-transform">
+                    <span className={`w-2.5 h-2.5 rounded-full mt-1.5 flex-shrink-0 ${r.isUrgent ? 'bg-red-500' : 'bg-blue-500'}`} />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-gray-800 truncate">{r.title}</p>
+                      <p className="text-xs text-gray-400 mt-0.5 truncate">
+                        {r.isUrgent ? '🔴 急单' : '🔵 预约单'}{r.area ? ` · ${r.area}` : ''}{r.budget ? ` · ${r.budget}` : ''}
+                      </p>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )
+          ) : (
+            mapped.length === 0 ? (
+              <div className="flex flex-col items-center pt-16 text-center">
+                <Mascot pose="curious" size={72} className="mb-2" />
+                <p className="text-sm text-gray-500">{kw ? `没有找到「${search}」相关服务` : '附近暂无服务'}</p>
+              </div>
+            ) : (
+              <div className="grid gap-3 max-w-2xl mx-auto">
+                {mapped.map((s) => <ServiceCard key={s.id} service={s} />)}
+              </div>
+            )
+          )}
+        </div>
+      )}
 
-      {/* 悬浮·定位（左下，右下留给 4 个操作按钮 FABGroup） */}
+      {/* 地图控件仅在地图视图显示(内测#10) */}
+      {display === 'map' && (
       <button
         onClick={handleLocate}
         className={`absolute bottom-6 left-4 z-30 w-12 h-12 rounded-full shadow-lg flex items-center justify-center active:scale-95 transition-all
@@ -232,8 +315,10 @@ export default function MapPage() {
       >
         <Navigation size={20} className={userLocation ? 'text-primary-600' : 'text-white'} fill={userLocation ? 'currentColor' : 'white'} />
       </button>
+      )}
 
       {/* 悬浮·更新位置（左下，节流每 5 分钟） */}
+      {display === 'map' && (
       <button
         onClick={() => updateLocation(() => mapRef.current?.panToUser())}
         disabled={locating}
@@ -244,9 +329,10 @@ export default function MapPage() {
         <RefreshCw size={14} className={locating ? 'animate-spin' : ''} />
         {locating ? '定位中' : '更新位置'}
       </button>
+      )}
 
-      {/* 无结果 */}
-      {kw && points.length === 0 && (
+      {/* 无结果(仅地图视图;列表视图有自己的空状态) */}
+      {display === 'map' && kw && points.length === 0 && (
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-20 bg-white rounded-2xl shadow-lg p-6 text-center flex flex-col items-center">
           <Mascot pose="curious" size={80} className="mb-1" />
           <p className="text-sm font-semibold text-gray-700 mb-1">没有找到「{search}」</p>
