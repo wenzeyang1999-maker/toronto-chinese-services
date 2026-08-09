@@ -11,8 +11,9 @@
 import { useCallback, useRef, useState } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { Search, UserCircle, MapPin } from 'lucide-react'
+import { Search, UserCircle, MapPin, Loader2 } from 'lucide-react'
 import { useAuthStore } from '../../store/authStore'
+import { smartSearch, smartRouteToUrl } from '../../lib/smartSearch'
 import { useCityStore } from '../../store/cityStore'
 import CityPicker from '../CityPicker/CityPicker'
 import HuaLinLogo from '../Logo/HuaLinLogo'
@@ -31,8 +32,8 @@ const NAV_SECTIONS = [
 type SectionId = typeof NAV_SECTIONS[number]['id']
 
 const PLACEHOLDER: Record<SectionId, string> = {
-  urgent:     '在附近急单中搜索…',
-  services:   '在 7 大生活服务中搜索师傅…',
+  urgent:     'AI 智能搜索：服务/房产/二手/招聘…',
+  services:   'AI 智能搜索：想找什么直接说，如「附近有电工吗」',
   jobs:       '在招聘信息中搜索…',
   secondhand: '在二手物品中搜索…',
   realestate: '在当前房源中搜索…',
@@ -93,12 +94,25 @@ export default function Header({ sticky = true }: HeaderProps) {
 
   const [searchQuery,  setSearchQuery]  = useState('')
   const [globalSearch, setGlobalSearch] = useState(false)
+  const [routing,      setRouting]      = useState(false)
 
-  const handleSearch = useCallback(() => {
-    if (!searchQuery.trim()) return
-    navigate(buildSearchUrl(searchQuery, active, globalSearch))
+  const handleSearch = useCallback(async () => {
+    const q = searchQuery.trim()
+    if (!q || routing) return
+    // 板块内搜索(招聘/二手/房产,且未勾全站)保持即时,不走 AI。
+    const sectionScoped = !globalSearch && (active === 'jobs' || active === 'secondhand' || active === 'realestate')
+    if (sectionScoped) {
+      navigate(buildSearchUrl(q, active, globalSearch))
+      setSearchQuery('')
+      return
+    }
+    // AI 统一搜索(内测#6):解析自然语言 → 跳对应板块结果;失败回退普通搜索。
+    setRouting(true)
+    const r = await smartSearch(q)
+    setRouting(false)
     setSearchQuery('')
-  }, [searchQuery, active, globalSearch, navigate])
+    navigate(r ? smartRouteToUrl(r) : buildSearchUrl(q, active, globalSearch))
+  }, [searchQuery, active, globalSearch, navigate, routing])
 
   const placeholder = active ? PLACEHOLDER[active] : '搜索…'
 
@@ -153,7 +167,9 @@ export default function Header({ sticky = true }: HeaderProps) {
         {/* Desktop contextual search (lg+) */}
         <div className="hidden lg:flex items-center flex-1 mx-3 min-w-0">
           <div className="flex items-center w-full bg-gray-100 rounded-xl px-3 py-1.5 gap-2">
-            <Search size={14} className="text-gray-400 flex-shrink-0" />
+            {routing
+              ? <Loader2 size={14} className="text-primary-500 animate-spin flex-shrink-0" />
+              : <Search size={14} className="text-gray-400 flex-shrink-0" />}
             <input
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -254,7 +270,9 @@ export default function Header({ sticky = true }: HeaderProps) {
       {active !== null && !PAGES_WITH_OWN_SEARCH.has(location.pathname) && (
         <div className="lg:hidden px-3 py-2 bg-white border-t border-gray-50">
           <div className="flex items-center bg-gray-100 rounded-xl px-3 py-2 gap-2">
-            <Search size={14} className="text-gray-400 flex-shrink-0" />
+            {routing
+              ? <Loader2 size={14} className="text-primary-500 animate-spin flex-shrink-0" />
+              : <Search size={14} className="text-gray-400 flex-shrink-0" />}
             <input
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
