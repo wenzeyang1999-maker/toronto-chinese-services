@@ -38,6 +38,23 @@ export default function MapPointPicker({ initial, onCancel, onConfirm }: Props) 
           zoomControl: true,
           zoomControlOptions: { position: maps.ControlPosition.RIGHT_TOP },
         })
+        // 「我的位置」蓝点参照(内测2-#7):选点时能看清自己在哪
+        if (userLocation) {
+          new maps.Marker({
+            map: mapRef.current,
+            position: userLocation,
+            title: '我的位置',
+            zIndex: 1,
+            icon: {
+              path: maps.SymbolPath.CIRCLE,
+              scale: 7,
+              fillColor: '#2563eb',
+              fillOpacity: 1,
+              strokeColor: '#ffffff',
+              strokeWeight: 3,
+            },
+          })
+        }
         setReady(true)
       })
       .catch(() => setError('地图加载失败,请稍后重试'))
@@ -88,6 +105,22 @@ export default function MapPointPicker({ initial, onCancel, onConfirm }: Props) 
         <div className="absolute top-3 left-1/2 -translate-x-1/2 bg-white/95 backdrop-blur rounded-full px-3 py-1.5 shadow-md text-xs font-medium text-gray-600 whitespace-nowrap">
           拖动地图,让红针对准位置
         </div>
+
+        {/* 「我的位置」参照:图例 + 一键回到(内测2-#7) */}
+        {ready && userLocation && (
+          <>
+            <div className="absolute bottom-3 left-3 z-10 bg-white/95 backdrop-blur rounded-full px-3 py-1.5 shadow-md text-xs font-medium text-gray-600 flex items-center gap-1.5">
+              <span className="w-2.5 h-2.5 rounded-full bg-blue-600 border-2 border-white shadow-sm inline-block" /> 我的位置
+            </div>
+            <button
+              onClick={() => { mapRef.current?.panTo(userLocation); mapRef.current?.setZoom(15) }}
+              className="absolute bottom-3 right-3 z-10 w-11 h-11 rounded-full bg-white shadow-md flex items-center justify-center active:scale-95"
+              aria-label="回到我的位置"
+            >
+              <MapPin size={18} className="text-blue-600" />
+            </button>
+          </>
+        )}
 
         {(!ready && !error) && (
           <div className="absolute inset-0 flex items-center justify-center bg-gray-100 text-sm text-gray-400">地图加载中…</div>

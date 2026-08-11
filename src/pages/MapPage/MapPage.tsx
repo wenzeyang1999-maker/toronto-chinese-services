@@ -2,7 +2,7 @@
 // Route: /map  — Google Maps-style fullscreen experience with top search bar
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { Search, Navigation, X, RefreshCw, Sparkles, Map as MapIcon, List, Loader2 } from 'lucide-react'
+import { Search, Navigation, X, Sparkles, Map as MapIcon, List, Loader2 } from 'lucide-react'
 import Header from '../../components/Header/Header'
 import Mascot from '../../components/Mascot/Mascot'
 import ServiceCard from '../../components/ServiceCard/ServiceCard'
@@ -34,7 +34,7 @@ export default function MapPage() {
   const userLocation = useAppStore((s) => s.userLocation)
   const user = useAuthStore((s) => s.user)
   const requestLocation = useGeolocation()
-  const { locating, updateLocation } = useUpdateLocation()
+  const { updateLocation } = useUpdateLocation()
   const mapRef = useRef<GoogleMapCanvasHandle>(null)
   const [search, setSearch] = useState('')
   const [onlineProviders, setOnlineProviders] = useState<OnlineProvider[]>([])
@@ -165,8 +165,13 @@ export default function MapPage() {
   const center = userLocation ?? { lat: 43.7, lng: -79.42 }
 
   function handleLocate() {
-    if (userLocation) mapRef.current?.panToUser()
-    else requestLocation()
+    // 蓝色箭头 = 定位到我 + 顺带刷新一次位置(内测2-#3:已删「更新位置」按钮,合二为一)
+    if (userLocation) {
+      mapRef.current?.panToUser()
+      updateLocation(() => mapRef.current?.panToUser())
+    } else {
+      requestLocation()
+    }
   }
 
   return (
@@ -317,19 +322,7 @@ export default function MapPage() {
       </button>
       )}
 
-      {/* 悬浮·更新位置（左下，节流每 5 分钟） */}
-      {display === 'map' && (
-      <button
-        onClick={() => updateLocation(() => mapRef.current?.panToUser())}
-        disabled={locating}
-        title="更新我的位置（最多每 5 分钟一次）"
-        className="absolute bottom-20 left-4 z-30 h-9 pl-2.5 pr-3 rounded-full shadow-lg bg-white hover:bg-gray-50
-                   flex items-center gap-1.5 active:scale-95 transition-all disabled:opacity-70 text-xs font-medium text-gray-700"
-      >
-        <RefreshCw size={14} className={locating ? 'animate-spin' : ''} />
-        {locating ? '定位中' : '更新位置'}
-      </button>
-      )}
+      {/* 「更新位置」按钮已删(内测2-#3):与蓝色定位箭头作用重复,合进 handleLocate */}
 
       {/* 无结果(仅地图视图;列表视图有自己的空状态) */}
       {display === 'map' && kw && points.length === 0 && (
