@@ -75,12 +75,12 @@ export default function HomeActionHero({
             </div>
 
             <h1 className="text-4xl font-extrabold tracking-tight text-gray-900 md:text-5xl xl:text-6xl leading-[1.1]">
-              找本地靠谱服务，
+              一句话，<span className="text-primary-600">AI 帮你</span>
               <br className="hidden md:block" />
-              <span className="text-primary-600">少走弯路</span>，直接联系。
+              找到本地靠谱服务。
             </h1>
             <p className="mt-4 max-w-xl text-sm leading-6 text-gray-500 md:text-base md:leading-7">
-              先搜索，也可以把需求交给 AI 智能匹配。搬家、保洁、接送、装修、现金工，一步进入，更快看到评价、地图和真实联系方式。
+              点下方「AI 智能匹配」，说出需求即可。
             </p>
 
             {/* 首页统一入口:只保留 AI 智能匹配(内测#5/#6),搜索走顶部 Header,

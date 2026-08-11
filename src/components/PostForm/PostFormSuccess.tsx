@@ -8,10 +8,13 @@ interface Props {
   onViewList: () => void
   postAnotherLabel: string
   onPostAnother: () => void
+  onViewMine?: () => void          // 内测2-#10:查看刚发布的内容(展示效果,可继续编辑)
+  viewMineLabel?: string
 }
 
 export default function PostFormSuccess({
   title, subtitle, viewListLabel, onViewList, postAnotherLabel, onPostAnother,
+  onViewMine, viewMineLabel = '查看我的发布',
 }: Props) {
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center px-4">
@@ -24,9 +27,21 @@ export default function PostFormSuccess({
         <h2 className="text-xl font-bold text-gray-900 mb-2">{title}</h2>
         <p className="text-sm text-gray-500 mb-6">{subtitle}</p>
         <div className="flex flex-col gap-2">
+          {onViewMine && (
+            <button
+              onClick={onViewMine}
+              className="w-full bg-primary-600 text-white py-3 rounded-2xl font-semibold text-sm hover:bg-primary-700 transition-colors"
+            >
+              {viewMineLabel}
+            </button>
+          )}
           <button
             onClick={onViewList}
-            className="w-full bg-primary-600 text-white py-3 rounded-2xl font-semibold text-sm hover:bg-primary-700 transition-colors"
+            className={`w-full py-3 rounded-2xl font-semibold text-sm transition-colors ${
+              onViewMine
+                ? 'border border-gray-200 text-gray-600 hover:bg-gray-50'
+                : 'bg-primary-600 text-white hover:bg-primary-700'
+            }`}
           >
             {viewListLabel}
           </button>

@@ -59,6 +59,7 @@ export default function PostListing() {
 
   const [form,        setForm]        = useState<FormState>(INITIAL)
   const { clearDraft } = useFormDraft('draft:listing', form, setForm)   // 内测#2
+  const [newId, setNewId] = useState<string | null>(null)   // 内测2-#10
   const [location,    setLocation]    = useState<LocationResult | null>(null)
   const {
     images, previews, uploading: uploadingImg, error: imageError,
@@ -173,6 +174,7 @@ export default function PostListing() {
     }
 
     if (data) {
+      setNewId((data as { id?: string }).id ?? null)
       addItem({
         ...data,
         images: data.images ?? [],
@@ -209,6 +211,7 @@ export default function PostListing() {
       <PostFormSuccess
         title="闲置已发布！"
         subtitle="买家可以联系您了"
+        onViewMine={newId ? () => navigate(`/secondhand/${newId}`) : undefined}
         viewListLabel="查看二手列表"
         onViewList={() => navigate('/secondhand')}
         postAnotherLabel="继续发布"

@@ -275,6 +275,7 @@ export default function PostService() {
     return (
       <SuccessScreen
         newServiceId={newServiceId}
+        onViewMine={newServiceId ? () => navigate(`/service/${newServiceId}`) : undefined}
         onGoHome={() => navigate('/')}
         onContinue={() => {
           previews.forEach(url => URL.revokeObjectURL(url))

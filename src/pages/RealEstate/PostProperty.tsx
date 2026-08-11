@@ -73,6 +73,7 @@ export default function PostProperty() {
   const initType = (searchParams.get('type') ?? 'rent') as RealEstateListingType
   const [form,         setForm]        = useState<FormState>({ ...INITIAL, listing_type: initType })
   const { clearDraft } = useFormDraft('draft:property', form, setForm)   // 内测#2
+  const [newId, setNewId] = useState<string | null>(null)   // 内测2-#10:刚发布的房源id
   const [location,     setLocation]    = useState<LocationResult | null>(null)
   const {
     images, previews, uploading: uploadingImg, error: imageError,
@@ -183,6 +184,7 @@ export default function PostProperty() {
     if (error) { setSubmitError(/会员|过于频繁|最多|上限/.test(error.message) ? error.message : '发布失败，请稍后重试'); setSubmitting(false); return }
 
     if (data) {
+      setNewId((data as { id?: string }).id ?? null)
       addProperty({
         ...data,
         images: data.images ?? [],
@@ -219,6 +221,7 @@ export default function PostProperty() {
       <PostFormSuccess
         title="房源已发布！"
         subtitle="租客 / 买家可以联系您了"
+        onViewMine={newId ? () => navigate(`/realestate/${newId}`) : undefined}
         viewListLabel="查看房源列表"
         onViewList={() => navigate('/realestate')}
         postAnotherLabel="继续发布"

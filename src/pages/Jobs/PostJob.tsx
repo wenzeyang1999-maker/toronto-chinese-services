@@ -67,6 +67,7 @@ export default function PostJob() {
 
   const [form,       setForm]       = useState<FormState>({ ...INITIAL, listing_type: initialType })
   const { clearDraft } = useFormDraft('draft:job', form, setForm)   // 内测#2
+  const [newId, setNewId] = useState<string | null>(null)   // 内测2-#10
   const [errors,     setErrors]     = useState<Partial<Record<keyof FormState, string>>>({})
   const [submitting,   setSubmitting]  = useState(false)
   const [done,         setDone]        = useState(false)
@@ -164,6 +165,7 @@ export default function PostJob() {
     }
 
     if (data) {
+      setNewId((data as { id?: string }).id ?? null)
       addJob({ ...data, poster: Array.isArray(data.poster) ? (data.poster[0] ?? null) : (data.poster ?? null) } as Job)
 
       // Notify followers (fire-and-forget)
@@ -196,6 +198,7 @@ export default function PostJob() {
       <PostFormSuccess
         title={isHiring ? '职位已发布！' : '求职帖已发布！'}
         subtitle={isHiring ? '求职者可以联系您了' : '雇主可以联系您了'}
+        onViewMine={newId ? () => navigate(`/jobs/${newId}`) : undefined}
         viewListLabel="查看列表"
         onViewList={() => navigate('/jobs')}
         postAnotherLabel="继续发布"

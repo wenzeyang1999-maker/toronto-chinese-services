@@ -6,9 +6,10 @@ interface Props {
   newServiceId: string | null
   onGoHome: () => void
   onContinue: () => void
+  onViewMine?: () => void          // 内测2-#10:查看刚发布的服务卡片
 }
 
-export default function SuccessScreen({ newServiceId, onGoHome, onContinue }: Props) {
+export default function SuccessScreen({ newServiceId, onGoHome, onContinue, onViewMine }: Props) {
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center px-6">
       <motion.div
@@ -39,7 +40,17 @@ export default function SuccessScreen({ newServiceId, onGoHome, onContinue }: Pr
           </button>
         )}
         <div className="flex flex-col gap-3">
-          <button onClick={onGoHome} className="btn-primary">
+          {newServiceId && onViewMine && (
+            <button onClick={onViewMine} className="btn-primary">
+              查看我的发布
+            </button>
+          )}
+          <button
+            onClick={onGoHome}
+            className={newServiceId && onViewMine
+              ? 'w-full border border-gray-200 text-gray-600 py-3 rounded-2xl font-semibold text-sm hover:bg-gray-50 transition-colors'
+              : 'btn-primary'}
+          >
             返回首页
           </button>
           <button onClick={onContinue} className="text-gray-500 text-sm underline">
