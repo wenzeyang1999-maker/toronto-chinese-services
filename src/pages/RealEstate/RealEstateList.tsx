@@ -6,9 +6,10 @@ import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Search, SlidersHorizontal, X,
-  Phone, MessageCircle, Copy, Home, User, ExternalLink,
+  Phone, MessageCircle, Copy, Home, User, ExternalLink, Navigation,
   BedDouble, Bath, Car, PawPrint, Zap, MapPin, Ruler, List, Map as MapIcon,
 } from 'lucide-react'
+import GoogleMapCanvas from '../../components/ServiceMap/GoogleMapCanvas'
 import ImgFallback from '../../components/ImgFallback/ImgFallback'
 import ListPageShell from '../../components/ListPageShell/ListPageShell'
 import ErrorState from '../../components/ErrorState/ErrorState'
@@ -335,8 +336,22 @@ function DetailPanel({ prop, onClose }: { prop: Property; onClose: () => void })
   const [imgIdx, setImgIdx] = useState(0)
   const { copied, copy } = useCopy()
   const [failedImgs, setFailedImgs] = useState<Set<number>>(new Set())
+  // 内测2-#8:详情页地图定位。优先用已存坐标;老房源没坐标则按地址反查(Nominatim)兜底。
+  const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null)
 
   useEffect(() => { setImgIdx(0); setFailedImgs(new Set()) }, [prop.id])
+
+  useEffect(() => {
+    if (prop.lat != null && prop.lng != null) { setCoords({ lat: prop.lat, lng: prop.lng }); return }
+    setCoords(null)
+    if (!prop.address) return
+    let cancelled = false
+    fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(prop.address + ', Ontario, Canada')}&format=json&limit=1`)
+      .then((r) => r.json())
+      .then((d) => { if (!cancelled && d?.[0]) setCoords({ lat: parseFloat(d[0].lat), lng: parseFloat(d[0].lon) }) })
+      .catch(() => { /* 兜底失败就不显示地图 */ })
+    return () => { cancelled = true }
+  }, [prop.id, prop.lat, prop.lng, prop.address])
 
   const copyWechat = () => copy(prop.contact_wechat, { fallback: `微信号：${prop.contact_wechat}（请手动复制）` })
 
@@ -443,6 +458,26 @@ function DetailPanel({ prop, onClose }: { prop: Property; onClose: () => void })
               <p>📅 可入住：{new Date(prop.available_date).toLocaleDateString('zh-CN')}</p>
             )}
             {prop.address && <p>📍 {prop.address}</p>}
+          </div>
+        )}
+
+        {/* 内嵌地图 + 一键导航(内测2-#8) */}
+        {coords && (
+          <div>
+            <div className="relative h-44 rounded-2xl overflow-hidden border border-gray-200">
+              <GoogleMapCanvas
+                center={coords}
+                zoom={15}
+                points={[{ id: prop.id, lat: coords.lat, lng: coords.lng, title: prop.title, promoted: false }]}
+                scrollWheel={false}
+              />
+            </div>
+            <a href={`https://www.google.com/maps/dir/?api=1&destination=${coords.lat},${coords.lng}`}
+              target="_blank" rel="noopener noreferrer"
+              className="mt-2 w-full flex items-center justify-center gap-1.5 bg-primary-600 text-white
+                         py-2.5 rounded-xl font-semibold text-sm hover:bg-primary-700 transition-colors">
+              <Navigation size={15} /> 一键导航到这里
+            </a>
           </div>
         )}
 
