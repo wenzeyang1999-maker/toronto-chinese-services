@@ -4,7 +4,8 @@ import { useEffect, useState } from 'react'
 import { cdnUrl } from '../../lib/cdnUrl'
 import { useParams, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { ChevronLeft, MapPin, Phone, MessageCircle, Copy, Home, User, ExternalLink, BedDouble, Bath, Car, PawPrint, Zap, Maximize2 } from 'lucide-react'
+import { ChevronLeft, MapPin, Phone, MessageCircle, Copy, Home, User, ExternalLink, BedDouble, Bath, Car, PawPrint, Zap, Maximize2, Navigation } from 'lucide-react'
+import GoogleMapCanvas from '../../components/ServiceMap/GoogleMapCanvas'
 import { supabase } from '../../lib/supabase'
 import { useAuthStore } from '../../store/authStore'
 import { useReadStore } from '../../store/readStore'
@@ -198,13 +199,26 @@ export default function RealEstateDetail() {
                 <div className="text-sm text-gray-600 space-y-1 mb-4">
                   {prop.available_date && <p>📅 可入住：{new Date(prop.available_date).toLocaleDateString('zh-CN')}</p>}
                   {prop.address && <p>📍 {prop.address}</p>}
-                  {prop.lat != null && prop.lng != null && (
-                    <a href={`https://www.google.com/maps/search/?api=1&query=${prop.lat},${prop.lng}`}
-                      target="_blank" rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1 text-primary-600 hover:underline">
-                      <MapPin size={13} /> 在地图查看
-                    </a>
-                  )}
+                </div>
+              )}
+
+              {/* 页面内嵌地图 + 一键导航(内测2-#8) */}
+              {prop.lat != null && prop.lng != null && (
+                <div className="mb-4">
+                  <div className="relative h-48 rounded-2xl overflow-hidden border border-gray-200">
+                    <GoogleMapCanvas
+                      center={{ lat: prop.lat, lng: prop.lng }}
+                      zoom={15}
+                      points={[{ id: prop.id, lat: prop.lat, lng: prop.lng, title: prop.title, promoted: false }]}
+                      scrollWheel={false}
+                    />
+                  </div>
+                  <a href={`https://www.google.com/maps/dir/?api=1&destination=${prop.lat},${prop.lng}`}
+                    target="_blank" rel="noopener noreferrer"
+                    className="mt-2 w-full flex items-center justify-center gap-1.5 bg-primary-600 text-white
+                               py-2.5 rounded-xl font-semibold text-sm hover:bg-primary-700 transition-colors">
+                    <Navigation size={15} /> 一键导航到这里
+                  </a>
                 </div>
               )}
 
