@@ -12,6 +12,7 @@ import { postFormInput } from '../../components/PostForm/postFormInput'
 import PostFormAreaPicker from '../../components/PostForm/PostFormAreaPicker'
 import PostFormContact from '../../components/PostForm/PostFormContact'
 import LocationInput, { type LocationResult } from '../../components/LocationInput/LocationInput'
+import { useFormDraft } from '../../hooks/useFormDraft'
 import PostFormSuccess from '../../components/PostForm/PostFormSuccess'
 import { supabase } from '../../lib/supabase'
 import { reportUploadedImage } from '../../lib/moderateImage'
@@ -71,6 +72,7 @@ export default function PostProperty() {
 
   const initType = (searchParams.get('type') ?? 'rent') as RealEstateListingType
   const [form,         setForm]        = useState<FormState>({ ...INITIAL, listing_type: initType })
+  const { clearDraft } = useFormDraft('draft:property', form, setForm)   // 内测#2
   const [location,     setLocation]    = useState<LocationResult | null>(null)
   const {
     images, previews, uploading: uploadingImg, error: imageError,
@@ -208,6 +210,7 @@ export default function PostProperty() {
         if (failed > 0) console.warn(`[notify] ${failed}/${followers.length} property notifications failed`)
       })()
     }
+    clearDraft()   // 内测#2:发布成功清掉草稿
     setDone(true)
   }
 

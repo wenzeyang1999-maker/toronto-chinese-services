@@ -12,6 +12,7 @@ import type { PostServiceForm } from '../../types'
 import Header from '../../components/Header/Header'
 import { compressImage, validateImageFile } from '../../lib/compressImage'
 import { useImageEditorStore } from '../../store/imageEditorStore'
+import { useFormDraft } from '../../hooks/useFormDraft'
 import { moderateImages, reportUploadedImage } from '../../lib/moderateImage'
 import type { LocationResult } from '../../components/LocationInput/LocationInput'
 import { generateServiceDraft } from '../../lib/aiTools'
@@ -46,6 +47,7 @@ export default function PostService() {
   const user           = useAuthStore((s) => s.user)
 
   const [form, setForm]                 = useState<PostServiceForm>(INITIAL_FORM)
+  const { clearDraft } = useFormDraft('draft:service', form, setForm)   // 内测#2
   const [confirmedCustom, setConfirmedCustom] = useState('')
   const [location, setLocation]         = useState<LocationResult | null>(null)
   const [submitted, setSubmitted]       = useState(false)
@@ -259,6 +261,7 @@ export default function PostService() {
       }
 
       await fetchServices()
+      clearDraft()   // 内测#2:发布成功清掉草稿
       setNewServiceId(insertedService?.id ?? null)
       setSubmitted(true)
     } catch (err: any) {

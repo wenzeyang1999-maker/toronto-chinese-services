@@ -16,6 +16,7 @@ import PostFormAreaPicker from '../../components/PostForm/PostFormAreaPicker'
 import PostFormContact from '../../components/PostForm/PostFormContact'
 import PostFormSuccess from '../../components/PostForm/PostFormSuccess'
 import LocationInput, { type LocationResult } from '../../components/LocationInput/LocationInput'
+import { useFormDraft } from '../../hooks/useFormDraft'
 import { useImageUpload } from '../../lib/useImageUpload'
 import {
   SECONDHAND_CATEGORY_CONFIG, ITEM_CONDITION_CONFIG,
@@ -57,6 +58,7 @@ export default function PostListing() {
   const addItem  = useSecondhandStore((s) => s.addItem)
 
   const [form,        setForm]        = useState<FormState>(INITIAL)
+  const { clearDraft } = useFormDraft('draft:listing', form, setForm)   // 内测#2
   const [location,    setLocation]    = useState<LocationResult | null>(null)
   const {
     images, previews, uploading: uploadingImg, error: imageError,
@@ -198,6 +200,7 @@ export default function PostListing() {
         if (failed > 0) console.warn(`[notify] ${failed}/${followers.length} secondhand notifications failed`)
       })()
     }
+    clearDraft()   // 内测#2:发布成功清掉草稿
     setDone(true)
   }
 

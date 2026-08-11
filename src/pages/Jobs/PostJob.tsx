@@ -17,6 +17,7 @@ import PostFormAreaPicker from '../../components/PostForm/PostFormAreaPicker'
 import PostFormContact from '../../components/PostForm/PostFormContact'
 import PostFormSuccess from '../../components/PostForm/PostFormSuccess'
 import LocationInput, { type LocationResult } from '../../components/LocationInput/LocationInput'
+import { useFormDraft } from '../../hooks/useFormDraft'
 import {
   JOB_CATEGORY_CONFIG, JOB_TYPE_CONFIG, SALARY_TYPE_LABEL,
   type JobCategory, type JobType, type SalaryType, type Job, type ListingType,
@@ -65,6 +66,7 @@ export default function PostJob() {
   const initialType = (searchParams.get('type') === 'seeking' ? 'seeking' : 'hiring') as ListingType
 
   const [form,       setForm]       = useState<FormState>({ ...INITIAL, listing_type: initialType })
+  const { clearDraft } = useFormDraft('draft:job', form, setForm)   // 内测#2
   const [errors,     setErrors]     = useState<Partial<Record<keyof FormState, string>>>({})
   const [submitting,   setSubmitting]  = useState(false)
   const [done,         setDone]        = useState(false)
@@ -185,6 +187,7 @@ export default function PostJob() {
         if (failed > 0) console.warn(`[notify] ${failed}/${followers.length} job notifications failed`)
       })()
     }
+    clearDraft()   // 内测#2:发布成功清掉草稿
     setDone(true)
   }
 
