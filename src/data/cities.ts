@@ -53,13 +53,26 @@ export const REGION_TREE: ContinentNode[] = [
     ],
   },
   {
-    id: 'asia', name: '亚洲',
+    id: 'europe', name: '欧洲',
     countries: [
       {
-        id: 'china', name: '中国',
+        id: 'uk', name: '英国',
         cities: [
-          { id: 'beijing',  name: '北京', lat: 39.9042, lng: 116.4074, radiusKm: 120, opened: false },
-          { id: 'shanghai', name: '上海', lat: 31.2304, lng: 121.4737, radiusKm: 120, opened: false },
+          { id: 'london',     name: '伦敦',   lat: 51.5074, lng: -0.1278,  radiusKm: 120, opened: false },
+          { id: 'manchester', name: '曼彻斯特', lat: 53.4808, lng: -2.2426,  radiusKm: 80,  opened: false },
+        ],
+      },
+      {
+        id: 'france', name: '法国',
+        cities: [
+          { id: 'paris', name: '巴黎', lat: 48.8566, lng: 2.3522, radiusKm: 100, opened: false },
+        ],
+      },
+      {
+        id: 'germany', name: '德国',
+        cities: [
+          { id: 'berlin', name: '柏林', lat: 52.5200, lng: 13.4050, radiusKm: 100, opened: false },
+          { id: 'munich', name: '慕尼黑', lat: 48.1351, lng: 11.5820, radiusKm: 80,  opened: false },
         ],
       },
     ],
@@ -72,6 +85,27 @@ export const REGION_TREE: ContinentNode[] = [
         cities: [
           { id: 'sydney',    name: '悉尼',   lat: -33.8688, lng: 151.2093, radiusKm: 120, opened: false },
           { id: 'melbourne', name: '墨尔本', lat: -37.8136, lng: 144.9631, radiusKm: 120, opened: false },
+          { id: 'brisbane',  name: '布里斯班', lat: -27.4698, lng: 153.0251, radiusKm: 100, opened: false },
+          { id: 'perth',     name: '珀斯',   lat: -31.9505, lng: 115.8605, radiusKm: 100, opened: false },
+        ],
+      },
+      {
+        id: 'new-zealand', name: '新西兰',
+        cities: [
+          { id: 'auckland',   name: '奥克兰', lat: -36.8485, lng: 174.7633, radiusKm: 100, opened: false },
+          { id: 'wellington', name: '惠灵顿', lat: -41.2865, lng: 174.7762, radiusKm: 80,  opened: false },
+        ],
+      },
+    ],
+  },
+  {
+    id: 'middle-east', name: '中东',
+    countries: [
+      {
+        id: 'uae', name: '阿联酋',
+        cities: [
+          { id: 'dubai',     name: '迪拜',   lat: 25.2048, lng: 55.2708, radiusKm: 100, opened: false },
+          { id: 'abu-dhabi', name: '阿布扎比', lat: 24.4539, lng: 54.3773, radiusKm: 80,  opened: false },
         ],
       },
     ],

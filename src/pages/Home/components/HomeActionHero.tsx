@@ -59,19 +59,10 @@ export default function HomeActionHero({
             animate={{ opacity: 1, y: 0 }}
             className="relative z-10 min-w-0 max-w-[42rem]"
           >
+            {/* 城市面包屑已删(内测2-#5):与顶栏城市选择重复,且原为写死的 Toronto */}
             <div className="inline-flex max-w-full flex-wrap items-center gap-1.5 rounded-full border border-gray-200 bg-white px-3 py-1 text-xs font-medium text-gray-500 shadow-sm mb-4">
               <MapPin size={11} className="text-primary-500" />
               {userHasLocation ? '已为您准备附近结果' : '海外华人生活一站式服务'}
-              {userHasLocation && (
-                <>
-                  <span className="text-gray-300 mx-0.5">·</span>
-                  <span className="text-gray-400">Canada</span>
-                  <span className="text-gray-300">›</span>
-                  <span className="text-gray-400">Ontario</span>
-                  <span className="text-gray-300">›</span>
-                  <span className="text-primary-500 font-semibold">Toronto</span>
-                </>
-              )}
             </div>
 
             <h1 className="text-4xl font-extrabold tracking-tight text-gray-900 md:text-5xl xl:text-6xl leading-[1.1]">
