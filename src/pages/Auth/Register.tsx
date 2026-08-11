@@ -192,6 +192,14 @@ export default function Register() {
       return
     }
 
+    // 内测2-#1:防枚举保护下,已注册邮箱会「假成功」返回一个 identities 为空的
+    // user(不报错)。据此判定重复注册,提示去登录,而不是让用户以为注册成功。
+    if (data.user && Array.isArray(data.user.identities) && data.user.identities.length === 0) {
+      setEmailExists(true)
+      setLoading(false)
+      return
+    }
+
     setLoading(false)
     setSuccess(true)
     // With email confirmation OFF, signUp already returns a session → the user is
