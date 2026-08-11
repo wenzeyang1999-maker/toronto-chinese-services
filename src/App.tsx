@@ -30,6 +30,7 @@ import { useInquiryStore } from './store/inquiryStore'
 import BottomNav from './components/BottomNav/BottomNav'
 import CityGate from './components/GeofenceBanner/CityGate'
 import ImageEditorHost from './components/ImageEditor/ImageEditorHost'
+import { applyPendingReferral } from './lib/pendingReferral'
 
 const Category        = lazy(() => import('./pages/Category/Category'))
 const Search          = lazy(() => import('./pages/Search/Search'))
@@ -220,9 +221,11 @@ export default function App() {
       authDone = true
       tryFinish()
     }).catch(() => { authDone = true; tryFinish() })
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       const u = session?.user ?? null
       void syncSessionUser(u)
+      // 内测2-#4:Google 登录回来后,补写跳转前暂存的邀请码(RPC 幂等)
+      if (event === 'SIGNED_IN' && u) void applyPendingReferral()
     })
     return () => {
       isActive = false

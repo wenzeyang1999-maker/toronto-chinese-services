@@ -309,7 +309,7 @@ export default function Register() {
           </div>
 
           {/* OAuth buttons */}
-          <SocialAuthButtons redirectTo={window.location.origin} />
+          <SocialAuthButtons redirectTo={window.location.origin} referralCode={referralCode} />
 
           {/* Divider */}
           <div className="flex items-center gap-3 my-5">

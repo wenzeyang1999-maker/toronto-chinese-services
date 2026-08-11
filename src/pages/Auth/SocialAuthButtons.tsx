@@ -1,15 +1,18 @@
 import { useState } from 'react'
 import { supabase } from '../../lib/supabase'
+import { stashPendingReferral } from '../../lib/pendingReferral'
 
 interface Props {
   redirectTo?: string
+  referralCode?: string   // 内测2-#4:跳转前暂存,登录回来后补写
 }
 
-export default function SocialAuthButtons({ redirectTo }: Props) {
+export default function SocialAuthButtons({ redirectTo, referralCode }: Props) {
   const [loading, setLoading] = useState(false)
 
   async function handleOAuth(provider: 'google') {
     setLoading(true)
+    stashPendingReferral(referralCode)   // Google 登录也能带邀请码
     await supabase.auth.signInWithOAuth({
       provider,
       options: { redirectTo: redirectTo ?? window.location.origin },

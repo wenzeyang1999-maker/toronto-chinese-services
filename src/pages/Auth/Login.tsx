@@ -47,6 +47,7 @@ export default function Login() {
   const [serverError, setServerError] = useState<string | null>(null)
 
   // ── Phone OTP login (Supabase native phone auth) ──────────────────────────
+  const [referralCode, setReferralCode] = useState('')   // 内测2-#4:Google 新用户邀请码
   const [authMode, setAuthMode]   = useState<'email' | 'phone'>('email')
   const [phone, setPhone]         = useState('')
   const [otpSent, setOtpSent]     = useState(false)
@@ -160,9 +161,23 @@ export default function Login() {
             <p className="text-sm text-gray-500">登录华邻</p>
           </div>
 
+          {/* 邀请码(选填)— 新用户用 Google 登录时也能带上(内测2-#4) */}
+          <div className="mb-3">
+            <input
+              type="text"
+              value={referralCode}
+              onChange={(e) => setReferralCode(e.target.value.toUpperCase())}
+              placeholder="邀请码（选填，新用户可享 3 个月会员）"
+              maxLength={7}
+              className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm text-gray-900
+                         placeholder-gray-400 outline-none focus:ring-2 focus:ring-primary-300 uppercase tracking-widest"
+            />
+          </div>
+
           {/* OAuth buttons */}
           <SocialAuthButtons
             redirectTo={`${window.location.origin}${(location.state as { from?: string })?.from ?? '/'}`}
+            referralCode={referralCode}
           />
 
           {/* Divider */}
