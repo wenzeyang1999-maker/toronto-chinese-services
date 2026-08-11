@@ -13,6 +13,8 @@ import Header from '../../components/Header/Header'
 import { compressImage, validateImageFile } from '../../lib/compressImage'
 import { useImageEditorStore } from '../../store/imageEditorStore'
 import { useFormDraft } from '../../hooks/useFormDraft'
+import { checkServiceMatch } from '../../lib/checkServiceMatch'
+import { getCategoryById } from '../../data/categories'
 import { moderateImages, reportUploadedImage } from '../../lib/moderateImage'
 import type { LocationResult } from '../../components/LocationInput/LocationInput'
 import { generateServiceDraft } from '../../lib/aiTools'
@@ -48,6 +50,8 @@ export default function PostService() {
 
   const [form, setForm]                 = useState<PostServiceForm>(INITIAL_FORM)
   const { clearDraft } = useFormDraft('draft:service', form, setForm)   // 内测#2
+  const [matchWarn, setMatchWarn]       = useState<string | null>(null)   // 内测2-#9 软提示
+  const bypassMatchRef = useRef(false)
   const [confirmedCustom, setConfirmedCustom] = useState('')
   const [location, setLocation]         = useState<LocationResult | null>(null)
   const [submitted, setSubmitted]       = useState(false)
@@ -146,8 +150,8 @@ export default function PostService() {
     return errs
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const handleSubmit = async (e?: React.FormEvent) => {
+    e?.preventDefault()
     const errs = validate()
     if (Object.keys(errs).length > 0) {
       setErrors(errs)
@@ -166,6 +170,28 @@ export default function PostService() {
 
     setIsSubmitting(true)
     setSubmitError('')
+
+    // 内测2-#9:AI 软提示 — 这条服务是否与「业务名片」相符(不硬拦,可坚持发)
+    if (!bypassMatchRef.current) {
+      try {
+        const { data: myServices } = await supabase.from('services')
+          .select('category_id').eq('provider_id', user.id).limit(50)
+        const existingCats = Array.from(new Set(
+          ((myServices ?? []) as { category_id: string | null }[]).map((s) => s.category_id).filter(Boolean),
+        )) as string[]
+        const { data: prof } = await supabase.from('users').select('bio, skill_tags').eq('id', user.id).single()
+        const bio    = (prof?.bio ?? '').trim()
+        const skills = (prof?.skill_tags ?? []) as string[]
+        if (existingCats.length > 0 || bio || skills.length > 0) {
+          const catLabel = getCategoryById(form.category)?.label ?? form.category
+          const profile  = `简介:${bio || '无'}; 技能标签:${skills.join('、') || '无'}; 已发服务类目:${existingCats.join('、') || '无'}`
+          const service  = `类目:${catLabel}; 标题:${form.title.trim()}; 描述:${form.description.trim().slice(0, 200)}`
+          const r = await checkServiceMatch(profile, service)
+          if (!r.match) { setMatchWarn(r.reason || '这条服务与你的名片主营差异较大'); setIsSubmitting(false); return }
+        }
+      } catch { /* 检查失败不阻断发布 */ }
+    }
+
     try {
       // 0. Content moderation — text
       const modResult = await moderateContent({ title: form.title, description: form.description, tags: form.tags })
@@ -262,6 +288,7 @@ export default function PostService() {
 
       await fetchServices()
       clearDraft()   // 内测#2:发布成功清掉草稿
+      bypassMatchRef.current = false   // 内测2-#9:重置软提示放行标记
       setNewServiceId(insertedService?.id ?? null)
       setSubmitted(true)
     } catch (err: any) {
@@ -293,6 +320,33 @@ export default function PostService() {
   return (
     <div className="min-h-screen bg-gray-50 pb-10">
       <Header />
+
+      {/* 内测2-#9:AI 软提示 — 服务贴与业务名片差异较大(可坚持发) */}
+      {matchWarn && (
+        <div className="fixed inset-0 z-[80] bg-black/50 flex items-center justify-center px-6"
+          onClick={() => { setMatchWarn(null) }}>
+          <div className="bg-white rounded-3xl p-6 max-w-sm w-full text-center" onClick={(e) => e.stopPropagation()}>
+            <div className="text-3xl mb-2">🤔</div>
+            <h3 className="text-base font-bold text-gray-900 mb-1">这条服务和你的名片不太一致</h3>
+            <p className="text-sm text-gray-500 mb-1">{matchWarn}</p>
+            <p className="text-xs text-gray-400 mb-5">发布与主营不符的服务可能影响客户信任。你可以修改，也可以坚持发布。</p>
+            <div className="flex flex-col gap-2">
+              <button
+                onClick={() => { setMatchWarn(null); bypassMatchRef.current = true; handleSubmit() }}
+                className="w-full py-3 rounded-2xl bg-primary-600 text-white font-semibold text-sm hover:bg-primary-700 transition-colors"
+              >
+                仍要发布
+              </button>
+              <button
+                onClick={() => setMatchWarn(null)}
+                className="w-full py-3 rounded-2xl border border-gray-200 text-gray-600 font-semibold text-sm hover:bg-gray-50 transition-colors"
+              >
+                返回修改
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="max-w-2xl mx-auto px-4 py-4">
         <div className="flex items-center gap-3 mb-5">
