@@ -34,7 +34,7 @@ export default function FABGroup() {
           style={{ boxShadow: '0 8px 28px rgba(37,99,235,0.45), 0 2px 8px rgba(37,99,235,0.25)' }}
         >
           <Plus size={20} strokeWidth={2.5} />
-          服务卡片
+          商家服务贴
         </button>
         <button
           data-tour="post-request"

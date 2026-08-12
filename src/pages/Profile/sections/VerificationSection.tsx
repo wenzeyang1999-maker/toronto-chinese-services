@@ -538,7 +538,7 @@ export default function VerificationSection({ user }: Props) {
               <BadgeCheck size={22} className="text-green-600 flex-shrink-0" />
               <div className="flex-1">
                 <p className="text-sm font-semibold text-green-700">商户资料已通过验证</p>
-                <p className="text-xs text-green-600 mt-0.5">你的服务卡片已显示「资料已验证」标志</p>
+                <p className="text-xs text-green-600 mt-0.5">你的商家服务贴已显示「资料已验证」标志</p>
               </div>
             </div>
           ) : verifStatus === 'pending' ? (

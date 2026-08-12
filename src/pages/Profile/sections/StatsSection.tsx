@@ -201,7 +201,7 @@ export default function StatsSection() {
         <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-12 text-center flex flex-col items-center">
           <Mascot pose="computer" size={104} className="mb-2" />
           <p className="text-sm text-gray-400">暂无活跃服务</p>
-          <p className="text-xs text-gray-300 mt-1">发布服务卡片后可在此查看数据</p>
+          <p className="text-xs text-gray-300 mt-1">发布商家服务贴后可在此查看数据</p>
         </div>
       ) : (
         <>

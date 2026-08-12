@@ -202,11 +202,11 @@ export default function CommunityPage() {
         ) : posts.length === 0 ? (
           <div className="text-center py-20 text-gray-400">
             <p className="text-4xl mb-3">🌱</p>
-            <p className="text-sm">还没有帖子，来发第一条吧</p>
+            <p className="text-sm">还没有论坛贴，来发第一条吧</p>
             {user && (
               <button onClick={() => navigate('/community/post')}
                 className="mt-4 text-primary-600 text-sm font-semibold hover:underline">
-                立即发帖 →
+                发论坛贴 →
               </button>
             )}
           </div>

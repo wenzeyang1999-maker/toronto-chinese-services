@@ -66,7 +66,7 @@ export default function CommunitySection() {
         <button onClick={() => navigate('/community/post')}
           className="flex items-center gap-1.5 bg-primary-600 hover:bg-primary-700
                      text-white text-xs font-semibold px-3 py-1.5 rounded-full transition-colors">
-          <PenSquare size={12} /> 发帖
+          <PenSquare size={12} /> 发论坛贴
         </button>
       </div>
 
