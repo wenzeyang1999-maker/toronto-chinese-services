@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import {
   type LucideIcon,
   Truck, Sparkles, Car, Leaf, Hammer, Wrench, LifeBuoy, Cog,
-  Tv, Droplets, Plug, Paintbrush, Layers, Baby, PawPrint, Scissors,
+  Tv, Droplets, Plug, Paintbrush, Layers, Baby, PawPrint, Sofa,
 } from 'lucide-react'
 
 // ── 热门服务：生活服务类目直达（点击 → 搜索该类目）─────────────────────────────
@@ -30,14 +30,14 @@ const CATEGORIES: Category[] = [
 
 // 「更多服务」展开后追加的 8 类。
 const MORE_CATEGORIES: Category[] = [
-  { label: '家电维修', q: '家电维修', icon: Tv,        color: 'text-sky-600',     bgColor: 'bg-sky-50' },
+  { label: 'Staging',  q: 'Staging',  icon: Sofa,      color: 'text-red-600',     bgColor: 'bg-red-50' },
   { label: '管道疏通', q: '疏通',     icon: Droplets,  color: 'text-teal-600',    bgColor: 'bg-teal-50' },
   { label: '水电',     q: '水电',     icon: Plug,      color: 'text-yellow-600',  bgColor: 'bg-yellow-50' },
   { label: '油漆粉刷', q: '油漆',     icon: Paintbrush, color: 'text-orange-600', bgColor: 'bg-orange-50' },
   { label: '地板安装', q: '地板',     icon: Layers,    color: 'text-lime-600',    bgColor: 'bg-lime-50' },
   { label: '月嫂保姆', q: '月嫂',     icon: Baby,      color: 'text-pink-600',    bgColor: 'bg-pink-50' },
   { label: '宠物服务', q: '宠物',     icon: PawPrint,  color: 'text-fuchsia-600', bgColor: 'bg-fuchsia-50' },
-  { label: '美容美发', q: '美发',     icon: Scissors,  color: 'text-red-600',     bgColor: 'bg-red-50' },
+  { label: '家电维修', q: '家电维修', icon: Tv,        color: 'text-sky-600',     bgColor: 'bg-sky-50' },
 ]
 
 const containerVariants = {
