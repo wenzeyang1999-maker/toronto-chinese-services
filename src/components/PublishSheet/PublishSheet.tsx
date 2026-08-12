@@ -16,9 +16,9 @@ type PublishOption = {
   to?: string; inquiry?: boolean
 }
 const OPTIONS: PublishOption[] = [
-  { key: 'services',    label: '服务卡片', sub: '我能提供的服务', to: '/post',            icon: Wrench,            color: 'text-primary-600 bg-primary-50' },
-  { key: 'inquiry',     label: '发需求',   sub: 'AI 智能匹配 · 商家主动联系', inquiry: true,       icon: Megaphone,         color: 'text-orange-600 bg-orange-50' },
-  { key: 'community',   label: '发帖子',   sub: '社区圈子',       to: '/community/post',  icon: MessageSquareText, color: 'text-rose-600 bg-rose-50' },
+  { key: 'services',    label: '商家服务贴', sub: '我能提供的服务', to: '/post',            icon: Wrench,            color: 'text-primary-600 bg-primary-50' },
+  { key: 'inquiry',     label: '发需求',    sub: 'AI 智能匹配 · 商家主动联系', inquiry: true,       icon: Megaphone,         color: 'text-orange-600 bg-orange-50' },
+  { key: 'community',   label: '论坛贴',    sub: '社区圈子',       to: '/community/post',  icon: MessageSquareText, color: 'text-rose-600 bg-rose-50' },
   { key: 'events',      label: '发活动',   sub: '同城聚会',       to: '/events/post',     icon: CalendarPlus,      color: 'text-violet-600 bg-violet-50' },
   { key: 'jobs',        label: '发招聘',   sub: '招聘 / 求职',    to: '/jobs/post',       icon: Briefcase,         color: 'text-blue-600 bg-blue-50' },
   { key: 'secondhand',  label: '发闲置',   sub: '二手转让',       to: '/secondhand/post', icon: ShoppingBag,       color: 'text-emerald-600 bg-emerald-50' },
