@@ -13,11 +13,20 @@ export function loadGoogleMaps(): Promise<any> {
   if (!apiKey) return Promise.reject(new Error('VITE_GOOGLE_MAPS_API_KEY is not configured'))
 
   const win = window as GoogleMapsWindow
-  if (win.google?.maps) return Promise.resolve(win.google.maps)
+  // 只有 Map 类确实已加载才走快路径。loading=async 下 google.maps 可能已存在但
+  // Map/Marker 等类尚未按需加载(new maps.Map 会报 "new r.Map" undefined)。
+  if (win.google?.maps?.Map) return Promise.resolve(win.google.maps)
   if (win.__tcsGoogleMapsPromise) return win.__tcsGoogleMapsPromise
 
   win.__tcsGoogleMapsPromise = new Promise((resolve, reject) => {
-    win.__tcsGoogleMapsInit = () => {
+    win.__tcsGoogleMapsInit = async () => {
+      // loading=async:回调触发≠所有类就绪,需 importLibrary 显式加载 Map/Marker。
+      try {
+        const maps = win.google?.maps
+        if (maps?.importLibrary && !maps.Map) {
+          await maps.importLibrary('maps')      // Map / InfoWindow / Circle / LatLngBounds / Marker(legacy)
+        }
+      } catch { /* 加载失败也 resolve,让上层 error 边界处理 */ }
       resolve(win.google?.maps)
       delete win.__tcsGoogleMapsInit
     }
