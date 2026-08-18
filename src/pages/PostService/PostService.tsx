@@ -49,7 +49,7 @@ export default function PostService() {
   const user           = useAuthStore((s) => s.user)
 
   const [form, setForm]                 = useState<PostServiceForm>(INITIAL_FORM)
-  const { clearDraft } = useFormDraft('draft:service', form, setForm)   // 内测#2
+  const { clearDraft } = useFormDraft('draft:service', form, setForm, { contentKeys: ['title', 'description'] })   // 内测#2
   const [matchWarn, setMatchWarn]       = useState<string | null>(null)   // 内测2-#9 软提示
   const bypassMatchRef = useRef(false)
   const [confirmedCustom, setConfirmedCustom] = useState('')

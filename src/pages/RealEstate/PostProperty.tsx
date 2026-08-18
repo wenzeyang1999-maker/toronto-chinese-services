@@ -72,7 +72,7 @@ export default function PostProperty() {
 
   const initType = (searchParams.get('type') ?? 'rent') as RealEstateListingType
   const [form,         setForm]        = useState<FormState>({ ...INITIAL, listing_type: initType })
-  const { clearDraft } = useFormDraft('draft:property', form, setForm)   // 内测#2
+  const { clearDraft } = useFormDraft('draft:property', form, setForm, { contentKeys: ['title', 'description'] })   // 内测#2
   const [newId, setNewId] = useState<string | null>(null)   // 内测2-#10:刚发布的房源id
   const [location,     setLocation]    = useState<LocationResult | null>(null)
   const {

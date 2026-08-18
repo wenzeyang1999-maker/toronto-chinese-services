@@ -66,7 +66,7 @@ export default function PostJob() {
   const initialType = (searchParams.get('type') === 'seeking' ? 'seeking' : 'hiring') as ListingType
 
   const [form,       setForm]       = useState<FormState>({ ...INITIAL, listing_type: initialType })
-  const { clearDraft } = useFormDraft('draft:job', form, setForm)   // 内测#2
+  const { clearDraft } = useFormDraft('draft:job', form, setForm, { contentKeys: ['title', 'description'] })   // 内测#2
   const [newId, setNewId] = useState<string | null>(null)   // 内测2-#10
   const [errors,     setErrors]     = useState<Partial<Record<keyof FormState, string>>>({})
   const [submitting,   setSubmitting]  = useState(false)

@@ -58,7 +58,7 @@ export default function PostListing() {
   const addItem  = useSecondhandStore((s) => s.addItem)
 
   const [form,        setForm]        = useState<FormState>(INITIAL)
-  const { clearDraft } = useFormDraft('draft:listing', form, setForm)   // 内测#2
+  const { clearDraft } = useFormDraft('draft:listing', form, setForm, { contentKeys: ['title', 'description'] })   // 内测#2
   const [newId, setNewId] = useState<string | null>(null)   // 内测2-#10
   const [location,    setLocation]    = useState<LocationResult | null>(null)
   const {
