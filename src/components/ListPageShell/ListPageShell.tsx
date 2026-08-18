@@ -1,5 +1,6 @@
 import { useRef } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion, AnimatePresence, useDragControls } from 'framer-motion'
+import { X } from 'lucide-react'
 import Header from '../Header/Header'
 import PostFAB from '../PostFAB/PostFAB'
 import PageMeta from '../PageMeta/PageMeta'
@@ -51,6 +52,7 @@ export default function ListPageShell({
 }: Props) {
   const navigate = useNavigate()
   const user = useAuthStore((s) => s.user)
+  const dragControls = useDragControls()   // 底部弹层「把手下滑关闭」
   const detailRef = useRef<HTMLDivElement>(null)
   const listScrollRef = useRef<HTMLDivElement>(null)
   const { distance, refreshing, threshold } = usePullToRefresh(
@@ -141,10 +143,29 @@ export default function ListPageShell({
               transition={{ type: 'spring', damping: 30, stiffness: 300 }}
               className="absolute bottom-0 left-0 right-0 bg-white rounded-t-3xl max-h-[90vh] overflow-y-auto"
               onClick={(e) => e.stopPropagation()}
+              // 下滑关闭:仅从把手发起拖拽(dragListener=false + dragControls),不和内容滚动打架
+              drag="y"
+              dragListener={false}
+              dragControls={dragControls}
+              dragConstraints={{ top: 0, bottom: 0 }}
+              dragElastic={{ top: 0, bottom: 0.5 }}
+              onDragEnd={(_, info) => { if (info.offset.y > 120 || info.velocity.y > 600) onCloseMobile?.() }}
             >
-              <div className="flex justify-center pt-3 pb-2">
-                <div className="w-10 h-1 bg-gray-300 rounded-full" />
+              {/* 把手:按住下滑可关闭 */}
+              <div
+                onPointerDown={(e) => dragControls.start(e)}
+                className="sticky top-0 z-10 flex justify-center pt-3 pb-2 bg-white rounded-t-3xl cursor-grab active:cursor-grabbing touch-none"
+              >
+                <div className="w-10 h-1.5 bg-gray-300 rounded-full" />
               </div>
+              {/* 关闭按钮 */}
+              <button
+                onClick={onCloseMobile}
+                aria-label="关闭"
+                className="absolute top-2.5 right-3 z-20 w-8 h-8 rounded-full bg-black/5 hover:bg-black/10 flex items-center justify-center active:scale-95"
+              >
+                <X size={18} className="text-gray-600" />
+              </button>
               {detailMobile ?? detailDesktop}
             </motion.div>
           </motion.div>
