@@ -133,11 +133,13 @@ export default function Search() {
       return
     }
     setCommunityLoading(true)
+    // PostgREST 的 .or() 用逗号分隔条件,搜索词里的 , ( ) 会拆坏过滤 → 先清掉
+    const orKw = kw.replace(/[,()*]/g, ' ')
     supabase
       .from('community_posts')
       .select('id, title, content, type, area, like_count, created_at, author:author_id(name)')
       .eq('is_active', true)
-      .or(`title.ilike.%${kw}%,content.ilike.%${kw}%`)
+      .or(`title.ilike.%${orKw}%,content.ilike.%${orKw}%`)
       .order('created_at', { ascending: false })
       .limit(5)
       .then(({ data }) => {
@@ -185,13 +187,14 @@ export default function Search() {
     setGlobalLoading(true)
     setGlobalSearched(true)
 
+    const orQ = q.replace(/[,()*]/g, ' ')   // .or() 里防逗号/括号拆坏过滤
     Promise.all([
       supabase.from('services').select('id, title, category_id, area').ilike('title', `%${q}%`).eq('is_available', true).limit(20),
       supabase.from('jobs').select('id, title, company_name, job_type').ilike('title', `%${q}%`).eq('is_active', true).limit(20),
       supabase.from('properties').select('id, title, listing_type, area').ilike('title', `%${q}%`).eq('is_active', true).limit(20),
       supabase.from('secondhand').select('id, title, category, area').ilike('title', `%${q}%`).eq('is_active', true).eq('is_sold', false).limit(20),
       supabase.from('events').select('id, title, event_type, event_date').ilike('title', `%${q}%`).eq('is_active', true).limit(20),
-      supabase.from('community_posts').select('id, title, content, type, area').eq('is_active', true).or(`title.ilike.%${q}%,content.ilike.%${q}%`).limit(20),
+      supabase.from('community_posts').select('id, title, content, type, area').eq('is_active', true).or(`title.ilike.%${orQ}%,content.ilike.%${orQ}%`).limit(20),
     ]).then(([svc, jobs, props, sh, evts, comm]) => {
       setGlobalResults([
         ...(svc.data  ?? []).map((r: any) => ({ id: r.id, type: 'service'    as GlobalResultType, title: r.title, subtitle: [r.category_id, r.area].filter(Boolean).join(' · '), emoji: '🔧', path: `/service/${r.id}` })),
