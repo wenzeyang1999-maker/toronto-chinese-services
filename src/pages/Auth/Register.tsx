@@ -440,7 +440,7 @@ export default function Register() {
                 className="mt-0.5 accent-primary-600"
               />
               <label htmlFor="terms" className="text-xs text-gray-500 leading-relaxed">
-                我已阅读并同意{' '}
+                我已年满 18 岁,并已阅读同意{' '}
                 <a href="/terms" target="_blank" rel="noopener noreferrer"
                    className="text-primary-600 hover:underline">服务条款</a>
                 {' '}及{' '}
@@ -556,7 +556,7 @@ export default function Register() {
                   className="mt-0.5 accent-primary-600"
                 />
                 <label htmlFor="terms-phone" className="text-xs text-gray-500 leading-relaxed">
-                  我已阅读并同意{' '}
+                  我已年满 18 岁,并已阅读同意{' '}
                   <a href="/terms" target="_blank" rel="noopener noreferrer"
                      className="text-primary-600 hover:underline">服务条款</a>
                   {' '}及{' '}
