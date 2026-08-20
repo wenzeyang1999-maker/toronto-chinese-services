@@ -21,6 +21,7 @@ import PropertiesSection from './components/PropertiesSection'
 import SecondhandSection from './components/SecondhandSection'
 import EventsSection from './components/EventsSection'
 import ReviewsSection from './components/ReviewsSection'
+import Mascot from '../../components/Mascot/Mascot'
 
 export default function ProviderProfile() {
   const { copy } = useCopy()
@@ -211,7 +212,7 @@ export default function ProviderProfile() {
           <span className="text-sm font-semibold text-gray-700">服务商主页</span>
         </div>
         <div className="flex-1 flex flex-col items-center justify-center gap-4 px-6 text-center">
-          <div className="text-5xl">🔍</div>
+          <Mascot pose="curious" size={104} />
           <h2 className="text-lg font-bold text-gray-800">找不到这个服务商</h2>
           <p className="text-sm text-gray-400 leading-relaxed max-w-xs">
             该主页可能已被删除或链接已失效。<br />你可以回首页重新搜索。

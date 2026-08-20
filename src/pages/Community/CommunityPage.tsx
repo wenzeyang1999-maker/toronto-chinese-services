@@ -16,6 +16,7 @@ import ErrorState from '../../components/ErrorState/ErrorState'
 import { usePullToRefresh } from '../../hooks/usePullToRefresh'
 import { POST_TYPE_CONFIG, AREA_CONFIG } from './config'
 import ImgFallback from '../../components/ImgFallback/ImgFallback'
+import Mascot from '../../components/Mascot/Mascot'
 
 interface Post {
   id: string
@@ -201,7 +202,7 @@ export default function CommunityPage() {
           <ErrorState onRetry={refresh} />
         ) : posts.length === 0 ? (
           <div className="text-center py-20 text-gray-400">
-            <p className="text-4xl mb-3">🌱</p>
+            <Mascot pose="curious" size={104} className="mx-auto mb-3" />
             <p className="text-sm">还没有论坛贴，来发第一条吧</p>
             {user && (
               <button onClick={() => navigate('/community/post')}

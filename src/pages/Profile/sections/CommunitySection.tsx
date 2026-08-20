@@ -7,6 +7,7 @@ import { PenSquare, Trash2, MessageCircle, Heart } from 'lucide-react'
 import { supabase } from '../../../lib/supabase'
 import { useAuthStore } from '../../../store/authStore'
 import { POST_TYPE_CONFIG, AREA_CONFIG } from '../../Community/config'
+import Mascot from '../../../components/Mascot/Mascot'
 
 interface Post {
   id: string
@@ -81,7 +82,7 @@ export default function CommunitySection() {
         ))
       ) : posts.length === 0 ? (
         <div className="bg-white rounded-2xl border border-gray-100 p-8 text-center text-gray-400 text-sm">
-          <p className="text-3xl mb-2">🌱</p>
+          <Mascot pose="book" size={88} className="mx-auto mb-2" />
           还没有发过帖子
           <br />
           <button onClick={() => navigate('/community/post')}

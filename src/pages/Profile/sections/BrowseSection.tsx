@@ -2,6 +2,7 @@ import { motion } from 'framer-motion'
 import { Clock, ChevronRight } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import type { BrowseEntry } from '../types'
+import Mascot from '../../../components/Mascot/Mascot'
 
 interface Props {
   items:   BrowseEntry[]
@@ -20,7 +21,7 @@ export default function BrowseSection({ items, onClear }: Props) {
     >
       {items.length === 0 ? (
         <div className="bg-white rounded-3xl border border-gray-100 shadow-sm py-16 px-8 text-center">
-          <span className="text-5xl block mb-4 select-none">🕐</span>
+          <Mascot pose="curious" size={104} className="mx-auto mb-4" />
           <p className="text-base font-semibold text-gray-700 mb-1.5">暂无浏览记录</p>
           <p className="text-sm text-gray-400 leading-relaxed mb-5">浏览过的服务会自动保存在这里<br />方便你随时回看</p>
           <button

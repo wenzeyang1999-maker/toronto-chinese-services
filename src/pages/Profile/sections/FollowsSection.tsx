@@ -10,6 +10,7 @@ import { supabase } from '../../../lib/supabase'
 import { useAuthStore } from '../../../store/authStore'
 import { useFollowsStore } from '../../../store/followsStore'
 import { SectionSkeleton } from '../../../components/Skeleton/Skeleton'
+import Mascot from '../../../components/Mascot/Mascot'
 
 interface FollowedProvider {
   id:         string
@@ -86,7 +87,7 @@ export default function FollowsSection() {
 
       {providers.length === 0 ? (
         <div className="bg-white rounded-3xl border border-gray-100 shadow-sm py-16 px-8 text-center">
-          <span className="text-5xl block mb-4 select-none">🔔</span>
+          <Mascot pose="hello2" size={104} className="mx-auto mb-4" />
           <p className="text-base font-semibold text-gray-700 mb-1.5">还没有关注任何服务商</p>
           <p className="text-sm text-gray-400 leading-relaxed mb-5">关注服务商后，他们的新内容<br />会第一时间出现在这里</p>
           <button

@@ -8,6 +8,7 @@ import { motion } from 'framer-motion'
 import { CheckCircle, Zap, LogIn } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { useAuthStore } from '../../store/authStore'
+import Mascot from '../../components/Mascot/Mascot'
 
 type ClaimState = 'loading' | 'claimed' | 'full' | 'not_found' | 'need_login' | 'error'
 
@@ -72,7 +73,7 @@ export default function InquiryClaim() {
 
         {state === 'full' && (
           <>
-            <div className="text-5xl mb-4">😔</div>
+            <Mascot pose="facepalm" size={92} className="mx-auto mb-4" />
             <h2 className="text-xl font-bold text-gray-700 mb-2">名额已满</h2>
             <p className="text-sm text-gray-400 mb-6">5 名服务商已接单，此询价已关闭。</p>
             <button onClick={() => navigate('/')}
@@ -84,7 +85,7 @@ export default function InquiryClaim() {
 
         {state === 'not_found' && (
           <>
-            <div className="text-5xl mb-4">🔍</div>
+            <Mascot pose="curious" size={92} className="mx-auto mb-4" />
             <h2 className="text-xl font-bold text-gray-700 mb-2">询价不存在</h2>
             <p className="text-sm text-gray-400 mb-6">该询价已过期或被取消。</p>
             <button onClick={() => navigate('/')}
@@ -110,7 +111,7 @@ export default function InquiryClaim() {
 
         {state === 'error' && (
           <>
-            <div className="text-5xl mb-4">❌</div>
+            <Mascot pose="surprised" size={92} className="mx-auto mb-4" />
             <h2 className="text-xl font-bold text-gray-700 mb-2">操作失败</h2>
             <p className="text-sm text-gray-400 mb-6">请稍后重试。</p>
             <button onClick={() => setState('loading')}

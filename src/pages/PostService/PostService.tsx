@@ -27,6 +27,7 @@ import CategoryPicker from './components/CategoryPicker'
 import ImageUpload from './components/ImageUpload'
 import AreaPicker from './components/AreaPicker'
 import ContactSection from './components/ContactSection'
+import Mascot from '../../components/Mascot/Mascot'
 
 const INITIAL_FORM: PostServiceForm = {
   category: 'moving',
@@ -326,7 +327,7 @@ export default function PostService() {
         <div className="fixed inset-0 z-[80] bg-black/50 flex items-center justify-center px-6"
           onClick={() => { setMatchWarn(null) }}>
           <div className="bg-white rounded-3xl p-6 max-w-sm w-full text-center" onClick={(e) => e.stopPropagation()}>
-            <div className="text-3xl mb-2">🤔</div>
+            <Mascot pose="curious" size={72} className="mx-auto mb-2" />
             <h3 className="text-base font-bold text-gray-900 mb-1">这条服务和你的名片不太一致</h3>
             <p className="text-sm text-gray-500 mb-1">{matchWarn}</p>
             <p className="text-xs text-gray-400 mb-5">发布与主营不符的服务可能影响客户信任。你可以修改，也可以坚持发布。</p>
