@@ -84,7 +84,7 @@ export default function RequestDetail() {
       p_service_id:  null,
     })
     if (error || !data) { toast('无法发起会话', 'error'); return }
-    navigate('/profile?section=messages', { state: { conversationId: data } })
+    navigate(`/conversation/${data}`)   // 直达对话框
   }
 
   function handleNavigate() {

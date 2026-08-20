@@ -66,7 +66,10 @@ export default function Profile() {
   const user     = useAuthStore((s) => s.user)
   const leadCount = useLeadAlertsStore((s) => s.count)
 
-  const VALID_SECTIONS = MENU.map((m) => m.key)
+  // 含菜单项 + 深链键(我的交易的三个子页由通知/其它页跳入,不在 MENU 里,
+  // 但 renderSection 会处理;若不列为有效,URL 里的 ?section=orders 会被下方
+  // effect 判为无效而重置 → 通知点了跳不到确认页)。
+  const VALID_SECTIONS = [...MENU.map((m) => m.key), 'inquiries', 'claimed_inquiries', 'orders'] as Section[]
 
   const [section, setSection] = useState<Section | null>(() => {
     const param = searchParams.get('section') as Section | null

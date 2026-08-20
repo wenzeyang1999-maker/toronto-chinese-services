@@ -334,12 +334,12 @@ export default function InquiriesSection() {
                                   <p className="text-xs font-semibold text-green-700">您已选定服务商，对方将主动联系您</p>
                                 </div>
                                 <button
-                                  onClick={() => navigate(`/provider/${item.assigned_provider_id}`)}
+                                  onClick={() => navigate('/profile?section=orders')}
                                   className="w-full flex items-center justify-center gap-1.5 bg-white border border-gray-200
                                              rounded-xl px-3 py-2.5 hover:bg-amber-50 hover:border-amber-200 transition-colors"
                                 >
                                   <Star size={14} className="text-amber-500 flex-shrink-0" />
-                                  <span className="text-xs font-semibold text-gray-700">服务完成后，去评价这位服务商 →</span>
+                                  <span className="text-xs font-semibold text-gray-700">服务完成后，到「成交订单」评价 →</span>
                                 </button>
                               </div>
                             ) : hasProviders ? (

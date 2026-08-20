@@ -75,7 +75,7 @@ export default function ClaimedInquiriesSection() {
     })
     setChatting(null)
     if (error || !data) { toast('无法发起会话，请稍后再试', 'error'); return }
-    navigate('/profile?section=messages', { state: { conversationId: data } })
+    navigate(`/conversation/${data}`)   // 直达对话框
   }
 
   if (loading) return (
