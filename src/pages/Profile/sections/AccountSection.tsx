@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
-import { Mail, Phone, Lock, User, Pencil, Check, X, ChevronRight, AlignLeft } from 'lucide-react'
+import { Mail, Phone, Lock, User, Pencil, Check, X, ChevronRight, AlignLeft, Trash2, AlertTriangle } from 'lucide-react'
 import { supabase } from '../../../lib/supabase'
 import { toast } from '../../../lib/toast'
 import type { User as SupabaseUser } from '@supabase/supabase-js'
+
+const DELETE_CONFIRM_PHRASE = '删除我的账号'
 
 interface Props {
   user:   SupabaseUser
@@ -76,6 +78,25 @@ export default function AccountSection({ user, name, phone, onNameChange, onPhon
       setTimeout(() => { setShowPwd(false); setPwdMsg(null) }, 1500)
     }
     setPwdBusy(false)
+  }
+
+  // ── 注销账号(立即硬删除,不可恢复)────────────────────────────────────────
+  const [delOpen,    setDelOpen]    = useState(false)
+  const [delConfirm, setDelConfirm] = useState('')
+  const [delBusy,    setDelBusy]    = useState(false)
+
+  async function deleteAccount() {
+    if (delConfirm.trim() !== DELETE_CONFIRM_PHRASE) return
+    setDelBusy(true)
+    const { data, error } = await supabase.functions.invoke<{ ok?: boolean; error?: string }>('delete-account', { body: {} })
+    if (error || !data?.ok) {
+      setDelBusy(false)
+      toast('注销失败：' + (data?.error ?? error?.message ?? '请稍后再试'), 'error')
+      return
+    }
+    // 账号已删,退出登录并回首页(整页刷新以清空所有内存状态)
+    await supabase.auth.signOut()
+    window.location.href = '/'
   }
 
   return (
@@ -182,6 +203,49 @@ export default function AccountSection({ user, name, phone, onNameChange, onPhon
           )}
         </div>
       </div>
+
+      {/* 危险区:注销账号 */}
+      <div className="bg-white rounded-3xl border border-red-100 shadow-sm">
+        <button onClick={() => { setDelConfirm(''); setDelOpen(true) }}
+          className="w-full flex items-center gap-3 px-5 py-4 text-red-500 hover:bg-red-50/60 rounded-3xl transition-colors">
+          <Trash2 size={16} className="flex-shrink-0" />
+          <span className="text-sm font-medium flex-1 text-left">注销账号</span>
+          <ChevronRight size={16} className="text-red-300" />
+        </button>
+      </div>
+
+      {delOpen && (
+        <div className="fixed inset-0 z-[90] bg-black/50 flex items-center justify-center px-6"
+          onClick={() => !delBusy && setDelOpen(false)}>
+          <div className="bg-white rounded-3xl p-6 max-w-sm w-full" onClick={e => e.stopPropagation()}>
+            <div className="flex flex-col items-center text-center">
+              <div className="w-12 h-12 rounded-2xl bg-red-50 flex items-center justify-center mb-3">
+                <AlertTriangle size={24} className="text-red-500" />
+              </div>
+              <h3 className="text-base font-bold text-gray-900 mb-1">永久注销账号</h3>
+              <p className="text-sm text-gray-500 leading-relaxed mb-4">
+                此操作<b className="text-red-500">不可恢复</b>。你的资料、发布、评价、消息、订单等所有数据将被立即删除。
+              </p>
+            </div>
+            <label className="block text-xs text-gray-500 mb-1.5">
+              请输入 <b className="text-gray-800">{DELETE_CONFIRM_PHRASE}</b> 以确认
+            </label>
+            <input autoFocus value={delConfirm} onChange={e => setDelConfirm(e.target.value)}
+              placeholder={DELETE_CONFIRM_PHRASE}
+              className="w-full text-sm border border-gray-200 rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-red-300 mb-4" />
+            <div className="flex flex-col gap-2">
+              <button onClick={deleteAccount} disabled={delBusy || delConfirm.trim() !== DELETE_CONFIRM_PHRASE}
+                className="w-full py-3 rounded-2xl bg-red-500 text-white font-semibold text-sm hover:bg-red-600 transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
+                {delBusy ? '正在注销…' : '永久注销'}
+              </button>
+              <button onClick={() => setDelOpen(false)} disabled={delBusy}
+                className="w-full py-3 rounded-2xl bg-gray-100 text-gray-700 font-semibold text-sm hover:bg-gray-200 transition-colors">
+                取消
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </motion.div>
   )
 }
