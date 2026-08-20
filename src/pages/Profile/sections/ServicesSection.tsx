@@ -227,13 +227,19 @@ export default function ServicesSection() {
   }
 
   async function deleteItem(table: string, id: string) {
-    await supabase.from(table).delete().eq('id', id)
+    // services 是软删(RLS 无 DELETE 策略),必须走 soft_delete_service RPC;
+    // 其余表走硬删(已有 owner 删除策略)。务必检查 error,别再静默假删。
+    const { error } = table === 'services'
+      ? await supabase.rpc('soft_delete_service', { p_service_id: id })
+      : await supabase.from(table).delete().eq('id', id)
+    if (error) { toast(`删除失败：${error.message}`, 'error'); return }
     if (table === 'services')   setServices(prev => prev.filter(x => x.id !== id))
     if (table === 'jobs')       setJobs(prev => prev.filter(x => x.id !== id))
     if (table === 'properties') setProperties(prev => prev.filter(x => x.id !== id))
     if (table === 'secondhand') setSecondhand(prev => prev.filter(x => x.id !== id))
     if (table === 'events')     setEvents(prev => prev.filter(x => x.id !== id))
     setConfirmDel(null)
+    toast('已删除', 'success')
   }
 
   // ── Shared row wrapper ─────────────────────────────────────────────────────
