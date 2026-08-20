@@ -144,7 +144,8 @@ export default function QASection({ serviceId, providerId }: Props) {
   // ── Delete question ───────────────────────────────────────────────────────
 
   async function deleteQuestion(qId: string) {
-    await supabase.from('questions').delete().eq('id', qId).eq('asker_id', user!.id)
+    const { error } = await supabase.from('questions').delete().eq('id', qId).eq('asker_id', user!.id)
+    if (error) { alert(`删除失败：${error.message}`); return }
     setQuestions(prev => prev.filter(q => q.id !== qId))
   }
 
@@ -167,15 +168,17 @@ export default function QASection({ serviceId, providerId }: Props) {
   async function saveEditAnswer(answerId: string) {
     if (!user || !editAnswerText.trim()) return
     setEditAnswering(true)
-    await supabase.from('answers')
+    const { error } = await supabase.from('answers')
       .update({ content: editAnswerText.trim() })
       .eq('id', answerId).eq('answerer_id', user.id)
     setEditAnswering(false)
+    if (error) { alert(`保存失败：${error.message}`); return }
     setEditingAnswerId(null); setEditAnswerText(''); load()
   }
 
   async function deleteAnswer(answerId: string) {
-    await supabase.from('answers').delete().eq('id', answerId).eq('answerer_id', user!.id)
+    const { error } = await supabase.from('answers').delete().eq('id', answerId).eq('answerer_id', user!.id)
+    if (error) { alert(`删除失败：${error.message}`); return }
     load()
   }
 

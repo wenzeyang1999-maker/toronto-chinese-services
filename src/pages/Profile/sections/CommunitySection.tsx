@@ -55,8 +55,10 @@ export default function CommunitySection() {
 
   async function deletePost(postId: string) {
     if (!confirm('确定删除这条帖子？')) return
-    setPosts(prev => prev.filter(p => p.id !== postId))
-    await supabase.from('community_posts').delete().eq('id', postId)
+    const prev = posts
+    setPosts(cur => cur.filter(p => p.id !== postId))       // 乐观移除
+    const { error } = await supabase.from('community_posts').delete().eq('id', postId)
+    if (error) { setPosts(prev); alert(`删除失败：${error.message}`) }   // 失败回滚,避免「消失又刷回来」
   }
 
   return (
