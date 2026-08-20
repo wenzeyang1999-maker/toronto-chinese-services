@@ -177,44 +177,54 @@ export default function ServicesSection() {
         uploaded.push(publicUrl)
       }
     }
-    await supabase.from('services').update({
+    const { error: saveErr } = await supabase.from('services').update({
       title: editForm.title.trim(), description: editForm.description.trim(),
       price: editForm.price ? parseFloat(editForm.price) : null,
       area: editForm.area.trim() || null, images: [...editForm.images, ...uploaded],
     }).eq('id', editingId)
-    setSaving(false); cancelEdit(); loadAll()
+    setSaving(false)
+    if (saveErr) { toast(`保存失败：${saveErr.message}`, 'error'); return }
+    cancelEdit(); loadAll()
   }
 
   // ── Toggle active / delete helpers ────────────────────────────────────────
+  // 上下架/标记类:乐观改 UI,失败回滚+提示,避免「切了又刷回来」
   async function toggleService(svc: ServiceItem) {
-    await supabase.from('services').update({ is_available: !svc.is_available }).eq('id', svc.id)
     setServices(prev => prev.map(s => s.id === svc.id ? { ...s, is_available: !s.is_available } : s))
+    const { error } = await supabase.from('services').update({ is_available: !svc.is_available }).eq('id', svc.id)
+    if (error) { setServices(prev => prev.map(s => s.id === svc.id ? { ...s, is_available: svc.is_available } : s)); toast(`操作失败：${error.message}`, 'error') }
   }
   async function toggleJob(job: Job) {
-    await supabase.from('jobs').update({ is_active: !job.is_active }).eq('id', job.id)
     setJobs(prev => prev.map(j => j.id === job.id ? { ...j, is_active: !j.is_active } : j))
+    const { error } = await supabase.from('jobs').update({ is_active: !job.is_active }).eq('id', job.id)
+    if (error) { setJobs(prev => prev.map(j => j.id === job.id ? { ...j, is_active: job.is_active } : j)); toast(`操作失败：${error.message}`, 'error') }
   }
   async function toggleProperty(p: Property) {
-    await supabase.from('properties').update({ is_active: !p.is_active }).eq('id', p.id)
     setProperties(prev => prev.map(x => x.id === p.id ? { ...x, is_active: !x.is_active } : x))
+    const { error } = await supabase.from('properties').update({ is_active: !p.is_active }).eq('id', p.id)
+    if (error) { setProperties(prev => prev.map(x => x.id === p.id ? { ...x, is_active: p.is_active } : x)); toast(`操作失败：${error.message}`, 'error') }
   }
   async function toggleSecondhand(item: SecondhandItem) {
-    await supabase.from('secondhand').update({ is_active: !item.is_active }).eq('id', item.id)
     setSecondhand(prev => prev.map(x => x.id === item.id ? { ...x, is_active: !x.is_active } : x))
+    const { error } = await supabase.from('secondhand').update({ is_active: !item.is_active }).eq('id', item.id)
+    if (error) { setSecondhand(prev => prev.map(x => x.id === item.id ? { ...x, is_active: item.is_active } : x)); toast(`操作失败：${error.message}`, 'error') }
   }
   async function toggleEvent(ev: Event) {
-    await supabase.from('events').update({ is_active: !ev.is_active }).eq('id', ev.id)
     setEvents(prev => prev.map(x => x.id === ev.id ? { ...x, is_active: !x.is_active } : x))
+    const { error } = await supabase.from('events').update({ is_active: !ev.is_active }).eq('id', ev.id)
+    if (error) { setEvents(prev => prev.map(x => x.id === ev.id ? { ...x, is_active: ev.is_active } : x)); toast(`操作失败：${error.message}`, 'error') }
   }
 
   // ── Mark as filled / sold ─────────────────────────────────────────────────
   async function markJobFilled(job: Job) {
-    await supabase.from('jobs').update({ is_filled: true, is_active: false }).eq('id', job.id)
     setJobs(prev => prev.map(j => j.id === job.id ? { ...j, is_filled: true, is_active: false } : j))
+    const { error } = await supabase.from('jobs').update({ is_filled: true, is_active: false }).eq('id', job.id)
+    if (error) { setJobs(prev => prev.map(j => j.id === job.id ? { ...j, is_filled: job.is_filled, is_active: job.is_active } : j)); toast(`操作失败：${error.message}`, 'error') }
   }
   async function markPropertyFilled(p: Property) {
-    await supabase.from('properties').update({ is_filled: true, is_active: false }).eq('id', p.id)
     setProperties(prev => prev.map(x => x.id === p.id ? { ...x, is_filled: true, is_active: false } : x))
+    const { error } = await supabase.from('properties').update({ is_filled: true, is_active: false }).eq('id', p.id)
+    if (error) { setProperties(prev => prev.map(x => x.id === p.id ? { ...x, is_filled: p.is_filled, is_active: p.is_active } : x)); toast(`操作失败：${error.message}`, 'error') }
   }
   async function markSecondhandSold(item: SecondhandItem) {
     // Keep it listed (is_active stays true) but flag sold + stamp sold_at — it

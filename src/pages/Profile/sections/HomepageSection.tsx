@@ -155,8 +155,10 @@ export default function HomepageSection() {
   }
 
   async function saveBusinessType(type: 'individual' | 'business') {
-    await supabase.from('users').update({ business_type: type }).eq('id', user!.id)
+    const prev = profile?.business_type
     setProfile(p => p ? { ...p, business_type: type } : p)
+    const { error } = await supabase.from('users').update({ business_type: type }).eq('id', user!.id)
+    if (error) { setProfile(p => p ? { ...p, business_type: prev } : p); toast('保存失败：' + error.message, 'error') }
   }
 
   async function saveName() {
@@ -172,10 +174,11 @@ export default function HomepageSection() {
 
   async function saveBio() {
     setSaving(true)
-    await supabase.from('users').update({ bio: bioInput.trim() }).eq('id', user!.id)
+    const { error } = await supabase.from('users').update({ bio: bioInput.trim() }).eq('id', user!.id)
+    setSaving(false)
+    if (error) { toast('保存失败：' + error.message, 'error'); return }
     setProfile(p => p ? { ...p, bio: bioInput.trim() } : p)
     setEditingBio(false)
-    setSaving(false)
   }
 
   function addTag() {
@@ -187,19 +190,21 @@ export default function HomepageSection() {
 
   async function saveTags() {
     setSaving(true)
-    await supabase.from('users').update({ skill_tags: draftTags }).eq('id', user!.id)
+    const { error } = await supabase.from('users').update({ skill_tags: draftTags }).eq('id', user!.id)
+    setSaving(false)
+    if (error) { toast('保存失败：' + error.message, 'error'); return }
     setProfile(p => p ? { ...p, skill_tags: draftTags } : p)
     setEditingTags(false)
-    setSaving(false)
   }
 
   async function saveQualNote() {
     setSaving(true)
     const note = qualNoteInput.trim()
-    await supabase.from('users').update({ qualification_note: note }).eq('id', user!.id)
+    const { error } = await supabase.from('users').update({ qualification_note: note }).eq('id', user!.id)
+    setSaving(false)
+    if (error) { toast('保存失败：' + error.message, 'error'); return }
     setProfile(p => p ? { ...p, qualification_note: note } : p)
     setEditingQualNote(false)
-    setSaving(false)
   }
 
   async function saveSocial() {
@@ -210,11 +215,12 @@ export default function HomepageSection() {
     for (const [k, v] of Object.entries(socialDraft)) {
       if (v.trim()) merged[k] = v.trim()
     }
-    await supabase.from('users').update({ social_links: merged }).eq('id', user!.id)
+    const { error } = await supabase.from('users').update({ social_links: merged }).eq('id', user!.id)
+    setSaving(false)
+    if (error) { toast('保存失败：' + error.message, 'error'); return }
     const newLinks = Object.fromEntries(Object.entries(merged).filter(([k]) => k !== '_cover'))
     setProfile(p => p ? { ...p, socialLinks: newLinks } : p)
     setEditingSocial(false)
-    setSaving(false)
   }
 
   async function handleQualUpload(e: React.ChangeEvent<HTMLInputElement>) {

@@ -31,10 +31,11 @@ export default function AccountSection({ user, name, phone, onNameChange, onPhon
 
   async function saveBio() {
     setSaving(true)
-    await supabase.from('users').update({ bio: bioInput.trim() }).eq('id', user.id)
+    const { error } = await supabase.from('users').update({ bio: bioInput.trim() }).eq('id', user.id)
+    setSaving(false)
+    if (error) { toast('保存失败：' + error.message, 'error'); return }
     setBio(bioInput.trim())
     setEditingBio(false)
-    setSaving(false)
   }
 
   const [showPwd,    setShowPwd]    = useState(false)
@@ -55,10 +56,11 @@ export default function AccountSection({ user, name, phone, onNameChange, onPhon
 
   async function savePhone() {
     setSaving(true)
-    await supabase.from('users').update({ phone: phoneInput.trim() }).eq('id', user.id)
+    const { error } = await supabase.from('users').update({ phone: phoneInput.trim() }).eq('id', user.id)
+    setSaving(false)
+    if (error) { toast('保存失败：' + error.message, 'error'); return }
     onPhoneChange(phoneInput.trim())
     setEditingPhone(false)
-    setSaving(false)
   }
 
   async function changePassword() {
