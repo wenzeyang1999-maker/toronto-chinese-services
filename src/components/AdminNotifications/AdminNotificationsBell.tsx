@@ -159,7 +159,9 @@ export default function AdminNotificationsBell({ compact = false }: AdminNotific
       </button>
 
       {open && (
-        <div className="absolute right-0 top-full mt-2 w-[340px] max-w-[calc(100vw-24px)] bg-white border border-gray-100 rounded-2xl shadow-xl overflow-hidden z-50">
+        // 窄屏:fixed 锚到视口右边缘(铃铛右边还有头像,用 absolute right-0 会向左溢出屏外);
+        // 桌面(sm+):恢复相对铃铛的 absolute 下拉。
+        <div className="fixed sm:absolute right-2 sm:right-0 top-14 sm:top-full sm:mt-2 w-[340px] max-w-[calc(100vw-16px)] bg-white border border-gray-100 rounded-2xl shadow-xl overflow-hidden z-50">
           <div className="px-4 py-3 border-b border-gray-100 flex items-center gap-3">
             <div className="min-w-0 flex-1">
               <p className="text-sm font-semibold text-gray-800">通知提醒</p>
