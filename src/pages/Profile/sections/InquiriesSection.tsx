@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ClipboardList, ChevronDown, ChevronUp, Users, CheckCircle, Clock, X, Star, MessageCircle } from 'lucide-react'
+import { ClipboardList, ChevronDown, ChevronUp, Users, CheckCircle, Clock, X, Star, MessageCircle, Trash2 } from 'lucide-react'
 import { supabase } from '../../../lib/supabase'
 import { useAuthStore } from '../../../store/authStore'
 import { useAppStore } from '../../../store/appStore'
@@ -120,6 +120,28 @@ export default function InquiriesSection() {
     return () => { isActive = false }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id])
+
+  async function deleteInquiry(id: string) {
+    if (!user) return
+    if (!window.confirm('删除这条需求？删除后无法恢复。')) return
+    const item = items.find(it => it.id === id)
+    try {
+      if (item?.kind === 'inquiry') {
+        // 先关掉关联的公开需求帖(地图 pin 消失),再删 inquiry 本身
+        await supabase.from('service_requests').update({ status: 'closed', lat: null, lng: null }).eq('inquiry_id', id).eq('user_id', user.id)
+        const { error } = await supabase.from('inquiries').delete().eq('id', id).eq('user_id', user.id)
+        if (error) throw error
+      } else {
+        // 旧的纯公开需求帖:关闭即从列表移除
+        const { error } = await supabase.from('service_requests').update({ status: 'closed', lat: null, lng: null }).eq('id', id).eq('user_id', user.id)
+        if (error) throw error
+      }
+      setItems(prev => prev.filter(it => it.id !== id))
+      toast('已删除', 'success')
+    } catch (e) {
+      toast((e as { message?: string })?.message || '删除失败，请重试', 'error')
+    }
+  }
 
   async function closeInquiry(id: string) {
     if (!user) return
@@ -274,6 +296,13 @@ export default function InquiriesSection() {
                                   <X size={13} /> 关闭此需求（已找到服务商）
                                 </button>
                               )}
+                              <button
+                                onClick={() => deleteInquiry(item.id)}
+                                className="w-full flex items-center justify-center gap-1.5 text-xs text-gray-400
+                                           hover:text-red-500 py-1.5 transition-colors"
+                              >
+                                <Trash2 size={13} /> 删除此需求
+                              </button>
                             </div>
                           </motion.div>
                         )}
@@ -393,6 +422,13 @@ export default function InquiriesSection() {
                                 <X size={13} /> 关闭此请求
                               </button>
                             )}
+                            <button
+                              onClick={() => deleteInquiry(item.id)}
+                              className="w-full flex items-center justify-center gap-1.5 text-xs text-gray-400
+                                         hover:text-red-500 py-1.5 transition-colors"
+                            >
+                              <Trash2 size={13} /> 删除此需求
+                            </button>
                           </div>
                         </motion.div>
                       )}

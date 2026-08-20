@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Store, Star, Camera, AlertTriangle } from 'lucide-react'
+import { Store, Star, Camera, AlertTriangle, Trash2 } from 'lucide-react'
 import Mascot from '../../../components/Mascot/Mascot'
 import { useAuthStore } from '../../../store/authStore'
 import { supabase } from '../../../lib/supabase'
@@ -19,6 +19,8 @@ interface OrderRow {
   status: string
   created_by: string
   created_at: string
+  client_hidden: boolean | null
+  provider_hidden: boolean | null
   completion_photos: string[] | null
   client:   { name: string | null } | null
   provider: { name: string | null } | null
@@ -61,7 +63,10 @@ export default function OrdersSection() {
       .or(`client_id.eq.${user.id},provider_id.eq.${user.id}`)
       .order('created_at', { ascending: false })
     if (error) { setLoadError(true); setLoading(false); return }  // 真错误态，不伪装成"没数据"
-    const rows = (data ?? []) as OrderRow[]
+    // 过滤掉「本人已隐藏」的订单(六·删除功能)
+    const rows = ((data ?? []) as OrderRow[]).filter((o) =>
+      !(o.client_id === user.id && o.client_hidden) && !(o.provider_id === user.id && o.provider_hidden)
+    )
     setOrders(rows)
     // Which of my orders I've already reviewed (to hide the 写评价 button).
     const { data: revs } = await supabase.from('reviews')
@@ -76,6 +81,14 @@ export default function OrdersSection() {
       setDisputeMap(m)
     }
     setLoading(false)
+  }
+
+  async function hideOrder(orderId: string) {
+    if (!window.confirm('从你的列表移除这条订单？（不影响对方，可用于清理重复/历史订单）')) return
+    const { error } = await supabase.rpc('hide_order', { p_order_id: orderId })
+    if (error) { toast(error.message || '移除失败，请重试', 'error'); return }
+    setOrders((prev) => prev.filter((o) => o.id !== orderId))
+    toast('已从你的列表移除', 'success')
   }
 
   async function raiseDispute(orderId: string) {
@@ -331,6 +344,14 @@ export default function OrdersSection() {
                 </button>
               )
             )}
+
+            {/* 从我的列表移除(六·删除功能;不影响对方,可清理重复/历史订单) */}
+            <div className="mt-2 pt-2 border-t border-gray-50 flex justify-end">
+              <button onClick={() => hideOrder(o.id)}
+                className="text-[11px] text-gray-400 hover:text-red-500 flex items-center gap-1">
+                <Trash2 size={11} /> 移除
+              </button>
+            </div>
           </div>
         )
       })}
