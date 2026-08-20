@@ -14,6 +14,7 @@ import { useAuthStore } from '../../store/authStore'
 import { notifyNewReview } from '../../lib/notify'
 import { toast } from '../../lib/toast'
 import { REVIEW_REPORT_REASONS as REPORT_REASONS } from '../../constants/reportReasons'
+import { moderateContent } from '../../hooks/useContentModeration'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -161,6 +162,10 @@ export default function ReviewsSection({ serviceId, providerId }: Props) {
     if (!user) { navigate('/login'); return }
     if (myRating === 0) { setSubmitError('请选择星级'); return }
     setSubmitting(true); setSubmitError(null)
+    if (comment.trim()) {
+      const mod = await moderateContent({ content: comment })
+      if (!mod.pass) { setSubmitting(false); setSubmitError(`评价未通过审核：${mod.reason ?? '含违规内容'}`); return }
+    }
     const { error } = await supabase.from('reviews').insert({
       service_id: serviceId, reviewer_id: user.id,
       rating: myRating, comment: comment.trim() || null,
@@ -200,6 +205,10 @@ export default function ReviewsSection({ serviceId, providerId }: Props) {
     if (!user || !editingId) return
     if (editRating === 0) { setEditError('请选择星级'); return }
     setEditSubmitting(true); setEditError(null)
+    if (editComment.trim()) {
+      const mod = await moderateContent({ content: editComment })
+      if (!mod.pass) { setEditSubmitting(false); setEditError(`评价未通过审核：${mod.reason ?? '含违规内容'}`); return }
+    }
     const { error } = await supabase.from('reviews')
       .update({ rating: editRating, comment: editComment.trim() || null })
       .eq('id', editingId).eq('reviewer_id', user.id)

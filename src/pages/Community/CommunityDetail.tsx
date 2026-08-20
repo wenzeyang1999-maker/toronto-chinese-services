@@ -20,6 +20,7 @@ import FollowButton from '../../components/FollowButton/FollowButton'
 import PageMeta from '../../components/PageMeta/PageMeta'
 import ImageLightbox from '../../components/ImageLightbox/ImageLightbox'
 import { POST_TYPE_CONFIG, AREA_CONFIG } from './config'
+import { moderateContent } from '../../hooks/useContentModeration'
 
 interface PostDetail {
   id: string
@@ -166,6 +167,8 @@ export default function CommunityDetail() {
     if (!text || !id || !user) return
     setSending(true)
     setInput('')
+    const mod = await moderateContent({ content: text })
+    if (!mod.pass) { setInput(text); setSending(false); toast(`评论未通过审核：${mod.reason ?? '含违规内容'}`, 'error'); return }
     const { error } = await supabase
       .from('community_comments')
       .insert({ post_id: id, author_id: user.id, content: text })

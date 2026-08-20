@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { MessageSquare, Send, Trash2, User } from 'lucide-react'
 import { supabase } from '../../../lib/supabase'
 import { useAuthStore } from '../../../store/authStore'
+import { moderateContent } from '../../../hooks/useContentModeration'
 
 interface Comment {
   id: string
@@ -54,6 +55,8 @@ export default function SecondhandComments({ itemId, sellerId }: Props) {
     const text = input.trim()
     if (!text) return
     setSubmitting(true)
+    const mod = await moderateContent({ content: text })
+    if (!mod.pass) { setSubmitting(false); toast(`留言未通过审核：${mod.reason ?? '含违规内容'}`, 'error'); return }
     const { data, error } = await supabase
       .from('secondhand_comments')
       .insert({ item_id: itemId, author_id: user.id, content: text })

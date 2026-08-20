@@ -11,6 +11,7 @@ import { HelpCircle, Send, ChevronDown, ChevronUp, Pencil, X, Check, CornerDownR
 import { supabase } from '../../lib/supabase'
 import { useAuthStore } from '../../store/authStore'
 import { notifyNewQuestion } from '../../lib/notify'
+import { moderateContent } from '../../hooks/useContentModeration'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -117,6 +118,8 @@ export default function QASection({ serviceId, providerId }: Props) {
     if (!user) { navigate('/login'); return }
     if (!askText.trim()) { setAskError('请输入问题'); return }
     setAsking(true); setAskError(null)
+    const mod = await moderateContent({ content: askText })
+    if (!mod.pass) { setAsking(false); setAskError(`内容未通过审核：${mod.reason ?? '含违规内容'}`); return }
     const { error } = await supabase.from('questions').insert({
       service_id: serviceId,
       asker_id:   user.id,
@@ -155,6 +158,8 @@ export default function QASection({ serviceId, providerId }: Props) {
     if (!user) { navigate('/login'); return }
     if (!answerText.trim()) { setAnswerError('请输入回答'); return }
     setAnswering(true); setAnswerError(null)
+    const mod = await moderateContent({ content: answerText })
+    if (!mod.pass) { setAnswering(false); setAnswerError(`内容未通过审核：${mod.reason ?? '含违规内容'}`); return }
     const { error } = await supabase.from('answers').insert({
       question_id:  qId,
       answerer_id:  user.id,
@@ -168,6 +173,8 @@ export default function QASection({ serviceId, providerId }: Props) {
   async function saveEditAnswer(answerId: string) {
     if (!user || !editAnswerText.trim()) return
     setEditAnswering(true)
+    const mod = await moderateContent({ content: editAnswerText })
+    if (!mod.pass) { setEditAnswering(false); alert(`内容未通过审核：${mod.reason ?? '含违规内容'}`); return }
     const { error } = await supabase.from('answers')
       .update({ content: editAnswerText.trim() })
       .eq('id', answerId).eq('answerer_id', user.id)
