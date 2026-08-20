@@ -11,6 +11,8 @@ const RL_WINDOW = 10 * 60 * 1000  // 10 minutes
 
 const ALLOWED_ORIGINS = new Set([
   'https://toronto-chinese-services.vercel.app',
+  'https://hualinlife.com',
+  'https://www.hualinlife.com',
   'http://localhost:5173',
   'http://localhost:4173',
 ])
