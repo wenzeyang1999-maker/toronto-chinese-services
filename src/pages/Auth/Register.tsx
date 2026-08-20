@@ -417,7 +417,7 @@ export default function Register() {
             </Field>
 
             {/* Referral code (optional) */}
-            <Field label="邀请码（选填 · 填写可享 3 个月会员）">
+            <Field label="邀请码（选填）">
               <InputRow icon={<Gift size={16} />}>
                 <input
                   type="text"
@@ -531,7 +531,7 @@ export default function Register() {
 
             {/* Referral code (optional) */}
             {!otpSent && (
-              <Field label="邀请码（选填 · 填写可享 3 个月会员）">
+              <Field label="邀请码（选填）">
                 <InputRow icon={<Gift size={16} />}>
                   <input
                     type="text"

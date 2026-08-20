@@ -40,6 +40,7 @@ export default function MapPage() {
   const [onlineProviders, setOnlineProviders] = useState<OnlineProvider[]>([])
   const [display, setDisplay] = useState<'map' | 'list'>('map')   // 地图 / 列表(内测#10)
   const [routing, setRouting] = useState(false)                   // AI 全站搜索跳转中
+  const [orderFilter, setOrderFilter] = useState<'all' | 'urgent' | 'scheduled'>('all')  // 找订单:急单/预约单
 
   // 地图搜索回车 → AI 全站解析:跨板块(房产/二手/招聘/社区)跳对应板块,
   // 服务/订单留在本页(已由输入实时筛选)。(内测#6+#10)
@@ -103,13 +104,15 @@ export default function MapPage() {
   }, [services, kw])
 
   // 找订单 列表数据(列表视图不强制要坐标)(内测#10)
-  const requestList = useMemo(
-    () => (kw ? fuzzyFilterRequests(serviceRequests, kw) : serviceRequests),
-    [serviceRequests, kw],
-  )
+  const requestList = useMemo(() => {
+    const base = kw ? fuzzyFilterRequests(serviceRequests, kw) : serviceRequests
+    return orderFilter === 'all' ? base
+      : base.filter((r) => orderFilter === 'urgent' ? r.isUrgent : !r.isUrgent)
+  }, [serviceRequests, kw, orderFilter])
 
   const servicePoints = useMemo<GoogleMapPoint[]>(() => {
-    if (requestsMode) return []
+    // 找服务:没输入关键词搜索前,地图只显示「我的位置」,不铺服务针(内测20260818 一)
+    if (requestsMode || !kw) return []
     return mapped.map((service) => ({
       id: service.id,
       lat: service.location.lat!,
@@ -128,7 +131,10 @@ export default function MapPage() {
     // In requestsMode mode, show all customer requests (don't gate by isProvider)
     if (!requestsMode && !isProvider) return []
     const withCoords = serviceRequests.filter((r) => r.lat != null && r.lng != null)
-    const list = kw ? fuzzyFilterRequests(withCoords, kw) : withCoords
+    const kwFiltered = kw ? fuzzyFilterRequests(withCoords, kw) : withCoords
+    // 急单/预约单 筛选(内测20260818 一)
+    const list = orderFilter === 'all' ? kwFiltered
+      : kwFiltered.filter((r) => orderFilter === 'urgent' ? r.isUrgent : !r.isUrgent)
     return list
       .map((r) => ({
         id: `req-${r.id}`,
@@ -137,13 +143,14 @@ export default function MapPage() {
         title: r.title,
         promoted: false,
         demandPin: true,
+        urgent: r.isUrgent,   // 🔴急单 / 🔵预约单 上色
         infoContent: buildDemandInfo(r, () => navigate(`/requests/${r.id}`)),
-      } as GoogleMapPoint))
-  }, [serviceRequests, isProvider, navigate, kw, requestsMode])
+      } as GoogleMapPoint & { urgent?: boolean }))
+  }, [serviceRequests, isProvider, navigate, kw, requestsMode, orderFilter])
 
   const onlinePoints = useMemo<GoogleMapPoint[]>(() => {
-    // 找订单模式只显示需求(急单/预约单),不显示在线商家(避免切模式后残留)
-    if (requestsMode) return []
+    // 找订单模式不显示在线商家;找服务模式「搜索关键词后」才显示在线商家(内测20260818 一)
+    if (requestsMode || !kw) return []
     return onlineProviders
       .filter((p) => matches(p.name) || p.skill_tags.some(t => matches(t)))
       .map((p) => ({
@@ -246,10 +253,25 @@ export default function MapPage() {
           )}
         </div>
 
+        {/* 找订单:急单 / 预约单 筛选(内测20260818 一) */}
+        {requestsMode && (
+          <div className="inline-flex items-center gap-0.5 rounded-full bg-white p-0.5 shadow text-xs self-start">
+            {([['all', '全部'], ['urgent', '🔴 急单'], ['scheduled', '🔵 预约单']] as const).map(([k, label]) => (
+              <button key={k} onClick={() => setOrderFilter(k)}
+                className={`px-3 py-1 rounded-full font-semibold transition-colors
+                  ${orderFilter === k ? 'bg-primary-600 text-white' : 'text-gray-500 hover:text-gray-700'}`}>
+                {label}
+              </button>
+            ))}
+          </div>
+        )}
+
         {/* 结果计数 + 地图/列表 切换(内测#10) */}
         <div className="flex items-center justify-between gap-2">
           <span className="bg-white/95 backdrop-blur rounded-full px-3 py-1 shadow text-xs font-semibold text-gray-700">
-            {requestsMode ? `${requestList.length} 条需求` : `${mapped.length} 项服务`}
+            {requestsMode
+              ? `${requestList.length} 条需求`
+              : (kw ? `${mapped.length} 位在线服务商` : '搜索关键词查看在线服务商')}
           </span>
           <div className="inline-flex items-center gap-0.5 rounded-full bg-white p-0.5 shadow text-xs">
             <button
@@ -296,10 +318,15 @@ export default function MapPage() {
               </div>
             )
           ) : (
-            mapped.length === 0 ? (
+            !kw ? (
+              <div className="flex flex-col items-center pt-16 text-center px-6">
+                <Mascot pose="curious" size={72} className="mb-2" />
+                <p className="text-sm text-gray-500">搜索关键词(如「搬运」「保洁」)查看附近正在上线接单的服务商</p>
+              </div>
+            ) : mapped.length === 0 ? (
               <div className="flex flex-col items-center pt-16 text-center">
                 <Mascot pose="curious" size={72} className="mb-2" />
-                <p className="text-sm text-gray-500">{kw ? `没有找到「${search}」相关服务` : '附近暂无服务'}</p>
+                <p className="text-sm text-gray-500">没有找到「{search}」相关的在线服务商</p>
               </div>
             ) : (
               <div className="grid gap-3 max-w-2xl mx-auto">
