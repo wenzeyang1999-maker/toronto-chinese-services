@@ -6,6 +6,7 @@ import { MessageSquare, Send, Trash2, User } from 'lucide-react'
 import { supabase } from '../../../lib/supabase'
 import { useAuthStore } from '../../../store/authStore'
 import { moderateContent } from '../../../hooks/useContentModeration'
+import { toast } from '../../../lib/toast'
 
 interface Comment {
   id: string

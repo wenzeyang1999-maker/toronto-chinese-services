@@ -314,9 +314,9 @@ export default function RealEstateList() {
       countText={`共 ${properties.length} 个房源`}
       selectedId={selectedId}
       mobileOpen={mobileOpen}
-      onCloseMobile={() => setMobileOpen(false)}
+      onCloseMobile={() => { setMobileOpen(false); setSelectedId(null) }}
       detailDesktop={selectedProp ? <DetailPanel prop={selectedProp} onClose={() => setSelectedId(null)} /> : null}
-      detailMobile={selectedProp ? <DetailPanel prop={selectedProp} onClose={() => setMobileOpen(false)} /> : null}
+      detailMobile={selectedProp ? <DetailPanel prop={selectedProp} onClose={() => { setMobileOpen(false); setSelectedId(null) }} /> : null}
       fabPath={`/realestate/post?type=${filters.listing_type ?? 'rent'}`}
       onRefresh={viewMode === 'list' ? () => fetchProperties() : undefined}
     >

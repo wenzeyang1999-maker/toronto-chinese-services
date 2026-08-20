@@ -158,7 +158,7 @@ export default function HomepageSection() {
     const prev = profile?.business_type
     setProfile(p => p ? { ...p, business_type: type } : p)
     const { error } = await supabase.from('users').update({ business_type: type }).eq('id', user!.id)
-    if (error) { setProfile(p => p ? { ...p, business_type: prev } : p); toast('保存失败：' + error.message, 'error') }
+    if (error) { setProfile(p => p ? { ...p, business_type: prev ?? p.business_type } : p); toast('保存失败：' + error.message, 'error') }
   }
 
   async function saveName() {

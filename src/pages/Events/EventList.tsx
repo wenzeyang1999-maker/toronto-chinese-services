@@ -290,9 +290,9 @@ export default function EventList() {
       countText={`共 ${events.length} 个活动`}
       selectedId={selectedId}
       mobileOpen={mobileOpen}
-      onCloseMobile={() => setMobileOpen(false)}
+      onCloseMobile={() => { setMobileOpen(false); setSelectedId(null) }}
       detailDesktop={selectedEvent ? <DetailPanel ev={selectedEvent} onClose={() => setSelectedId(null)} /> : null}
-      detailMobile={selectedEvent ? <DetailPanel ev={selectedEvent} onClose={() => setMobileOpen(false)} /> : null}
+      detailMobile={selectedEvent ? <DetailPanel ev={selectedEvent} onClose={() => { setMobileOpen(false); setSelectedId(null) }} /> : null}
       rightPlaceholder={rightPlaceholder}
       fabPath="/events/post"
       onRefresh={fetchEvents}

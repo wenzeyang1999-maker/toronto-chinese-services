@@ -76,14 +76,15 @@ export default function ListPageShell({
       {/* Content */}
       <div className="flex-1 overflow-hidden w-full px-3 md:w-[85%] md:px-0 lg:w-[70%] mx-auto flex gap-0 py-3">
 
-        {/* Left column */}
+        {/* Left column.
+            手机端:始终 w-full 可见(详情走底部弹层覆盖,不能把列表 hidden——
+            否则关掉弹层后 selectedId 仍在,列表就一直空白)。
+            桌面 lg:详情打开时才收窄成固定宽度的左栏,与右侧详情并排。 */}
         <div
-          className={`flex flex-col overflow-hidden ${
-            selectedId && detailDesktop
-              ? 'hidden lg:flex lg:flex-shrink-0'
-              : 'w-full'
+          className={`flex flex-col overflow-hidden w-full ${
+            selectedId && detailDesktop ? 'lg:flex-shrink-0 lg:w-[var(--lw)]' : ''
           }`}
-          style={selectedId && detailDesktop ? { width: leftColWidth } : undefined}
+          style={{ ['--lw' as string]: `${leftColWidth}px` } as React.CSSProperties}
         >
           <p className="text-xs text-gray-400 mb-2 flex-shrink-0">{countText}</p>
           <div className="relative flex-1 overflow-hidden">

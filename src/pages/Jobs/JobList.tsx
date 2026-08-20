@@ -286,9 +286,9 @@ export default function JobList() {
       countText={`共 ${jobs.length} 个职位`}
       selectedId={selectedId}
       mobileOpen={mobileOpen}
-      onCloseMobile={() => setMobileOpen(false)}
+      onCloseMobile={() => { setMobileOpen(false); setSelectedId(null) }}
       detailDesktop={selectedJob ? <DetailPanel job={selectedJob} salaryLabel={salaryLabel(selectedJob)} onClose={() => setSelectedId(null)} /> : null}
-      detailMobile={selectedJob ? <DetailPanel job={selectedJob} salaryLabel={salaryLabel(selectedJob)} onClose={() => setMobileOpen(false)} /> : null}
+      detailMobile={selectedJob ? <DetailPanel job={selectedJob} salaryLabel={salaryLabel(selectedJob)} onClose={() => { setMobileOpen(false); setSelectedId(null) }} /> : null}
       leftColWidth={420}
       fabPath={`/jobs/post?type=${listingType}`}
       fabLabel={listingType === 'hiring' ? '发布招聘' : '发布求职'}

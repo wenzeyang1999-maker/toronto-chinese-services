@@ -279,9 +279,9 @@ export default function SecondhandList() {
       countText={`共 ${items.length} 件物品`}
       selectedId={selectedId}
       mobileOpen={mobileOpen}
-      onCloseMobile={() => setMobileOpen(false)}
+      onCloseMobile={() => { setMobileOpen(false); setSelectedId(null) }}
       detailDesktop={selectedItem ? <DetailPanel item={selectedItem} onClose={() => setSelectedId(null)} /> : null}
-      detailMobile={selectedItem ? <DetailPanel item={selectedItem} onClose={() => setMobileOpen(false)} /> : null}
+      detailMobile={selectedItem ? <DetailPanel item={selectedItem} onClose={() => { setMobileOpen(false); setSelectedId(null) }} /> : null}
       leftColWidth={380}
       fabPath="/secondhand/post"
       onRefresh={() => fetchItems()}
