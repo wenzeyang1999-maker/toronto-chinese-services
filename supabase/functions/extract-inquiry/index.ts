@@ -30,7 +30,7 @@ const CATEGORY_IDS = [
   'moving', 'cleaning', 'ride', 'renovation', 'handyman', 'cashwork',
   'food', 'tax', 'legal', 'immigration', 'tutoring',
   'beauty', 'tcm', 'pet', 'photo', 'translation',
-  'it', 'driving', 'lawn', 'childcare', 'insurance', 'junk', 'other',
+  'it', 'driving', 'lawn', 'childcare', 'insurance', 'junk', 'staging', 'other',
 ]
 
 const SYSTEM_PROMPT = `你是一个中文服务请求解析助手。从用户的自然语言描述中提取结构化信息，返回 JSON。

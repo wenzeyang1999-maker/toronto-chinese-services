@@ -21,6 +21,7 @@ export type ServiceCategory =
   | 'insurance'
   | 'handyman'
   | 'junk'
+  | 'staging'
   | 'other'
 
 export interface Location {

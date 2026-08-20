@@ -360,6 +360,20 @@ export const CATEGORIES: CategoryConfig[] = [
     ],
   },
   {
+    id: 'staging',
+    label: 'Staging',
+    postLabel: 'Staging',
+    emoji: '🛋️',
+    image: '/images/categories/staging.svg',
+    color: 'text-red-600',
+    bgColor: 'bg-red-50',
+    description: '房屋软装、看房布置、家具租摆(卖房/租房前包装)',
+    searchTags: [
+      'Staging', 'staging', '软装', '房屋布置', '看房布置', '家具布置', '家具租赁',
+      '样板房', '房屋包装', '卖房布置', '租房布置', '空间布置', 'home staging', 'stager',
+    ],
+  },
+  {
     id: 'other',
     label: '其他服务',
     postLabel: '其他',
