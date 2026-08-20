@@ -3,7 +3,8 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ClipboardList, ChevronDown, ChevronUp, Users, CheckCircle, Clock, X, Star, MessageCircle, Trash2 } from 'lucide-react'
+import { ChevronDown, ChevronUp, Users, CheckCircle, Clock, X, Star, MessageCircle, Trash2 } from 'lucide-react'
+import Mascot from '../../../components/Mascot/Mascot'
 import { supabase } from '../../../lib/supabase'
 import { useAuthStore } from '../../../store/authStore'
 import { useAppStore } from '../../../store/appStore'
@@ -209,7 +210,7 @@ export default function InquiriesSection() {
       >
         {items.length === 0 ? (
           <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-10 text-center">
-            <ClipboardList size={36} className="text-gray-300 mx-auto mb-3" />
+            <Mascot pose="curious" size={104} className="mx-auto mb-3" />
             <p className="text-sm text-gray-600 font-medium">还没有报价请求</p>
             <p className="text-xs text-gray-400 mt-1 mb-4">点击首页的"AI 智能匹配"提交需求，平台自动匹配服务商</p>
             <button
