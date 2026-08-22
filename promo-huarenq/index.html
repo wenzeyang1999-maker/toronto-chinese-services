@@ -1,0 +1,275 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>华邻 HuaLin · 多伦多华人生活一站式服务平台</title>
+<meta name="description" content="搬家保洁、装修维修、接送报税、二手房产、求职招聘——多伦多及大多地区正在接单的华人商家和师傅，都在华邻。进入 hualinlife.com。">
+<link rel="canonical" href="https://hualinlife.com/">
+<meta property="og:type" content="website">
+<meta property="og:title" content="华邻 HuaLin · 多伦多华人生活一站式服务平台">
+<meta property="og:description" content="找本地靠谱服务，一个华邻就够了。进入 hualinlife.com。">
+<meta property="og:url" content="https://hualinlife.com/">
+<meta name="theme-color" content="#2E5BFF">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='6' fill='%232E5BFF'/%3E%3Cpath d='M5 20V7l7-4 7 4v13' stroke='%23fff' stroke-width='2.1' fill='none' stroke-linejoin='round'/%3E%3Ccircle cx='12' cy='11' r='2.4' fill='%23fff'/%3E%3C/svg%3E">
+</head>
+<body>
+<style>
+  :root{
+    --blue:#2E5BFF; --blue-600:#2450E6; --blue-050:#EAF0FF;
+    --coral:#FF6A3D; --coral-050:#FFEEE8;
+    --ink:#0E1633; --muted:#5A6480; --ground:#F4F6FC; --card:#FFFFFF;
+    --line:#E4E9F5; --radius:18px;
+    --shadow:0 18px 50px -24px rgba(20,40,110,.35);
+    --font:"PingFang SC","Microsoft YaHei","Hiragino Sans GB",system-ui,-apple-system,"Segoe UI",sans-serif;
+  }
+  @media (prefers-color-scheme:dark){
+    :root{ --ink:#EAEEF9; --muted:#9BA7C6; --ground:#080C1C; --card:#121A38;
+      --line:#26304F; --blue-050:#172248; --coral-050:#33221C; --shadow:0 22px 60px -28px rgba(0,0,0,.7); }
+  }
+  :root[data-theme="dark"]{ --ink:#EAEEF9; --muted:#9BA7C6; --ground:#080C1C; --card:#121A38;
+    --line:#26304F; --blue-050:#172248; --coral-050:#33221C; --shadow:0 22px 60px -28px rgba(0,0,0,.7); }
+  :root[data-theme="light"]{ --ink:#0E1633; --muted:#5A6480; --ground:#F4F6FC; --card:#FFFFFF;
+    --line:#E4E9F5; --blue-050:#EAF0FF; --coral-050:#FFEEE8; --shadow:0 18px 50px -24px rgba(20,40,110,.35); }
+
+  *{box-sizing:border-box}
+  .wrap{font-family:var(--font);color:var(--ink);background:
+     radial-gradient(120% 80% at 100% -10%, var(--blue-050) 0%, transparent 55%),
+     var(--ground);
+    -webkit-font-smoothing:antialiased;line-height:1.5;overflow-x:hidden}
+  .shell{max-width:1080px;margin:0 auto;padding:0 24px}
+  a{color:inherit;text-decoration:none}
+
+  /* ── Top bar ── */
+  .top{display:flex;align-items:center;justify-content:space-between;padding:22px 0 6px}
+  .brand{display:flex;align-items:center;gap:11px}
+  .mark{width:40px;height:40px;border-radius:11px;background:linear-gradient(135deg,var(--blue),#5B7CFF);
+    display:grid;place-items:center;box-shadow:0 8px 20px -8px rgba(46,91,255,.7);flex-shrink:0}
+  .mark svg{width:22px;height:22px}
+  .bname{font-weight:800;font-size:20px;letter-spacing:.5px}
+  .bsub{font-size:11px;color:var(--muted);letter-spacing:2px;margin-top:1px}
+  .top .go{font-size:13px;font-weight:700;color:var(--blue);border:1.5px solid var(--line);
+    padding:8px 15px;border-radius:999px;background:var(--card);transition:.18s}
+  .top .go:hover{border-color:var(--blue);transform:translateY(-1px)}
+
+  /* ── Hero ── */
+  .hero{display:grid;grid-template-columns:1.05fr .95fr;gap:48px;align-items:center;
+    padding:52px 0 34px}
+  .eyebrow{display:inline-flex;align-items:center;gap:7px;font-size:12px;font-weight:700;
+    letter-spacing:2.5px;color:var(--blue);background:var(--blue-050);
+    padding:6px 13px;border-radius:999px;text-transform:uppercase}
+  .eyebrow b{width:6px;height:6px;border-radius:50%;background:var(--blue)}
+  h1{font-size:clamp(34px,5vw,52px);font-weight:900;line-height:1.08;margin:20px 0 0;
+    letter-spacing:-.5px;text-wrap:balance}
+  h1 .hl{color:var(--blue)}
+  .lede{font-size:clamp(15px,1.7vw,18px);color:var(--muted);margin:18px 0 0;max-width:34ch}
+  .cta{display:flex;gap:12px;flex-wrap:wrap;margin-top:30px}
+  .btn{display:inline-flex;align-items:center;gap:9px;font-weight:800;font-size:16px;
+    padding:15px 26px;border-radius:14px;transition:.2s;cursor:pointer;border:0}
+  .btn-primary{background:var(--blue);color:#fff;box-shadow:0 14px 30px -12px rgba(46,91,255,.8)}
+  .btn-primary:hover{background:var(--blue-600);transform:translateY(-2px)}
+  .btn-primary .url{font-variant-numeric:tabular-nums;opacity:.85;font-weight:600}
+  .btn-ghost{background:var(--card);color:var(--ink);border:1.5px solid var(--line)}
+  .btn-ghost:hover{border-color:var(--blue);color:var(--blue)}
+  .trust{display:flex;gap:22px;margin-top:26px;flex-wrap:wrap}
+  .trust div{display:flex;align-items:baseline;gap:7px}
+  .trust b{font-size:22px;font-weight:900;color:var(--ink);font-variant-numeric:tabular-nums}
+  .trust span{font-size:12.5px;color:var(--muted)}
+
+  /* ── Map card (hero visual) ── */
+  .mapcard{position:relative;background:var(--card);border:1px solid var(--line);
+    border-radius:24px;box-shadow:var(--shadow);overflow:hidden;aspect-ratio:4/4.3}
+  .maphead{display:flex;align-items:center;gap:8px;padding:14px 16px;border-bottom:1px solid var(--line);
+    position:relative;z-index:2;background:var(--card)}
+  .maphead .dot{width:9px;height:9px;border-radius:50%;background:#3ECf8e;box-shadow:0 0 0 4px rgba(62,207,142,.18)}
+  .maphead .t{font-size:13px;font-weight:800}
+  .maphead .live{margin-left:auto;font-size:10.5px;font-weight:800;letter-spacing:1px;color:var(--blue);
+    background:var(--blue-050);padding:4px 9px;border-radius:999px}
+  .mapbody{position:absolute;inset:49px 0 0 0}
+  .mapbody svg{width:100%;height:100%;display:block}
+  .pin{position:absolute;transform:translate(-50%,-100%);font-size:11px;font-weight:800;
+    color:#fff;background:var(--blue);padding:5px 9px 5px 7px;border-radius:999px;
+    display:flex;align-items:center;gap:5px;box-shadow:0 8px 16px -6px rgba(46,91,255,.7);white-space:nowrap;z-index:3}
+  .pin::after{content:"";position:absolute;left:14px;bottom:-4px;width:9px;height:9px;background:inherit;
+    transform:rotate(45deg);border-radius:2px}
+  .pin .av{width:16px;height:16px;border-radius:50%;background:rgba(255,255,255,.28);display:grid;place-items:center;font-size:10px}
+  .pin.red{background:var(--coral);box-shadow:0 8px 16px -6px rgba(255,106,61,.75)}
+  .pin.p1{left:33%;top:40%} .pin.p2{left:66%;top:30%} .pin.p3{left:52%;top:63%}
+  .me{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:2}
+  .me i{display:block;width:16px;height:16px;border-radius:50%;background:var(--coral);border:3px solid var(--card)}
+  .me::before{content:"";position:absolute;left:50%;top:50%;width:150px;height:150px;transform:translate(-50%,-50%);
+    border-radius:50%;background:radial-gradient(circle,rgba(255,106,61,.16),transparent 68%)}
+
+  /* ── Section ── */
+  .sec{padding:40px 0}
+  .kicker{font-size:12px;font-weight:800;letter-spacing:2.5px;color:var(--muted);text-transform:uppercase}
+  h2{font-size:clamp(24px,3.2vw,32px);font-weight:900;margin:9px 0 0;letter-spacing:-.3px;text-wrap:balance}
+  .cats{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-top:26px}
+  .cat{background:var(--card);border:1px solid var(--line);border-radius:15px;padding:16px 12px;
+    text-align:center;transition:.18s}
+  .cat:hover{transform:translateY(-3px);border-color:var(--blue);box-shadow:var(--shadow)}
+  .cat .e{font-size:24px;line-height:1}
+  .cat .n{font-size:13.5px;font-weight:700;margin-top:9px}
+  .more{text-align:center;color:var(--muted);font-size:13px;margin-top:16px}
+
+  /* ── Steps ── */
+  .steps{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:26px}
+  .step{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:22px}
+  .step .no{font-size:13px;font-weight:900;color:var(--blue);font-variant-numeric:tabular-nums}
+  .step h3{font-size:16px;font-weight:800;margin:8px 0 6px}
+  .step p{font-size:13.5px;color:var(--muted);margin:0}
+
+  /* ── Ad ── */
+  .adzone{margin:14px 0 6px}
+  .adlabel{font-size:11px;font-weight:800;letter-spacing:2px;color:var(--muted);text-transform:uppercase;
+    display:flex;align-items:center;gap:8px;margin-bottom:10px}
+  .adlabel::after{content:"广告 · AD";font-size:9.5px;color:var(--muted);border:1px solid var(--line);
+    padding:2px 6px;border-radius:5px;letter-spacing:1px}
+  .ad{display:flex;align-items:center;gap:20px;background:
+      linear-gradient(100deg,var(--coral-050),transparent 70%),var(--card);
+    border:1px solid var(--line);border-left:4px solid var(--coral);border-radius:16px;padding:20px 22px}
+  .ad .logo{width:56px;height:56px;border-radius:14px;background:var(--coral);display:grid;place-items:center;
+    font-size:28px;flex-shrink:0;box-shadow:0 10px 20px -8px rgba(255,106,61,.6)}
+  .ad .body{flex:1;min-width:0}
+  .ad .body .h{font-size:17px;font-weight:800}
+  .ad .body .p{font-size:13.5px;color:var(--muted);margin-top:3px}
+  .ad .act{display:inline-flex;align-items:center;gap:7px;font-weight:800;font-size:14px;color:#fff;
+    background:var(--coral);padding:11px 18px;border-radius:11px;flex-shrink:0;transition:.18s}
+  .ad .act:hover{filter:brightness(.95);transform:translateY(-1px)}
+
+  /* ── Footer ── */
+  .foot{border-top:1px solid var(--line);margin-top:34px;padding:30px 0 46px;
+    display:flex;flex-wrap:wrap;align-items:center;gap:18px;justify-content:space-between}
+  .doms{display:flex;flex-wrap:wrap;gap:8px}
+  .doms .d{font-size:13px;font-weight:700;font-variant-numeric:tabular-nums;color:var(--muted);
+    background:var(--card);border:1px solid var(--line);padding:7px 13px;border-radius:999px}
+  .doms .d.on{color:var(--blue);border-color:var(--blue)}
+  .cprt{font-size:12.5px;color:var(--muted)}
+
+  @media(max-width:820px){
+    .hero{grid-template-columns:1fr;gap:30px;padding:34px 0 20px}
+    .mapcard{aspect-ratio:4/3.4;max-width:440px}
+    .cats{grid-template-columns:repeat(3,1fr)}
+    .steps{grid-template-columns:1fr}
+    .ad{flex-direction:column;align-items:flex-start;gap:14px}
+    .ad .act{align-self:stretch;justify-content:center}
+  }
+  @media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+  .fade{opacity:0;transform:translateY(14px);animation:rise .7s cubic-bezier(.2,.7,.2,1) forwards}
+  .fade.d1{animation-delay:.06s}.fade.d2{animation-delay:.14s}.fade.d3{animation-delay:.22s}
+  @keyframes rise{to{opacity:1;transform:none}}
+  :focus-visible{outline:3px solid var(--blue);outline-offset:2px;border-radius:6px}
+</style>
+
+<div class="wrap">
+  <div class="shell">
+
+    <header class="top fade">
+      <div class="brand">
+        <span class="mark" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M5 20V7l7-4 7 4v13" stroke="#fff" stroke-width="2.1" stroke-linejoin="round"/><circle cx="12" cy="11" r="2.6" fill="#fff"/><path d="M9 20v-3.5a3 3 0 0 1 6 0V20" stroke="#fff" stroke-width="2.1" stroke-linejoin="round"/></svg>
+        </span>
+        <span>
+          <div class="bname">华邻</div>
+          <div class="bsub">HUALIN · 海外华人生活</div>
+        </span>
+      </div>
+      <a class="go" href="https://hualinlife.com">进入官网 →</a>
+    </header>
+
+    <section class="hero">
+      <div>
+        <span class="eyebrow fade"><b></b>多伦多 · 大多地区 GTA</span>
+        <h1 class="fade d1">找本地靠谱服务，<br><span class="hl">一个华邻</span>就够了</h1>
+        <p class="lede fade d1">搬家保洁、装修维修、接送报税、二手房产、求职招聘…… 附近正在接单的华人商家和师傅，都在华邻地图上。</p>
+        <div class="cta fade d2">
+          <a class="btn btn-primary" href="https://hualinlife.com">
+            进入华邻 <span class="url">hualinlife.com</span>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M5 12h14M13 6l6 6-6 6" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </a>
+          <a class="btn btn-ghost" href="#cats">看看能做什么</a>
+        </div>
+        <div class="trust fade d3">
+          <div><b>20+</b><span>服务类目</span></div>
+          <div><b>6</b><span>大板块</span></div>
+          <div><b>0</b><span>中介抽成</span></div>
+        </div>
+      </div>
+
+      <div class="mapcard fade d2" aria-label="华邻地图示意">
+        <div class="maphead"><span class="dot"></span><span class="t">华邻地图 · 附近服务</span><span class="live">LIVE 上线接单</span></div>
+        <div class="mapbody">
+          <svg viewBox="0 0 400 400" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+            <rect width="400" height="400" fill="var(--ground)"/>
+            <g stroke="var(--line)" stroke-width="10" opacity=".9">
+              <path d="M-20 120 H420"/><path d="M-20 250 H420"/>
+              <path d="M110 -20 V420"/><path d="M270 -20 V420"/>
+            </g>
+            <g stroke="var(--line)" stroke-width="4" opacity=".7">
+              <path d="M-20 60 H420"/><path d="M-20 190 H420"/><path d="M-20 330 H420"/>
+              <path d="M50 -20 V420"/><path d="M190 -20 V420"/><path d="M340 -20 V420"/>
+            </g>
+            <path d="M-20 300 L180 210 L260 250 L440 150" stroke="#9FB4E8" stroke-width="7" fill="none" opacity=".6"/>
+          </svg>
+          <span class="pin p1"><span class="av">🔧</span>装修</span>
+          <span class="pin p2"><span class="av">🚚</span>搬家</span>
+          <span class="pin red p3"><span class="av">🚨</span>急单</span>
+          <span class="me" aria-hidden="true"><i></i></span>
+        </div>
+      </div>
+    </section>
+
+    <section class="sec" id="cats">
+      <span class="kicker fade">能帮你找到什么</span>
+      <h2 class="fade d1">从家里到生活，需要人搭把手的事，这里都有</h2>
+      <div class="cats">
+        <div class="cat"><div class="e">🚚</div><div class="n">搬家</div></div>
+        <div class="cat"><div class="e">🧹</div><div class="n">保洁</div></div>
+        <div class="cat"><div class="e">🔧</div><div class="n">装修维修</div></div>
+        <div class="cat"><div class="e">🚗</div><div class="n">接送</div></div>
+        <div class="cat"><div class="e">🧾</div><div class="n">报税</div></div>
+        <div class="cat"><div class="e">⚖️</div><div class="n">法律移民</div></div>
+        <div class="cat"><div class="e">💇</div><div class="n">美容美发</div></div>
+        <div class="cat"><div class="e">🏠</div><div class="n">房产租售</div></div>
+        <div class="cat"><div class="e">🛒</div><div class="n">二手交易</div></div>
+        <div class="cat"><div class="e">💼</div><div class="n">求职招聘</div></div>
+      </div>
+      <p class="more">还有补课、宠物、园艺除雪、同城活动、社区论坛…… 更多都在 华邻</p>
+    </section>
+
+    <section class="sec">
+      <span class="kicker fade">怎么用</span>
+      <h2 class="fade d1">三步，就能联系上附近的人</h2>
+      <div class="steps">
+        <div class="step"><div class="no">01</div><h3>搜一下 / 逛地图</h3><p>关键词一搜，附近正在「上线接单」的商家和师傅直接显示在地图上。</p></div>
+        <div class="step"><div class="no">02</div><h3>发需求让人来找你</h3><p>一句话描述需求，系统自动派给附近最匹配的商家，急单还会实时弹窗提醒他们。</p></div>
+        <div class="step"><div class="no">03</div><h3>站内私信直接谈</h3><p>在平台里聊需求、约时间、标成交，联系方式你自己决定要不要给，安全放心。</p></div>
+      </div>
+    </section>
+
+    <section class="sec adzone">
+      <div class="adlabel">合作推广位</div>
+      <!-- 广告位:替换下面这张卡即可(换成你的广告主内容,或接入 Google AdSense 的 <ins> 代码块) -->
+      <div class="ad">
+        <div class="logo" aria-hidden="true">🚚</div>
+        <div class="body">
+          <div class="h">枫叶搬家 · 学生 & 小件特惠</div>
+          <div class="p">大多地区专业搬运，明码标价不加价 · 当天可约 · 微信预约享 9 折</div>
+        </div>
+        <a class="act" href="https://hualinlife.com">立即咨询 →</a>
+      </div>
+    </section>
+
+    <footer class="foot">
+      <div class="doms">
+        <span class="d on">hualinlife.com · 官方站点</span>
+        <span class="d">huarenq.com</span>
+        <span class="d">huarenq.net</span>
+        <span class="d">huarenq.ca</span>
+      </div>
+      <span class="cprt">© 2026 华邻 HuaLin · 海外华人生活一站式服务平台</span>
+    </footer>
+
+  </div>
+</div>
+</body></html>
