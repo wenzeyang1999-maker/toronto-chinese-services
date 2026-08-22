@@ -62,9 +62,13 @@ export default function MapPage() {
   useEffect(() => {
     if (requestsMode) return
     let cancelled = false
+    // 只显示「最近 2 小时开过 App」的在线商家 —— 防止「上线一次忘了下线」的人
+    // 长期挂在旧位置(实测:朋友昨天上线、回世嘉宝没下线,仍钉在旧点)。#20260822
+    const freshCutoff = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString()
     supabase.from('users')
       .select('id, name, avatar_url, online_lat, online_lng, skill_tags')
       .eq('is_online', true)
+      .gte('last_seen_at', freshCutoff)
       .not('online_lat', 'is', null)
       .not('online_lng', 'is', null)
       .limit(50)

@@ -70,6 +70,7 @@ import { useAppStore } from './store/appStore'
 import { useAuthStore } from './store/authStore'
 import { useOnlineModeStore } from './store/onlineModeStore'
 import { supabase } from './lib/supabase'
+import { offsetLocation } from './lib/geo'
 import { unsubscribeFromWebPush } from './lib/webPush'
 import { useRequestMatchAlerts } from './hooks/useRequestMatchAlerts'
 import { useUrgentRequestAlerts } from './hooks/useUrgentRequestAlerts'
@@ -201,6 +202,19 @@ export default function App() {
 
       setUser(authUser)
       supabase.from('users').update({ last_seen_at: new Date().toISOString() }).eq('id', authUser.id)
+
+      // 在线接单中:每次开 App 顺手刷新一次(打散 300–900m)位置,让地图定位跟着人走,
+      // 而不是钉在「上线那一刻」。仅在 provider 模式下抓;失败不影响其他。#20260822
+      if (localStorage.getItem('tcs_profile_mode') === 'provider' && navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          (pos) => {
+            const f = offsetLocation(pos.coords.latitude, pos.coords.longitude)
+            supabase.from('users').update({ online_lat: f.lat, online_lng: f.lng }).eq('id', authUser.id)
+          },
+          () => {},
+          { timeout: 8000, maximumAge: 5 * 60 * 1000 }
+        )
+      }
     }
 
     fetchServiceRequests()
