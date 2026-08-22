@@ -176,7 +176,7 @@ export default function InquiryModal({ open, onClose, presetCategoryId }: Props)
   const [insertedId,  setInsertedId]  = useState<string | null>(null)
   const [serverError, setServerError] = useState('')
   const [postPublic,  setPostPublic]  = useState(true)
-  const [isUrgent,    setIsUrgent]    = useState(false)   // 紧急单：发给所有在线商家，每天限 1 次
+  const [isUrgent,    setIsUrgent]    = useState(false)   // 紧急单：发给所有在线商家（弹窗不限；邮件每人每天前 3 轮，见后端）
   const [contactMode, setContactMode] = useState<'providers_contact' | 'self_contact'>('providers_contact')
   const [isListening,  setIsListening]  = useState(false)   // 录音中
   const [transcribing, setTranscribing] = useState(false)   // 上传转写中
@@ -1030,7 +1030,6 @@ export default function InquiryModal({ open, onClose, presetCategoryId }: Props)
                           <div className="flex items-center gap-1.5 text-sm font-semibold text-gray-800">
                             <Siren size={14} className={`flex-shrink-0 ${isUrgent ? 'text-red-500' : 'text-gray-400'}`} />
                             紧急需求
-                            <span className="text-[10px] font-normal text-red-500 bg-red-100 px-1.5 py-0.5 rounded-full">每天限 1 次</span>
                           </div>
                           <p className="text-[11px] text-gray-500 mt-0.5 leading-relaxed">
                             {contactMode === 'self_contact'

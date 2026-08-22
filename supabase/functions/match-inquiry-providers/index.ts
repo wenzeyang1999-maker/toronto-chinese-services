@@ -285,9 +285,15 @@ Deno.serve(async (req) => {
       targets = (pref.length >= DIRECT_LIMIT ? pref : [...pref, ...rest]).slice(0, DIRECT_LIMIT)
     }
 
-    // 邮件只在【紧急单】发，且最多发前 EMAIL_LIMIT 家（最匹配/最近的在线商家），
-    // 省邮件额度；普通需求只走站内通知/弹窗，不发邮件。站内通知仍发全部 targets。
-    const emailTargets = (isUrgent && brevoApiKey) ? targets.slice(0, EMAIL_LIMIT) : []
+    // 邮件只在【紧急单】发，且最多发前 EMAIL_LIMIT 家（最匹配/最近的在线商家）。
+    // 成本控制:每人每天最多 3 轮紧急邮件(claim_urgent_email_quota 原子记账,多伦多
+    // 自然日),超出当天只弹窗不发邮件——防单个客户狂发把 Brevo 额度烧光。
+    // 普通需求永远不发邮件;站内通知/实时弹窗仍发全部 targets,不受此限制。
+    let emailTargets: typeof targets = []
+    if (isUrgent && brevoApiKey && targets.length > 0) {
+      const { data: allowEmail } = await admin.rpc('claim_urgent_email_quota', { p_user: callerId, p_limit: 3 })
+      if (allowEmail === true) emailTargets = targets.slice(0, EMAIL_LIMIT)
+    }
     const emailedIds = new Set(emailTargets.map((p) => p.id))
     if (emailTargets.length > 0) {
       await Promise.all(emailTargets.map(async (provider) => {
