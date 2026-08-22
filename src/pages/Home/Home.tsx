@@ -5,7 +5,6 @@ import CategoryButtons from '../../components/CategoryButtons/CategoryButtons'
 import Mascot from '../../components/Mascot/Mascot'
 import { useInquiryStore } from '../../store/inquiryStore'
 import { useAppStore } from '../../store/appStore'
-import { useOnlineModeStore } from '../../store/onlineModeStore'
 import { useGeolocation, LOCATION_STALE_MS } from '../../hooks/useGeolocation'
 import RecommendedServices from '../../components/RecommendedServices/RecommendedServices'
 // 暂时隐藏社区入口（恢复时连同下方 <HomeCommunityEntry /> 一起取消注释）
@@ -83,17 +82,9 @@ export default function Home() {
     return () => { cancelled = true }
   }, [user])
 
-  // 商家上线接单 → 直接去独立的「华邻地图」找订单(找订单已移出首页)。只跳一次。
-  const providerMode = useOnlineModeStore((s) => s.online)
-  const providerDefaultApplied = useRef(false)
-  useEffect(() => {
-    if (providerMode && !providerDefaultApplied.current) {
-      providerDefaultApplied.current = true
-      navigate('/map?type=requests')
-    }
-  }, [providerMode, navigate])
-
   // 深链:/?view=urgent(找订单)→ 重定向到华邻地图;/?view=services → 滚到「热门服务」。
+  // 注意:不再因「上线接单」就把商家弹离首页——那会让「生活服务」导航打不开(#20260822)。
+  // 商家找订单走「华邻地图」tab + 实时弹窗即可。
   useEffect(() => {
     const view = searchParams.get('view')
     if (view === 'urgent') { navigate('/map?type=requests'); return }
