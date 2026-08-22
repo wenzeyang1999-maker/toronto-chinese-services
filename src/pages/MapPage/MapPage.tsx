@@ -2,7 +2,8 @@
 // Route: /map  — Google Maps-style fullscreen experience with top search bar
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { Search, Navigation, X, Sparkles, Map as MapIcon, List, Loader2 } from 'lucide-react'
+import { Search, Navigation, X, Sparkles, Map as MapIcon, List, Loader2, User as UserIcon } from 'lucide-react'
+import { cdnUrl } from '../../lib/cdnUrl'
 import Header from '../../components/Header/Header'
 import Mascot from '../../components/Mascot/Mascot'
 import ServiceCard from '../../components/ServiceCard/ServiceCard'
@@ -120,6 +121,14 @@ export default function MapPage() {
     return kw ? filtered.filter((s) => s.provider.isOnline) : filtered
   }, [services, kw])
 
+  // 匹配关键词的在线商家(users 表,可能没发服务贴)—— 地图、计数、列表共用同一批,
+  // 避免「地图上有针、切列表却是 0」的不一致(#20260822)。
+  const matchedOnline = useMemo(() => {
+    if (requestsMode || !kw) return []
+    return onlineProviders.filter((p) => matches(p.name) || p.skill_tags.some((t) => matches(t)))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [onlineProviders, kw, requestsMode])
+
   // 找订单 列表数据(列表视图不强制要坐标)(内测#10)
   const requestList = useMemo(() => {
     const base = kw ? fuzzyFilterRequests(serviceRequests, kw) : serviceRequests
@@ -168,8 +177,7 @@ export default function MapPage() {
   const onlinePoints = useMemo<GoogleMapPoint[]>(() => {
     // 找订单模式不显示在线商家;找服务模式「搜索关键词后」才显示在线商家(内测20260818 一)
     if (requestsMode || !kw) return []
-    return onlineProviders
-      .filter((p) => matches(p.name) || p.skill_tags.some(t => matches(t)))
+    return matchedOnline
       .map((p) => ({
         id: `online-${p.id}`,
         lat: p.online_lat,
@@ -179,7 +187,7 @@ export default function MapPage() {
         onlineProv: true,
         infoContent: buildOnlineProviderInfo(p, () => navigate(`/provider/${p.id}`)),
       } as GoogleMapPoint))
-  }, [onlineProviders, navigate, kw, requestsMode])
+  }, [matchedOnline, navigate])
 
   const points = useMemo(
     () => [...servicePoints, ...requestPoints, ...onlinePoints],
@@ -290,7 +298,7 @@ export default function MapPage() {
           <span className="bg-white/95 backdrop-blur rounded-full px-3 py-1 shadow text-xs font-semibold text-gray-700">
             {requestsMode
               ? `${requestList.length} 条需求`
-              : (kw ? `${mapped.length} 位在线服务商` : '搜索关键词查看在线服务商')}
+              : (kw ? `${mapped.length + matchedOnline.length} 位在线服务商` : '搜索关键词查看在线服务商')}
           </span>
           <div className="inline-flex items-center gap-0.5 rounded-full bg-white p-0.5 shadow text-xs">
             <button
@@ -342,13 +350,33 @@ export default function MapPage() {
                 <Mascot pose="curious" size={72} className="mb-2" />
                 <p className="text-sm text-gray-500">搜索关键词(如「搬运」「保洁」)查看附近正在上线接单的服务商</p>
               </div>
-            ) : mapped.length === 0 ? (
+            ) : (mapped.length === 0 && matchedOnline.length === 0) ? (
               <div className="flex flex-col items-center pt-16 text-center">
                 <Mascot pose="curious" size={72} className="mb-2" />
                 <p className="text-sm text-gray-500">没有找到「{search}」相关的在线服务商</p>
               </div>
             ) : (
               <div className="grid gap-3 max-w-2xl mx-auto">
+                {/* 在线商家(可能没发服务贴,但正在上线接单)——与地图针一致 */}
+                {matchedOnline.map((p) => (
+                  <button key={`online-${p.id}`} onClick={() => navigate(`/provider/${p.id}`)}
+                    className="w-full text-left bg-white rounded-2xl border border-gray-100 shadow-sm p-3 flex items-center gap-3 active:scale-[0.99] transition-transform">
+                    <div className="w-11 h-11 rounded-full overflow-hidden flex-shrink-0 bg-primary-100 flex items-center justify-center">
+                      {p.avatar_url
+                        ? <img loading="lazy" src={cdnUrl(p.avatar_url, 96)} alt="" className="w-full h-full object-cover" />
+                        : <UserIcon size={18} className="text-primary-500" />}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5">
+                        <p className="text-sm font-semibold text-gray-800 truncate">{p.name}</p>
+                        <span className="flex-shrink-0 text-[10px] font-bold text-emerald-600 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded-full">⚡上线接单</span>
+                      </div>
+                      {p.skill_tags.length > 0 && (
+                        <p className="text-xs text-gray-400 mt-0.5 truncate">{p.skill_tags.slice(0, 4).join(' · ')}</p>
+                      )}
+                    </div>
+                  </button>
+                ))}
                 {mapped.map((s) => <ServiceCard key={s.id} service={s} />)}
               </div>
             )
