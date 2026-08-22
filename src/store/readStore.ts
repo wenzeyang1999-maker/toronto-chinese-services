@@ -5,7 +5,7 @@
 import { create } from 'zustand'
 import { supabase } from '../lib/supabase'
 
-export type ReadableType = 'service' | 'job' | 'property' | 'secondhand' | 'event' | 'community'
+export type ReadableType = 'service' | 'job' | 'property' | 'secondhand' | 'event' | 'community' | 'request'
 
 const STORAGE_KEY = 'tcs_read'
 const MAX_ENTRIES = 500

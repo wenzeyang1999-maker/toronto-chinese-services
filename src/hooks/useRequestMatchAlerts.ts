@@ -8,7 +8,7 @@
 import { useEffect, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuthStore } from '../store/authStore'
-import { toast } from '../lib/toast'
+import { useUrgentAlertStore } from '../store/urgentAlertStore'
 import { getCategoryById } from '../data/categories'
 import type { ServiceCategory } from '../types'
 
@@ -97,7 +97,10 @@ export function useRequestMatchAlerts() {
         if (!matchesTags(r, tagsRef.current)) return
 
         playMatchSound()
-        toast(`💼 新需求：${r.title}`, 'success')
+        // 普通需求也弹同一张卡片(温和蓝色版),商家不漏单;紧急单走 useUrgentRequestAlerts 的红色强提醒。
+        useUrgentAlertStore.getState().setAlert({
+          id: r.id, title: r.title, category: r.category ?? 'other', area: r.area, isUrgent: false, posterId: r.user_id,
+        })
 
         if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
           try {

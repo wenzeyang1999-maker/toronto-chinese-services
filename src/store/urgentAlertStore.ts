@@ -10,6 +10,8 @@ export interface UrgentAlert {
   title:    string
   category: string
   area:     string | null
+  isUrgent: boolean         // true=紧急单(红/强提醒) false=普通需求(蓝/温和)
+  posterId: string          // service_requests.user_id — 客户,用于「接单」直接开聊
 }
 
 interface UrgentAlertState {

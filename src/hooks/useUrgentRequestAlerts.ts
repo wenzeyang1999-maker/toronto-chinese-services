@@ -83,7 +83,7 @@ export function useUrgentRequestAlerts() {
         if (!data?.is_online) return
 
         playUrgentSound()
-        setAlert({ id: r.id, title: r.title, category: r.category, area: r.area })
+        setAlert({ id: r.id, title: r.title, category: r.category, area: r.area, isUrgent: true, posterId: r.user_id })
       })
       .subscribe()
     return () => { supabase.removeChannel(channel) }

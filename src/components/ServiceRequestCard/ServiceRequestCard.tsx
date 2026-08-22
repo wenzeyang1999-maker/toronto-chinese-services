@@ -4,6 +4,7 @@ import { Clock, MapPin, DollarSign, CalendarClock } from 'lucide-react'
 import type { ServiceRequest } from '../../types'
 import { getCategoryById } from '../../data/categories'
 import { formatRequestTime } from '../../lib/formatRequestTime'
+import { useReadStore } from '../../store/readStore'
 
 interface Props {
   request: ServiceRequest
@@ -19,6 +20,9 @@ export default function ServiceRequestCard({ request, layout = 'list', distance 
   const navigate = useNavigate()
   const cat = getCategoryById(request.category)
   const serviceTime = formatRequestTime(request.serviceAtStart, request.serviceAtEnd)
+  const isRead   = useReadStore((s) => s.read.has(`request:${request.id}`))
+  const markRead = useReadStore((s) => s.markRead)
+  const open = () => { markRead('request', request.id); navigate(`/requests/${request.id}`) }
 
   const urgencyColor =
     request.daysLeft <= 3  ? 'text-red-500 bg-red-50 border-red-200' :
@@ -29,9 +33,10 @@ export default function ServiceRequestCard({ request, layout = 'list', distance 
     return (
       <motion.div
         whileTap={{ scale: 0.98 }}
-        onClick={() => navigate(`/requests/${request.id}`)}
-        className="bg-white rounded-2xl cursor-pointer overflow-hidden
-                   border border-gray-100 shadow-sm hover:shadow-md transition-all duration-200"
+        onClick={open}
+        className={`bg-white rounded-2xl cursor-pointer overflow-hidden
+                   border border-gray-100 shadow-sm hover:shadow-md transition-all duration-200
+                   ${isRead ? 'opacity-60' : ''}`}
       >
         {/* Top accent bar */}
         <div className={`h-1.5 w-full ${cat?.bgColor ?? 'bg-gray-100'}`} />
@@ -92,10 +97,11 @@ export default function ServiceRequestCard({ request, layout = 'list', distance 
   return (
     <motion.div
       whileTap={{ scale: 0.98 }}
-      onClick={() => navigate(`/requests/${request.id}`)}
-      className="bg-white rounded-2xl cursor-pointer flex gap-3 p-3
+      onClick={open}
+      className={`bg-white rounded-2xl cursor-pointer flex gap-3 p-3
                  border border-gray-100 shadow-sm hover:shadow-md
-                 active:bg-gray-50 transition-all duration-200"
+                 active:bg-gray-50 transition-all duration-200
+                 ${isRead ? 'opacity-60' : ''}`}
     >
       {/* Left: category icon */}
       <div className={`w-14 h-14 flex-shrink-0 rounded-xl ${cat?.bgColor ?? 'bg-gray-100'}
