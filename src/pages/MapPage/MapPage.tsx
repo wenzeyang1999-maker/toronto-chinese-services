@@ -24,7 +24,7 @@ function hasCoordinates(service: Service): service is Service & {
 
 export default function MapPage() {
   const navigate = useNavigate()
-  const [searchParams] = useSearchParams()
+  const [searchParams, setSearchParams] = useSearchParams()
   const [mode, setMode] = useState<'services' | 'requests'>(
     searchParams.get('type') === 'requests' ? 'requests' : 'services'
   )
@@ -36,11 +36,24 @@ export default function MapPage() {
   const requestLocation = useGeolocation()
   const { updateLocation } = useUpdateLocation()
   const mapRef = useRef<GoogleMapCanvasHandle>(null)
-  const [search, setSearch] = useState('')
+  // 从 URL 还原搜索词:点进服务商主页再返回时,浏览器恢复 /map?q=xxx,
+  // 搜索结果(针)就能自动还原,不用重新输入(#20260822)。
+  const [search, setSearch] = useState(() => searchParams.get('q') ?? '')
   const [onlineProviders, setOnlineProviders] = useState<OnlineProvider[]>([])
   const [display, setDisplay] = useState<'map' | 'list'>('map')   // 地图 / 列表(内测#10)
   const [routing, setRouting] = useState(false)                   // AI 全站搜索跳转中
   const [orderFilter, setOrderFilter] = useState<'all' | 'urgent' | 'scheduled'>('all')  // 找订单:急单/预约单
+
+  // 搜索词 → URL 同步(replace,不污染历史):离开本页再返回时可还原搜索结果(#20260822)。
+  useEffect(() => {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev)
+      const q = search.trim()
+      if (q) next.set('q', q)
+      else next.delete('q')
+      return next
+    }, { replace: true })
+  }, [search, setSearchParams])
 
   // 地图搜索回车 → AI 全站解析:跨板块(房产/二手/招聘/社区)跳对应板块,
   // 服务/订单留在本页(已由输入实时筛选)。(内测#6+#10)
