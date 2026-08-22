@@ -4,8 +4,9 @@
 import { useEffect, useRef, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { ChevronLeft, Send, Phone, MessageCircle, Copy, RotateCcw, Flag, Ban, ImagePlus } from 'lucide-react'
+import { ChevronLeft, Send, Phone, MessageCircle, Copy, RotateCcw, Flag, Ban, ImagePlus, User } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
+import { cdnUrl } from '../../lib/cdnUrl'
 import { useAuthStore } from '../../store/authStore'
 import { notifyNewMessage } from '../../lib/notify'
 import { toast } from '../../lib/toast'
@@ -27,7 +28,7 @@ interface ConvInfo {
   provider_id: string
   service_id: string | null
   service?: { title: string } | null
-  other?: { name: string; phone: string | null; wechat: string | null } | null
+  other?: { id: string; name: string; avatar_url: string | null; phone: string | null; wechat: string | null } | null
 }
 
 // Compares two ISO timestamps safely (formats may differ: '…Z' vs '…+00:00').
@@ -95,21 +96,22 @@ export default function ConversationPage() {
       .select(`id, client_id, provider_id, service_id,
                client_last_read_at, provider_last_read_at,
                service:services(title),
-               client:users!conversations_client_id_fkey(name),
-               provider:users!conversations_provider_id_fkey(name)`)
+               client:users!conversations_client_id_fkey(name, avatar_url),
+               provider:users!conversations_provider_id_fkey(name, avatar_url)`)
       .eq('id', id)
       .single()
       .then(({ data, error }) => {
         if (error || !data) return
         const isClient = data.client_id === user.id
-        const otherName = isClient
+        const otherRaw = isClient
           ? (Array.isArray(data.provider) ? data.provider[0] : data.provider)
           : (Array.isArray(data.client)   ? data.client[0]   : data.client)
+        const otherUser = otherRaw as { name?: string; avatar_url?: string | null } | null
         const otherId = isClient ? data.provider_id : data.client_id
         setConv({
           ...data,
           service: Array.isArray(data.service) ? data.service[0] : data.service,
-          other: { name: (otherName as { name?: string })?.name ?? '', phone: null, wechat: null },
+          other: { id: otherId, name: otherUser?.name ?? '', avatar_url: otherUser?.avatar_url ?? null, phone: null, wechat: null },
         })
         // Contact of the other party via the authorized RPC (conversation partner).
         supabase.rpc('get_contact', { p_target: otherId }).returns<{ phone: string; wechat: string }[]>().maybeSingle().then(({ data: c }) => {
@@ -477,13 +479,26 @@ export default function ConversationPage() {
         )}
         {messages.map(msg => {
           const isMine = msg.sender_id === user.id
+          const avatarUrl = isMine ? (user.user_metadata?.avatar_url ?? null) : (conv?.other?.avatar_url ?? null)
           return (
             <motion.div key={msg.id}
               initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
-              className={`flex flex-col ${isMine ? 'items-end' : 'items-start'}`}
+              className={`flex items-start gap-2 ${isMine ? 'flex-row-reverse' : 'flex-row'}`}
             >
+              {/* 头像:点对方头像进 TA 的主页 */}
+              <button
+                type="button"
+                onClick={() => { if (!isMine && conv?.other?.id) navigate(`/provider/${conv.other.id}`) }}
+                aria-label={isMine ? '我' : (conv?.other?.name || '对方主页')}
+                className={`w-8 h-8 rounded-full overflow-hidden flex-shrink-0 bg-primary-100 flex items-center justify-center ring-1 ring-black/5 ${isMine ? 'cursor-default' : 'cursor-pointer hover:ring-2 hover:ring-primary-300'}`}
+              >
+                {avatarUrl
+                  ? <img loading="lazy" src={cdnUrl(avatarUrl, 80)} alt="" className="w-full h-full object-cover" />
+                  : <User size={15} className="text-primary-500" />}
+              </button>
+              <div className={`flex flex-col min-w-0 max-w-[80%] ${isMine ? 'items-end' : 'items-start'}`}>
               {msg.content.startsWith('[photo]') ? (
-                <div className={`max-w-[75%] rounded-2xl overflow-hidden border shadow-sm
+                <div className={`max-w-full rounded-2xl overflow-hidden border shadow-sm
                   ${isMine ? 'rounded-tr-sm border-primary-200' : 'rounded-tl-sm border-gray-100'}`}
                 >
                   <img loading="lazy"
@@ -506,7 +521,7 @@ export default function ConversationPage() {
                   </div>
                 </div>
               ) : (
-                <div className={`max-w-[75%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed
+                <div className={`max-w-full rounded-2xl px-4 py-2.5 text-sm leading-relaxed
                   ${isMine
                     ? msg.failed
                       ? 'bg-red-100 text-red-800 border border-red-200 rounded-tr-sm'
@@ -533,6 +548,7 @@ export default function ConversationPage() {
                   <RotateCcw size={11} /> 发送失败，点击重试
                 </button>
               )}
+              </div>
             </motion.div>
           )
         })}
