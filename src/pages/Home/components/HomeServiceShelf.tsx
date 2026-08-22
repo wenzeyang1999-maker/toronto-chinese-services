@@ -35,6 +35,7 @@ interface Props {
   allServices: Service[]           // full pool for keyword search
   defaultMapServices: Service[]    // nearby-only default for map (no search)
   mapContent: (filtered: Service[], keyword: string) => React.ReactNode
+  hideMapToggle?: boolean          // 首页/生活服务:只列表,不展示地图预览(找服务地图统一走华邻地图页)
 }
 
 export default function HomeServiceShelf({
@@ -47,12 +48,14 @@ export default function HomeServiceShelf({
   allServices,
   defaultMapServices,
   mapContent,
+  hideMapToggle = false,
 }: Props) {
   const navigate = useNavigate()
   const [query, setQuery] = useState('')
   const servicesLoaded = useAppStore((s) => s.servicesLoaded)
 
   const q = query.trim()
+  const effectiveView: 'list' | 'map' = hideMapToggle ? 'list' : viewMode
 
   // When searching, list and map query the SAME full pool (allServices) so their
   // results match; with no query the list shows the curated nearby `services`.
@@ -62,7 +65,7 @@ export default function HomeServiceShelf({
   function handleSearch(e: React.FormEvent) {
     e.preventDefault()
     // In map mode just filter markers; in list mode navigate to full search
-    if (query.trim() && viewMode === 'list') navigate(`/search?q=${encodeURIComponent(query.trim())}`)
+    if (query.trim() && effectiveView === 'list') navigate(`/search?q=${encodeURIComponent(query.trim())}`)
   }
 
   return (
@@ -79,6 +82,7 @@ export default function HomeServiceShelf({
         </div>
 
         <div className="flex items-center gap-2">
+          {!hideMapToggle && (
           <div className="flex items-center rounded-xl bg-gray-100 p-0.5">
             <button
               onClick={() => onViewModeChange('list')}
@@ -97,6 +101,7 @@ export default function HomeServiceShelf({
               <Map size={13} /> 地图
             </button>
           </div>
+          )}
 
           <button
             onClick={() => navigate('/search')}
@@ -123,7 +128,7 @@ export default function HomeServiceShelf({
         )}
       </form>
 
-      {viewMode === 'list' ? (
+      {effectiveView === 'list' ? (
         <div className="flex flex-col gap-2">
           {filteredList.length > 0
             ? filteredList.map((svc) => <ServiceCard key={svc.id} service={svc} />)

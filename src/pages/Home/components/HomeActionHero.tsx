@@ -46,9 +46,9 @@ export default function HomeActionHero({
   const nearbyCount = services.filter((s) => s.available).length
 
   return (
-    <div className="relative w-full overflow-hidden bg-[#f7f8fa] border-b border-gray-200 px-4 py-10 md:px-5 md:py-16">
+    <div className="relative w-full overflow-hidden bg-[#f7f8fa] border-b border-gray-200 px-4 py-5 md:px-5 md:py-7">
       <div className="mx-auto w-full px-2 md:w-[92%] md:px-0 lg:w-[86%] xl:w-[82%]">
-        <div className="relative grid items-center gap-8 lg:min-h-[28rem] lg:grid-cols-[minmax(0,1.08fr)_minmax(400px,0.92fr)] lg:gap-16 xl:gap-20">
+        <div className="relative grid items-center gap-8 lg:grid-cols-[minmax(0,1.08fr)_minmax(400px,0.92fr)] lg:gap-16 xl:gap-20">
 
           {/* ── Left: headline + search ── */}
           {/* min-w-0: grid items default to min-width:auto and won't shrink below
@@ -59,29 +59,22 @@ export default function HomeActionHero({
             animate={{ opacity: 1, y: 0 }}
             className="relative z-10 min-w-0 max-w-[42rem]"
           >
-            {/* 城市面包屑已删(内测2-#5):与顶栏城市选择重复,且原为写死的 Toronto */}
-            <div className="inline-flex max-w-full flex-wrap items-center gap-1.5 rounded-full border border-gray-200 bg-white px-3 py-1 text-xs font-medium text-gray-500 shadow-sm mb-4">
+            {/* Hero 瘦身(内测 20260818 三):去掉大标题,保留一行说明 + AI 智能匹配入口,
+                避免顶部占大块;搜索走顶部 Header,找服务/找订单地图统一在「华邻地图」页。 */}
+            <div className="inline-flex max-w-full flex-wrap items-center gap-1.5 rounded-full border border-gray-200 bg-white px-3 py-1 text-xs font-medium text-gray-500 shadow-sm mb-3">
               <MapPin size={11} className="text-primary-500" />
               {userHasLocation ? '已为您准备附近结果' : '海外华人生活一站式服务'}
             </div>
 
-            <h1 className="text-4xl font-extrabold tracking-tight text-gray-900 md:text-5xl xl:text-6xl leading-[1.1]">
-              一句话，<span className="text-primary-600">AI 帮你</span>
-              <br className="hidden md:block" />
-              找到本地靠谱服务。
-            </h1>
-            <p className="mt-4 max-w-xl text-sm leading-6 text-gray-500 md:text-base md:leading-7">
-              点下方「AI 智能匹配」，说出需求即可。
-            </p>
-
-            {/* 首页统一入口:只保留 AI 智能匹配(内测#5/#6),搜索走顶部 Header,
-                原重复搜索框与信任胶囊已移除。 */}
-            <div className="mt-6">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+              <p className="text-base font-bold text-gray-800 md:text-lg">
+                一句话，<span className="text-primary-600">AI 帮你</span>找到本地靠谱服务
+              </p>
               <motion.button
                 data-tour="ai-match"
                 whileTap={{ scale: 0.97 }}
                 onClick={onOpenInquiry}
-                className="w-full md:w-auto flex items-center justify-center gap-2 rounded-2xl bg-primary-600 px-6 py-3.5 text-sm font-bold text-white shadow-md transition-colors hover:bg-primary-700"
+                className="flex items-center justify-center gap-2 rounded-2xl bg-primary-600 px-5 py-3 text-sm font-bold text-white shadow-md transition-colors hover:bg-primary-700 sm:flex-shrink-0"
               >
                 <Sparkles size={16} />
                 AI 智能匹配

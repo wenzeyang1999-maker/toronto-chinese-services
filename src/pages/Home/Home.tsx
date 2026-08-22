@@ -64,18 +64,11 @@ export default function Home() {
   )
 
   // Feed mode: persist to localStorage; first visit defaults by provider status
-  const [feedMode, setFeedMode] = useState<'services' | 'requests'>(() => {
-    const saved = localStorage.getItem('tcs_feed_mode')
-    return saved === 'requests' || saved === 'services' ? saved : 'services'
-  })
+  // 首页/生活服务统一为「浏览服务」。找订单(发现客户)已移到独立的「华邻地图」页
+  // (含急单/预约单筛选 + 商家实时接单弹窗),不再在首页内嵌,避免与地图页重复入口。
+  const [feedMode] = useState<'services' | 'requests'>('services')
   const [requestSearch, setRequestSearch] = useState('')
-  // 急单地图：急单(紧急) / 预约单(非紧急、约时间) 二选一，默认急单（H1，减压）
   const [leadFilter, setLeadFilter] = useState<'urgent' | 'scheduled'>('urgent')
-  useEffect(() => {
-    if (!localStorage.getItem('tcs_feed_mode')) {
-      setFeedMode(isProvider ? 'requests' : 'services')
-    }
-  }, [isProvider])
 
   // Provider's own skill tags — used to fuzzy-match request title/description.
   const [mySkillTags, setMySkillTags] = useState<string[]>([])
@@ -90,31 +83,23 @@ export default function Home() {
     return () => { cancelled = true }
   }, [user])
 
-  // 切换到「服务商」模式（useOnlineModeStore.online，与个人中心一键翻转同源）→
-  // 回主页默认进「急单地图·找客户」(发现客户 + 地图)。每次进主页应用一次；
-  // 之后手动切回「找服务」不再被强制拉回。
+  // 商家上线接单 → 直接去独立的「华邻地图」找订单(找订单已移出首页)。只跳一次。
   const providerMode = useOnlineModeStore((s) => s.online)
   const providerDefaultApplied = useRef(false)
   useEffect(() => {
     if (providerMode && !providerDefaultApplied.current) {
       providerDefaultApplied.current = true
-      setFeedMode('requests')
-      setViewMode('map')
+      navigate('/map?type=requests')
     }
-  }, [providerMode])
+  }, [providerMode, navigate])
 
-  // 导航「急单地图」入口 → /?view=urgent：强制进「发现客户 + 地图」急单视图。
-  // 保留参数(不抹除)以便导航该 tab 正确高亮;effect 仅在 URL 变化时触发,
-  // 之后用户手动切「找服务/列表」不会被反复拉回。与生活服务共用首页,靠此参数分流。
-  // 导航「急单地图」/「生活服务」入口 → 强制对应视图 + 滚动到那一块,
-  // 否则从另一个 tab 切过来会卡在旧 feedMode、且停在顶部 hero 看不到跳转。
+  // 深链:/?view=urgent(找订单)→ 重定向到华邻地图;/?view=services → 滚到「热门服务」。
   useEffect(() => {
     const view = searchParams.get('view')
-    if (view !== 'urgent' && view !== 'services') return
-    if (view === 'urgent') { setFeedMode('requests'); setViewMode('map') }
-    else                   { setFeedMode('services') }
+    if (view === 'urgent') { navigate('/map?type=requests'); return }
+    if (view !== 'services') return
     const t = setTimeout(() => {
-      const el = view === 'urgent' ? feedRef.current : catRef.current
+      const el = catRef.current
       if (!el) return
       // 动态测量吸顶 header 高度,滚到目标顶部时不被 header 盖住。
       const header = document.querySelector('header')
@@ -122,7 +107,7 @@ export default function Home() {
       window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - headerH - 8, behavior: 'smooth' })
     }, 150)
     return () => clearTimeout(t)
-  }, [searchParams])
+  }, [searchParams, navigate])
 
   // Map radius (km) for the map views — continuous slider, persisted to localStorage
   const [mapRadiusKm, setMapRadiusKm] = useState<number>(() => {
@@ -172,11 +157,6 @@ export default function Home() {
     localStorage.setItem(requestsSeenKey, String(now))
     setRequestsSeenAt(now)
   }, [feedMode, user, requestsSeenKey])
-
-  const handleSetFeedMode = (mode: 'services' | 'requests') => {
-    setFeedMode(mode)
-    localStorage.setItem('tcs_feed_mode', mode)
-  }
 
   // Deep-link: open the「AI 帮你找」inquiry modal via ?inquiry=1, then strip the
   // param so navigating back / refreshing doesn't re-open it unexpectedly.
@@ -293,53 +273,8 @@ export default function Home() {
         {/* 暂时隐藏社区入口（保留组件，恢复时取消注释即可） */}
         {/* <HomeCommunityEntry /> */}
 
-        {/* ── Feed mode toggle — headline dual-marketplace switcher ──────────── */}
-        <div ref={feedRef} className="mb-4">
-          <div className="grid grid-cols-2 gap-3">
-            {/* 找服务 */}
-            <button
-              onClick={() => handleSetFeedMode('services')}
-              aria-pressed={feedMode === 'services'}
-              className={`relative flex items-center gap-3 p-4 rounded-2xl border-2 text-left transition-all active:scale-[0.98] bg-white
-                ${feedMode === 'services' ? 'border-primary-500 shadow-sm' : 'border-gray-200 hover:border-gray-300'}`}
-            >
-              <div className={`flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center transition-colors
-                ${feedMode === 'services' ? 'bg-primary-600 text-white' : 'bg-gray-100 text-gray-400'}`}>
-                <SearchIcon size={18} strokeWidth={2.4} />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className={`text-sm font-bold truncate ${feedMode === 'services' ? 'text-primary-700' : 'text-gray-700'}`}>找服务</p>
-                <p className="text-[11px] text-gray-400 truncate mt-0.5">附近商家 · 师傅</p>
-              </div>
-            </button>
-
-            {/* 发现客户 */}
-            <button
-              onClick={() => handleSetFeedMode('requests')}
-              aria-pressed={feedMode === 'requests'}
-              className={`relative flex items-center gap-3 p-4 rounded-2xl border-2 text-left transition-all active:scale-[0.98] bg-white
-                ${feedMode === 'requests' ? 'border-amber-500 shadow-sm' : 'border-gray-200 hover:border-gray-300'}`}
-            >
-              <div className={`flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center transition-colors
-                ${feedMode === 'requests' ? 'bg-amber-500 text-white' : 'bg-gray-100 text-gray-400'}`}>
-                <Sparkles size={18} strokeWidth={2.4} />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className={`text-sm font-bold truncate ${feedMode === 'requests' ? 'text-amber-700' : 'text-gray-700'}`}>找订单</p>
-                <p className="text-[11px] text-gray-400 truncate mt-0.5">接附近订单 · 赚钱</p>
-              </div>
-              {unreadRequestCount > 0 && (
-                <span className="absolute top-2 right-2 text-[10px] font-bold bg-red-500 text-white px-1.5 py-0.5 rounded-full">
-                  {unreadRequestCount > 99 ? '99+' : unreadRequestCount}
-                </span>
-              )}
-              {feedMode !== 'requests' && unreadRequestCount === 0 && (
-                <span className="absolute top-2 right-2 text-[9px] font-bold text-amber-600 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded-full">NEW</span>
-              )}
-            </button>
-          </div>
-
-        </div>
+        {/* 找服务/找订单 切换卡 + 附近服务地图预览 已移除:找订单统一走「华邻地图」页,
+            避免与地图页重复入口(内测 20260818 三·2)。首页/生活服务专注浏览服务。 */}
 
         {/* ── Services feed ────────────────────────────────────────────────── */}
         {feedMode === 'services' && (
@@ -348,9 +283,10 @@ export default function Home() {
               title={userLocation ? '附近服务' : '本地热门'}
               subtitle={
                 userLocation
-                  ? '优先展示离你更近、且填写了精确位置的服务。切到地图可直接看分布。'
-                  : '先按本地可用服务浏览。需要距离和地图时，再开启位置权限。'
+                  ? '优先展示离你更近、且填写了精确位置的服务。'
+                  : '先按本地可用服务浏览。'
               }
+              hideMapToggle
               viewMode={viewMode}
               onViewModeChange={handleViewMode}
               onMapError={handleMapError}
@@ -368,7 +304,7 @@ export default function Home() {
                 return <MapPreviewCard to="/map" count={radiusFiltered.length} label="在华邻地图查看附近服务" />
               }}
             />
-            {viewMode === 'list' && servicesHasMore && (
+            {servicesHasMore && (
               <div className="flex justify-center mb-6">
                 <button
                   onClick={() => fetchServices(true)}
