@@ -182,9 +182,11 @@ export default function MapPage() {
   }
 
   return (
-    <div className="flex flex-col h-[100dvh] bg-white">
-      {/* 顶部站点导航栏(内测#7:华邻地图作为独立页面,带全站导航) */}
-      <Header />
+    <div className="flex flex-col h-[100dvh] overflow-hidden bg-white">
+      {/* 顶部站点导航栏(内测#7:华邻地图作为独立页面,带全站导航)。
+          本页是满屏 flex 列、不该内部滚动,Header 用随流定位(非 sticky)——
+          否则父层 pb-16 造成的文档级滚动会让 sticky Header 盖住下面 top-3 的悬浮卡片。 */}
+      <Header sticky={false} />
 
       {/* 地图区域：填满导航栏下方,控件悬浮其上 */}
       <div className="relative flex-1 min-h-0">
