@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom'
 import type { ServiceRow } from '../types'
 import { getCategoryById } from '../../../data/categories'
 import ImgFallback from '../../../components/ImgFallback/ImgFallback'
+import Mascot from '../../../components/Mascot/Mascot'
 
 interface Props {
   services: ServiceRow[]
@@ -48,7 +49,7 @@ export default function ServicesGrid({ services, isOwnProfile, onMessageService 
                       alt={svc.title}
                       className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
                       loading="lazy"
-                      fallback={<div className="w-full h-full bg-gray-100 flex items-center justify-center text-3xl">🔧</div>}
+                      fallback={<div className="w-full h-full bg-gray-100 flex items-center justify-center"><Mascot pose="front" size={52} /></div>}
                     />
                   </div>
                 </button>
