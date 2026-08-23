@@ -10,6 +10,11 @@ export function stashPendingReferral(code: string | null | undefined) {
   try { if (c) localStorage.setItem(KEY, c) } catch { /* ignore */ }
 }
 
+// 只读取暂存的邀请码(不清除)——用于注册页预填,即使链接落在首页也能带出来。
+export function peekPendingReferral(): string {
+  try { return localStorage.getItem(KEY) ?? '' } catch { return '' }
+}
+
 export async function applyPendingReferral(): Promise<void> {
   let code: string | null = null
   try { code = localStorage.getItem(KEY) } catch { /* ignore */ }

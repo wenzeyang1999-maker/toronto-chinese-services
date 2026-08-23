@@ -4,6 +4,7 @@
 //
 // Route: /register
 import { useState, useEffect } from 'react'
+import { peekPendingReferral } from '../../lib/pendingReferral'
 import { useNavigate, useSearchParams, Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { Eye, EyeOff, User, Phone, Lock, Mail, ChevronLeft, Gift } from 'lucide-react'
@@ -82,9 +83,9 @@ export default function Register() {
   const [form, setForm]             = useState<RegisterForm>(INITIAL)
   const [referralCode, setReferralCode] = useState('')
 
-  // Auto-fill referral code from URL param ?ref=XXXX
+  // 预填邀请码:优先 URL ?ref,没有就取全局暂存的(邀请链接落首页时 App 已暂存)。
   useEffect(() => {
-    const ref = searchParams.get('ref')
+    const ref = searchParams.get('ref') || peekPendingReferral()
     if (ref) setReferralCode(ref.toUpperCase())
   }, [searchParams])
   const [errors, setErrors]         = useState<FormErrors>({})

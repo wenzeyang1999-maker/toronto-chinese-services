@@ -30,7 +30,7 @@ import { useInquiryStore } from './store/inquiryStore'
 import BottomNav from './components/BottomNav/BottomNav'
 import CityGate from './components/GeofenceBanner/CityGate'
 import ImageEditorHost from './components/ImageEditor/ImageEditorHost'
-import { applyPendingReferral } from './lib/pendingReferral'
+import { applyPendingReferral, stashPendingReferral } from './lib/pendingReferral'
 
 const Category        = lazy(() => import('./pages/Category/Category'))
 const Search          = lazy(() => import('./pages/Search/Search'))
@@ -139,6 +139,19 @@ export default function App() {
   const fetchServices = useAppStore((s) => s.fetchServices)
   const fetchServiceRequests = useAppStore((s) => s.fetchServiceRequests)
   const setUser = useAuthStore((s) => s.setUser)
+
+  // 邀请链接落在任意页面(现为首页 /?ref=CODE):进来先把邀请码暂存,再把 ?ref
+  // 从地址栏抹掉,让访客直接自由浏览、不逼注册。等他日后注册/登录,applyPendingReferral
+  // 会自动补记邀请关系。(顾客反映「一进来就要注册」有防范心理,先让看再说)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const ref = params.get('ref')
+    if (!ref) return
+    stashPendingReferral(ref)
+    params.delete('ref')
+    const qs = params.toString()
+    window.history.replaceState(null, '', window.location.pathname + (qs ? `?${qs}` : '') + window.location.hash)
+  }, [])
 
   // Keep auth state in sync + fetch services on mount.
   // Loading screen is dismissed only after BOTH the minimum display time (2.8s)

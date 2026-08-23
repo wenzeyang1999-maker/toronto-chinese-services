@@ -86,7 +86,8 @@ export default function ReferralSection({ user }: Props) {
   }, [user.id, reloadKey])
 
   const shareBaseUrl = typeof window !== 'undefined' ? window.location.origin : BASE_URL
-  const shareUrl  = referralCode ? `${shareBaseUrl}/register?ref=${referralCode}` : ''
+  // 落到首页(不是注册页):访客先自由浏览,邀请码由 App 全局暂存,注册/登录后自动记功。
+  const shareUrl  = referralCode ? `${shareBaseUrl}/?ref=${referralCode}` : ''
   const shareText = `我在华邻找到了很多靠谱的本地服务商！用我的邀请码 ${referralCode} 注册：`
 
   const canNativeShare = typeof navigator !== 'undefined' && !!navigator.share
