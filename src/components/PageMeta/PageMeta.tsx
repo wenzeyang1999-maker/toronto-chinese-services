@@ -17,7 +17,7 @@ interface Props {
 const SITE_NAME = '华邻'
 const DEFAULT_TITLE = '华邻 — 海外华人生活一站式服务平台'
 const DEFAULT_DESC  = '华邻，海外华人生活一站式服务平台，涵盖本地服务、招聘求职、租房买房、二手交易和同城活动。'
-const DEFAULT_IMAGE = 'https://hualinlife.com/og-default.png'
+const DEFAULT_IMAGE = 'https://hualinlife.com/icon-512.png'
 
 export default function PageMeta({ title, description, image, url }: Props) {
   const fullTitle = title ? `${title} · ${SITE_NAME}` : DEFAULT_TITLE
