@@ -14,7 +14,7 @@ import ErrorState from '../../components/ErrorState/ErrorState'
 import { useDelayedLoading } from '../../hooks/useDelayedLoading'
 import SortChips from '../../components/SortChips/SortChips'
 import ImgFallback from '../../components/ImgFallback/ImgFallback'
-import Mascot from '../../components/Mascot/Mascot'
+import Mascot, { poseFromSeed } from '../../components/Mascot/Mascot'
 import { useSecondhandStore } from '../../store/secondhandStore'
 import { useInfiniteScroll } from '../../hooks/useInfiniteScroll'
 import { useAuthStore } from '../../store/authStore'
@@ -231,13 +231,13 @@ export default function SecondhandList() {
                 className="w-full h-full object-cover"
                 fallback={
                   <div className="w-full h-full flex items-center justify-center">
-                    <Mascot pose="front" size={54} />
+                    <Mascot pose={poseFromSeed(item.id)} size={54} />
                   </div>
                 }
               />
             ) : (
               <div className="w-full h-full flex items-center justify-center">
-                <Mascot pose="front" size={54} />
+                <Mascot pose={poseFromSeed(item.id)} size={54} />
               </div>
             )}
           </div>
@@ -345,7 +345,7 @@ function DetailPanel({ item, onClose }: { item: SecondhandItem; onClose: () => v
           <div className="aspect-video overflow-hidden bg-gray-100 rounded-t-2xl">
             {failedImgs.has(imgIdx) ? (
               <div className="w-full h-full flex items-center justify-center bg-gray-50">
-                <Mascot pose="front" size={92} />
+                <Mascot pose={poseFromSeed(item.id)} size={92} />
               </div>
             ) : (
               <img loading="lazy"
@@ -379,7 +379,7 @@ function DetailPanel({ item, onClose }: { item: SecondhandItem; onClose: () => v
         </div>
       ) : (
         <div className="aspect-video bg-gray-50 flex items-center justify-center rounded-t-2xl">
-          <Mascot pose="front" size={92} />
+          <Mascot pose={poseFromSeed(item.id)} size={92} />
         </div>
       )}
 

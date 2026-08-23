@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { Star, MapPin, ShieldCheck, Zap, BadgeCheck, Phone } from 'lucide-react'
 import MembershipBadge from '../MembershipBadge/MembershipBadge'
-import Mascot from '../Mascot/Mascot'
+import Mascot, { poseFromSeed } from '../Mascot/Mascot'
 import type { Service } from '../../types'
 import { getCategoryById } from '../../data/categories'
 import { useReadStore } from '../../store/readStore'
@@ -46,7 +46,7 @@ export default function ServiceCard({ service, layout = 'list' }: Props) {
   // ── Placeholder ──────────────────────────────────────────────────────────
   const Placeholder = ({ size }: { size: 'sm' | 'lg' }) => (
     <div className={`w-full h-full flex flex-col items-center justify-center gap-1 ${cat?.bgColor ?? 'bg-gray-100'}`}>
-      <Mascot pose="front" size={size === 'lg' ? 76 : 46} />
+      <Mascot pose={poseFromSeed(service.id)} size={size === 'lg' ? 76 : 46} />
       {size === 'lg' && (
         <span className={`text-xs font-semibold tracking-wide ${cat?.color ?? 'text-gray-500'}`}>
           {cat?.label}
