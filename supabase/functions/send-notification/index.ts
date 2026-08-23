@@ -17,7 +17,7 @@ const CORS = {
 
 // Brevo 发件人（需要 name + email 分开）。
 const SENDER = { name: 'HuaLin', email: 'noreply@hualinlife.com' }
-const SITE = 'https://toronto-chinese-services.vercel.app'
+const SITE = 'https://hualinlife.com'
 
 // ── HTML escaping — must be applied to ALL user-supplied values in templates ──
 function h(s: string | null | undefined): string {

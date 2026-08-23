@@ -9,7 +9,7 @@ import type { User as SupabaseUser } from '@supabase/supabase-js'
 
 interface Props { user: SupabaseUser }
 
-const BASE_URL = 'https://toronto-chinese-services.vercel.app'
+const BASE_URL = 'https://hualinlife.com'
 
 export default function ReferralSection({ user }: Props) {
   const [referralCode,  setReferralCode]  = useState<string | null>(null)
