@@ -40,6 +40,7 @@ const Register        = lazy(() => import('./pages/Auth/Register'))
 const Login           = lazy(() => import('./pages/Auth/Login'))
 const ForgotPassword  = lazy(() => import('./pages/Auth/ForgotPassword'))
 const Profile         = lazy(() => import('./pages/Profile/Profile'))
+const Dashboard       = lazy(() => import('./pages/Dashboard/Dashboard'))
 const ConversationPage = lazy(() => import('./pages/Conversation/ConversationPage'))
 const ResetPassword   = lazy(() => import('./pages/Auth/ResetPassword'))
 const ProviderProfile = lazy(() => import('./pages/ProviderProfile/ProviderProfile'))
@@ -91,7 +92,7 @@ function SearchAllRedirect() {
 function MobileAiBubble() {
   const { pathname } = useLocation()
   const hidden =
-    /^\/(login|register|forgot-password|reset-password|map)$/.test(pathname) ||
+    /^\/(login|register|forgot-password|reset-password|map|dashboard)$/.test(pathname) ||
     pathname.endsWith('/post') ||
     pathname === '/post' ||
     pathname.startsWith('/conversation/') ||
@@ -308,6 +309,7 @@ export default function App() {
           <Route path="/requests/:id" element={<RequestDetail />} />
           <Route path="/inquiries/:id/claim" element={<InquiryClaim />} />
           <Route path="/map" element={<MapPage />} />
+          <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/privacy" element={<PrivacyPolicy />} />
           <Route path="/terms" element={<TermsOfService />} />
           <Route path="*" element={<NotFound />} />

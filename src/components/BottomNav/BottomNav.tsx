@@ -17,7 +17,7 @@ export default function BottomNav() {
   const openAiChat = useAiChatStore((s) => s.setOpen)
 
   const hidden =
-    /^\/(login|register|forgot-password|reset-password|map)$/.test(pathname) ||
+    /^\/(login|register|forgot-password|reset-password|map|dashboard)$/.test(pathname) ||
     pathname.endsWith('/post') ||
     pathname === '/post' ||
     pathname.startsWith('/conversation/') ||
