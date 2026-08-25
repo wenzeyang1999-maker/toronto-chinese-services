@@ -93,6 +93,7 @@ export default function Profile() {
   const [verify, setVerify] = useState({ email: false, phone: false, idOrBiz: false })
   const [creditPenalty, setCreditPenalty] = useState(0)
   const [isAdmin, setIsAdmin] = useState(false)
+  const [isBoss, setIsBoss] = useState(false)   // 老板只读:显示「数据后台」入口
   const [flipping, setFlipping] = useState(false)   // 身份翻转 / 上下线进行中
   const [celebrate, setCelebrate] = useState(false) // 上线成功 邻邻庆祝浮层
   const [mode, setMode] = useState<'client' | 'provider'>(() => {
@@ -211,6 +212,7 @@ export default function Profile() {
         })
         setCreditPenalty((pub as { credit_penalty?: number } | null)?.credit_penalty ?? 0)
         setIsAdmin((data as { role?: string }).role === 'admin')
+        setIsBoss((data as { role?: string }).role === 'boss')
       })
     try { setBrowse(JSON.parse(localStorage.getItem('tcs_browse_history') ?? '[]')) } catch { /* */ }
 
@@ -413,6 +415,21 @@ export default function Profile() {
           )
         })}
       </div>
+
+      {/* 数据后台入口 — admin/boss 可见(PWA 无地址栏,这是手机端唯一入口)。 */}
+      {(isAdmin || isBoss) && (
+        <button
+          onClick={() => navigate('/dashboard')}
+          className="w-full flex items-center gap-4 px-5 py-4 bg-white rounded-3xl border border-primary-200 shadow-sm hover:bg-primary-50 active:bg-primary-100 transition-colors text-left"
+        >
+          <span className="flex-shrink-0 text-lg">📊</span>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold text-primary-700">数据后台</p>
+            <p className="text-xs text-gray-400 mt-0.5">注册 · 活跃 · 业务流水 · 实时动态</p>
+          </div>
+          <ChevronRight size={16} className="text-primary-300" />
+        </button>
+      )}
 
       {/* Admin console entry — only for admins. App/PWA mode has no address bar,
           so this is the only way in on mobile. */}
