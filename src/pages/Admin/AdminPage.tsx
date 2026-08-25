@@ -11,6 +11,7 @@ import AdminNotificationsBell from '../../components/AdminNotifications/AdminNot
 import { type Stats, type AdminNotice, type DeleteTarget } from './types'
 import AdminContext, { type AdminCtx } from './AdminContext'
 import OverviewTab from './tabs/OverviewTab'
+import BackendTab from './tabs/BackendTab'
 import PromotedTab from './tabs/PromotedTab'
 import PromoRequestsTab from './tabs/PromoRequestsTab'
 import ReportsTab from './tabs/ReportsTab'
@@ -29,7 +30,7 @@ import LogsTab from './tabs/LogsTab'
 type Tab =
   | 'reports' | 'userReports' | 'communityReports' | 'verification' | 'promoted'
   | 'promoRequests' | 'overview' | 'community' | 'membership' | 'inquiries'
-  | 'disputes' | 'users' | 'services' | 'logs' | 'feedback'
+  | 'disputes' | 'users' | 'services' | 'logs' | 'feedback' | 'backend'
 
 export default function AdminPage() {
   const user     = useAuthStore((s) => s.user)
@@ -162,6 +163,7 @@ export default function AdminPage() {
     { key: 'promoRequests',    label: `置顶申请${stats && stats.pending_promo_requests > 0 ? ` (${stats.pending_promo_requests})` : ''}` },
     { key: 'community',        label: '社区帖子' },
     { key: 'inquiries',        label: '询价' },
+    { key: 'backend',          label: '📊 数据后台' },
     { key: 'overview',         label: '数据概览' },
     { key: 'membership',       label: '会员管理' },
     { key: 'users',            label: '用户管理' },
@@ -209,6 +211,8 @@ export default function AdminPage() {
 
         {loading ? (
           <div className="text-center py-20 text-gray-400 text-sm">加载中…</div>
+        ) : tab === 'backend' ? (
+          <BackendTab />
         ) : tab === 'overview' ? (
           stats ? <OverviewTab stats={stats} /> : null
         ) : tab === 'promoted' ? (
