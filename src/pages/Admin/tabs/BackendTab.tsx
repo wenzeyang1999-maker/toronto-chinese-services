@@ -65,7 +65,7 @@ export default function BackendTab() {
     { icon: <Users size={18} />,     label: '注册用户',   value: n('users_total'), sub: `今日 +${n('users_1d')} · 7天 +${n('users_7d')}`, color: 'text-blue-600 bg-blue-50' },
     { icon: <Activity size={18} />,  label: '日活 DAU',   value: n('dau'),         sub: `周活 ${n('wau')} · 月活 ${n('mau')}`,          color: 'text-emerald-600 bg-emerald-50' },
     { icon: <Radio size={18} />,     label: '在线接单',   value: n('online_providers'), sub: '当前上线商家',                            color: 'text-green-600 bg-green-50' },
-    { icon: <HandCoins size={18} />, label: '成交额 GMV', value: `$${n('gmv')}`,   sub: `${n('orders_done')} 单成交`,                    color: 'text-amber-600 bg-amber-50' },
+    { icon: <HandCoins size={18} />, label: '平台流水', value: '$0', sub: '会员/充值通道未开通', color: 'text-amber-600 bg-amber-50' },
   ]
 
   // 业务流水
@@ -73,7 +73,7 @@ export default function BackendTab() {
     { icon: <Search size={16} />,        label: '需求(询价)', value: n('inquiries_total'), sub: `7天 +${n('inquiries_7d')}` },
     { icon: <MessageSquare size={16} />, label: '对话',        value: n('conversations'),   sub: '' },
     { icon: <MessageCircle size={16} />, label: '消息',        value: n('messages_total'),  sub: `7天 +${n('messages_7d')}` },
-    { icon: <UserPlus size={16} />,      label: '新注册(30天)', value: n('users_30d'),     sub: '' },
+    { icon: <HandCoins size={16} />,     label: '撮合成交额',   value: `$${n('gmv')}`,       sub: `${n('orders_done')} 单 · 用户间成交,非平台收入` },
   ]
 
   // 内容量
