@@ -7,6 +7,8 @@ import { useNavigate, useLocation } from 'react-router-dom'
 import { Wrench, Megaphone, MessageSquareText, CalendarPlus, Briefcase, ShoppingBag, Home } from 'lucide-react'
 import { useAuthStore } from '../../store/authStore'
 import { useInquiryStore } from '../../store/inquiryStore'
+import { useGeoStore } from '../../store/geoStore'
+import { toast } from '../../lib/toast'
 
 interface Props { open: boolean; onClose: () => void }
 
@@ -42,7 +44,18 @@ export default function PublishSheet({ open, onClose }: Props) {
   const openInquiry     = useInquiryStore((s) => s.openInquiry)
   const pageCategoryId  = useInquiryStore((s) => s.pageCategoryId)
 
+  // 受限地区(中国大陆等)不开放发布 —— 提示后不继续。
+  function blockedByRegion(): boolean {
+    if (useGeoStore.getState().restricted) {
+      onClose()
+      toast('华邻目前仅面向加拿大地区提供服务，暂不开放发布', 'info')
+      return true
+    }
+    return false
+  }
+
   function go(to: string) {
+    if (blockedByRegion()) return
     onClose()
     if (!user) { navigate('/login', { state: { from: to } }); return }
     navigate(to)
@@ -50,6 +63,7 @@ export default function PublishSheet({ open, onClose }: Props) {
 
   // 发需求：就地打开发需求弹窗，并预填当前页类别（类别页/搜索页/服务详情）。
   function goInquiry() {
+    if (blockedByRegion()) return
     onClose()
     if (!user) { navigate('/login', { state: { from: '/?inquiry=1' } }); return }
     openInquiry(pageCategoryId)

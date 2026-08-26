@@ -5,6 +5,8 @@
 // Route: /register
 import { useState, useEffect } from 'react'
 import { peekPendingReferral } from '../../lib/pendingReferral'
+import { useGeoStore } from '../../store/geoStore'
+import RestrictedNotice from '../../components/RestrictedNotice/RestrictedNotice'
 import { useNavigate, useSearchParams, Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { Eye, EyeOff, User, Phone, Lock, Mail, ChevronLeft, Gift } from 'lucide-react'
@@ -82,6 +84,7 @@ export default function Register() {
   const [searchParams] = useSearchParams()
   const [form, setForm]             = useState<RegisterForm>(INITIAL)
   const [referralCode, setReferralCode] = useState('')
+  const restricted = useGeoStore((s) => s.restricted)   // 受限地区禁注册
 
   // 预填邀请码:优先 URL ?ref,没有就取全局暂存的(邀请链接落首页时 App 已暂存)。
   useEffect(() => {
@@ -278,6 +281,15 @@ export default function Register() {
             </>
           )}
         </motion.div>
+      </div>
+    )
+  }
+
+  // 受限地区(中国大陆等)不开放注册,只让浏览。
+  if (restricted) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <RestrictedNotice action="注册" />
       </div>
     )
   }

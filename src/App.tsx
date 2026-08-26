@@ -68,6 +68,7 @@ const TermsOfService  = lazy(() => import('./pages/Legal/TermsOfService'))
 const InquiryClaim    = lazy(() => import('./pages/InquiryClaim/InquiryClaim'))
 const NotFound        = lazy(() => import('./pages/NotFound/NotFound'))
 import { useAppStore } from './store/appStore'
+import { useGeoStore } from './store/geoStore'
 import { useAuthStore } from './store/authStore'
 import { useOnlineModeStore } from './store/onlineModeStore'
 import { supabase } from './lib/supabase'
@@ -231,6 +232,7 @@ export default function App() {
       }
     }
 
+    void useGeoStore.getState().fetchGeo()   // 拉访客地区(CN 禁注册/发布)
     fetchServiceRequests()
     fetchServices()
       .then(() => { fetchDone = true; tryFinish() })

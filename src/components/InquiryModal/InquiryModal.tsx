@@ -10,6 +10,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { X, ChevronDown, Sparkles, UserCheck, Clock3, ShieldCheck, Pencil, MapPin, Mic, MicOff, Siren, PhoneCall, Radio, MessageCircle, CheckCircle2 } from 'lucide-react'
 import OnlineProvidersPanel from '../OnlineProvidersPanel/OnlineProvidersPanel'
 import { supabase } from '../../lib/supabase'
+import { useGeoStore } from '../../store/geoStore'
 import { offsetLocation } from '../../lib/geo'
 import { useAuthStore } from '../../store/authStore'
 import LocationInput from '../LocationInput/LocationInput'
@@ -400,6 +401,7 @@ export default function InquiryModal({ open, onClose, presetCategoryId }: Props)
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!validate()) return
+    if (useGeoStore.getState().restricted) { setServerError('华邻目前仅面向加拿大地区提供服务，暂不开放发布'); return }
     if (!user) {
       onClose()
       navigate('/login', { state: { from: '/' } })
