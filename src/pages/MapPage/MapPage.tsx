@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { Search, Navigation, X, Sparkles, Map as MapIcon, List, Loader2, User as UserIcon } from 'lucide-react'
 import { cdnUrl } from '../../lib/cdnUrl'
+import { detectPlace, QUICK_PLACES } from '../../data/gtaPlaces'
 import Header from '../../components/Header/Header'
 import Mascot from '../../components/Mascot/Mascot'
 import ServiceCard from '../../components/ServiceCard/ServiceCard'
@@ -44,6 +45,8 @@ export default function MapPage() {
   const [display, setDisplay] = useState<'map' | 'list'>('map')   // 地图 / 列表(内测#10)
   const [routing, setRouting] = useState(false)                   // AI 全站搜索跳转中
   const [orderFilter, setOrderFilter] = useState<'all' | 'urgent' | 'scheduled'>('all')  // 找订单:急单/预约单
+  // 「服务地点」:设了就用它(不是我的实时定位)找服务、定地图中心。把「我在哪」和「我要在哪找」分开。
+  const [serviceLoc, setServiceLoc] = useState<{ lat: number; lng: number; label: string } | null>(null)
 
   // 搜索词 → URL 同步(replace,不污染历史):离开本页再返回时可还原搜索结果(#20260822)。
   useEffect(() => {
@@ -61,10 +64,29 @@ export default function MapPage() {
   async function handleSmartEnter() {
     const q = search.trim()
     if (!q || routing) return
+    // 先识别地名(如「多伦多搬家」里的多伦多)→ 设为「服务地点」、地图转过去、
+    // 关键词只留服务(搬家),留在本页显示那儿的商家。
+    const hit = detectPlace(q)
+    if (hit) {
+      setServiceLoc({ lat: hit.place.lat, lng: hit.place.lng, label: hit.place.label })
+      mapRef.current?.panTo({ lat: hit.place.lat, lng: hit.place.lng }, 12)
+      setSearch(hit.rest)
+      return
+    }
     setRouting(true)
     const r = await smartSearch(q)
     setRouting(false)
     if (r && r.domain !== 'service') navigate(smartRouteToUrl(r))
+  }
+
+  // 快选 GTA 城市作为服务地点
+  function pickPlace(p: { lat: number; lng: number; label: string }) {
+    setServiceLoc(p)
+    mapRef.current?.panTo({ lat: p.lat, lng: p.lng }, 12)
+  }
+  function resetToMyLocation() {
+    setServiceLoc(null)
+    if (userLocation) mapRef.current?.panToUser()
   }
 
   // Auto-request location on mount; refresh if the cached fix is stale (>10 min).
@@ -194,7 +216,7 @@ export default function MapPage() {
     [servicePoints, requestPoints, onlinePoints]
   )
 
-  const center = userLocation ?? { lat: 43.7, lng: -79.42 }
+  const center = serviceLoc ?? userLocation ?? { lat: 43.7, lng: -79.42 }
 
   function handleLocate() {
     // 蓝色箭头 = 定位到我 + 顺带刷新一次位置(内测2-#3:已删「更新位置」按钮,合二为一)
@@ -279,6 +301,32 @@ export default function MapPage() {
             </button>
           )}
         </div>
+
+        {/* 服务地点(找服务模式):默认「我的位置」,可搜地名或快选城市 —— 我在哪 ≠ 我要在哪找服务 */}
+        {!requestsMode && (
+          <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide -mx-0.5 px-0.5">
+            <span className="flex-shrink-0 inline-flex items-center gap-1 text-[11px] font-semibold text-gray-500 bg-white/95 rounded-full px-2.5 py-1 shadow">
+              <Navigation size={11} className="text-primary-500" />
+              服务地点
+            </span>
+            <button
+              onClick={resetToMyLocation}
+              className={`flex-shrink-0 text-[11px] font-semibold px-2.5 py-1 rounded-full shadow transition-colors ${
+                !serviceLoc ? 'bg-primary-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-100'}`}
+            >
+              我的位置
+            </button>
+            {QUICK_PLACES.map((p) => (
+              <button key={p.label}
+                onClick={() => pickPlace(p)}
+                className={`flex-shrink-0 text-[11px] font-semibold px-2.5 py-1 rounded-full shadow transition-colors ${
+                  serviceLoc?.label === p.label ? 'bg-primary-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-100'}`}
+              >
+                {p.label}
+              </button>
+            ))}
+          </div>
+        )}
 
         {/* 找订单:急单 / 预约单 筛选(内测20260818 一) */}
         {requestsMode && (

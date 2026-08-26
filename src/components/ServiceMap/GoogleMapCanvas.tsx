@@ -17,6 +17,7 @@ export interface GoogleMapPoint {
 
 export interface GoogleMapCanvasHandle {
   panToUser: () => void
+  panTo: (loc: { lat: number; lng: number }, zoom?: number) => void
 }
 
 interface Props {
@@ -55,6 +56,12 @@ const GoogleMapCanvas = forwardRef<GoogleMapCanvasHandle, Props>(function Google
       if (mapRef.current && userLocation) {
         mapRef.current.panTo(userLocation)
         mapRef.current.setZoom(15)
+      }
+    },
+    panTo(loc, z = 13) {
+      if (mapRef.current && loc) {
+        mapRef.current.panTo(loc)
+        mapRef.current.setZoom(z)
       }
     },
   }), [userLocation])
