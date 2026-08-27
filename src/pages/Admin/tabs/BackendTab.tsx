@@ -6,11 +6,27 @@ import { motion } from 'framer-motion'
 import {
   Users, Activity, UserPlus, Radio, MessageSquare, Search, HandCoins,
   Wrench, Briefcase, Home, ShoppingBag, Calendar, MessageCircle, RefreshCw,
+  Store, BadgeCheck, Phone,
 } from 'lucide-react'
 import { supabase } from '../../../lib/supabase'
 
 type Metrics = Record<string, number | string>
 interface FeedRow { kind: string; label: string; at: string }
+interface ProviderRow {
+  id: string
+  name: string
+  phone: string | null
+  wechat: string | null
+  has_avatar: boolean
+  has_bio: boolean
+  skills: number
+  verified: boolean
+  level: string | null
+  active_posts: number
+  total_posts: number
+  created_at: string
+  last_seen_at: string | null
+}
 
 const KIND_META: Record<string, { emoji: string; label: string; color: string }> = {
   signup:     { emoji: '🙋', label: '注册',   color: 'text-blue-600 bg-blue-50' },
@@ -33,18 +49,21 @@ function timeAgo(iso: string): string {
 export default function BackendTab() {
   const [m, setM]       = useState<Metrics | null>(null)
   const [feed, setFeed] = useState<FeedRow[] | null>(null)
+  const [providers, setProviders] = useState<ProviderRow[] | null>(null)
   const [loading, setLoading] = useState(true)
   const [err, setErr]   = useState<string | null>(null)
 
   async function load() {
     setLoading(true); setErr(null)
-    const [mRes, fRes] = await Promise.all([
+    const [mRes, fRes, pRes] = await Promise.all([
       supabase.rpc('admin_backend_metrics'),
       supabase.rpc('admin_activity_feed', { p_limit: 40 }),
+      supabase.rpc('admin_provider_list'),
     ])
     if (mRes.error) { setErr(mRes.error.message); setLoading(false); return }
     setM(mRes.data as Metrics)
     if (!fRes.error && fRes.data) setFeed(fRes.data as FeedRow[])
+    if (!pRes.error && pRes.data) setProviders(pRes.data as ProviderRow[])
     setLoading(false)
   }
 
@@ -140,6 +159,55 @@ export default function BackendTab() {
               <span className="inline-flex text-gray-400 mb-1">{c.icon}</span>
               <p className="text-lg font-bold text-gray-900 tabular-nums leading-none">{c.value}</p>
               <p className="text-[11px] text-gray-400 mt-1">{c.label}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* 注册商名单 —— 有服务贴 / 名片 / 认证的用户(平台无独立服务商角色,靠信号判定) */}
+      <div>
+        <div className="flex items-center gap-2 mb-2">
+          <Store size={15} className="text-primary-600" />
+          <h3 className="text-sm font-bold text-gray-700">
+            注册商名单
+            {providers && <span className="ml-1.5 text-xs font-semibold text-primary-600">{providers.length} 家</span>}
+          </h3>
+        </div>
+        <p className="text-[11px] text-gray-400 mb-2">
+          发过服务贴、或填了名片(头像/简介/技能/商业认证)的用户。
+        </p>
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm divide-y divide-gray-50 overflow-hidden">
+          {!providers || providers.length === 0 ? (
+            <p className="text-xs text-gray-400 text-center py-8">暂无注册商</p>
+          ) : providers.map((p) => (
+            <div key={p.id} className="flex items-center gap-3 px-4 py-3">
+              <span className="w-9 h-9 rounded-full bg-primary-50 text-primary-600 flex items-center justify-center flex-shrink-0 font-bold text-sm">
+                {(p.name || '商').slice(0, 1)}
+              </span>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-sm font-semibold text-gray-800 truncate">{p.name}</span>
+                  {p.verified && <BadgeCheck size={13} className="text-emerald-500 flex-shrink-0" />}
+                </div>
+                <div className="flex items-center gap-2 mt-0.5 text-[11px] text-gray-400">
+                  {(p.phone || p.wechat) ? (
+                    <span className="inline-flex items-center gap-1 truncate">
+                      <Phone size={10} />{p.phone || `微信 ${p.wechat}`}
+                    </span>
+                  ) : <span className="text-gray-300">无联系方式</span>}
+                  <span className="text-gray-300">·</span>
+                  <span>注册 {new Date(p.created_at).toLocaleDateString('zh-CN', { month: 'numeric', day: 'numeric' })}</span>
+                </div>
+              </div>
+              <div className="flex flex-wrap items-center justify-end gap-1 flex-shrink-0 max-w-[45%]">
+                {p.active_posts > 0 && (
+                  <span className="text-[10px] font-semibold text-primary-600 bg-primary-50 border border-primary-200 px-1.5 py-0.5 rounded-full">{p.active_posts} 服务</span>
+                )}
+                {p.verified && <span className="text-[10px] font-semibold text-emerald-600 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded-full">已认证</span>}
+                {p.skills > 0 && <span className="text-[10px] text-violet-600 bg-violet-50 border border-violet-200 px-1.5 py-0.5 rounded-full">{p.skills} 技能</span>}
+                {p.has_bio && <span className="text-[10px] text-gray-500 bg-gray-50 border border-gray-200 px-1.5 py-0.5 rounded-full">简介</span>}
+                {p.has_avatar && <span className="text-[10px] text-gray-500 bg-gray-50 border border-gray-200 px-1.5 py-0.5 rounded-full">头像</span>}
+              </div>
             </div>
           ))}
         </div>
