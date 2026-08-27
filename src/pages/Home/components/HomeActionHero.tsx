@@ -1,14 +1,24 @@
-import { MapPin, Sparkles, ArrowRight, Star } from 'lucide-react'
+import { MapPin, Sparkles, ArrowRight, ShieldCheck } from 'lucide-react'
 import { motion } from 'framer-motion'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAppStore } from '../../../store/appStore'
-import { getCategoryById } from '../../../data/categories'
+import { supabase } from '../../../lib/supabase'
 import { useDelayedLoading } from '../../../hooks/useDelayedLoading'
 
 interface Props {
   userHasLocation: boolean
   onOpenInquiry: () => void
+}
+
+// 「最新入驻商家」卡片数据(有名片或有服务贴的商家)
+interface Merchant {
+  id: string
+  name: string
+  avatar_url: string | null
+  bio: string | null
+  business_verified: boolean
+  hasPost?: boolean
 }
 
 export default function HomeActionHero({
@@ -32,13 +42,30 @@ export default function HomeActionHero({
     return () => clearInterval(t)
   }, [view])
 
-  const ticker = services
-    .filter((s) => s.available)
-    .sort((a, b) => {
-      if (a.isPromoted !== b.isPromoted) return a.isPromoted ? -1 : 1
-      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-    })
-    .slice(0, 10)
+  // 「最新入驻商家名片」：只展示填了名片(头像/简介/商业认证)或发过服务贴的商家 —— 吸引注册。
+  const [cardMerchants, setCardMerchants] = useState<Merchant[]>([])
+  useEffect(() => {
+    supabase.from('public_profiles')
+      .select('id, name, avatar_url, bio, business_verified, created_at')
+      .or('avatar_url.not.is.null,bio.not.is.null,business_verified.is.true')
+      .order('created_at', { ascending: false })
+      .limit(12)
+      .then(({ data }) => { if (data) setCardMerchants(data as Merchant[]) })
+  }, [])
+
+  const ticker = useMemo<Merchant[]>(() => {
+    const map = new Map<string, Merchant>()
+    // 发过服务贴的商家(有帖子)优先
+    for (const s of services) {
+      if (!s.available || map.has(s.provider.id)) continue
+      map.set(s.provider.id, { id: s.provider.id, name: s.provider.name, avatar_url: s.provider.avatar ?? null, bio: null, business_verified: false, hasPost: true })
+    }
+    // 再补有名片的
+    for (const m of cardMerchants) {
+      if (!map.has(m.id)) map.set(m.id, m)
+    }
+    return Array.from(map.values()).slice(0, 10)
+  }, [services, cardMerchants])
 
   const tickerLoop = ticker.length > 0 ? [...ticker, ...ticker] : []
   const CARD_H = 60
@@ -176,7 +203,13 @@ export default function HomeActionHero({
                       <div key={i} className="h-14 rounded-xl bg-gray-100 animate-pulse" />
                     ))}
                   </div>
-                ) : null
+                ) : (
+                  <div className="flex flex-col items-center justify-center text-center py-8 px-4" style={{ minHeight: 120 }}>
+                    <p className="text-3xl mb-2">🤝</p>
+                    <p className="text-sm font-semibold text-gray-700">商家陆续入驻中</p>
+                    <p className="text-xs text-gray-400 mt-1">完善名片、发布服务，即可在此展示</p>
+                  </div>
+                )
               ) : (
                 <div
                   className="relative overflow-hidden rounded-xl"
@@ -197,56 +230,39 @@ export default function HomeActionHero({
                   `}</style>
 
                   <div className="ticker-track flex flex-col gap-2">
-                    {tickerLoop.map((svc, i) => {
-                      const cat = getCategoryById(svc.category)
-                      const priceLabel =
-                        svc.priceType === 'hourly' ? `$${svc.price}/时` :
-                        svc.priceType === 'fixed'  ? `$${svc.price}起`  : '面议'
+                    {tickerLoop.map((m, i) => (
+                      <button
+                        key={`${m.id}-${i}`}
+                        onClick={() => navigate(`/provider/${m.id}`)}
+                        style={{ minHeight: CARD_H }}
+                        className="w-full flex items-center gap-3 rounded-xl border border-gray-100
+                                   bg-gray-50 hover:bg-primary-50 hover:border-primary-200
+                                   px-4 py-3 text-left transition-all flex-shrink-0 active:scale-[0.98]"
+                      >
+                        <div className="w-9 h-9 rounded-full bg-primary-100 flex items-center justify-center flex-shrink-0 overflow-hidden shadow-sm ring-1 ring-primary-200">
+                          {m.avatar_url ? (
+                            <img src={m.avatar_url} alt="" className="w-9 h-9 object-cover"
+                              onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
+                          ) : (
+                            <span className="text-sm font-bold text-primary-600">{(m.name || '商').slice(0, 1)}</span>
+                          )}
+                        </div>
 
-                      return (
-                        <button
-                          key={`${svc.id}-${i}`}
-                          onClick={() => navigate(`/service/${svc.id}`)}
-                          style={{ minHeight: CARD_H }}
-                          className="w-full flex items-center gap-3 rounded-xl border border-gray-100
-                                     bg-gray-50 hover:bg-primary-50 hover:border-primary-200
-                                     px-4 py-3 text-left transition-all flex-shrink-0 active:scale-[0.98]"
-                        >
-                          <div className="w-9 h-9 rounded-lg bg-white border border-gray-200 flex items-center justify-center flex-shrink-0 text-lg overflow-hidden shadow-sm">
-                            {svc.provider.avatar ? (
-                              <img src={svc.provider.avatar} alt="" className="w-9 h-9 object-cover"
-                                onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
-                            ) : (
-                              cat?.emoji ?? '🔧'
-                            )}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-1.5">
+                            <p className="text-sm font-semibold text-gray-800 truncate leading-snug">{m.name || '新商家'}</p>
+                            {m.business_verified && <ShieldCheck size={12} className="text-emerald-500 flex-shrink-0" />}
                           </div>
+                          <p className="text-xs text-gray-400 truncate mt-0.5">{m.bio || '华人本地服务商家'}</p>
+                        </div>
 
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-semibold text-gray-800 truncate leading-snug">
-                              {svc.title}
-                            </p>
-                            <div className="flex items-center gap-2 mt-0.5">
-                              <span className="text-xs text-gray-400 truncate">{svc.provider.name}</span>
-                              {svc.provider.rating > 0 && (
-                                <span className="flex items-center gap-0.5 text-xs text-amber-500 flex-shrink-0">
-                                  <Star size={10} className="fill-amber-400" />
-                                  {svc.provider.rating.toFixed(1)}
-                                </span>
-                              )}
-                            </div>
-                          </div>
-
-                          <div className="flex flex-col items-end gap-1 flex-shrink-0">
-                            <span className="text-xs font-semibold text-primary-600">{priceLabel}</span>
-                            {svc.isPromoted ? (
-                              <span className="text-[10px] text-amber-600 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded-full">推广</span>
-                            ) : (
-                              <span className="text-[10px] text-emerald-600 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded-full">新上线</span>
-                            )}
-                          </div>
-                        </button>
-                      )
-                    })}
+                        <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full flex-shrink-0 ${
+                          m.hasPost ? 'text-primary-600 bg-primary-50 border border-primary-200'
+                                    : 'text-emerald-600 bg-emerald-50 border border-emerald-200'}`}>
+                          {m.hasPost ? '有服务' : '新入驻'}
+                        </span>
+                      </button>
+                    ))}
                   </div>
                 </div>
               )}
