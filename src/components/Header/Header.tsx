@@ -18,6 +18,7 @@ import { useCityStore } from '../../store/cityStore'
 import CityPicker from '../CityPicker/CityPicker'
 import HuaLinLogo from '../Logo/HuaLinLogo'
 import AdminNotificationsBell from '../AdminNotifications/AdminNotificationsBell'
+import InstallHeaderButton from '../InstallAppButton/InstallHeaderButton'
 
 // ── Section definitions ───────────────────────────────────────────────────────
 const NAV_SECTIONS = [
@@ -206,6 +207,9 @@ export default function Header({ sticky = true }: HeaderProps) {
 
           {/* Admin notification bell */}
           {user && <AdminNotificationsBell compact />}
+
+          {/* 常驻「下载到桌面」入口 */}
+          <InstallHeaderButton />
 
           {/* Identity flip */}
           {user ? (

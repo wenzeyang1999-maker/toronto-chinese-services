@@ -118,13 +118,13 @@ export default function HomeActionHero({
             initial={{ opacity: 0, y: 18 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
-            className="relative z-10 hidden lg:block"
+            className="relative z-10 mt-4 lg:mt-0"
           >
             <div
               onMouseEnter={() => { pausedRef.current = true }}
               onMouseLeave={() => { pausedRef.current = false }}
               data-tour="map"
-              className="ml-auto max-w-[32rem] rounded-2xl border border-gray-200 bg-white p-4 shadow-lg"
+              className="w-full lg:ml-auto lg:max-w-[32rem] rounded-2xl border border-gray-200 bg-white p-4 shadow-lg"
             >
 
               {/* Header */}
