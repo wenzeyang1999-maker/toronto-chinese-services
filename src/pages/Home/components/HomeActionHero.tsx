@@ -240,10 +240,10 @@ export default function HomeActionHero({
                       return (
                         <div
                           key={`${m.id}-${i}`}
-                          onClick={() => { if (m.source === 'user') navigate(`/provider/${m.id}`) }}
+                          onClick={() => navigate(m.source === 'user' ? `/provider/${m.id}` : `/merchant/${m.id}`)}
                           style={{ minHeight: CARD_H }}
                           className={`w-full flex items-center gap-3 rounded-xl border px-4 py-3 transition-all flex-shrink-0
-                            ${m.source === 'user' ? 'cursor-pointer active:scale-[0.98]' : ''}
+                            cursor-pointer active:scale-[0.98]
                             ${online
                               ? 'bg-white border-emerald-200 hover:border-emerald-300 shadow-sm'
                               : unclaimed
