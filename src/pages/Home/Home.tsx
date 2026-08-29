@@ -13,6 +13,7 @@ import ServiceRequestCard from '../../components/ServiceRequestCard/ServiceReque
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuthStore } from '../../store/authStore'
 import HomeActionHero from './components/HomeActionHero'
+import HomeStatsBar from './components/HomeStatsBar'
 import HomeServiceShelf from './components/HomeServiceShelf'
 import HomeFollowingFeed from './components/HomeFollowingFeed'
 import PullIndicator from '../../components/PullToRefresh/PullIndicator'
@@ -241,6 +242,11 @@ export default function Home() {
 
       <div className="relative z-10 w-full bg-[#f7f8fa] pt-6">
       <div className="w-full px-3 md:w-[85%] md:px-0 lg:w-[70%] mx-auto">
+
+        {/* 平台实时数据条 */}
+        <div className="mb-4">
+          <HomeStatsBar />
+        </div>
 
         {/* Category buttons */}
         <section ref={catRef} className="mb-4 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">

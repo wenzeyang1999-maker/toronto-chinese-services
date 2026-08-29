@@ -1,24 +1,29 @@
 import { MapPin, Sparkles, ArrowRight, ShieldCheck } from 'lucide-react'
 import { motion } from 'framer-motion'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAppStore } from '../../../store/appStore'
+import { useAuthStore } from '../../../store/authStore'
 import { supabase } from '../../../lib/supabase'
-import { useDelayedLoading } from '../../../hooks/useDelayedLoading'
+import { toast } from '../../../lib/toast'
 
 interface Props {
   userHasLocation: boolean
   onOpenInquiry: () => void
 }
 
-// 「最新入驻商家」卡片数据(有名片或有服务贴的商家)
+// 统一商家橱窗:已注册服务商 + 网上收录待认领商家。三态见 status。
+type MerchantStatus = 'online' | 'offline' | 'unclaimed'
 interface Merchant {
+  source: 'user' | 'directory'
   id: string
   name: string
   avatar_url: string | null
   bio: string | null
-  business_verified: boolean
-  hasPost?: boolean
+  category_id: string | null
+  area: string | null
+  status: MerchantStatus
+  verified: boolean
 }
 
 export default function HomeActionHero({
@@ -27,8 +32,7 @@ export default function HomeActionHero({
 }: Props) {
   const navigate = useNavigate()
   const services = useAppStore((s) => s.services)
-  const servicesLoaded = useAppStore((s) => s.servicesLoaded)
-  const showSkeleton = useDelayedLoading(!servicesLoaded)
+  const user = useAuthStore((s) => s.user)
   const [view, setView] = useState<'feed' | 'map'>('feed')   // 推送 / 地图快照
   const pausedRef = useRef(false)   // 鼠标悬停面板时暂停轮播
 
@@ -42,30 +46,30 @@ export default function HomeActionHero({
     return () => clearInterval(t)
   }, [view])
 
-  // 「最新入驻商家名片」：只展示填了名片(头像/简介/商业认证)或发过服务贴的商家 —— 吸引注册。
-  const [cardMerchants, setCardMerchants] = useState<Merchant[]>([])
+  // 统一商家橱窗:在线接单 / 暂未上线(已注册) / 待认领(网上收录) —— 冷启动填充 + 吸引注册。
+  const [ticker, setTicker] = useState<Merchant[]>([])
+  const [showcaseLoaded, setShowcaseLoaded] = useState(false)
   useEffect(() => {
-    supabase.from('public_profiles')
-      .select('id, name, avatar_url, bio, business_verified, created_at')
-      .or('avatar_url.not.is.null,bio.not.is.null,business_verified.is.true')
-      .order('created_at', { ascending: false })
-      .limit(12)
-      .then(({ data }) => { if (data) setCardMerchants(data as Merchant[]) })
+    supabase.rpc('merchant_showcase', { p_limit: 24 })
+      .then(({ data }) => { if (data) setTicker(data as Merchant[]) })
+      .then(() => setShowcaseLoaded(true))
   }, [])
 
-  const ticker = useMemo<Merchant[]>(() => {
-    const map = new Map<string, Merchant>()
-    // 发过服务贴的商家(有帖子)优先
-    for (const s of services) {
-      if (!s.available || map.has(s.provider.id)) continue
-      map.set(s.provider.id, { id: s.provider.id, name: s.provider.name, avatar_url: s.provider.avatar ?? null, bio: null, business_verified: false, hasPost: true })
+  // 认领收录商家:未登录先去注册/登录(带 claim 意图);已登录直接认领并回填名片。
+  async function handleClaim(m: Merchant) {
+    if (!user) {
+      navigate('/login', { state: { from: '/', claimMerchant: m.id } })
+      return
     }
-    // 再补有名片的
-    for (const m of cardMerchants) {
-      if (!map.has(m.id)) map.set(m.id, m)
+    const { data, error } = await supabase.rpc('claim_merchant', { p_id: m.id })
+    if (error || !(data as { ok?: boolean })?.ok) {
+      toast(error?.message === 'merchant_unavailable' ? '该商家已被认领' : '认领失败，请重试', 'error')
+      return
     }
-    return Array.from(map.values()).slice(0, 10)
-  }, [services, cardMerchants])
+    toast('认领成功！请完善你的商家资料', 'success')
+    setTicker((prev) => prev.filter((x) => x.id !== m.id))
+    navigate('/profile')
+  }
 
   const tickerLoop = ticker.length > 0 ? [...ticker, ...ticker] : []
   const CARD_H = 60
@@ -197,7 +201,7 @@ export default function HomeActionHero({
                   </div>
                 </button>
               ) : ticker.length === 0 ? (
-                (!servicesLoaded && showSkeleton) ? (
+                !showcaseLoaded ? (
                   <div className="space-y-2">
                     {Array.from({ length: 4 }).map((_, i) => (
                       <div key={i} className="h-14 rounded-xl bg-gray-100 animate-pulse" />
@@ -230,39 +234,60 @@ export default function HomeActionHero({
                   `}</style>
 
                   <div className="ticker-track flex flex-col gap-2">
-                    {tickerLoop.map((m, i) => (
-                      <button
-                        key={`${m.id}-${i}`}
-                        onClick={() => navigate(`/provider/${m.id}`)}
-                        style={{ minHeight: CARD_H }}
-                        className="w-full flex items-center gap-3 rounded-xl border border-gray-100
-                                   bg-gray-50 hover:bg-primary-50 hover:border-primary-200
-                                   px-4 py-3 text-left transition-all flex-shrink-0 active:scale-[0.98]"
-                      >
-                        <div className="w-9 h-9 rounded-full bg-primary-100 flex items-center justify-center flex-shrink-0 overflow-hidden shadow-sm ring-1 ring-primary-200">
-                          {m.avatar_url ? (
-                            <img src={m.avatar_url} alt="" className="w-9 h-9 object-cover"
-                              onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
+                    {tickerLoop.map((m, i) => {
+                      const online    = m.status === 'online'
+                      const unclaimed = m.status === 'unclaimed'
+                      return (
+                        <div
+                          key={`${m.id}-${i}`}
+                          onClick={() => { if (m.source === 'user') navigate(`/provider/${m.id}`) }}
+                          style={{ minHeight: CARD_H }}
+                          className={`w-full flex items-center gap-3 rounded-xl border px-4 py-3 transition-all flex-shrink-0
+                            ${m.source === 'user' ? 'cursor-pointer active:scale-[0.98]' : ''}
+                            ${online
+                              ? 'bg-white border-emerald-200 hover:border-emerald-300 shadow-sm'
+                              : unclaimed
+                                ? 'bg-white border-amber-200 hover:border-amber-300'
+                                : 'bg-gray-50 border-gray-100 hover:border-gray-200'}`}
+                        >
+                          <div className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden shadow-sm ring-1
+                            ${online ? 'ring-emerald-200 bg-emerald-50' : unclaimed ? 'ring-amber-200 bg-amber-50' : 'ring-gray-200 bg-gray-100'}
+                            ${!online && !unclaimed ? 'grayscale opacity-80' : ''}`}>
+                            {m.avatar_url ? (
+                              <img src={m.avatar_url} alt="" className="w-9 h-9 object-cover"
+                                onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
+                            ) : (
+                              <span className={`text-sm font-bold ${online ? 'text-emerald-600' : unclaimed ? 'text-amber-600' : 'text-gray-400'}`}>{(m.name || '商').slice(0, 1)}</span>
+                            )}
+                          </div>
+
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-1.5">
+                              <p className={`text-sm font-semibold truncate leading-snug ${online || unclaimed ? 'text-gray-800' : 'text-gray-500'}`}>{m.name || '新商家'}</p>
+                              {m.verified && <ShieldCheck size={12} className="text-emerald-500 flex-shrink-0" />}
+                            </div>
+                            <p className="text-xs text-gray-400 truncate mt-0.5">{m.bio || (m.area ? `${m.area} · 华人本地服务` : '华人本地服务商家')}</p>
+                          </div>
+
+                          {unclaimed ? (
+                            <button
+                              onClick={(e) => { e.stopPropagation(); handleClaim(m) }}
+                              className="text-[10px] font-semibold px-2 py-1 rounded-full flex-shrink-0
+                                         text-white bg-amber-500 hover:bg-amber-600 transition-colors"
+                            >
+                              认领商家
+                            </button>
                           ) : (
-                            <span className="text-sm font-bold text-primary-600">{(m.name || '商').slice(0, 1)}</span>
+                            <span className={`inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-full flex-shrink-0 ${
+                              online ? 'text-emerald-600 bg-emerald-50 border border-emerald-200'
+                                     : 'text-gray-400 bg-gray-100 border border-gray-200'}`}>
+                              {online && <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />}
+                              {online ? '在线接单' : '暂未上线'}
+                            </span>
                           )}
                         </div>
-
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-1.5">
-                            <p className="text-sm font-semibold text-gray-800 truncate leading-snug">{m.name || '新商家'}</p>
-                            {m.business_verified && <ShieldCheck size={12} className="text-emerald-500 flex-shrink-0" />}
-                          </div>
-                          <p className="text-xs text-gray-400 truncate mt-0.5">{m.bio || '华人本地服务商家'}</p>
-                        </div>
-
-                        <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full flex-shrink-0 ${
-                          m.hasPost ? 'text-primary-600 bg-primary-50 border border-primary-200'
-                                    : 'text-emerald-600 bg-emerald-50 border border-emerald-200'}`}>
-                          {m.hasPost ? '有服务' : '新入驻'}
-                        </span>
-                      </button>
-                    ))}
+                      )
+                    })}
                   </div>
                 </div>
               )}

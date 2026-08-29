@@ -9,6 +9,7 @@ import {
   Store, BadgeCheck, Phone,
 } from 'lucide-react'
 import { supabase } from '../../../lib/supabase'
+import MerchantDirectoryAdmin from './MerchantDirectoryAdmin'
 
 type Metrics = Record<string, number | string>
 interface FeedRow { kind: string; label: string; at: string }
@@ -212,6 +213,9 @@ export default function BackendTab() {
           ))}
         </div>
       </div>
+
+      {/* 商家收录(网上收集 → 待认领) */}
+      <MerchantDirectoryAdmin />
 
       {/* 实时活动流水 */}
       <div>
