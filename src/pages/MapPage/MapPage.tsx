@@ -2,7 +2,7 @@
 // Route: /map  — Google Maps-style fullscreen experience with top search bar
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { Search, Navigation, X, Sparkles, Map as MapIcon, List, Loader2, User as UserIcon } from 'lucide-react'
+import { Search, Navigation, X, Sparkles, Map as MapIcon, List, Loader2, User as UserIcon, Crosshair } from 'lucide-react'
 import { cdnUrl } from '../../lib/cdnUrl'
 import { detectPlace, QUICK_PLACES } from '../../data/gtaPlaces'
 import Header from '../../components/Header/Header'
@@ -47,6 +47,7 @@ export default function MapPage() {
   const [orderFilter, setOrderFilter] = useState<'all' | 'urgent' | 'scheduled'>('all')  // 找订单:急单/预约单
   // 「服务地点」:设了就用它(不是我的实时定位)找服务、定地图中心。把「我在哪」和「我要在哪找」分开。
   const [serviceLoc, setServiceLoc] = useState<{ lat: number; lng: number; label: string } | null>(null)
+  const [pickMode, setPickMode] = useState(false)   // 手动点选:开启后点地图任意位置设为服务地点
 
   // 搜索词 → URL 同步(replace,不污染历史):离开本页再返回时可还原搜索结果(#20260822)。
   useEffect(() => {
@@ -86,7 +87,15 @@ export default function MapPage() {
   }
   function resetToMyLocation() {
     setServiceLoc(null)
+    setPickMode(false)
     if (userLocation) mapRef.current?.panToUser()
+  }
+  // 手动点选:点地图任意位置 → 设为服务地点,退出点选模式。
+  function handleMapPick(loc: { lat: number; lng: number }) {
+    if (!pickMode) return
+    setServiceLoc({ lat: loc.lat, lng: loc.lng, label: '自选位置' })
+    mapRef.current?.panTo(loc, 13)
+    setPickMode(false)
   }
 
   // Auto-request location on mount; refresh if the cached fix is stale (>10 min).
@@ -244,6 +253,7 @@ export default function MapPage() {
           zoom={userLocation ? 13 : 11}
           points={points}
           userLocation={userLocation}
+          onMapClick={handleMapPick}
         />
       </div>
 
@@ -325,6 +335,22 @@ export default function MapPage() {
                 {p.label}
               </button>
             ))}
+            {/* 手动点选:开启后点地图任意位置设为服务地点 */}
+            <button
+              onClick={() => setPickMode((v) => !v)}
+              className={`flex-shrink-0 inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-full shadow transition-colors ${
+                pickMode || serviceLoc?.label === '自选位置' ? 'bg-primary-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-100'}`}
+            >
+              <Crosshair size={11} />
+              {serviceLoc?.label === '自选位置' && !pickMode ? '自选位置' : '地图点选'}
+            </button>
+          </div>
+        )}
+
+        {/* 点选模式提示条 */}
+        {!requestsMode && pickMode && (
+          <div className="inline-flex items-center gap-1.5 self-start rounded-full bg-primary-600 text-white text-[11px] font-semibold px-3 py-1.5 shadow-lg animate-pulse">
+            <Crosshair size={12} /> 点地图上任意位置,设为「服务地点」
           </div>
         )}
 

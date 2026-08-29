@@ -135,7 +135,16 @@ export default function HomeServiceShelf({
             : q
               ? <div className="py-8 flex flex-col items-center gap-2 text-center"><Mascot pose="curious" size={88} /><p className="text-sm text-gray-400">没有找到相关服务</p></div>
               : servicesLoaded
-                ? <div className="py-8 flex flex-col items-center gap-2 text-center"><Mascot pose="sleep" size={88} /><p className="text-sm text-gray-400">附近暂无服务，换个区域看看～</p></div>
+                ? <div className="py-8 flex flex-col items-center gap-3 text-center">
+                    <Mascot pose="sleep" size={88} />
+                    <p className="text-sm text-gray-400">附近暂无服务，换个区域看看～</p>
+                    <button
+                      onClick={() => navigate('/map')}
+                      className="inline-flex items-center gap-1.5 rounded-full bg-primary-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-primary-700 transition-colors active:scale-95"
+                    >
+                      <Map size={15} /> 去华邻地图换区域看看
+                    </button>
+                  </div>
                 : <ServiceListSkeleton count={4} />
           }
         </div>

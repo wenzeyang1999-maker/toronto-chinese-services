@@ -30,6 +30,8 @@ interface Props {
   radiusKm?: number
   /** Fired with the current zoom level whenever it changes (+ once on init). */
   onZoomChanged?: (zoom: number) => void
+  /** Fired when the user taps an empty spot on the map (not a marker). */
+  onMapClick?: (loc: { lat: number; lng: number }) => void
 }
 
 const GoogleMapCanvas = forwardRef<GoogleMapCanvasHandle, Props>(function GoogleMapCanvas({
@@ -40,9 +42,12 @@ const GoogleMapCanvas = forwardRef<GoogleMapCanvasHandle, Props>(function Google
   scrollWheel = true,
   radiusKm,
   onZoomChanged,
+  onMapClick,
 }, ref) {
   const onZoomChangedRef = useRef(onZoomChanged)
   onZoomChangedRef.current = onZoomChanged
+  const onMapClickRef = useRef(onMapClick)
+  onMapClickRef.current = onMapClick
   const containerRef = useRef<HTMLDivElement | null>(null)
   const mapRef = useRef<any>(null)
   const markersRef = useRef<any[]>([])
@@ -92,6 +97,11 @@ const GoogleMapCanvas = forwardRef<GoogleMapCanvasHandle, Props>(function Google
           mapRef.current.addListener('zoom_changed', () => {
             const z = mapRef.current?.getZoom()
             if (typeof z === 'number') onZoomChangedRef.current?.(z)
+          })
+          // 点空白处(非标记)→ 上报经纬度,用于「手动点选服务地点」。
+          mapRef.current.addListener('click', (e: any) => {
+            const ll = e?.latLng
+            if (ll && onMapClickRef.current) onMapClickRef.current({ lat: ll.lat(), lng: ll.lng() })
           })
           onZoomChangedRef.current?.(mapRef.current.getZoom() ?? zoom)
         }
