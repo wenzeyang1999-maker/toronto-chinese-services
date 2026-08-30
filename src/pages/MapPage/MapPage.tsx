@@ -253,6 +253,7 @@ export default function MapPage() {
           zoom={userLocation ? 13 : 11}
           points={points}
           userLocation={userLocation}
+          servicePin={serviceLoc}
           onMapClick={handleMapPick}
         />
       </div>

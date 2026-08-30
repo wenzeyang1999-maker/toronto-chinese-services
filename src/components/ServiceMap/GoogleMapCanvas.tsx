@@ -25,6 +25,8 @@ interface Props {
   center: { lat: number; lng: number }
   zoom: number
   userLocation?: { lat: number; lng: number } | null
+  /** 手动「自选位置」落点 — 在地图上画一个醒目图钉。 */
+  servicePin?: { lat: number; lng: number } | null
   scrollWheel?: boolean
   /** Search radius in km — draws a circle around the user and fits the map to it. */
   radiusKm?: number
@@ -39,6 +41,7 @@ const GoogleMapCanvas = forwardRef<GoogleMapCanvasHandle, Props>(function Google
   center,
   zoom,
   userLocation = null,
+  servicePin = null,
   scrollWheel = true,
   radiusKm,
   onZoomChanged,
@@ -202,6 +205,27 @@ const GoogleMapCanvas = forwardRef<GoogleMapCanvasHandle, Props>(function Google
         }
       }
 
+      // 「自选位置」落点 — 醒目蓝色图钉,区别于红色「我的位置」。
+      if (servicePin) {
+        const pinMarker = new maps.Marker({
+          map: mapRef.current,
+          position: servicePin,
+          title: '自选服务地点',
+          zIndex: 1200,
+          icon: {
+            path: 'M12 0C7.03 0 3 4.03 3 9c0 6.75 9 15 9 15s9-8.25 9-15c0-4.97-4.03-9-9-9z',
+            fillColor: '#2563eb',
+            fillOpacity: 1,
+            strokeColor: '#ffffff',
+            strokeWeight: 2,
+            scale: 1.7,
+            anchor: new maps.Point(12, 24),
+          },
+        })
+        markersRef.current.push(pinMarker)
+        bounds.extend(servicePin)
+      }
+
       for (const point of points) {
         const position = { lat: point.lat, lng: point.lng }
         const marker = new maps.Marker({
@@ -244,7 +268,7 @@ const GoogleMapCanvas = forwardRef<GoogleMapCanvasHandle, Props>(function Google
     })
 
     return () => { active = false }
-  }, [points, userLocation?.lat, userLocation?.lng, radiusKm])
+  }, [points, userLocation?.lat, userLocation?.lng, servicePin?.lat, servicePin?.lng, radiusKm])
 
   return (
     <>
