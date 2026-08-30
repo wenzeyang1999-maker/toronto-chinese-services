@@ -309,12 +309,12 @@ export default function HomeActionHero({
               </div>
 
               <button
-                onClick={() => navigate('/search')}
+                onClick={() => navigate('/merchants')}
                 className="mt-3 w-full flex items-center justify-center gap-1.5
                            rounded-xl border border-gray-200 bg-gray-50 hover:bg-gray-100
                            py-2.5 text-xs font-medium text-gray-500 transition-colors"
               >
-                查看所有服务 <ArrowRight size={13} />
+                查看全部商家 <ArrowRight size={13} />
               </button>
             </div>
           </motion.div>

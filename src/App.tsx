@@ -45,6 +45,7 @@ const ConversationPage = lazy(() => import('./pages/Conversation/ConversationPag
 const ResetPassword   = lazy(() => import('./pages/Auth/ResetPassword'))
 const ProviderProfile = lazy(() => import('./pages/ProviderProfile/ProviderProfile'))
 const DirectoryMerchantPage = lazy(() => import('./pages/DirectoryMerchant/DirectoryMerchantPage'))
+const MerchantsPage = lazy(() => import('./pages/Merchants/MerchantsPage'))
 const JobList         = lazy(() => import('./pages/Jobs/JobList'))
 const JobDetail       = lazy(() => import('./pages/Jobs/JobDetail'))
 const PostJob         = lazy(() => import('./pages/Jobs/PostJob'))
@@ -290,6 +291,7 @@ export default function App() {
           <Route path="/conversation/:id" element={<ConversationPage />} />
           <Route path="/provider/:id" element={<ProviderProfile />} />
           <Route path="/merchant/:id" element={<DirectoryMerchantPage />} />
+          <Route path="/merchants" element={<MerchantsPage />} />
           <Route path="/jobs" element={<JobList />} />
           <Route path="/jobs/post" element={<PostJob />} />
           <Route path="/jobs/:id" element={<JobDetail />} />
