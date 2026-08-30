@@ -1,8 +1,7 @@
 import { MapPin, Sparkles, ArrowRight, ShieldCheck } from 'lucide-react'
 import { motion } from 'framer-motion'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useAppStore } from '../../../store/appStore'
 import { useAuthStore } from '../../../store/authStore'
 import { supabase } from '../../../lib/supabase'
 import { toast } from '../../../lib/toast'
@@ -31,20 +30,7 @@ export default function HomeActionHero({
   onOpenInquiry,
 }: Props) {
   const navigate = useNavigate()
-  const services = useAppStore((s) => s.services)
   const user = useAuthStore((s) => s.user)
-  const [view, setView] = useState<'feed' | 'map'>('feed')   // 推送 / 地图快照
-  const pausedRef = useRef(false)   // 鼠标悬停面板时暂停轮播
-
-  // 自动轮播：每 4.5s 在 推送/地图 间切换。dep=[view] 让手动切换后计时重置，
-  // 点了不会马上又跳走；悬停时（pausedRef）跳过切换。
-  useEffect(() => {
-    const t = setInterval(() => {
-      if (pausedRef.current) return
-      setView((v) => (v === 'feed' ? 'map' : 'feed'))
-    }, 4500)
-    return () => clearInterval(t)
-  }, [view])
 
   // 统一商家橱窗:在线接单 / 暂未上线(已注册) / 待认领(网上收录) —— 冷启动填充 + 吸引注册。
   const [ticker, setTicker] = useState<Merchant[]>([])
@@ -73,8 +59,7 @@ export default function HomeActionHero({
 
   const tickerLoop = ticker.length > 0 ? [...ticker, ...ticker] : []
   const CARD_H = 60
-  const PANEL_H = CARD_H * 4 + 8 * 3   // shared body height for both views
-  const nearbyCount = services.filter((s) => s.available).length
+  const PANEL_H = CARD_H * 4 + 8 * 3   // 推送列表面板高度
 
   return (
     <div className="relative w-full overflow-hidden bg-[#f7f8fa] border-b border-gray-200 px-4 py-5 md:px-5 md:py-7">
@@ -123,8 +108,6 @@ export default function HomeActionHero({
             className="relative z-10 mt-4 lg:mt-0 min-w-0"
           >
             <div
-              onMouseEnter={() => { pausedRef.current = true }}
-              onMouseLeave={() => { pausedRef.current = false }}
               data-tour="map"
               className="w-full lg:ml-auto lg:max-w-[32rem] rounded-2xl border border-gray-200 bg-white p-4 shadow-lg"
             >
@@ -135,74 +118,14 @@ export default function HomeActionHero({
                   <p className="text-[10px] uppercase tracking-widest text-gray-400">Live · 实时上线</p>
                   <p className="mt-0.5 text-sm font-semibold text-gray-800">最新入驻 &amp; 推广商家</p>
                 </div>
-                {/* 两视图切换：推送 / 地图快照 */}
-                <div className="inline-flex items-center gap-0.5 rounded-full bg-gray-100 p-0.5 text-xs flex-shrink-0">
-                  <button
-                    onClick={() => setView('feed')}
-                    className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 font-semibold transition-colors
-                      ${view === 'feed' ? 'bg-white text-emerald-600 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}
-                  >
-                    {view === 'feed' && <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />}
-                    推送
-                  </button>
-                  <button
-                    onClick={() => setView('map')}
-                    className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 font-semibold transition-colors
-                      ${view === 'map' ? 'bg-white text-primary-600 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}
-                  >
-                    <MapPin size={11} /> 地图
-                  </button>
-                </div>
+                <span className="inline-flex items-center gap-1 rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-emerald-600 shadow-sm flex-shrink-0">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                  推送
+                </span>
               </div>
 
-              {/* Body: 地图快照（点击跳完整地图）or 推送列表 */}
-              {view === 'map' ? (
-                <button
-                  onClick={() => navigate('/map')}
-                  className="relative block w-full overflow-hidden rounded-xl border border-gray-100 group"
-                  style={{ height: PANEL_H }}
-                >
-                  {/* map-ish backdrop — 纯 CSS，无瓦片/API 成本 */}
-                  <div className="absolute inset-0 bg-gradient-to-br from-emerald-50 via-sky-50 to-indigo-50" />
-                  <div
-                    className="absolute inset-0 opacity-[0.18]"
-                    style={{
-                      backgroundImage:
-                        'linear-gradient(#94a3b8 1px, transparent 1px), linear-gradient(90deg, #94a3b8 1px, transparent 1px)',
-                      backgroundSize: '30px 30px',
-                    }}
-                  />
-                  {/* faint "river/road" diagonals */}
-                  <div className="absolute -inset-8 opacity-[0.12]"
-                    style={{ backgroundImage: 'linear-gradient(115deg, transparent 46%, #38bdf8 46%, #38bdf8 52%, transparent 52%)' }} />
-                  {/* scattered service pins */}
-                  <MapPin size={16} className="absolute text-rose-500 fill-rose-200"    style={{ top: '20%', left: '26%' }} />
-                  <MapPin size={14} className="absolute text-amber-500 fill-amber-200"   style={{ top: '58%', left: '18%' }} />
-                  <MapPin size={15} className="absolute text-violet-500 fill-violet-200" style={{ top: '30%', right: '22%' }} />
-                  <MapPin size={13} className="absolute text-emerald-500 fill-emerald-200" style={{ bottom: '20%', right: '30%' }} />
-                  {/* 真·地图截图：放 public/map-snapshot.jpg 即自动启用（覆盖上面的 CSS 底图）；
-                      文件缺失时 onError 隐藏自己，回退到 CSS 底图，不会显示裂图。 */}
-                  <img
-                    src="/map-snapshot.jpg"
-                    alt=""
-                    aria-hidden
-                    className="absolute inset-0 h-full w-full object-cover"
-                    onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none' }}
-                  />
-                  {/* 文字清晰度：底部白色渐隐（真图/CSS 底图都适用） */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-white/80 via-white/15 to-transparent" />
-                  {/* center CTA */}
-                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-1.5">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary-600 text-white shadow-lg transition-transform group-hover:scale-105">
-                      <MapPin size={22} />
-                    </div>
-                    <p className="text-sm font-bold text-gray-800">在地图上找附近服务</p>
-                    <p className="inline-flex items-center gap-1 rounded-full bg-white/80 px-3 py-1 text-xs font-medium text-primary-600 shadow-sm">
-                      {nearbyCount > 0 ? `${nearbyCount} 个服务 · ` : ''}点击查看地图 <ArrowRight size={12} />
-                    </p>
-                  </div>
-                </button>
-              ) : ticker.length === 0 ? (
+              {/* Body: 推送列表 */}
+              {ticker.length === 0 ? (
                 !showcaseLoaded ? (
                   <div className="space-y-2">
                     {Array.from({ length: 4 }).map((_, i) => (
@@ -293,20 +216,6 @@ export default function HomeActionHero({
                   </div>
                 </div>
               )}
-
-              {/* 轮播指示点（点了也能切） */}
-              <div className="mt-3 flex items-center justify-center gap-1.5">
-                {(['feed', 'map'] as const).map((v) => (
-                  <button
-                    key={v}
-                    onClick={() => setView(v)}
-                    aria-label={v === 'feed' ? '推送' : '地图'}
-                    className={`h-1.5 rounded-full transition-all ${
-                      view === v ? 'w-4 bg-primary-500' : 'w-1.5 bg-gray-300 hover:bg-gray-400'
-                    }`}
-                  />
-                ))}
-              </div>
 
               <button
                 onClick={() => navigate('/merchants')}
