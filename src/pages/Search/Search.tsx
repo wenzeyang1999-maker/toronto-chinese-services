@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { cdnUrl } from '../../lib/cdnUrl'
 import { useSearchParams, useNavigate } from 'react-router-dom'
 import Mascot from '../../components/Mascot/Mascot'
-import { ArrowLeft, Search as SearchIcon, SlidersHorizontal, Sparkles, MessageSquare, Heart, LayoutList, Map, Wrench, Briefcase, Home, ShoppingBag, Calendar, Users } from 'lucide-react'
+import { ArrowLeft, Search as SearchIcon, SlidersHorizontal, Sparkles, MessageSquare, Heart, LayoutList, Map, Wrench, Briefcase, Home, ShoppingBag, Calendar, Users, Store, ShieldCheck } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import ServiceCard from '../../components/ServiceCard/ServiceCard'
 import ServiceMap from '../../components/ServiceMap/ServiceMap'
@@ -69,14 +69,17 @@ interface CommunityResult {
   author: { name: string } | null
 }
 
-interface ProviderResult {
+interface MerchantResult {
+  source: 'user' | 'directory'
   id: string
   name: string
   avatar_url: string | null
   bio: string | null
+  area: string | null
+  skill_tags: string[] | null
+  status: 'online' | 'offline' | 'unclaimed'
+  verified: boolean
   is_online: boolean
-  business_type: 'individual' | 'business'
-  skill_tags: string[]
 }
 
 export default function Search() {
@@ -100,7 +103,7 @@ export default function Search() {
   const [viewMode, setViewMode] = useState<'list' | 'map'>('list')
   const [communityResults, setCommunityResults] = useState<CommunityResult[]>([])
   const [communityLoading, setCommunityLoading] = useState(false)
-  const [providerResults, setProviderResults] = useState<ProviderResult[]>([])
+  const [merchantResults, setMerchantResults] = useState<MerchantResult[]>([])
   const [dbResults, setDbResults] = useState<import('../../types').Service[] | null>(null)
   const [dbLoading, setDbLoading] = useState(false)
   const [page, setPage] = useState(1)
@@ -127,7 +130,7 @@ export default function Search() {
     const kw = q.trim()
     if (!kw) {
       setCommunityResults([])
-      setProviderResults([])
+      setMerchantResults([])
       setDbResults(null)
       setSearchFilters({ keywordVariants: [] })
       return
@@ -152,20 +155,24 @@ export default function Search() {
         setCommunityLoading(false)
       })
 
-    // Search providers — fuzzy partial match on skill_tags + name (RPC unnest + ILIKE),
-    // so "维" matches a provider tagged "维修". Exact containment missed partial terms.
+    // 统一商家搜索(注册服务商 + 收录商家),按 技能标签/关键词/名称/简介 模糊匹配。
+    // 帖子太少时,匹配的商家本身作为结果入口(点进去是主页/详情)。
     supabase
-      .rpc('search_providers_by_keyword', { kw })
-      .then(({ data }) => setProviderResults((data as ProviderResult[]) ?? []))
+      .rpc('search_merchants_by_keyword', { kw })
+      .then(
+        ({ data }) => setMerchantResults((data as MerchantResult[]) ?? []),
+        () => setMerchantResults([]),
+      )
 
     // DB-level keyword search — runs when store services haven't loaded yet
     // (e.g. direct navigation to /search?q=...). Uses trigram index on title/description.
+    // .catch/.finally 保证 dbLoading 一定复位,否则无帖子时会一直转圈。
     if (storeServices.length === 0) {
       setDbLoading(true)
-      fetchServicesByKeyword(kw).then((rows) => {
-        setDbResults(rows)
-        setDbLoading(false)
-      })
+      fetchServicesByKeyword(kw)
+        .then((rows) => setDbResults(rows ?? []))
+        .catch(() => setDbResults([]))
+        .finally(() => setDbLoading(false))
     } else {
       setDbResults(null)
     }
@@ -560,7 +567,7 @@ export default function Search() {
         )}
         <SearchDecisionHeader
           query={localQuery.trim()}
-          count={results.length + communityResults.length}
+          count={results.length + merchantResults.length + communityResults.length}
           sortBy={searchFilters.sortBy}
         />
         <SearchFilterSummary
@@ -583,7 +590,7 @@ export default function Search() {
           </>
         ) : isSearching ? (
           <ServiceListSkeleton count={5} />
-        ) : results.length === 0 && communityResults.length === 0 ? (
+        ) : results.length === 0 && merchantResults.length === 0 && communityResults.length === 0 ? (
           <SearchEmptyState
             query={localQuery.trim()}
             onOpenInquiry={() => openInquiry(pageCatId)}
@@ -621,52 +628,65 @@ export default function Search() {
               </>
             )}
 
-            {/* Matching providers section */}
-            {providerResults.length > 0 && (
+            {/* 相关商家 — 帖子太少时,匹配的商家作为入口(点进去是主页/详情) */}
+            {merchantResults.length > 0 && (
               <div className="mt-6">
                 <div className="flex items-center gap-2 mb-3">
-                  <span className="text-base">👤</span>
-                  <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">匹配服务商</h3>
+                  <Store size={14} className="text-primary-600" />
+                  <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">相关商家 · {merchantResults.length}</h3>
                 </div>
-                <div className="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1 scrollbar-hide">
-                  {providerResults.map((p) => (
-                    <button
-                      key={p.id}
-                      onClick={() => navigate(`/provider/${p.id}`)}
-                      className="flex-shrink-0 w-36 bg-white rounded-2xl border border-gray-100 shadow-sm p-3 text-left
-                                 hover:border-primary-200 hover:shadow-md transition-all"
-                    >
-                      <div className="flex items-center gap-2 mb-2">
-                        {p.avatar_url ? (
-                          <img loading="lazy" src={cdnUrl(p.avatar_url, 160)} alt={p.name}
-                            className="w-9 h-9 rounded-full object-cover flex-shrink-0 border border-gray-100"
-                            onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
-                        ) : (
-                          <div className="w-9 h-9 rounded-full bg-gradient-to-br from-primary-400 to-primary-600
-                                          flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
-                            {p.name.charAt(0)}
-                          </div>
-                        )}
-                        {p.is_online && (
-                          <span className="w-2 h-2 rounded-full bg-green-400 ring-2 ring-white flex-shrink-0" />
-                        )}
-                      </div>
-                      <p className="text-sm font-semibold text-gray-900 leading-tight truncate">{p.name}</p>
-                      {p.bio && (
-                        <p className="text-[11px] text-gray-400 mt-0.5 line-clamp-2 leading-snug">{p.bio}</p>
-                      )}
-                      {p.skill_tags.length > 0 && (
-                        <div className="flex flex-wrap gap-1 mt-2">
-                          {p.skill_tags.slice(0, 2).map((tag) => (
-                            <span key={tag}
-                              className="text-[10px] px-1.5 py-0.5 rounded-full bg-primary-50 text-primary-600 font-medium">
-                              {tag}
-                            </span>
-                          ))}
+                <div className="flex flex-col gap-2">
+                  {merchantResults.map((m) => {
+                    const online = m.status === 'online'
+                    const unclaimed = m.status === 'unclaimed'
+                    const tags = m.skill_tags ?? []
+                    return (
+                      <button
+                        key={`${m.source}-${m.id}`}
+                        onClick={() => navigate(m.source === 'user' ? `/provider/${m.id}` : `/merchant/${m.id}`)}
+                        className={`w-full flex items-center gap-3 rounded-2xl border px-3 py-3 text-left shadow-sm transition-all active:scale-[0.99] ${
+                          online ? 'bg-white border-emerald-200 hover:border-emerald-300'
+                                 : unclaimed ? 'bg-white border-amber-200 hover:border-amber-300'
+                                             : 'bg-gray-50 border-gray-100 hover:border-gray-200'}`}
+                      >
+                        <div className={`w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden ring-1 ${
+                          online ? 'ring-emerald-200 bg-emerald-50' : unclaimed ? 'ring-amber-200 bg-amber-50' : 'ring-gray-200 bg-gray-100'} ${
+                          !online && !unclaimed ? 'grayscale opacity-80' : ''}`}>
+                          {m.avatar_url
+                            ? <img loading="lazy" src={cdnUrl(m.avatar_url, 160)} alt={m.name} className="w-12 h-12 object-cover"
+                                onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
+                            : <span className={`text-lg font-bold ${online ? 'text-emerald-600' : unclaimed ? 'text-amber-600' : 'text-gray-400'}`}>{(m.name || '商').charAt(0)}</span>}
                         </div>
-                      )}
-                    </button>
-                  ))}
+
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-1.5">
+                            <p className={`text-sm font-bold truncate ${online || unclaimed ? 'text-gray-900' : 'text-gray-600'}`}>{m.name || '商家'}</p>
+                            {m.verified && (
+                              <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold text-emerald-600 bg-emerald-50 border border-emerald-200 rounded-full px-1.5 py-0.5 flex-shrink-0">
+                                <ShieldCheck size={10} />已认证
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-[11px] text-gray-400 mt-0.5 truncate">{m.bio || (m.area ? `${m.area} · 华人本地服务` : '华人本地服务商家')}</p>
+                          {tags.length > 0 && (
+                            <div className="flex flex-wrap gap-1 mt-1.5">
+                              {tags.slice(0, 3).map((tag) => (
+                                <span key={tag} className="text-[10px] px-1.5 py-0.5 rounded-full bg-primary-50 text-primary-600 font-medium">{tag}</span>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+
+                        <span className={`inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-1 rounded-full flex-shrink-0 ${
+                          online ? 'text-emerald-600 bg-emerald-50 border border-emerald-200'
+                                 : unclaimed ? 'text-amber-600 bg-amber-50 border border-amber-200'
+                                             : 'text-gray-400 bg-gray-100 border border-gray-200'}`}>
+                          {online && <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />}
+                          {online ? '在线接单' : unclaimed ? '待认领' : '暂未上线'}
+                        </span>
+                      </button>
+                    )
+                  })}
                 </div>
               </div>
             )}
