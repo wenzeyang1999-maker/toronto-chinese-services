@@ -82,27 +82,38 @@ export default function HomeActionHero({
               {userHasLocation ? '已为您准备附近结果' : '海外华人生活一站式服务'}
             </div>
 
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+            <div className="flex flex-col gap-4">
               <p className="text-base font-bold text-gray-800 md:text-lg">
                 一句话，<span className="text-primary-600">AI 帮你</span>找到本地靠谱服务
               </p>
-              <div className="flex items-center gap-2 sm:flex-shrink-0">
+              {/* 两行错开的入口按钮:AI 智能匹配(左) / 华邻地图(右) */}
+              <div className="flex flex-col gap-2.5 w-full max-w-md">
                 <motion.button
                   data-tour="ai-match"
-                  whileTap={{ scale: 0.97 }}
+                  whileTap={{ scale: 0.98 }}
                   onClick={onOpenInquiry}
-                  className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-primary-600 px-5 py-3 text-sm font-bold text-white shadow-md transition-colors hover:bg-primary-700"
+                  className="self-start w-[86%] flex items-center gap-3 rounded-2xl bg-primary-600 px-4 py-3 text-left text-white shadow-md transition-colors hover:bg-primary-700"
                 >
-                  <Sparkles size={16} />
-                  AI 智能匹配
+                  <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/20 flex-shrink-0">
+                    <Sparkles size={18} />
+                  </span>
+                  <span className="min-w-0">
+                    <span className="block text-sm font-bold leading-tight">AI 智能匹配</span>
+                    <span className="block text-[11px] text-blue-100 leading-tight mt-0.5">描述需求，自动帮你匹配服务商</span>
+                  </span>
                 </motion.button>
                 <motion.button
-                  whileTap={{ scale: 0.97 }}
+                  whileTap={{ scale: 0.98 }}
                   onClick={() => navigate('/map')}
-                  className="flex flex-1 items-center justify-center gap-2 rounded-2xl border border-primary-200 bg-white px-5 py-3 text-sm font-bold text-primary-600 shadow-sm transition-colors hover:bg-primary-50"
+                  className="self-end w-[86%] flex items-center gap-3 rounded-2xl border border-primary-200 bg-white px-4 py-3 text-left text-primary-700 shadow-sm transition-colors hover:bg-primary-50"
                 >
-                  <MapPin size={16} />
-                  华邻地图
+                  <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary-50 text-primary-600 flex-shrink-0">
+                    <MapPin size={18} />
+                  </span>
+                  <span className="min-w-0">
+                    <span className="block text-sm font-bold leading-tight">华邻地图</span>
+                    <span className="block text-[11px] text-gray-400 leading-tight mt-0.5">看看附近有哪些服务商在接单</span>
+                  </span>
                 </motion.button>
               </div>
             </div>
