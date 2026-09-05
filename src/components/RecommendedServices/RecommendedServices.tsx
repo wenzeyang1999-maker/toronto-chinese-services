@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { Sparkles, ShieldCheck } from 'lucide-react'
 import { useAuthStore } from '../../store/authStore'
+import { useAppStore } from '../../store/appStore'
 import { supabase } from '../../lib/supabase'
 import ServiceCard from '../ServiceCard/ServiceCard'
 import { useRankedServices } from './useRankedServices'
@@ -34,10 +35,15 @@ export default function RecommendedServices({ excludeIds }: Props) {
   const sentinelRef = useRef<HTMLDivElement>(null)
   const [displayed, setDisplayed] = useState(PAGE)
   const [merchants, setMerchants] = useState<Merchant[]>([])
+  const [merchantsLoaded, setMerchantsLoaded] = useState(false)
+  const servicesLoaded = useAppStore((s) => s.servicesLoaded)
 
   useEffect(() => {
     supabase.rpc('merchant_showcase', { p_limit: 24 })
-      .then(({ data }) => { if (data) setMerchants(data as Merchant[]) })
+      .then(
+        ({ data }) => { if (data) setMerchants(data as Merchant[]); setMerchantsLoaded(true) },
+        () => setMerchantsLoaded(true),
+      )
   }, [])
 
   const sorted = useRankedServices(excludeIds)
@@ -57,7 +63,25 @@ export default function RecommendedServices({ excludeIds }: Props) {
     return () => obs.disconnect()
   }, [loadMore])
 
-  if (sorted.length === 0 && merchants.length === 0) return null
+  // 数据还在路上(服务帖或商家未加载完)时,给瀑布流骨架占位,避免"空白→突然冒出"。
+  const stillLoading = !servicesLoaded || !merchantsLoaded
+  if (sorted.length === 0 && merchants.length === 0) {
+    if (!stillLoading) return null
+    return (
+      <section className="mb-6">
+        <div className="flex items-center gap-1.5 mb-3 px-0.5">
+          <Sparkles size={16} className="text-primary-500" />
+          <h2 className="text-base font-bold text-gray-900">猜你喜欢</h2>
+          <span className="text-xs text-gray-400">根据你的浏览推荐</span>
+        </div>
+        <div className="columns-2 md:columns-3 lg:columns-4 xl:columns-5 2xl:columns-6 gap-3">
+          {[220, 180, 240, 190, 210, 170, 230, 200].map((h, i) => (
+            <div key={i} className="break-inside-avoid mb-3 rounded-2xl bg-gray-100 animate-pulse" style={{ height: h }} />
+          ))}
+        </div>
+      </section>
+    )
+  }
 
   const visible = sorted.slice(0, displayed)
   const hasMore = displayed < sorted.length
