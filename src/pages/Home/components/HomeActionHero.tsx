@@ -7,8 +7,8 @@ import { supabase } from '../../../lib/supabase'
 import { toast } from '../../../lib/toast'
 import Mascot, { type MascotPose } from '../../../components/Mascot/Mascot'
 
-// hero 空档展示的邻邻姿势池(挑适合打招呼/活泼的)。
-const HERO_POSES: MascotPose[] = ['hello', 'hello2', 'happy', 'cheer', 'curious', 'front', 'delivery', 'photo', 'run', 'home', 'book']
+// hero 空档展示的邻邻姿势池 —— 只选小体积图(≤63K),保证加载快且稳定(避免抽到大图变慢)。
+const HERO_POSES: MascotPose[] = ['hello', 'hello2', 'front', 'delivery', 'photo', 'run', 'book']
 // 每次进页面随机取两只不重复的。
 function pickTwoPoses(): [MascotPose, MascotPose] {
   const pool = [...HERO_POSES]
@@ -16,6 +16,24 @@ function pickTwoPoses(): [MascotPose, MascotPose] {
   const p1 = pool.splice(i, 1)[0]
   const p2 = pool[Math.floor(Math.random() * pool.length)]
   return [p1, p2]
+}
+
+// hero 邻邻:立即渲染圆形底盘(图未到也不空)+ 放大 + 淡入。
+function HeroMascot({ pose, delay }: { pose: MascotPose; delay: number }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, scale: 0.82, y: 6 }}
+      animate={{ opacity: 1, scale: 1, y: 0 }}
+      transition={{ duration: 0.35, delay }}
+      className="relative flex items-center justify-center w-16 lg:w-28 aspect-square flex-shrink-0"
+    >
+      {/* 底盘:CSS 立即出现,消除"图未加载的空框/棋盘格" */}
+      <span className="absolute inset-0 rounded-full bg-gradient-to-br from-primary-100 to-emerald-50 ring-1 ring-white/70 shadow-sm" />
+      <span className="absolute inset-[18%] rounded-full bg-white/40 blur-md" />
+      <Mascot pose={pose} size={60} className="relative lg:hidden" priority />
+      <Mascot pose={pose} size={104} className="relative hidden lg:block" priority />
+    </motion.div>
+  )
 }
 
 interface Props {
@@ -117,14 +135,12 @@ export default function HomeActionHero({
                     </span>
                   </motion.button>
                   <div className="flex-1 flex justify-center">
-                    <Mascot pose={heroPoses[0]} size={52} className="lg:hidden drop-shadow-sm" />
-                    <Mascot pose={heroPoses[0]} size={96} className="hidden lg:block drop-shadow-sm" priority />
+                    <HeroMascot pose={heroPoses[0]} delay={0.1} />
                   </div>
                 </div>
                 <div className="flex items-center gap-1">
                   <div className="flex-1 flex justify-center">
-                    <Mascot pose={heroPoses[1]} size={52} className="lg:hidden drop-shadow-sm" />
-                    <Mascot pose={heroPoses[1]} size={96} className="hidden lg:block drop-shadow-sm" priority />
+                    <HeroMascot pose={heroPoses[1]} delay={0.18} />
                   </div>
                   <motion.button
                     whileTap={{ scale: 0.98 }}
