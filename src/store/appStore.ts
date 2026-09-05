@@ -30,6 +30,23 @@ function readCachedLocationTs(): number | null {
   } catch { return null }
 }
 
+// ── 服务帖本地缓存(秒开)──────────────────────────────────────────────────────
+// 上次拉到的服务帖存本地,下次进来先用缓存瞬间渲染,再后台刷新替换。
+const SERVICES_CACHE_KEY = 'tcs_services_cache_v1'
+function readCachedServices(): Service[] {
+  if (typeof window === 'undefined') return []
+  try {
+    const raw = window.localStorage.getItem(SERVICES_CACHE_KEY)
+    const parsed = raw ? JSON.parse(raw) : null
+    return Array.isArray(parsed) ? (parsed as Service[]) : []
+  } catch { return [] }
+}
+function writeCachedServices(list: Service[]) {
+  if (typeof window === 'undefined') return
+  try { window.localStorage.setItem(SERVICES_CACHE_KEY, JSON.stringify(list.slice(0, 40))) } catch { /* ignore */ }
+}
+const CACHED_SERVICES = readCachedServices()
+
 // Shape of a raw row returned from Supabase (services + joined users)
 export interface ServiceRow {
   id: string
@@ -177,8 +194,8 @@ function mapRequestRow(row: any): ServiceRequest {
 }
 
 export const useAppStore = create<AppState>((set, get) => ({
-  services: [],
-  servicesLoaded: false,
+  services: CACHED_SERVICES,                 // 秒开:先用缓存渲染
+  servicesLoaded: CACHED_SERVICES.length > 0, // 有缓存即视为已加载(后台仍会刷新)
   servicesError: false,
   serviceRequests: [],
   userLocation: readCachedLocation(),
@@ -268,8 +285,10 @@ export const useAppStore = create<AppState>((set, get) => ({
       return
     }
     const mapped = (data as ServiceRow[]).map(mapRow)
+    const nextServices = append ? [...current, ...mapped] : mapped
+    if (!append) writeCachedServices(nextServices)   // 刷新缓存,供下次秒开
     set({
-      services: append ? [...current, ...mapped] : mapped,
+      services: nextServices,
       servicesHasMore: data.length === SERVICES_PAGE_SIZE,
       servicesLoadingMore: false,
       servicesLoaded: true,

@@ -25,6 +25,16 @@ interface Merchant {
   verified: boolean
 }
 
+// 商家橱窗本地缓存(秒开):下次进来先用缓存渲染,再后台刷新。
+const MERCHANTS_CACHE_KEY = 'tcs_merchants_cache_v1'
+function readCachedMerchants(): Merchant[] {
+  try {
+    const raw = localStorage.getItem(MERCHANTS_CACHE_KEY)
+    const parsed = raw ? JSON.parse(raw) : null
+    return Array.isArray(parsed) ? (parsed as Merchant[]) : []
+  } catch { return [] }
+}
+
 interface Props {
   excludeIds?: string[]
 }
@@ -34,14 +44,20 @@ export default function RecommendedServices({ excludeIds }: Props) {
   const navigate  = useNavigate()
   const sentinelRef = useRef<HTMLDivElement>(null)
   const [displayed, setDisplayed] = useState(PAGE)
-  const [merchants, setMerchants] = useState<Merchant[]>([])
-  const [merchantsLoaded, setMerchantsLoaded] = useState(false)
+  const [merchants, setMerchants] = useState<Merchant[]>(readCachedMerchants)
+  const [merchantsLoaded, setMerchantsLoaded] = useState<boolean>(() => readCachedMerchants().length > 0)
   const servicesLoaded = useAppStore((s) => s.servicesLoaded)
 
   useEffect(() => {
     supabase.rpc('merchant_showcase', { p_limit: 24 })
       .then(
-        ({ data }) => { if (data) setMerchants(data as Merchant[]); setMerchantsLoaded(true) },
+        ({ data }) => {
+          if (data) {
+            setMerchants(data as Merchant[])
+            try { localStorage.setItem(MERCHANTS_CACHE_KEY, JSON.stringify(data)) } catch { /* ignore */ }
+          }
+          setMerchantsLoaded(true)
+        },
         () => setMerchantsLoaded(true),
       )
   }, [])
