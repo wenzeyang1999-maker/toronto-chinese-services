@@ -64,7 +64,7 @@ export default function HomeActionHero({
   return (
     <div className="relative w-full overflow-hidden bg-[#f7f8fa] border-b border-gray-200 px-4 py-5 md:px-5 md:py-7">
       <div className="mx-auto w-full px-2 md:w-[92%] md:px-0 lg:w-[86%] xl:w-[82%]">
-        <div className="relative grid items-center gap-8 lg:grid-cols-[minmax(0,1.08fr)_minmax(400px,0.92fr)] lg:gap-16 xl:gap-20">
+        <div className="relative grid items-center gap-4 lg:grid-cols-[minmax(0,1.08fr)_minmax(400px,0.92fr)] lg:gap-16 xl:gap-20">
 
           {/* ── Left: headline + search ── */}
           {/* min-w-0: grid items default to min-width:auto and won't shrink below
@@ -126,20 +126,20 @@ export default function HomeActionHero({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.2 }}
-            className="relative z-10 mt-4 lg:mt-0 min-w-0"
+            className="relative z-10 min-w-0"
           >
             <div
               data-tour="map"
               className="w-full lg:ml-auto lg:max-w-[32rem] rounded-2xl border border-gray-200 bg-white p-4 shadow-lg"
             >
 
-              {/* Header */}
-              <div className="mb-3 flex items-center justify-between rounded-xl border border-gray-100 bg-gray-50 px-4 py-3">
-                <div>
-                  <p className="text-[10px] uppercase tracking-widest text-gray-400">Live · 实时上线</p>
-                  <p className="mt-0.5 text-sm font-semibold text-gray-800">最新入驻 &amp; 推广服务商</p>
+              {/* Header —— 纯文字,无边框盒(省高度) */}
+              <div className="mb-2.5 flex items-center justify-between px-0.5">
+                <div className="flex items-baseline gap-2 min-w-0">
+                  <p className="text-sm font-bold text-gray-800 truncate">最新入驻 &amp; 推广服务商</p>
+                  <span className="text-[10px] uppercase tracking-widest text-gray-400 flex-shrink-0">Live</span>
                 </div>
-                <span className="inline-flex items-center gap-1 rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-emerald-600 shadow-sm flex-shrink-0">
+                <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-600 flex-shrink-0">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                   推送
                 </span>
