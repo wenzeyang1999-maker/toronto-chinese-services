@@ -99,42 +99,44 @@ export default function HomeActionHero({
               <p className="text-base font-bold text-gray-800 md:text-lg">
                 一句话，<span className="text-primary-600">AI 帮你</span>找到本地靠谱服务
               </p>
-              {/* 两行错开的入口按钮 + 空档里各放一只随机邻邻(每次不同、不重复) */}
-              <div className="flex flex-col gap-2.5 w-full max-w-md">
+              {/* 两行错开的入口按钮 + 空档里各放一只随机邻邻(每次不同、不重复;桌面放大) */}
+              <div className="flex flex-col gap-2.5 w-full max-w-md lg:max-w-xl">
                 <div className="flex items-center gap-1">
                   <motion.button
                     data-tour="ai-match"
                     whileTap={{ scale: 0.98 }}
                     onClick={onOpenInquiry}
-                    className="w-[84%] flex items-center gap-3 rounded-2xl bg-primary-600 px-4 py-3 text-left text-white shadow-md transition-colors hover:bg-primary-700"
+                    className="w-[82%] lg:w-[74%] flex items-center gap-3 rounded-2xl bg-primary-600 px-4 py-3 lg:py-3.5 text-left text-white shadow-md transition-colors hover:bg-primary-700"
                   >
                     <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/20 flex-shrink-0">
                       <Sparkles size={18} />
                     </span>
                     <span className="min-w-0">
-                      <span className="block text-sm font-bold leading-tight">AI 智能匹配</span>
-                      <span className="block text-[11px] text-blue-100 leading-tight mt-0.5">描述需求，自动帮你匹配服务商</span>
+                      <span className="block text-sm lg:text-base font-bold leading-tight">AI 智能匹配</span>
+                      <span className="block text-[11px] lg:text-xs text-blue-100 leading-tight mt-0.5">描述需求，自动帮你匹配服务商</span>
                     </span>
                   </motion.button>
                   <div className="flex-1 flex justify-center">
-                    <Mascot pose={heroPoses[0]} size={52} className="drop-shadow-sm" />
+                    <Mascot pose={heroPoses[0]} size={52} className="lg:hidden drop-shadow-sm" />
+                    <Mascot pose={heroPoses[0]} size={96} className="hidden lg:block drop-shadow-sm" priority />
                   </div>
                 </div>
                 <div className="flex items-center gap-1">
                   <div className="flex-1 flex justify-center">
-                    <Mascot pose={heroPoses[1]} size={52} className="drop-shadow-sm" />
+                    <Mascot pose={heroPoses[1]} size={52} className="lg:hidden drop-shadow-sm" />
+                    <Mascot pose={heroPoses[1]} size={96} className="hidden lg:block drop-shadow-sm" priority />
                   </div>
                   <motion.button
                     whileTap={{ scale: 0.98 }}
                     onClick={() => navigate('/map')}
-                    className="w-[84%] flex items-center gap-3 rounded-2xl border border-primary-200 bg-white px-4 py-3 text-left text-primary-700 shadow-sm transition-colors hover:bg-primary-50"
+                    className="w-[82%] lg:w-[74%] flex items-center gap-3 rounded-2xl border border-primary-200 bg-white px-4 py-3 lg:py-3.5 text-left text-primary-700 shadow-sm transition-colors hover:bg-primary-50"
                   >
                     <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary-50 text-primary-600 flex-shrink-0">
                       <MapPin size={18} />
                     </span>
                     <span className="min-w-0">
-                      <span className="block text-sm font-bold leading-tight">华邻地图</span>
-                      <span className="block text-[11px] text-gray-400 leading-tight mt-0.5">看看附近有哪些服务商在接单</span>
+                      <span className="block text-sm lg:text-base font-bold leading-tight">华邻地图</span>
+                      <span className="block text-[11px] lg:text-xs text-gray-400 leading-tight mt-0.5">看看附近有哪些服务商在接单</span>
                     </span>
                   </motion.button>
                 </div>
