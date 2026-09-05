@@ -254,8 +254,8 @@ export default function Home() {
           <HomeStatsBar />
         </div>
 
-        {/* Category buttons */}
-        <section ref={catRef} className="mb-4 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+        {/* Category buttons —— 暂时隐藏(去掉 hidden 即可恢复) */}
+        <section ref={catRef} className="hidden mb-4 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
           <div className="flex items-center justify-between gap-3 mb-3">
             <h3 className="text-sm font-semibold text-gray-800">热门服务</h3>
             <button
