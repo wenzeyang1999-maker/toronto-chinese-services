@@ -249,10 +249,8 @@ export default function Home() {
           <PromoBanner />
         </div>
 
-        {/* 平台实时数据条 */}
-        <div className="mb-4">
-          <HomeStatsBar />
-        </div>
+        {/* 平台实时数据条(仅 admin/boss 可见) */}
+        <HomeStatsBar />
 
         {/* Category buttons —— 暂时隐藏(去掉 hidden 即可恢复) */}
         <section ref={catRef} className="hidden mb-4 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">

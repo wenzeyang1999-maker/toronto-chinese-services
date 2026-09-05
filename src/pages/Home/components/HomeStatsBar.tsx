@@ -1,6 +1,6 @@
 // ─── 平台实时数据条 ───────────────────────────────────────────────────────────
-// 首页显眼位置展示:注册用户 / 入驻服务商 / 在线接单 / 收录商家。
-// 冷启动增强活跃感与可信度(数据来自公开 RPC platform_stats)。
+// 暂时仅 admin/boss 可见(与 /dashboard 同权限),其他账号完全不渲染。
+// 数据:注册用户 / 入驻服务商 / 在线接单 / 收录商家(RPC platform_stats)。
 import { useEffect, useState } from 'react'
 import { Users, Store, Radio, BookMarked } from 'lucide-react'
 import { supabase } from '../../../lib/supabase'
@@ -14,12 +14,29 @@ interface Stats {
 
 export default function HomeStatsBar() {
   const [s, setS] = useState<Stats | null>(null)
+  const [allowed, setAllowed] = useState<boolean | null>(null)
+
+  // 权限闸门:仅 role in ('admin','boss') 展示(与 dashboard 一致)。
+  useEffect(() => {
+    let cancelled = false
+    ;(async () => {
+      const { data: { user: authUser } } = await supabase.auth.getUser()
+      if (!authUser) { if (!cancelled) setAllowed(false); return }
+      const { data } = await supabase.from('users').select('role').eq('id', authUser.id).single()
+      if (!cancelled) setAllowed(data?.role === 'admin' || data?.role === 'boss')
+    })()
+    return () => { cancelled = true }
+  }, [])
 
   useEffect(() => {
+    if (allowed !== true) return
     supabase.rpc('platform_stats').then(({ data }) => {
       if (data) setS(data as Stats)
     })
-  }, [])
+  }, [allowed])
+
+  // 非 admin/boss(或未登录/加载中)一律不渲染。
+  if (allowed !== true) return null
 
   const items = [
     { icon: <Users size={15} />,      label: '注册用户', value: s?.users_total,     color: 'text-blue-600' },
@@ -29,7 +46,7 @@ export default function HomeStatsBar() {
   ]
 
   return (
-    <div className="grid grid-cols-4 gap-2 rounded-2xl border border-gray-200 bg-white px-2 py-3 shadow-sm">
+    <div className="mb-4 grid grid-cols-4 gap-2 rounded-2xl border border-gray-200 bg-white px-2 py-3 shadow-sm">
       {items.map((it) => (
         <div key={it.label} className="flex flex-col items-center gap-0.5 text-center">
           <span className={`inline-flex items-center gap-1 ${it.color}`}>
