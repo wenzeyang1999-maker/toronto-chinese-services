@@ -116,7 +116,7 @@ export default function HomeActionHero({
               <div className="mb-3 flex items-center justify-between rounded-xl border border-gray-100 bg-gray-50 px-4 py-3">
                 <div>
                   <p className="text-[10px] uppercase tracking-widest text-gray-400">Live · 实时上线</p>
-                  <p className="mt-0.5 text-sm font-semibold text-gray-800">最新入驻 &amp; 推广商家</p>
+                  <p className="mt-0.5 text-sm font-semibold text-gray-800">最新入驻 &amp; 推广服务商</p>
                 </div>
                 <span className="inline-flex items-center gap-1 rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-emerald-600 shadow-sm flex-shrink-0">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
