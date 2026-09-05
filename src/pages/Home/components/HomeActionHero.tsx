@@ -5,6 +5,18 @@ import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../../../store/authStore'
 import { supabase } from '../../../lib/supabase'
 import { toast } from '../../../lib/toast'
+import Mascot, { type MascotPose } from '../../../components/Mascot/Mascot'
+
+// hero 空档展示的邻邻姿势池(挑适合打招呼/活泼的)。
+const HERO_POSES: MascotPose[] = ['hello', 'hello2', 'happy', 'cheer', 'curious', 'front', 'delivery', 'photo', 'run', 'home', 'book']
+// 每次进页面随机取两只不重复的。
+function pickTwoPoses(): [MascotPose, MascotPose] {
+  const pool = [...HERO_POSES]
+  const i = Math.floor(Math.random() * pool.length)
+  const p1 = pool.splice(i, 1)[0]
+  const p2 = pool[Math.floor(Math.random() * pool.length)]
+  return [p1, p2]
+}
 
 interface Props {
   userHasLocation: boolean
@@ -31,6 +43,7 @@ export default function HomeActionHero({
 }: Props) {
   const navigate = useNavigate()
   const user = useAuthStore((s) => s.user)
+  const [heroPoses] = useState<[MascotPose, MascotPose]>(pickTwoPoses)
 
   // 统一商家橱窗:在线接单 / 暂未上线(已注册) / 待认领(网上收录) —— 冷启动填充 + 吸引注册。
   const [ticker, setTicker] = useState<Merchant[]>([])
@@ -86,35 +99,45 @@ export default function HomeActionHero({
               <p className="text-base font-bold text-gray-800 md:text-lg">
                 一句话，<span className="text-primary-600">AI 帮你</span>找到本地靠谱服务
               </p>
-              {/* 两行错开的入口按钮:AI 智能匹配(左) / 华邻地图(右) */}
+              {/* 两行错开的入口按钮 + 空档里各放一只随机邻邻(每次不同、不重复) */}
               <div className="flex flex-col gap-2.5 w-full max-w-md">
-                <motion.button
-                  data-tour="ai-match"
-                  whileTap={{ scale: 0.98 }}
-                  onClick={onOpenInquiry}
-                  className="self-start w-[86%] flex items-center gap-3 rounded-2xl bg-primary-600 px-4 py-3 text-left text-white shadow-md transition-colors hover:bg-primary-700"
-                >
-                  <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/20 flex-shrink-0">
-                    <Sparkles size={18} />
-                  </span>
-                  <span className="min-w-0">
-                    <span className="block text-sm font-bold leading-tight">AI 智能匹配</span>
-                    <span className="block text-[11px] text-blue-100 leading-tight mt-0.5">描述需求，自动帮你匹配服务商</span>
-                  </span>
-                </motion.button>
-                <motion.button
-                  whileTap={{ scale: 0.98 }}
-                  onClick={() => navigate('/map')}
-                  className="self-end w-[86%] flex items-center gap-3 rounded-2xl border border-primary-200 bg-white px-4 py-3 text-left text-primary-700 shadow-sm transition-colors hover:bg-primary-50"
-                >
-                  <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary-50 text-primary-600 flex-shrink-0">
-                    <MapPin size={18} />
-                  </span>
-                  <span className="min-w-0">
-                    <span className="block text-sm font-bold leading-tight">华邻地图</span>
-                    <span className="block text-[11px] text-gray-400 leading-tight mt-0.5">看看附近有哪些服务商在接单</span>
-                  </span>
-                </motion.button>
+                <div className="flex items-center gap-1">
+                  <motion.button
+                    data-tour="ai-match"
+                    whileTap={{ scale: 0.98 }}
+                    onClick={onOpenInquiry}
+                    className="w-[84%] flex items-center gap-3 rounded-2xl bg-primary-600 px-4 py-3 text-left text-white shadow-md transition-colors hover:bg-primary-700"
+                  >
+                    <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/20 flex-shrink-0">
+                      <Sparkles size={18} />
+                    </span>
+                    <span className="min-w-0">
+                      <span className="block text-sm font-bold leading-tight">AI 智能匹配</span>
+                      <span className="block text-[11px] text-blue-100 leading-tight mt-0.5">描述需求，自动帮你匹配服务商</span>
+                    </span>
+                  </motion.button>
+                  <div className="flex-1 flex justify-center">
+                    <Mascot pose={heroPoses[0]} size={52} className="drop-shadow-sm" />
+                  </div>
+                </div>
+                <div className="flex items-center gap-1">
+                  <div className="flex-1 flex justify-center">
+                    <Mascot pose={heroPoses[1]} size={52} className="drop-shadow-sm" />
+                  </div>
+                  <motion.button
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => navigate('/map')}
+                    className="w-[84%] flex items-center gap-3 rounded-2xl border border-primary-200 bg-white px-4 py-3 text-left text-primary-700 shadow-sm transition-colors hover:bg-primary-50"
+                  >
+                    <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary-50 text-primary-600 flex-shrink-0">
+                      <MapPin size={18} />
+                    </span>
+                    <span className="min-w-0">
+                      <span className="block text-sm font-bold leading-tight">华邻地图</span>
+                      <span className="block text-[11px] text-gray-400 leading-tight mt-0.5">看看附近有哪些服务商在接单</span>
+                    </span>
+                  </motion.button>
+                </div>
               </div>
             </div>
           </motion.div>
