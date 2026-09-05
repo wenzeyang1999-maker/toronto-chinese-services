@@ -59,7 +59,7 @@ export default function HomeActionHero({
 
   const tickerLoop = ticker.length > 0 ? [...ticker, ...ticker] : []
   const CARD_H = 60
-  const PANEL_H = CARD_H * 4 + 8 * 3   // 推送列表面板高度
+  // 面板高度:手机只露 ~2.5 行(露半行+渐隐,暗示可滚,给下面瀑布流让位),桌面 4 行。
 
   return (
     <div className="relative w-full overflow-hidden bg-[#f7f8fa] border-b border-gray-200 px-4 py-5 md:px-5 md:py-7">
@@ -161,10 +161,7 @@ export default function HomeActionHero({
                   </div>
                 )
               ) : (
-                <div
-                  className="relative overflow-hidden rounded-xl"
-                  style={{ height: PANEL_H }}
-                >
+                <div className="relative overflow-hidden rounded-xl h-[166px] sm:h-[264px]">
                   <div className="pointer-events-none absolute inset-x-0 top-0 z-10 h-6 bg-gradient-to-b from-white to-transparent" />
                   <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-10 bg-gradient-to-t from-white to-transparent" />
 
