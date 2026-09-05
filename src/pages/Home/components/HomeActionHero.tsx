@@ -86,15 +86,25 @@ export default function HomeActionHero({
               <p className="text-base font-bold text-gray-800 md:text-lg">
                 一句话，<span className="text-primary-600">AI 帮你</span>找到本地靠谱服务
               </p>
-              <motion.button
-                data-tour="ai-match"
-                whileTap={{ scale: 0.97 }}
-                onClick={onOpenInquiry}
-                className="flex items-center justify-center gap-2 rounded-2xl bg-primary-600 px-5 py-3 text-sm font-bold text-white shadow-md transition-colors hover:bg-primary-700 sm:flex-shrink-0"
-              >
-                <Sparkles size={16} />
-                AI 智能匹配
-              </motion.button>
+              <div className="flex items-center gap-2 sm:flex-shrink-0">
+                <motion.button
+                  data-tour="ai-match"
+                  whileTap={{ scale: 0.97 }}
+                  onClick={onOpenInquiry}
+                  className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-primary-600 px-5 py-3 text-sm font-bold text-white shadow-md transition-colors hover:bg-primary-700"
+                >
+                  <Sparkles size={16} />
+                  AI 智能匹配
+                </motion.button>
+                <motion.button
+                  whileTap={{ scale: 0.97 }}
+                  onClick={() => navigate('/map')}
+                  className="flex flex-1 items-center justify-center gap-2 rounded-2xl border border-primary-200 bg-white px-5 py-3 text-sm font-bold text-primary-600 shadow-sm transition-colors hover:bg-primary-50"
+                >
+                  <MapPin size={16} />
+                  华邻地图
+                </motion.button>
+              </div>
             </div>
           </motion.div>
 

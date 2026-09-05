@@ -280,7 +280,8 @@ export default function Home() {
         {/* ── Services feed ────────────────────────────────────────────────── */}
         {feedMode === 'services' && (
           <>
-            <HomeServiceShelf
+            {/* 「附近服务」块暂时隐藏(总是空、与猜你喜欢/华邻地图重复)。改 false→true 即恢复。 */}
+            {false && <HomeServiceShelf
               title={userLocation ? '附近服务' : '本地热门'}
               subtitle={
                 userLocation
@@ -304,7 +305,7 @@ export default function Home() {
                   : filtered
                 return <MapPreviewCard to="/map" count={radiusFiltered.length} label="在华邻地图查看附近服务" />
               }}
-            />
+            />}
             {servicesHasMore && (
               <div className="flex justify-center mb-6">
                 <button
