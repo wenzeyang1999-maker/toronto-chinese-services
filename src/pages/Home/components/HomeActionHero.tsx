@@ -117,8 +117,10 @@ export default function HomeActionHero({
               <p className="text-base font-bold text-gray-800 md:text-lg">
                 一句话，<span className="text-primary-600">AI 帮你</span>找到本地靠谱服务
               </p>
-              {/* 两行错开的入口按钮 + 空档里各放一只随机邻邻(每次不同、不重复;桌面放大) */}
+              {/* 入口按钮 + 空档邻邻。AI 智能匹配大按钮暂时隐藏(用户量小,改走「发布需求」),
+                  去掉 {false&&} 即恢复。 */}
               <div className="flex flex-col gap-2.5 w-full max-w-md lg:max-w-xl">
+                {false && (
                 <div className="flex items-center gap-1">
                   <motion.button
                     data-tour="ai-match"
@@ -138,6 +140,7 @@ export default function HomeActionHero({
                     <HeroMascot pose={heroPoses[0]} delay={0.1} />
                   </div>
                 </div>
+                )}
                 <div className="flex items-center gap-1">
                   <div className="flex-1 flex justify-center">
                     <HeroMascot pose={heroPoses[1]} delay={0.18} />

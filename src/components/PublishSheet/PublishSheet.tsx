@@ -4,7 +4,7 @@
 // 发服务 + orange FAB 发需求 + inline card) with one consistent panel.
 import { motion, AnimatePresence } from 'framer-motion'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { Wrench, Megaphone, MessageSquareText, CalendarPlus, Briefcase, ShoppingBag, Home } from 'lucide-react'
+import { Wrench, MessageSquareText, CalendarPlus, Briefcase, ShoppingBag, Home, Sparkles } from 'lucide-react'
 import { useAuthStore } from '../../store/authStore'
 import { useInquiryStore } from '../../store/inquiryStore'
 import { useGeoStore } from '../../store/geoStore'
@@ -18,8 +18,8 @@ type PublishOption = {
   to?: string; inquiry?: boolean
 }
 const OPTIONS: PublishOption[] = [
-  { key: 'services',    label: '商家服务贴', sub: '我能提供的服务', to: '/post',            icon: Wrench,            color: 'text-primary-600 bg-primary-50' },
-  { key: 'inquiry',     label: '发需求',    sub: 'AI 智能匹配 · 商家主动联系', inquiry: true,       icon: Megaphone,         color: 'text-orange-600 bg-orange-50' },
+  { key: 'inquiry',     label: 'AI 智能匹配', sub: '一句话描述需求 · 商家主动联系你', inquiry: true,     icon: Sparkles,          color: 'text-primary-600 bg-primary-50' },
+  { key: 'services',    label: '商家服务贴', sub: '我能提供的服务', to: '/post',            icon: Wrench,            color: 'text-orange-600 bg-orange-50' },
   { key: 'community',   label: '论坛贴',    sub: '社区圈子',       to: '/community/post',  icon: MessageSquareText, color: 'text-rose-600 bg-rose-50' },
   { key: 'events',      label: '发活动',   sub: '同城聚会',       to: '/events/post',     icon: CalendarPlus,      color: 'text-violet-600 bg-violet-50' },
   { key: 'jobs',        label: '发招聘',   sub: '招聘 / 求职',    to: '/jobs/post',       icon: Briefcase,         color: 'text-blue-600 bg-blue-50' },
