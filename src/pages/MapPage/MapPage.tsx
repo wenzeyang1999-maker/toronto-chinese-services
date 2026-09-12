@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { Search, Navigation, X, Sparkles, Map as MapIcon, List, Loader2, User as UserIcon, Crosshair } from 'lucide-react'
 import { cdnUrl } from '../../lib/cdnUrl'
-import { detectPlace, QUICK_PLACES } from '../../data/gtaPlaces'
+import { detectPlace, QUICK_PLACES, GTA_PLACES } from '../../data/gtaPlaces'
 import Header from '../../components/Header/Header'
 import VoiceSearchButton from '../../components/VoiceSearchButton/VoiceSearchButton'
 import Mascot from '../../components/Mascot/Mascot'
@@ -15,7 +15,7 @@ import { useGeolocation, useUpdateLocation, LOCATION_STALE_MS } from '../../hook
 import { supabase } from '../../lib/supabase'
 import GoogleMapCanvas, { type GoogleMapCanvasHandle, type GoogleMapPoint } from '../../components/ServiceMap/GoogleMapCanvas'
 import type { Service, OnlineProvider } from '../../types'
-import { buildServiceInfo, buildDemandInfo, buildOnlineProviderInfo } from '../../lib/mapInfoWindows'
+import { buildServiceInfo, buildDemandInfo, buildOnlineProviderInfo, buildDirectoryMerchantInfo } from '../../lib/mapInfoWindows'
 import { fuzzyFilterServices, fuzzyFilterRequests } from '../../lib/fuzzySearch'
 import { smartSearch, smartRouteToUrl } from '../../lib/smartSearch'
 
@@ -23,6 +23,31 @@ function hasCoordinates(service: Service): service is Service & {
   location: { lat: number; lng: number; address: string; city: string; area?: string }
 } {
   return service.location.lat != null && service.location.lng != null
+}
+
+// 收录商家:按 area 字符串判断是否属于某个城市(用 gtaPlaces 别名匹配)。
+function areaMatchesPlace(area: string, placeLabel: string): boolean {
+  const place = GTA_PLACES.find((p) => p.label === placeLabel)
+  if (!place) return false
+  const a = area.toLowerCase()
+  return place.aliases.some((al) => a.includes(al.toLowerCase()))
+}
+// 同城多个商家钉在一点会重叠 —— 按 id 稳定地散开一点(~几百米)。
+function jitter(seed: string): number {
+  let h = 0
+  for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) | 0
+  return ((Math.abs(h) % 9) - 4) * 0.004
+}
+
+interface DirMerchant {
+  source: string
+  id: string
+  name: string
+  avatar_url: string | null
+  bio: string | null
+  category_id: string | null
+  area: string | null
+  status: string
 }
 
 export default function MapPage() {
@@ -43,6 +68,7 @@ export default function MapPage() {
   // 搜索结果(针)就能自动还原,不用重新输入(#20260822)。
   const [search, setSearch] = useState(() => searchParams.get('q') ?? '')
   const [onlineProviders, setOnlineProviders] = useState<OnlineProvider[]>([])
+  const [directoryMerchants, setDirectoryMerchants] = useState<DirMerchant[]>([])
   const [display, setDisplay] = useState<'map' | 'list'>('map')   // 地图 / 列表(内测#10)
   const [routing, setRouting] = useState(false)                   // AI 全站搜索跳转中
   const [orderFilter, setOrderFilter] = useState<'all' | 'urgent' | 'scheduled'>('all')  // 找订单:急单/预约单
@@ -104,6 +130,13 @@ export default function MapPage() {
   useEffect(() => {
     requestLocation({ maxAgeMs: LOCATION_STALE_MS })
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // 收录商家(用于在地图上按地区展示;坐标从 area 派生)。
+  useEffect(() => {
+    supabase.rpc('merchant_showcase', { p_limit: 100 }).then(({ data }) => {
+      if (data) setDirectoryMerchants((data as DirMerchant[]).filter((m) => m.source === 'directory'))
+    })
   }, [])
 
   useEffect(() => {
@@ -222,9 +255,35 @@ export default function MapPage() {
       } as GoogleMapPoint))
   }, [matchedOnline, navigate])
 
+  // 收录商家针:搜索关键词 / 搜到地名(serviceLoc)/ 搜「所有商家」时,把商家按地区铺到图上。
+  const wantAllMerchants = /所有|全部|商家/.test(search)
+  const directoryPoints = useMemo<GoogleMapPoint[]>(() => {
+    if (requestsMode) return []
+    if (!kw && !serviceLoc && !wantAllMerchants) return []
+    let list = directoryMerchants
+    if (serviceLoc) list = list.filter((m) => m.area && areaMatchesPlace(m.area, serviceLoc.label))
+    if (kw && !wantAllMerchants) {
+      list = list.filter((m) => matches(m.name) || matches(m.bio) || (m.area ? matches(m.area) : false))
+    }
+    return list
+      .map((m) => {
+        // 有服务地点就都钉在该地点附近;否则钉在 area 识别出的城市。
+        // 有服务地点→都钉该地点;否则按 area 识别城市;都不认识则退回多伦多中心(不丢商家)。
+        const base = serviceLoc ?? detectPlace(m.area || '')?.place ?? { lat: 43.6532, lng: -79.3832 }
+        return {
+          id: `dir-${m.id}`,
+          lat: base.lat + jitter(m.id),
+          lng: base.lng + jitter(m.id + 'x'),
+          title: m.name,
+          infoContent: buildDirectoryMerchantInfo(m, () => navigate(`/merchant/${m.id}`)),
+        } as GoogleMapPoint
+      })
+      .filter((p): p is GoogleMapPoint => p !== null)
+  }, [directoryMerchants, kw, serviceLoc, wantAllMerchants, requestsMode, navigate])
+
   const points = useMemo(
-    () => [...servicePoints, ...requestPoints, ...onlinePoints],
-    [servicePoints, requestPoints, onlinePoints]
+    () => [...servicePoints, ...requestPoints, ...onlinePoints, ...directoryPoints],
+    [servicePoints, requestPoints, onlinePoints, directoryPoints]
   )
 
   const center = serviceLoc ?? userLocation ?? { lat: 43.7, lng: -79.42 }
@@ -376,7 +435,9 @@ export default function MapPage() {
           <span className="bg-white/95 backdrop-blur rounded-full px-3 py-1 shadow text-xs font-semibold text-gray-700">
             {requestsMode
               ? `${requestList.length} 条需求`
-              : (kw ? `${mapped.length + matchedOnline.length} 位在线服务商` : '搜索关键词查看在线服务商')}
+              : (kw || directoryPoints.length > 0)
+                ? `${mapped.length + matchedOnline.length + directoryPoints.length} 个结果`
+                : '搜索关键词或地名 · 查看商家'}
           </span>
           <div className="inline-flex items-center gap-0.5 rounded-full bg-white p-0.5 shadow text-xs">
             <button

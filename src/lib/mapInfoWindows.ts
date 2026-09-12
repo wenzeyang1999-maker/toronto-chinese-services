@@ -14,6 +14,26 @@ function div(text: string, cssText: string): HTMLDivElement {
   return el
 }
 
+// 收录商家(待认领)信息卡 —— 琥珀色标识,点击进详情页。
+export function buildDirectoryMerchantInfo(
+  m: { name: string; area: string | null; bio: string | null },
+  onClick: () => void,
+): HTMLElement {
+  const wrapper = document.createElement('div')
+  wrapper.style.cssText = 'padding:10px 14px;min-width:170px;max-width:220px'
+  wrapper.appendChild(div('🟡 平台收录 · 待认领', 'font-size:11px;font-weight:700;color:#d97706;margin-bottom:4px'))
+  wrapper.appendChild(div(m.name, 'font-size:13px;font-weight:600;color:#111;margin-bottom:4px'))
+  if (m.bio) wrapper.appendChild(div(m.bio, 'font-size:11px;color:#6b7280;margin-bottom:6px;line-height:1.4'))
+  else if (m.area) wrapper.appendChild(div(m.area, 'font-size:11px;color:#6b7280;margin-bottom:6px'))
+  const btn = document.createElement('button')
+  btn.type = 'button'
+  btn.style.cssText = 'width:100%;background:#f59e0b;color:#fff;border:none;border-radius:8px;padding:6px 0;font-size:12px;font-weight:600;cursor:pointer'
+  btn.textContent = '查看 / 认领'
+  btn.onclick = (e) => { e.stopPropagation(); onClick() }
+  wrapper.appendChild(btn)
+  return wrapper
+}
+
 export function buildServiceInfo(service: Service, onDetail: () => void, onProvider: () => void): HTMLElement {
   const wrapper = document.createElement('div')
   wrapper.className = 'min-w-[190px] max-w-[220px] p-1'

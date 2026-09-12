@@ -11,7 +11,7 @@ export interface GtaPlace {
 }
 
 export const GTA_PLACES: GtaPlace[] = [
-  { label: '多伦多市区', lat: 43.6532, lng: -79.3832, aliases: ['多伦多市区', '多伦多', '市中心', 'downtown', 'toronto'] },
+  { label: '多伦多市区', lat: 43.6532, lng: -79.3832, aliases: ['多伦多市区', '多伦多', '市中心', 'downtown', 'toronto', 'gta', '大多', '大多伦多'] },
   { label: '北约克',     lat: 43.7615, lng: -79.4111, aliases: ['北约克', 'north york', 'northyork'] },
   { label: '士嘉堡',     lat: 43.7764, lng: -79.2318, aliases: ['士嘉堡', '世嘉宝', 'scarborough'] },
   { label: '怡陶碧谷',   lat: 43.6205, lng: -79.5132, aliases: ['怡陶碧谷', 'etobicoke'] },
