@@ -6,6 +6,7 @@ import { Search, Navigation, X, Sparkles, Map as MapIcon, List, Loader2, User as
 import { cdnUrl } from '../../lib/cdnUrl'
 import { detectPlace, QUICK_PLACES } from '../../data/gtaPlaces'
 import Header from '../../components/Header/Header'
+import VoiceSearchButton from '../../components/VoiceSearchButton/VoiceSearchButton'
 import Mascot from '../../components/Mascot/Mascot'
 import ServiceCard from '../../components/ServiceCard/ServiceCard'
 import { useAppStore } from '../../store/appStore'
@@ -62,9 +63,10 @@ export default function MapPage() {
 
   // 地图搜索回车 → AI 全站解析:跨板块(房产/二手/招聘/社区)跳对应板块,
   // 服务/订单留在本页(已由输入实时筛选)。(内测#6+#10)
-  async function handleSmartEnter() {
-    const q = search.trim()
+  async function handleSmartEnter(queryOverride?: string) {
+    const q = (queryOverride ?? search).trim()
     if (!q || routing) return
+    if (queryOverride != null) setSearch(queryOverride)
     // 先识别地名(如「多伦多搬家」里的多伦多)→ 设为「服务地点」、地图转过去、
     // 关键词只留服务(搬家),留在本页显示那儿的商家。
     const hit = detectPlace(q)
@@ -311,6 +313,7 @@ export default function MapPage() {
               <X size={16} />
             </button>
           )}
+          <VoiceSearchButton onText={(t) => handleSmartEnter(t)} />
         </div>
 
         {/* 服务地点(找服务模式):默认「我的位置」,可搜地名或快选城市 —— 我在哪 ≠ 我要在哪找服务 */}
