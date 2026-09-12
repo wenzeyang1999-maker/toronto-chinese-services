@@ -19,6 +19,7 @@ import CityPicker from '../CityPicker/CityPicker'
 import HuaLinLogo from '../Logo/HuaLinLogo'
 import AdminNotificationsBell from '../AdminNotifications/AdminNotificationsBell'
 import InstallHeaderButton from '../InstallAppButton/InstallHeaderButton'
+import VoiceSearchButton from '../VoiceSearchButton/VoiceSearchButton'
 
 // ── Section definitions ───────────────────────────────────────────────────────
 const NAV_SECTIONS = [
@@ -178,6 +179,7 @@ export default function Header({ sticky = true }: HeaderProps) {
               placeholder={placeholder}
               className="flex-1 bg-transparent text-sm text-gray-800 placeholder-gray-400 outline-none min-w-0"
             />
+            <VoiceSearchButton onText={(t) => setSearchQuery((q) => (q.trim() ? q.trim() + ' ' : '') + t)} />
             <label className="flex items-center gap-1 flex-shrink-0 cursor-pointer select-none">
               <input
                 type="checkbox"
@@ -284,6 +286,7 @@ export default function Header({ sticky = true }: HeaderProps) {
               placeholder={placeholder}
               className="flex-1 bg-transparent text-sm text-gray-800 placeholder-gray-400 outline-none"
             />
+            <VoiceSearchButton onText={(t) => setSearchQuery((q) => (q.trim() ? q.trim() + ' ' : '') + t)} />
             <label className="flex items-center gap-1 flex-shrink-0 cursor-pointer select-none">
               <input
                 type="checkbox"
