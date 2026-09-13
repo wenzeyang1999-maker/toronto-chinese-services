@@ -255,9 +255,9 @@ export default function MapPage() {
       } as GoogleMapPoint))
   }, [matchedOnline, navigate])
 
-  // 收录商家针:搜索关键词 / 搜到地名(serviceLoc)/ 搜「所有商家」时,把商家按地区铺到图上。
+  // 收录商家:搜关键词 / 搜到地名(serviceLoc)/ 搜「所有商家」时展示。地图和列表共用同一批。
   const wantAllMerchants = /所有|全部|商家/.test(search)
-  const directoryPoints = useMemo<GoogleMapPoint[]>(() => {
+  const directoryList = useMemo<DirMerchant[]>(() => {
     if (requestsMode) return []
     if (!kw && !serviceLoc && !wantAllMerchants) return []
     let list = directoryMerchants
@@ -266,20 +266,22 @@ export default function MapPage() {
       list = list.filter((m) => matches(m.name) || matches(m.bio) || (m.area ? matches(m.area) : false))
     }
     return list
-      .map((m) => {
-        // 有服务地点就都钉在该地点附近;否则钉在 area 识别出的城市。
-        // 有服务地点→都钉该地点;否则按 area 识别城市;都不认识则退回多伦多中心(不丢商家)。
-        const base = serviceLoc ?? detectPlace(m.area || '')?.place ?? { lat: 43.6532, lng: -79.3832 }
-        return {
-          id: `dir-${m.id}`,
-          lat: base.lat + jitter(m.id),
-          lng: base.lng + jitter(m.id + 'x'),
-          title: m.name,
-          infoContent: buildDirectoryMerchantInfo(m, () => navigate(`/merchant/${m.id}`)),
-        } as GoogleMapPoint
-      })
-      .filter((p): p is GoogleMapPoint => p !== null)
-  }, [directoryMerchants, kw, serviceLoc, wantAllMerchants, requestsMode, navigate])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [directoryMerchants, kw, serviceLoc, wantAllMerchants, requestsMode])
+
+  const directoryPoints = useMemo<GoogleMapPoint[]>(() =>
+    directoryList.map((m) => {
+      // 有服务地点→都钉该地点;否则按 area 识别城市;都不认识则退回多伦多中心(不丢商家)。
+      const base = serviceLoc ?? detectPlace(m.area || '')?.place ?? { lat: 43.6532, lng: -79.3832 }
+      return {
+        id: `dir-${m.id}`,
+        lat: base.lat + jitter(m.id),
+        lng: base.lng + jitter(m.id + 'x'),
+        title: m.name,
+        infoContent: buildDirectoryMerchantInfo(m, () => navigate(`/merchant/${m.id}`)),
+      } as GoogleMapPoint
+    }),
+  [directoryList, serviceLoc, navigate])
 
   const points = useMemo(
     () => [...servicePoints, ...requestPoints, ...onlinePoints, ...directoryPoints],
@@ -435,8 +437,8 @@ export default function MapPage() {
           <span className="bg-white/95 backdrop-blur rounded-full px-3 py-1 shadow text-xs font-semibold text-gray-700">
             {requestsMode
               ? `${requestList.length} 条需求`
-              : (kw || directoryPoints.length > 0)
-                ? `${mapped.length + matchedOnline.length + directoryPoints.length} 个结果`
+              : (kw || directoryList.length > 0)
+                ? `${mapped.length + matchedOnline.length + directoryList.length} 个结果`
                 : '搜索关键词或地名 · 查看商家'}
           </span>
           <div className="inline-flex items-center gap-0.5 rounded-full bg-white p-0.5 shadow text-xs">
@@ -484,18 +486,36 @@ export default function MapPage() {
               </div>
             )
           ) : (
-            !kw ? (
+            (!kw && directoryList.length === 0) ? (
               <div className="flex flex-col items-center pt-16 text-center px-6">
                 <Mascot pose="curious" size={72} className="mb-2" />
-                <p className="text-sm text-gray-500">搜索关键词(如「搬运」「保洁」)查看附近正在上线接单的服务商</p>
+                <p className="text-sm text-gray-500">搜索关键词(如「搬运」「保洁」)或地名(如「滑铁卢」)查看商家</p>
               </div>
-            ) : (mapped.length === 0 && matchedOnline.length === 0) ? (
+            ) : (mapped.length === 0 && matchedOnline.length === 0 && directoryList.length === 0) ? (
               <div className="flex flex-col items-center pt-16 text-center">
                 <Mascot pose="curious" size={72} className="mb-2" />
-                <p className="text-sm text-gray-500">没有找到「{search}」相关的在线服务商</p>
+                <p className="text-sm text-gray-500">没有找到「{search}」相关的服务商</p>
               </div>
             ) : (
               <div className="grid gap-3 max-w-2xl mx-auto">
+                {/* 收录商家(平台公开资料·待认领)——与地图针一致 */}
+                {directoryList.map((m) => (
+                  <button key={`dir-${m.id}`} onClick={() => navigate(`/merchant/${m.id}`)}
+                    className="w-full text-left bg-white rounded-2xl border border-amber-200 shadow-sm p-3 flex items-center gap-3 active:scale-[0.99] transition-transform">
+                    <div className="w-11 h-11 rounded-full overflow-hidden flex-shrink-0 bg-amber-50 ring-1 ring-amber-200 flex items-center justify-center">
+                      {m.avatar_url
+                        ? <img loading="lazy" src={cdnUrl(m.avatar_url, 96)} alt="" className="w-full h-full object-cover" />
+                        : <span className="text-base font-bold text-amber-600">{(m.name || '商').charAt(0)}</span>}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5">
+                        <p className="text-sm font-semibold text-gray-800 truncate">{m.name}</p>
+                        <span className="flex-shrink-0 text-[10px] font-bold text-amber-600 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded-full">待认领</span>
+                      </div>
+                      <p className="text-xs text-gray-400 mt-0.5 truncate">{m.bio || (m.area ? `${m.area} · 华人本地服务` : '华人本地服务商家')}</p>
+                    </div>
+                  </button>
+                ))}
                 {/* 在线商家(可能没发服务贴,但正在上线接单)——与地图针一致 */}
                 {matchedOnline.map((p) => (
                   <button key={`online-${p.id}`} onClick={() => navigate(`/provider/${p.id}`)}
