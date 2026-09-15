@@ -24,7 +24,7 @@ import VoiceSearchButton from '../VoiceSearchButton/VoiceSearchButton'
 // ── Section definitions ───────────────────────────────────────────────────────
 const NAV_SECTIONS = [
   { id: 'urgent',     label: '华邻地图', href: '/map' },
-  { id: 'services',   label: '服务大厅', href: '/?view=services' },
+  { id: 'services',   label: '商家展示', href: '/?view=services' },
   { id: 'realestate', label: '房产租售', href: '/realestate' },
   { id: 'jobs',       label: '求职招聘', href: '/jobs' },
   { id: 'secondhand', label: '二手交易', href: '/secondhand' },
