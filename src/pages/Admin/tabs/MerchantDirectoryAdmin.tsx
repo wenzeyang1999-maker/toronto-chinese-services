@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react'
 import { BookMarked, Plus, Trash2, CheckCircle2 } from 'lucide-react'
 import { supabase } from '../../../lib/supabase'
 import { toast } from '../../../lib/toast'
-import { CATEGORIES } from '../../../data/categories'
 
 interface DirRow {
   id: string
@@ -20,7 +19,8 @@ interface DirRow {
   created_at: string
 }
 
-const EMPTY = { name: '', category_id: '', area: '', phone: '', wechat: '', avatar_url: '', bio: '', source_url: '' }
+// 类别下拉取消,改为手动输入名片关键词(搜索匹配核心)。keywords 用逗号/顿号/空格分隔。
+const EMPTY = { name: '', keywords: '', area: '', phone: '', wechat: '', avatar_url: '', bio: '', source_url: '' }
 
 export default function MerchantDirectoryAdmin() {
   const [rows, setRows] = useState<DirRow[]>([])
@@ -41,9 +41,18 @@ export default function MerchantDirectoryAdmin() {
   async function submit() {
     if (!form.name.trim()) { toast('请填写商家名称', 'error'); return }
     setSaving(true)
-    const payload = Object.fromEntries(
-      Object.entries(form).map(([k, v]) => [k, v.trim() === '' ? null : v.trim()]),
-    )
+    // 名片关键词:逗号/顿号/空格分隔 → text[] 数组(供前台搜索匹配)。
+    const kw = form.keywords.split(/[,，、\s]+/).map((s) => s.trim()).filter(Boolean)
+    const payload = {
+      name: form.name.trim(),
+      area: form.area.trim() || null,
+      phone: form.phone.trim() || null,
+      wechat: form.wechat.trim() || null,
+      avatar_url: form.avatar_url.trim() || null,
+      bio: form.bio.trim() || null,
+      source_url: form.source_url.trim() || null,
+      keywords: kw.length ? kw : null,
+    }
     const { error } = await supabase.from('directory_merchants').insert(payload)
     setSaving(false)
     if (error) { toast('录入失败：' + error.message, 'error'); return }
@@ -82,11 +91,6 @@ export default function MerchantDirectoryAdmin() {
           <div className="grid grid-cols-2 gap-2">
             <input className={inp} placeholder="商家名称 *" value={form.name}
               onChange={(e) => setForm({ ...form, name: e.target.value })} />
-            <select className={inp} value={form.category_id}
-              onChange={(e) => setForm({ ...form, category_id: e.target.value })}>
-              <option value="">选择类别</option>
-              {CATEGORIES.map((c) => <option key={c.id} value={c.id}>{c.postLabel}</option>)}
-            </select>
             <input className={inp} placeholder="地区(如 士嘉堡)" value={form.area}
               onChange={(e) => setForm({ ...form, area: e.target.value })} />
             <input className={inp} placeholder="电话(仅后台可见)" value={form.phone}
@@ -98,6 +102,11 @@ export default function MerchantDirectoryAdmin() {
           </div>
           <input className={inp} placeholder="一句话简介" value={form.bio}
             onChange={(e) => setForm({ ...form, bio: e.target.value })} />
+          <div>
+            <input className={inp} placeholder="名片关键词(用逗号分隔,如:搬家,钢琴搬运,长途搬家)" value={form.keywords}
+              onChange={(e) => setForm({ ...form, keywords: e.target.value })} />
+            <p className="text-[11px] text-gray-400 mt-1">关键词决定用户能否搜到 —— 把客户会搜的词都填上(逗号/空格分隔)。</p>
+          </div>
           <input className={inp} placeholder="收录来源链接(小红书/点评/官网)" value={form.source_url}
             onChange={(e) => setForm({ ...form, source_url: e.target.value })} />
           <button onClick={submit} disabled={saving}
