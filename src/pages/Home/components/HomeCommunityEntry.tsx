@@ -37,7 +37,7 @@ export default function HomeCommunityEntry() {
             <MessageSquareText size={18} />
           </div>
           <div className="flex-1 min-w-0">
-            <h3 className="text-sm font-bold text-gray-900">大多广场 · 社区圈子</h3>
+            <h3 className="text-sm font-bold text-gray-900">多村论坛 · 社区圈子</h3>
             <p className="text-xs text-gray-400 mt-0.5 truncate">
               {posts[0] ? `最新：${posts[0].title}` : '求推荐 · 经验分享 · 问答 · 转让'}
             </p>

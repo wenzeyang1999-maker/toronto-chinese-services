@@ -2,7 +2,7 @@
 // V5.2 unified nav bar + P2 contextual search bar
 //
 // Desktop (≥ lg): single row
-//   Logo | 生活服务 求职招聘 二手交易 房产租售 大多广场 | [search input] | 🔔 [auth]
+//   Logo | 商家展示 求职招聘 二手交易 房产租售 多村论坛 | [search input] | 🔔 [auth]
 //
 // Mobile (< lg): three rows
 //   Row 1: Logo | <spacer> | 🔔 [auth]
@@ -28,7 +28,7 @@ const NAV_SECTIONS = [
   { id: 'realestate', label: '房产租售', href: '/realestate' },
   { id: 'jobs',       label: '求职招聘', href: '/jobs' },
   { id: 'secondhand', label: '二手交易', href: '/secondhand' },
-  { id: 'plaza',      label: '大多广场', href: '/plaza' },
+  { id: 'plaza',      label: '多村论坛', href: '/plaza' },
 ] as const
 
 type SectionId = typeof NAV_SECTIONS[number]['id']

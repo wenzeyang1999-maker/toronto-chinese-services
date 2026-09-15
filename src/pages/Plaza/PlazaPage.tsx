@@ -1,4 +1,4 @@
-// ─── Plaza Page (大多广场) ──────────────────────────────────────────────────────
+// ─── Plaza Page (多村论坛) ──────────────────────────────────────────────────────
 // Route: /plaza
 // A launcher hub, NOT a duplicate feed. 社区圈子 and 同城活动 now live in their
 // own canonical pages (/community, /events) which carry the full feature set
@@ -21,11 +21,11 @@ export default function PlazaPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 pb-24">
-      <PageMeta title="大多广场 — 华邻" description="华人社区圈子、同城活动、集市与公益,尽在华邻大多广场。" />
+      <PageMeta title="多村论坛 — 华邻" description="华人社区圈子、同城活动、集市与公益,尽在华邻多村论坛。" />
       <Header />
 
       <div className="w-full px-4 md:w-[85%] md:px-0 lg:w-[70%] mx-auto pt-5">
-        <h1 className="text-xl font-bold text-gray-900 mb-1">大多广场</h1>
+        <h1 className="text-xl font-bold text-gray-900 mb-1">多村论坛</h1>
         <p className="text-sm text-gray-400 mb-5">社区、活动、集市、公益 · 一站入口</p>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
