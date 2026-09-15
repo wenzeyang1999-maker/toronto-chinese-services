@@ -1,6 +1,6 @@
 // ─── Fullscreen Map Page ──────────────────────────────────────────────────────
 // Route: /map  — Google Maps-style fullscreen experience with top search bar
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { Search, Navigation, X, Sparkles, Map as MapIcon, List, Loader2, User as UserIcon, Crosshair } from 'lucide-react'
 import { cdnUrl } from '../../lib/cdnUrl'
@@ -93,6 +93,7 @@ export default function MapPage() {
     const q = (queryOverride ?? search).trim()
     if (!q || routing) return
     if (queryOverride != null) setSearch(queryOverride)
+    loadOnlineProviders()   // 每次搜索都拉最新在线商家(别人刚上线也能搜到)
     // 先识别地名(如「多伦多搬家」里的多伦多)→ 设为「服务地点」、地图转过去、
     // 关键词只留服务(搬家),留在本页显示那儿的商家。
     const hit = detectPlace(q)
@@ -139,11 +140,8 @@ export default function MapPage() {
     })
   }, [])
 
-  useEffect(() => {
-    if (requestsMode) return
-    let cancelled = false
-    // 只显示「最近 2 小时开过 App」的在线商家 —— 防止「上线一次忘了下线」的人
-    // 长期挂在旧位置(实测:朋友昨天上线、回世嘉宝没下线,仍钉在旧点)。#20260822
+  // 拉「最近 2 小时开过 App」的在线商家 —— 防止上线一次忘下线的人长期挂旧点。#20260822
+  const loadOnlineProviders = useCallback(() => {
     const freshCutoff = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString()
     supabase.from('users')
       .select('id, name, avatar_url, online_lat, online_lng, skill_tags')
@@ -153,12 +151,20 @@ export default function MapPage() {
       .not('online_lng', 'is', null)
       .limit(50)
       .then(({ data, error }) => {
-        if (cancelled) return
         if (error) { console.warn('[MapPage] online providers fetch failed:', error.message); return }
         if (data) setOnlineProviders(data as OnlineProvider[])
       })
-    return () => { cancelled = true }
-  }, [requestsMode])
+  }, [])
+
+  // 准实时:进页面拉一次 + 每 30s 轮询 + 切回前台时刷新 —— 别人刚「上线接单」也能很快看到。
+  useEffect(() => {
+    if (requestsMode) return
+    loadOnlineProviders()
+    const iv = window.setInterval(loadOnlineProviders, 30_000)
+    const onVis = () => { if (document.visibilityState === 'visible') loadOnlineProviders() }
+    document.addEventListener('visibilitychange', onVis)
+    return () => { window.clearInterval(iv); document.removeEventListener('visibilitychange', onVis) }
+  }, [requestsMode, loadOnlineProviders])
 
   // Provider mode: also show service requests as orange pins
   const isProvider = !!user && services.some((s) => s.provider.id === user.id)
