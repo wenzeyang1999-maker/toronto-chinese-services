@@ -6,6 +6,14 @@ import { toast } from '../../../lib/toast'
 import type { User as SupabaseUser } from '@supabase/supabase-js'
 
 const DELETE_CONFIRM_PHRASE = '删除我的账号'
+// 宽松匹配确认文字:去掉所有空白(含中文输入法全角空格 U+3000 / 零宽字符),
+// 并统一「帐/账」异体字 —— 否则用户明明打对了按钮却点不亮。
+function normalizePhrase(s: string): string {
+  return s.replace(/[\s　​﻿]/g, '').replace(/帐/g, '账')
+}
+function phraseMatches(input: string): boolean {
+  return normalizePhrase(input) === normalizePhrase(DELETE_CONFIRM_PHRASE)
+}
 
 interface Props {
   user:   SupabaseUser
@@ -86,7 +94,7 @@ export default function AccountSection({ user, name, phone, onNameChange, onPhon
   const [delBusy,    setDelBusy]    = useState(false)
 
   async function deleteAccount() {
-    if (delConfirm.trim() !== DELETE_CONFIRM_PHRASE) return
+    if (!phraseMatches(delConfirm)) { toast('请输入「' + DELETE_CONFIRM_PHRASE + '」以确认', 'error'); return }
     setDelBusy(true)
     const { data, error } = await supabase.functions.invoke<{ ok?: boolean; error?: string }>('delete-account', { body: {} })
     if (error || !data?.ok) {
@@ -234,7 +242,7 @@ export default function AccountSection({ user, name, phone, onNameChange, onPhon
               placeholder={DELETE_CONFIRM_PHRASE}
               className="w-full text-sm border border-gray-200 rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-red-300 mb-4" />
             <div className="flex flex-col gap-2">
-              <button onClick={deleteAccount} disabled={delBusy || delConfirm.trim() !== DELETE_CONFIRM_PHRASE}
+              <button onClick={deleteAccount} disabled={delBusy || !phraseMatches(delConfirm)}
                 className="w-full py-3 rounded-2xl bg-red-500 text-white font-semibold text-sm hover:bg-red-600 transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
                 {delBusy ? '正在注销…' : '永久注销'}
               </button>
