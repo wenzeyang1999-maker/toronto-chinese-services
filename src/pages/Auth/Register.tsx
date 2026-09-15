@@ -46,15 +46,12 @@ function toE164(raw: string): string {
 
 // ── Validation ────────────────────────────────────────────────────────────────
 function validate(form: RegisterForm): FormErrors {
+  // 邮箱注册只强制:邮箱 + 密码。姓名、手机号均为选填(后续按需补充)。
   const errors: FormErrors = {}
-  if (!form.name.trim())
-    errors.name = '请输入姓名'
   if (!form.email.trim())
     errors.email = '请输入邮箱'
   else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email))
     errors.email = '邮箱格式不正确'
-  if (!form.phone.trim())
-    errors.phone = '请输入手机号'
   if (!form.password)
     errors.password = '请设置密码'
   else if (form.password.length < 8)
@@ -111,7 +108,7 @@ export default function Register() {
   const [phoneError, setPhoneError]     = useState<string | null>(null)
 
   async function sendPhoneOtpReg() {
-    if (!form.name.trim()) { setPhoneError('请输入姓名'); return }
+    // 姓名选填(后续按需补充);手机注册只强制:手机号 + 同意条款。
     if (!agreedToTerms) { setTermsError(true); return }
     setTermsError(false)
     const e164 = toE164(form.phone)
@@ -120,7 +117,7 @@ export default function Register() {
     // Metadata is consumed by the handle_new_user() trigger on first verify.
     const { error } = await supabase.auth.signInWithOtp({
       phone: e164,
-      options: { data: { name: form.name.trim(), referred_by_code: referralCode.trim().toUpperCase() || null } },
+      options: { data: { name: form.name.trim() || '华邻用户', referred_by_code: referralCode.trim().toUpperCase() || null } },
     })
     setPhoneLoading(false)
     if (error) { setPhoneError('验证码发送失败，请稍后重试'); return }
@@ -178,7 +175,8 @@ export default function Register() {
         // doesn't bounce them to a different origin where they'd appear logged out.
         emailRedirectTo: `${window.location.origin}/`,
         data: {
-          name: form.name,
+          // 姓名选填:留空用邮箱前缀兜底,避免空名字。
+          name: form.name.trim() || form.email.split('@')[0] || '华邻用户',
           phone: form.phone.trim() || null,
           referred_by_code: referralCode.trim().toUpperCase() || null,
         },
@@ -348,20 +346,20 @@ export default function Register() {
           </div>
           <p className="text-[11px] text-gray-400 mb-4 leading-relaxed">
             {authMode === 'email'
-              ? '* 邮箱注册需设置密码，并通过邮件链接验证后才能登录'
-              : '* 手机注册免密码，通过短信验证码验证手机号，无需邮箱'}
+              ? '* 邮箱 + 密码即可注册,注册后直接登录使用(姓名/手机号选填)'
+              : '* 手机注册免密码,短信验证码验证即可(姓名选填,无需邮箱)'}
           </p>
 
           {authMode === 'email' ? (
           <form onSubmit={handleSubmit} className="space-y-4">
-            {/* Name */}
-            <Field label="姓名" error={errors.name}>
+            {/* Name (选填) */}
+            <Field label="姓名（选填）" error={errors.name}>
               <InputRow icon={<User size={16} />}>
                 <input
                   type="text"
                   value={form.name}
                   onChange={(e) => update('name', e.target.value)}
-                  placeholder="您的称呼"
+                  placeholder="您的称呼（可留空，之后再填）"
                   className="flex-1 bg-transparent outline-none text-sm text-gray-900 placeholder-gray-400"
                 />
               </InputRow>
@@ -380,14 +378,14 @@ export default function Register() {
               </InputRow>
             </Field>
 
-            {/* Phone */}
-            <Field label="手机号" error={errors.phone}>
+            {/* Phone (选填) */}
+            <Field label="手机号（选填）" error={errors.phone}>
               <InputRow icon={<Phone size={16} />}>
                 <input
                   type="tel"
                   value={form.phone}
                   onChange={(e) => update('phone', e.target.value)}
-                  placeholder="647-xxx-xxxx"
+                  placeholder="647-xxx-xxxx（可留空）"
                   className="flex-1 bg-transparent outline-none text-sm text-gray-900 placeholder-gray-400"
                 />
               </InputRow>
@@ -495,14 +493,14 @@ export default function Register() {
           </form>
           ) : (
           <div className="space-y-4">
-            {/* Name */}
-            <Field label="姓名">
+            {/* Name (选填) */}
+            <Field label="姓名（选填）">
               <InputRow icon={<User size={16} />}>
                 <input
                   type="text"
                   value={form.name}
                   onChange={(e) => update('name', e.target.value)}
-                  placeholder="您的称呼"
+                  placeholder="您的称呼（可留空）"
                   disabled={otpSent}
                   className="flex-1 bg-transparent outline-none text-sm text-gray-900 placeholder-gray-400 disabled:opacity-60"
                 />
