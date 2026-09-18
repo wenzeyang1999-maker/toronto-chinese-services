@@ -82,6 +82,7 @@ import UrgentLeadPopup from './components/UrgentLeadPopup/UrgentLeadPopup'
 import { useLeadAlerts } from './hooks/useLeadAlerts'
 import { useReadSync } from './lib/useReadSync'
 import { useViewportHeight } from './lib/useViewportHeight'
+import { useOnlinePresence } from './hooks/useOnlinePresence'
 
 function SearchAllRedirect() {
   const q = new URLSearchParams(window.location.search).get('q') ?? ''
@@ -138,6 +139,7 @@ export default function App() {
   useLeadAlerts()
   useReadSync()
   useViewportHeight()
+  useOnlinePresence()   // 服务商模式下把 is_online/last_seen 同步回 DB(心跳)
   const isLoadingDone = useAppStore((s) => s.isLoadingDone)
   const setLoadingDone = useAppStore((s) => s.setLoadingDone)
   const fetchServices = useAppStore((s) => s.fetchServices)
