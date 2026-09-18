@@ -13,7 +13,6 @@ import ServiceRequestCard from '../../components/ServiceRequestCard/ServiceReque
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuthStore } from '../../store/authStore'
 import HomeActionHero from './components/HomeActionHero'
-import HomeStatsBar from './components/HomeStatsBar'
 import PromoBanner from './components/PromoBanner'
 import HomeServiceShelf from './components/HomeServiceShelf'
 import HomeFollowingFeed from './components/HomeFollowingFeed'
@@ -249,8 +248,8 @@ export default function Home() {
           <PromoBanner />
         </div>
 
-        {/* 平台实时数据条(仅 admin/boss 可见) */}
-        <HomeStatsBar />
+        {/* 平台实时数据条:按需求(2026-09-14 ③)前台整块隐藏,数据只在后台 /dashboard 看。
+            恢复公开展示:重新 import HomeStatsBar 并在此渲染 <HomeStatsBar />。 */}
 
         {/* Category buttons —— 暂时隐藏(去掉 hidden 即可恢复) */}
         <section ref={catRef} className="hidden mb-4 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
