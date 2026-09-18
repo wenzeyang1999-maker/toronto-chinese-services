@@ -3,7 +3,7 @@
 // 含免责声明 + 「认领此商家」入口。数据走 merchant_detail RPC(按 id 返回单条,含电话)。
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ArrowLeft, Phone, MapPin, Languages, Globe, Info, BadgeCheck } from 'lucide-react'
+import { ArrowLeft, Phone, MapPin, Languages, Globe, Info, BadgeCheck, Lock } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { toast } from '../../lib/toast'
 import { useAuthStore } from '../../store/authStore'
@@ -21,6 +21,7 @@ interface Detail {
   phone: string | null
   wechat: string | null
   website: string | null
+  contact_locked?: boolean
   status: string
 }
 
@@ -104,13 +105,19 @@ export default function DirectoryMerchantPage() {
                   <Globe size={15} className="text-gray-400 flex-shrink-0" />{m.website}
                 </a>
               )}
-              {/* 公开电话:只在此页显示 */}
-              {m.phone && (
+              {/* 联系方式:仅登录可见(保护商家信息 + 引导注册登录) */}
+              {m.contact_locked ? (
+                <button
+                  onClick={() => navigate('/login', { state: { from: `/merchant/${id}` } })}
+                  className="w-full flex items-center justify-center gap-2 rounded-xl bg-primary-600 text-white font-semibold py-2.5 hover:bg-primary-700 transition-colors mt-1">
+                  <Lock size={15} /> 登录后查看联系方式
+                </button>
+              ) : m.phone ? (
                 <a href={`tel:${m.phone}`}
                   className="flex items-center justify-center gap-2 rounded-xl bg-primary-600 text-white font-semibold py-2.5 hover:bg-primary-700 transition-colors mt-1">
                   <Phone size={16} /> {m.phone}
                 </a>
-              )}
+              ) : null}
               {m.keywords && m.keywords.length > 0 && (
                 <div className="flex flex-wrap gap-1.5 pt-1">
                   {m.keywords.map((k) => (
