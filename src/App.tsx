@@ -164,11 +164,11 @@ export default function App() {
   // AND the initial data fetch have completed.
   useEffect(() => {
     let isActive = true
-    let timerDone = false
     let fetchDone = false
     let authDone = false
+    // 数据+登录态就绪就立刻进站(不再强制等满 2.8s);定时器只作「卡住兜底」的上限。
     const tryFinish = () => {
-      if (isActive && timerDone && fetchDone && authDone) setLoadingDone()
+      if (isActive && fetchDone && authDone) setLoadingDone()
     }
     const syncSessionUser = async (authUser: User | null) => {
       if (!isActive) return
@@ -242,9 +242,9 @@ export default function App() {
       .then(() => { fetchDone = true; tryFinish() })
       .catch(() => { fetchDone = true; tryFinish() })
 
+    // 兜底上限:即使 auth/fetch 卡住,最多 2.8s 也进站(不是最低等待,是最长等待)。
     const timerId = window.setTimeout(() => {
-      timerDone = true
-      tryFinish()
+      if (isActive) setLoadingDone()
     }, 2800)
 
     supabase.auth.getSession().then(({ data }) => {
