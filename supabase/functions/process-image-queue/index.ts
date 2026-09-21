@@ -4,6 +4,7 @@
 // (flip its active flag) + notify the owner and all admins. Called by pg_cron
 // with the service-role key; processes a small batch per run to respect limits.
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.57.4'
+import { reportError } from '../_shared/reportError.ts'
 
 const BATCH = 8   // images per run (respect qwen free-tier token/min)
 
@@ -46,7 +47,10 @@ async function moderateUrl(apiKey: string, url: string): Promise<{ pass: boolean
       }),
     })
     if (res.status === 429) return null                 // 仍在限流 → 留待下次
-    if (!res.ok) return { pass: true }                  // 其它错误 → 放行（本次不再重试）
+    if (!res.ok) {                                       // 其它错误(如模型下线)→ 放行 + 告警
+      await reportError('process-image-queue', `groq_vision_${res.status}`, (await res.text().catch(() => '')).slice(0, 500))
+      return { pass: true }
+    }
     const data = await res.json()
     const raw  = data.choices?.[0]?.message?.content?.trim() ?? '{}'
     try { return JSON.parse(raw) } catch { return { pass: true } }

@@ -5,6 +5,7 @@
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.57.4'
 import { allowAiCallByUser } from '../_shared/aiRateLimit.ts'
+import { reportError } from '../_shared/reportError.ts'
 
 const RL_MAX    = 60              // moderations per user per window (called on each publish)
 const RL_WINDOW = 10 * 60 * 1000  // 10 minutes
@@ -125,6 +126,8 @@ Deno.serve(async (req: Request) => {
         })
         if (!res.ok) {
           console.error('Groq vision error:', res.status)
+          const detail = await res.text().catch(() => '')
+          await reportError('moderate-content', `groq_vision_${res.status}`, detail.slice(0, 500))
           // 限流/出错 → fail-open 放行，但标记 deferred，让客户端入队稍后补审
           return new Response(JSON.stringify({ pass: true, deferred: true }), { headers: { ...cors, 'Content-Type': 'application/json' } })
         }
@@ -135,6 +138,7 @@ Deno.serve(async (req: Request) => {
         return new Response(JSON.stringify(result), { headers: { ...cors, 'Content-Type': 'application/json' } })
       } catch (e) {
         console.error('vision moderation error:', e)
+        await reportError('moderate-content', 'vision_exception', e instanceof Error ? e.message : String(e))
         return new Response(JSON.stringify({ pass: true, deferred: true }), { headers: { ...cors, 'Content-Type': 'application/json' } })   // fail open + defer
       }
     }
