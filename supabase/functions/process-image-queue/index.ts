@@ -32,7 +32,7 @@ async function moderateUrl(apiKey: string, url: string): Promise<{ pass: boolean
       signal: AbortSignal.timeout(20_000),
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
       body: JSON.stringify({
-        model: 'qwen/qwen3.6-27b',
+        model: 'qwen/qwen3.8-27b',   // 旧 qwen3.6-27b 已下线,换继任 3.8(2026-09)
         max_tokens: 128,
         temperature: 0,
         response_format: { type: 'json_object' },

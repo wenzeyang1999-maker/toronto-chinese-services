@@ -105,10 +105,10 @@ Deno.serve(async (req: Request) => {
           signal: AbortSignal.timeout(15_000),   // 视觉推理略慢
           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
           body: JSON.stringify({
-            model:       'qwen/qwen3.6-27b',   // Groq 多模态（可看图）
+            model:       'qwen/qwen3.8-27b',   // Groq 多模态（可看图）。旧的 qwen3.6-27b 已下线 → 每次 deferred → 头像永远「审核繁忙」，2026-09 换成继任 3.8。
             max_tokens:  128,
             temperature: 0,
-            // qwen3.6 是「思考型」模型：默认把 token 花在 <think> 推理上，
+            // qwen3.x 是「思考型」模型：默认把 token 花在 <think> 推理上，
             // 128 token 被吃光后正式输出为空 → Groq json_object 校验失败(400
             // json_validate_failed) → 审核每次 deferred → 头像永远「审核繁忙」。
             // 关掉思考后直接产出目标 JSON。(合法值仅 none / default)
