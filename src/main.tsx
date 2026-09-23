@@ -9,9 +9,15 @@ import App from './App'
 import './index.css'
 import { registerServiceWorker } from './lib/pwa'
 import { initSentry } from './lib/sentry'
+import { readLang } from './store/langStore'
 
 initSentry()
 registerServiceWorker()
+
+// 繁体:启动整站简→繁转换(简体为默认,不加载词库)。
+if (readLang() === 'zh-TW') {
+  import('./lib/traditionalize').then((m) => m.startTraditionalize())
+}
 
 // After a new deploy, chunk filenames change and the old lazy-loaded chunks are
 // gone. A tab opened before the deploy will fail to fetch them ("Failed to fetch

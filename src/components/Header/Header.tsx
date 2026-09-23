@@ -20,6 +20,7 @@ import HuaLinLogo from '../Logo/HuaLinLogo'
 import AdminNotificationsBell from '../AdminNotifications/AdminNotificationsBell'
 import InstallHeaderButton from '../InstallAppButton/InstallHeaderButton'
 import VoiceSearchButton from '../VoiceSearchButton/VoiceSearchButton'
+import LangSwitcher from '../LangSwitcher/LangSwitcher'
 
 // ── Section definitions ───────────────────────────────────────────────────────
 const NAV_SECTIONS = [
@@ -209,6 +210,9 @@ export default function Header({ sticky = true }: HeaderProps) {
 
           {/* Admin notification bell */}
           {user && <AdminNotificationsBell compact />}
+
+          {/* 语言切换(简/繁) */}
+          <LangSwitcher />
 
           {/* 常驻「下载到桌面」入口 */}
           <InstallHeaderButton />
