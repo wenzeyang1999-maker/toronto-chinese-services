@@ -32,6 +32,7 @@ export default function ProviderProfile() {
   const [provider,        setProvider]       = useState<ProviderUser | null>(null)
   const [services,        setServices]       = useState<ServiceRow[]>([])
   const [providerReviews, setProviderReviews] = useState<ProviderReview[]>([])
+  const [reviewRefresh, setReviewRefresh] = useState(0)   // 提交评价后触发重载
   const [jobs,            setJobs]           = useState<Job[]>([])
   const [properties,      setProperties]     = useState<Property[]>([])
   const [secondhandItems, setSecondhandItems] = useState<SecondhandItem[]>([])
@@ -161,7 +162,7 @@ export default function ProviderProfile() {
     }
 
     load()
-  }, [id, user?.id])
+  }, [id, user?.id, reviewRefresh])
 
   async function handleMessage() {
     if (!user) { navigate('/login'); return }
@@ -305,7 +306,12 @@ export default function ProviderProfile() {
         {events.length > 0 && <div id="pp-events" className="scroll-mt-28"><EventsSection events={events} /></div>}
 
         <div id="pp-reviews" className="scroll-mt-28">
-          <ReviewsSection reviews={providerReviews} />
+          <ReviewsSection
+            reviews={providerReviews}
+            providerId={id}
+            canReview={!!user && provider?.id !== user.id}
+            onReviewed={() => setReviewRefresh((k) => k + 1)}
+          />
         </div>
       </div>
     </div>

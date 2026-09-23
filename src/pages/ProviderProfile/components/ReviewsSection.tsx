@@ -1,17 +1,40 @@
 import { useState } from 'react'
 import { cdnUrl } from '../../../lib/cdnUrl'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Star } from 'lucide-react'
+import { Star, PenLine, X } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import type { ProviderReview } from '../types'
+import { supabase } from '../../../lib/supabase'
+import { toast } from '../../../lib/toast'
 
 interface Props {
   reviews: ProviderReview[]
+  providerId?: string        // 可写评价时传入
+  canReview?: boolean        // 已登录 且 非本人
+  onReviewed?: () => void     // 提交成功 → 上层重载
 }
 
-export default function ReviewsSection({ reviews }: Props) {
+export default function ReviewsSection({ reviews, providerId, canReview, onReviewed }: Props) {
   const navigate = useNavigate()
   const [starFilter, setStarFilter] = useState(0)
+  const [open, setOpen] = useState(false)
+  const [myRating, setMyRating] = useState(0)
+  const [comment, setComment] = useState('')
+  const [submitting, setSubmitting] = useState(false)
+
+  async function submitReview() {
+    if (!providerId) return
+    if (myRating === 0) { toast('请选择星级', 'error'); return }
+    setSubmitting(true)
+    const { error } = await supabase.rpc('submit_provider_review', {
+      p_provider: providerId, p_rating: myRating, p_comment: comment.trim() || null,
+    })
+    setSubmitting(false)
+    if (error) { toast('提交失败：' + error.message, 'error'); return }
+    toast('评价已提交 ✓', 'success')
+    setOpen(false); setMyRating(0); setComment('')
+    onReviewed?.()
+  }
 
   const avgRating = reviews.length
     ? reviews.reduce((s, r) => s + r.rating, 0) / reviews.length
@@ -28,7 +51,43 @@ export default function ReviewsSection({ reviews }: Props) {
             </span>
           )}
         </h2>
+        {canReview && providerId && (
+          <button onClick={() => setOpen(true)}
+            className="inline-flex items-center gap-1 text-xs font-semibold text-primary-600 bg-primary-50 hover:bg-primary-100 px-3 py-1.5 rounded-full transition-colors">
+            <PenLine size={13} /> 写评价
+          </button>
+        )}
       </div>
+
+      {/* 写评价弹窗 */}
+      <AnimatePresence>
+        {open && (
+          <div className="fixed inset-0 z-[90] bg-black/50 flex items-end sm:items-center justify-center px-4"
+            onClick={() => !submitting && setOpen(false)}>
+            <motion.div initial={{ y: 40, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 40, opacity: 0 }}
+              className="bg-white rounded-t-3xl sm:rounded-3xl w-full sm:max-w-sm p-5" onClick={(e) => e.stopPropagation()}>
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-base font-bold text-gray-900">给这位商家评价</h3>
+                <button onClick={() => setOpen(false)} className="text-gray-400"><X size={18} /></button>
+              </div>
+              <div className="flex items-center justify-center gap-1.5 mb-4">
+                {[1, 2, 3, 4, 5].map((n) => (
+                  <button key={n} onClick={() => setMyRating(n)} className="active:scale-90 transition">
+                    <Star size={32} className={n <= myRating ? 'text-yellow-400 fill-yellow-400' : 'text-gray-300'} />
+                  </button>
+                ))}
+              </div>
+              <textarea value={comment} onChange={(e) => setComment(e.target.value)} maxLength={300}
+                placeholder="说说你的体验（选填）"
+                className="w-full h-24 rounded-xl border border-gray-200 px-3 py-2 text-sm outline-none focus:border-primary-400 resize-none mb-3" />
+              <button onClick={submitReview} disabled={submitting}
+                className="w-full rounded-2xl bg-primary-600 text-white font-semibold py-3 hover:bg-primary-700 disabled:opacity-50">
+                {submitting ? '提交中…' : '提交评价'}
+              </button>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       {reviews.length > 0 && (
         <div className="flex gap-1.5 mb-3 flex-wrap">
