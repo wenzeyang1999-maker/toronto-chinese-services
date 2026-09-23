@@ -3,6 +3,7 @@
     "api/img.ts": { "maxDuration": 30 }
   },
   "rewrites": [
+    { "source": "/p/:id", "destination": "/api/card?id=:id" },
     { "source": "/((?!api/).*)", "destination": "/index.html" }
   ],
   "headers": [

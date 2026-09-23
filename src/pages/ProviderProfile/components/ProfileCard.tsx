@@ -1,7 +1,9 @@
 import { motion } from 'framer-motion'
+import { useState } from 'react'
 import { cdnUrl } from '../../../lib/cdnUrl'
-import { CheckCircle2, Clock, ExternalLink, MessageSquare, Phone, ShieldCheck, BadgeCheck, Wifi } from 'lucide-react'
+import { CheckCircle2, Clock, ExternalLink, MessageSquare, Phone, ShieldCheck, BadgeCheck, Wifi, Share2, Check } from 'lucide-react'
 import type { ProviderUser } from '../types'
+import { toast } from '../../../lib/toast'
 import MembershipBadge from '../../../components/MembershipBadge/MembershipBadge'
 import CreditStars from '../../../components/CreditStars/CreditStars'
 import Badge from '../../../components/Badge/Badge'
@@ -22,9 +24,26 @@ interface Props {
 }
 
 export default function ProfileCard({ provider, followerCount, isOwnProfile, joinedMonth, orderCount = 0, onMessage, onCopyWechat }: Props) {
+  const [shared, setShared] = useState(false)
+  // 分享名片:分享带服务端 OG 卡片的 /p/:id 链接(微信/朋友圈显示富卡片,点开进主页)
+  async function shareCard() {
+    const url = `${window.location.origin}/p/${provider.id}`
+    if (navigator.share) {
+      try { await navigator.share({ title: `${provider.name}｜华邻`, url }) } catch { /* cancelled */ }
+    } else {
+      try { await navigator.clipboard.writeText(url); setShared(true); toast('名片链接已复制,去粘贴分享吧', 'success'); setTimeout(() => setShared(false), 2000) }
+      catch { toast(`名片链接：${url}`) }
+    }
+  }
   return (
     <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }}
-      className="bg-white rounded-3xl border border-gray-100 shadow-sm p-6">
+      className="relative bg-white rounded-3xl border border-gray-100 shadow-sm p-6">
+
+      {/* 分享名片 */}
+      <button onClick={shareCard}
+        className="absolute top-4 right-4 inline-flex items-center gap-1 rounded-full border border-primary-200 bg-primary-50 text-primary-600 text-xs font-semibold px-3 py-1.5 hover:bg-primary-100 active:scale-95 transition">
+        {shared ? <Check size={13} /> : <Share2 size={13} />} 分享名片
+      </button>
 
       {/* Avatar + name row */}
       <div className="flex items-center gap-4">
