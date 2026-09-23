@@ -7,7 +7,7 @@ import { useRef, useState, useEffect, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Mail, Phone, ShieldCheck, ImagePlus, BadgeCheck, Clock3,
-  AlertCircle, CheckCircle2, Send, RefreshCw, Pencil, Check, X,
+  AlertCircle, CheckCircle2, Send, RefreshCw, Pencil, Check, X, Eye,
 } from 'lucide-react'
 import { supabase } from '../../../lib/supabase'
 import { compressImage, validateImageFile } from '../../../lib/compressImage'
@@ -63,6 +63,8 @@ export default function VerificationSection({ user }: Props) {
   // ── phone OTP state ───────────────────────────────────────────────────────
   const [dbPhone,       setDbPhone]       = useState<string | null>(null)
   const [phoneVerified, setPhoneVerified] = useState(false)
+  const [showPhone,     setShowPhone]     = useState(false)   // 商家是否公开电话
+  const [savingShowPhone, setSavingShowPhone] = useState(false)
   const [step,          setStep]          = useState<'idle' | 'entering' | 'otp'>('idle')
   const [phoneInput,    setPhoneInput]    = useState('')
   const [otpInput,      setOtpInput]      = useState('')
@@ -138,7 +140,7 @@ export default function VerificationSection({ user }: Props) {
   useEffect(() => {
     Promise.all([
       supabase.from('users')
-        .select('phone_verified, social_links, verification_status, business_verified, qualification_images')
+        .select('phone_verified, social_links, verification_status, business_verified, qualification_images, show_phone')
         .eq('id', user.id).single(),
       // phone/wechat are REVOKEd from clients — read own via the RPC.
       supabase.rpc('get_my_contact').returns<{ name: string; phone: string; wechat: string }[]>().maybeSingle(),
@@ -148,6 +150,7 @@ export default function VerificationSection({ user }: Props) {
         const c = contact as { phone?: string; wechat?: string } | null
         setDbPhone(c?.phone ?? null)
         setPhoneVerified(data.phone_verified ?? false)
+        setShowPhone((data as { show_phone?: boolean }).show_phone ?? false)
         const raw = (data.social_links ?? {}) as Partial<SocialValues>
         const loaded: SocialValues = {
           ...EMPTY_SOCIALS,
@@ -353,6 +356,35 @@ export default function VerificationSection({ user }: Props) {
                 className="text-xs text-primary-600 bg-primary-50 hover:bg-primary-100 px-3 py-1 rounded-full font-medium transition-colors">
                 去验证
               </button>}
+        </div>
+
+        {/* 公开展示电话 —— 商家自选 */}
+        <div className="flex items-center gap-3 px-5 py-4 border-t border-gray-100">
+          <Eye size={16} className="text-gray-400 flex-shrink-0" />
+          <div className="flex-1 min-w-0">
+            <p className="text-sm text-gray-800">公开展示我的电话</p>
+            <p className="text-xs text-gray-400 leading-snug">
+              {!dbPhone
+                ? '请先在上方验证/填写手机号'
+                : showPhone
+                  ? '已公开:所有人在你的名片上可直接看到并拨打'
+                  : '默认隐藏:仅登录用户可通过「获取联系方式」查看'}
+            </p>
+          </div>
+          <button
+            role="switch" aria-checked={showPhone} disabled={!dbPhone || savingShowPhone}
+            onClick={async () => {
+              const next = !showPhone
+              setShowPhone(next); setSavingShowPhone(true)
+              const { error } = await supabase.from('users').update({ show_phone: next }).eq('id', user.id)
+              setSavingShowPhone(false)
+              if (error) { setShowPhone(!next); toast('设置失败，请重试', 'error') }
+              else toast(next ? '已公开电话' : '已隐藏电话', 'success')
+            }}
+            className={`relative w-11 h-6 rounded-full flex-shrink-0 transition-colors disabled:opacity-40 ${showPhone ? 'bg-primary-600' : 'bg-gray-300'}`}
+          >
+            <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${showPhone ? 'translate-x-5' : ''}`} />
+          </button>
         </div>
 
         {/* Phone OTP flow */}

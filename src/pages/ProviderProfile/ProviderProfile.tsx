@@ -61,6 +61,7 @@ export default function ProviderProfile() {
         { data: contact },
         { data: orderCnt },
         { data: provReviewsData },
+        { data: pubPhone },
       ] = await Promise.all([
         supabase.from('public_profiles')
           .select('id, name, avatar_url, bio, created_at, is_email_verified, last_seen_at, phone_verified, social_links, membership_level, business_verified, avg_reply_hours, credit_penalty')
@@ -90,6 +91,8 @@ export default function ProviderProfile() {
           .select('id, rating, comment, created_at, service:service_id(id, title), reply:review_replies(content), reviewer:reviewer_id(id, name, avatar_url)')
           .eq('provider_id', id!)
           .order('created_at', { ascending: false }),
+        // 商家若开启「公开电话」→ 返回电话(所有人可见、不占 get_contact 限流)。
+        supabase.rpc('provider_public_phone', { p_id: id }),
       ])
 
       if (profileError || !profile) { setNotFound(true); setLoading(false); return }
@@ -103,7 +106,8 @@ export default function ProviderProfile() {
         ...profile,
         email: contactRow?.email ?? '',   // email now via authorized get_contact, not the public view
         bio: profile.bio ?? null,
-        phone: contactRow?.phone ?? null,
+        // 商家公开的电话优先(所有人可见);否则用授权 get_contact(登录用户)。
+        phone: (typeof pubPhone === 'string' && pubPhone) ? pubPhone : (contactRow?.phone ?? null),
         wechat: contactRow?.wechat ?? null,
         phone_verified: profile.phone_verified ?? false,
         social_links: (profile.social_links as Record<string, string>) ?? {},
