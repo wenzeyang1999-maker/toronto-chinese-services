@@ -3,10 +3,13 @@
 // 英/法后续再上(需真人翻译),故先只两档。切换时整页刷新,干净地应用/还原。
 import { create } from 'zustand'
 
-export type Lang = 'zh-CN' | 'zh-TW'
+export type Lang = 'zh-CN' | 'zh-TW' | 'en' | 'fr'
 
 export function readLang(): Lang {
-  try { return localStorage.getItem('tcs_lang') === 'zh-TW' ? 'zh-TW' : 'zh-CN' } catch { return 'zh-CN' }
+  try {
+    const v = localStorage.getItem('tcs_lang')
+    return (v === 'zh-TW' || v === 'en' || v === 'fr') ? v : 'zh-CN'
+  } catch { return 'zh-CN' }
 }
 
 interface LangState { lang: Lang; setLang: (l: Lang) => void }

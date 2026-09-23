@@ -36,3 +36,6 @@ verify_jwt = true
 
 [functions.ai-service-tools]
 verify_jwt = true
+
+[functions.translate]
+verify_jwt = false

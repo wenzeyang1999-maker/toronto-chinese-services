@@ -7,7 +7,11 @@ import { useLangStore, type Lang } from '../../store/langStore'
 const OPTIONS: { key: Lang; label: string }[] = [
   { key: 'zh-CN', label: '简体中文' },
   { key: 'zh-TW', label: '繁體中文' },
+  { key: 'en',    label: 'English' },
+  { key: 'fr',    label: 'Français' },
 ]
+
+const SHORT: Record<Lang, string> = { 'zh-CN': '简', 'zh-TW': '繁', en: 'EN', fr: 'FR' }
 
 export default function LangSwitcher() {
   const lang = useLangStore((s) => s.lang)
@@ -19,7 +23,7 @@ export default function LangSwitcher() {
       <button onClick={() => setOpen((v) => !v)} aria-label="语言"
         className="flex items-center gap-1 text-xs font-medium text-gray-500 hover:text-primary-600 px-2 py-2 rounded-lg hover:bg-gray-100 transition-colors">
         <Languages size={16} />
-        <span className="hidden sm:inline">{lang === 'zh-TW' ? '繁' : '简'}</span>
+        <span className="hidden sm:inline">{SHORT[lang]}</span>
       </button>
       {open && (
         <>
@@ -33,10 +37,6 @@ export default function LangSwitcher() {
                 {o.key === lang && <Check size={14} className="text-primary-600" />}
               </button>
             ))}
-            <div className="border-t border-gray-50 mt-1 pt-1">
-              <div className="px-3 py-1.5 text-xs text-gray-300 flex items-center justify-between">English<span>即将</span></div>
-              <div className="px-3 py-1.5 text-xs text-gray-300 flex items-center justify-between">Français<span>即将</span></div>
-            </div>
           </div>
         </>
       )}

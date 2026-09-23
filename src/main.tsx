@@ -14,9 +14,11 @@ import { readLang } from './store/langStore'
 initSentry()
 registerServiceWorker()
 
-// 繁体:启动整站简→繁转换(简体为默认,不加载词库)。
-if (readLang() === 'zh-TW') {
-  import('./lib/traditionalize').then((m) => m.startTraditionalize())
+// 多语言:简体为默认(不加载任何词库/翻译)。繁体走 OpenCC 字符转换;英/法走机翻+缓存。
+{
+  const _lang = readLang()
+  if (_lang === 'zh-TW') import('./lib/traditionalize').then((m) => m.startTraditionalize())
+  else if (_lang === 'en' || _lang === 'fr') import('./lib/translateDom').then((m) => m.startTranslate(_lang))
 }
 
 // After a new deploy, chunk filenames change and the old lazy-loaded chunks are
