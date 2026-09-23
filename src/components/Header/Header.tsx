@@ -2,7 +2,7 @@
 // V5.2 unified nav bar + P2 contextual search bar
 //
 // Desktop (≥ lg): single row
-//   Logo | 商家展示 求职招聘 二手交易 房产租售 多村论坛 | [search input] | 🔔 [auth]
+//   Logo | 服务大厅 求职招聘 二手交易 房产租售 多村论坛 | [search input] | 🔔 [auth]
 //
 // Mobile (< lg): three rows
 //   Row 1: Logo | <spacer> | 🔔 [auth]
@@ -24,7 +24,7 @@ import VoiceSearchButton from '../VoiceSearchButton/VoiceSearchButton'
 // ── Section definitions ───────────────────────────────────────────────────────
 const NAV_SECTIONS = [
   { id: 'urgent',     label: '华邻地图', href: '/map' },
-  { id: 'services',   label: '商家展示', href: '/?view=services' },
+  { id: 'services',   label: '服务大厅', href: '/?view=services' },
   { id: 'realestate', label: '房产租售', href: '/realestate' },
   { id: 'jobs',       label: '求职招聘', href: '/jobs' },
   { id: 'secondhand', label: '二手交易', href: '/secondhand' },

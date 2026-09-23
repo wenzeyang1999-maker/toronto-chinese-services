@@ -18,7 +18,7 @@ type PublishOption = {
   to?: string; inquiry?: boolean
 }
 const OPTIONS: PublishOption[] = [
-  { key: 'services',    label: '商家服务贴', sub: '我能提供的服务', to: '/post',            icon: Wrench,            color: 'text-primary-600 bg-primary-50' },
+  { key: 'services',    label: '商家推广', sub: '我能提供的服务', to: '/post',            icon: Wrench,            color: 'text-primary-600 bg-primary-50' },
   { key: 'community',   label: '论坛贴',    sub: '社区圈子',       to: '/community/post',  icon: MessageSquareText, color: 'text-rose-600 bg-rose-50' },
   { key: 'inquiry',     label: 'AI 智能匹配', sub: '一句话描述需求 · 商家主动联系你', inquiry: true,     icon: Sparkles,          color: 'text-primary-600 bg-primary-50' },
   { key: 'events',      label: '发活动',   sub: '同城聚会',       to: '/events/post',     icon: CalendarPlus,      color: 'text-violet-600 bg-violet-50' },

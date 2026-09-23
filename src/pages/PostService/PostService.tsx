@@ -283,7 +283,7 @@ export default function PostService() {
       }
 
       if (imageUploadErrors.length > 0) {
-        setSubmitError(`商家服务贴已发布，但部分图片（${imageUploadErrors.join('、')}）上传失败，请稍后在"我的发布 → 商家服务贴"中重新上传图片`)
+        setSubmitError(`商家推广已发布，但部分图片（${imageUploadErrors.join('、')}）上传失败，请稍后在"我的发布 → 商家推广"中重新上传图片`)
         return
       }
 
@@ -354,7 +354,7 @@ export default function PostService() {
           <button onClick={() => navigate(-1)} className="text-gray-500">
             <ArrowLeft size={20} />
           </button>
-          <h1 className="text-xl font-bold text-gray-900">商家服务贴</h1>
+          <h1 className="text-xl font-bold text-gray-900">商家推广</h1>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -532,7 +532,7 @@ export default function PostService() {
             whileTap={{ scale: isSubmitting ? 1 : 0.97 }}
             className="w-full btn-primary py-4 text-base rounded-2xl disabled:opacity-60"
           >
-            {isSubmitting ? '发布中...' : '免费发布商家服务贴'}
+            {isSubmitting ? '发布中...' : '免费发布商家推广'}
           </motion.button>
 
           <p className="text-xs text-center text-gray-400">
