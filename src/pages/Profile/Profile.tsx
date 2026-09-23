@@ -306,8 +306,11 @@ export default function Profile() {
       const { error } = await supabase.storage.from('avatars').upload(path, compressed, { upsert: true })
       if (error) throw error
       const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(path)
-      await supabase.from('users').update({ avatar_url: publicUrl }).eq('id', user!.id)
-      setAvatarUrl(publicUrl + '?t=' + Date.now())
+      // 头像路径固定(avatar.jpg),必须带 ?t= 破缓存写进 DB,否则其它读 avatar_url 的
+      // 地方(账号页/头部/公开主页/名片分享)会一直显示缓存旧图。与封面同理。
+      const bustedUrl = `${publicUrl}?t=${Date.now()}`
+      await supabase.from('users').update({ avatar_url: bustedUrl }).eq('id', user!.id)
+      setAvatarUrl(bustedUrl)
     } catch (err) {
       toast('头像上传失败：' + (err instanceof Error ? err.message : '请先创建 avatars 存储桶'), 'error')
     } finally {
