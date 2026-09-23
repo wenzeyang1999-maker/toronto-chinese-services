@@ -10,6 +10,21 @@ const ATTRS = ['placeholder', 'title', 'alt', 'aria-label']
 const cache = new Map<string, string>()   // 源中文 → 译文(内存)
 let lang: 'en' | 'fr' = 'en'
 
+// 本地持久化译文:重访/切页直接秒套用,不必每次联网取缓存映射。
+function loadPersisted(l: string) {
+  try {
+    const raw = localStorage.getItem('tcs_tr_' + l)
+    if (raw) { const o = JSON.parse(raw) as Record<string, string>; for (const k in o) cache.set(k, o[k]) }
+  } catch { /* ignore */ }
+}
+let persistTimer: number | undefined
+function persist() {
+  window.clearTimeout(persistTimer)
+  persistTimer = window.setTimeout(() => {
+    try { localStorage.setItem('tcs_tr_' + lang, JSON.stringify(Object.fromEntries(cache))) } catch { /* quota */ }
+  }, 500)
+}
+
 function skip(el: Element | null): boolean {
   return !el || SKIP.has(el.tagName) || (el as HTMLElement).isContentEditable
 }
@@ -69,7 +84,7 @@ async function fetchTranslations(texts: string[]) {
     const chunk = texts.slice(i, i + 80)
     try {
       const { data } = await supabase.functions.invoke<{ map: Record<string, string> }>('translate', { body: { lang, texts: chunk } })
-      if (data?.map) for (const [k, v] of Object.entries(data.map)) cache.set(k, v)
+      if (data?.map) { for (const [k, v] of Object.entries(data.map)) cache.set(k, v); persist() }
     } catch { /* 失败保持中文 */ }
   }
 }
@@ -92,7 +107,9 @@ export async function startTranslate(l: 'en' | 'fr') {
   started = true
   lang = l
   document.documentElement.lang = l
-  const s = new Set<string>(); collect(document.body, s); schedule(s)
+  loadPersisted(l)          // 本地已存的译文 → 先秒套用
+  apply(document.body)
+  const s = new Set<string>(); collect(document.body, s); if (s.size) schedule(s)   // 只取没见过的新文案
   const obs = new MutationObserver((muts) => {
     const found = new Set<string>()
     for (const m of muts) {
