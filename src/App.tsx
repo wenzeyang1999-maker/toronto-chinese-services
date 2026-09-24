@@ -201,10 +201,30 @@ export default function App() {
         return
       }
 
+      // 商家默认「上线接单」:没有显式选择过模式的服务商(有已发布服务)默认上线,
+      // 让平台冷启动时地图/商家展示看起来是活的。已显式切到「用户/下线」的尊重其选择。
       // App-wide「上线接单」tint follows the SAME signal as the identity card
       // (tcs_profile_mode) so the blue always matches what the card says.
       try {
-        useOnlineModeStore.getState().setOnline(localStorage.getItem('tcs_profile_mode') === 'provider')
+        const savedMode = localStorage.getItem('tcs_profile_mode')
+        let online = savedMode === 'provider'
+        if (savedMode === null) {
+          // 没选过 → 判断是不是商家(有在售服务),是则默认上线并记住
+          let isProv = localStorage.getItem('tcs_has_services') === 'true'
+          if (!isProv) {
+            const { count } = await supabase.from('services')
+              .select('id', { head: true, count: 'exact' })
+              .eq('provider_id', authUser.id).eq('is_available', true).limit(1)
+            if (!isActive) return
+            isProv = (count ?? 0) > 0
+            try { localStorage.setItem('tcs_has_services', isProv ? 'true' : 'false') } catch { /* ignore */ }
+          }
+          if (isProv) {
+            try { localStorage.setItem('tcs_profile_mode', 'provider') } catch { /* ignore */ }
+            online = true
+          }
+        }
+        useOnlineModeStore.getState().setOnline(online)
       } catch { /* ignore */ }
 
       // First-time OAuth users (Google/Apple) won't have a public.users row yet.
