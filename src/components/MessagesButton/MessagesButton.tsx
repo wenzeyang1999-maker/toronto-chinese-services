@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { useLocation, useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import Mascot from '../Mascot/Mascot'
 import { useAuthStore } from '../../store/authStore'
@@ -9,7 +9,6 @@ interface Props { grouped?: boolean }
 export default function MessagesButton({ grouped }: Props) {
   const user = useAuthStore((s) => s.user)
   const navigate = useNavigate()
-  const location = useLocation()
   const [unread, setUnread] = useState(0)
 
   // Tab title badge + flashing when unread > 0
@@ -78,9 +77,11 @@ export default function MessagesButton({ grouped }: Props) {
     setUnread(total)
   }, [user])
 
+  // 只在挂载/登录态变化时拉一次;之后靠下面的 realtime 频道保持最新,
+  // 不再每次切页都重查(省一堆没必要的请求)。
   useEffect(() => {
     fetchUnread()
-  }, [location.pathname, fetchUnread])
+  }, [fetchUnread])
 
   useEffect(() => {
     if (!user) return

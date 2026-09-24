@@ -34,7 +34,8 @@ export default function BottomNav() {
       sum + ((r.client_id === user.id ? r.client_unread : r.provider_unread) ?? 0), 0))
   }, [user])
 
-  useEffect(() => { fetchUnread() }, [pathname, fetchUnread])
+  // 挂载/登录态变化拉一次即可,后续靠 realtime 频道更新,不再每次切页重查。
+  useEffect(() => { fetchUnread() }, [fetchUnread])
 
   useEffect(() => {
     if (!user) return

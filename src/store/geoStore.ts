@@ -19,10 +19,16 @@ export const useGeoStore = create<GeoState>((set, get) => ({
   loaded: false,
   fetchGeo: async () => {
     if (get().loaded) return
+    // 本次浏览器会话已查过就直接用(刷新页面不再重复打 /api/geo)。地区一次会话内不会变。
+    try {
+      const cached = sessionStorage.getItem('tcs_geo_country')
+      if (cached !== null) { set({ country: cached, restricted: RESTRICTED.has(cached), loaded: true }); return }
+    } catch { /* ignore */ }
     try {
       const res = await fetch('/api/geo', { cache: 'no-store' })
       const data = await res.json() as { country?: string }
       const country = (data.country ?? '').toUpperCase()
+      try { sessionStorage.setItem('tcs_geo_country', country) } catch { /* ignore */ }
       set({ country, restricted: RESTRICTED.has(country), loaded: true })
     } catch {
       // 拿不到就当不受限(宁可放行,不误伤加拿大用户)

@@ -287,7 +287,7 @@ export default function PostService() {
         return
       }
 
-      await fetchServices()
+      await fetchServices(false, true)   // 刚发布,强制刷新绕过新鲜度缓存
       clearDraft()   // 内测#2:发布成功清掉草稿
       bypassMatchRef.current = false   // 内测2-#9:重置软提示放行标记
       setNewServiceId(insertedService?.id ?? null)

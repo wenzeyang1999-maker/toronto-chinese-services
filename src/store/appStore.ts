@@ -41,11 +41,22 @@ function readCachedServices(): Service[] {
     return Array.isArray(parsed) ? (parsed as Service[]) : []
   } catch { return [] }
 }
+const SERVICES_TS_KEY = 'tcs_services_cache_ts_v1'
+const SERVICES_FRESH_MS = 3 * 60 * 1000   // 缓存 3 分钟内视为新鲜:同一会话来回切页不再重复全量拉取
 function writeCachedServices(list: Service[]) {
   if (typeof window === 'undefined') return
-  try { window.localStorage.setItem(SERVICES_CACHE_KEY, JSON.stringify(list.slice(0, 40))) } catch { /* ignore */ }
+  try {
+    window.localStorage.setItem(SERVICES_CACHE_KEY, JSON.stringify(list.slice(0, 40)))
+    window.localStorage.setItem(SERVICES_TS_KEY, String(Date.now()))
+  } catch { /* ignore */ }
+}
+function servicesCacheFresh(): boolean {
+  if (typeof window === 'undefined') return false
+  try { return Date.now() - Number(window.localStorage.getItem(SERVICES_TS_KEY) || '0') < SERVICES_FRESH_MS }
+  catch { return false }
 }
 const CACHED_SERVICES = readCachedServices()
+let servicesInFlight = false   // 防止 App + Home 同时挂载各拉一次(并发去重)
 
 // Shape of a raw row returned from Supabase (services + joined users)
 export interface ServiceRow {
@@ -103,7 +114,7 @@ interface AppState {
   setUserLocation: (loc: { lat: number; lng: number } | null) => void
   setSearchFilters: (filters: Partial<SearchFilters>) => void
   addService: (service: Service) => void
-  fetchServices: (append?: boolean) => Promise<void>
+  fetchServices: (append?: boolean, force?: boolean) => Promise<void>
   fetchServicesByKeyword: (keyword: string) => Promise<Service[]>
   fetchServicesByCategory: (category: ServiceCategory, offset?: number) => Promise<{ items: Service[]; hasMore: boolean; ok: boolean }>
   getFilteredServices: () => Service[]
@@ -254,8 +265,16 @@ export const useAppStore = create<AppState>((set, get) => ({
     }
   },
 
-  fetchServices: async (append = false) => {
+  fetchServices: async (append = false, force = false) => {
     const current = get().services
+    // 首屏/切页:缓存还新鲜且已有数据 → 直接用缓存,不再全量重拉(除非显式 force)。
+    if (!append && !force && current.length > 0 && servicesCacheFresh()) {
+      set({ servicesLoaded: true })
+      return
+    }
+    // 并发去重:App 与 Home 首次挂载可能各触发一次,只让第一次真正发请求。
+    if (!append && servicesInFlight) return
+    if (!append) servicesInFlight = true
     const offset  = append ? current.length : 0
     if (append) set({ servicesLoadingMore: true })
 
@@ -280,13 +299,14 @@ export const useAppStore = create<AppState>((set, get) => ({
     }
 
     if (error || !data) {
+      if (!append) servicesInFlight = false
       set({ servicesLoadingMore: false, servicesLoaded: true, servicesError: true })
       if (!append) toast('加载失败，请检查网络后重试', 'error')
       return
     }
     const mapped = (data as ServiceRow[]).map(mapRow)
     const nextServices = append ? [...current, ...mapped] : mapped
-    if (!append) writeCachedServices(nextServices)   // 刷新缓存,供下次秒开
+    if (!append) { writeCachedServices(nextServices); servicesInFlight = false }   // 刷新缓存,供下次秒开
     set({
       services: nextServices,
       servicesHasMore: data.length === SERVICES_PAGE_SIZE,
