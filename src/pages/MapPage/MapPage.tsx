@@ -140,13 +140,12 @@ export default function MapPage() {
     })
   }, [])
 
-  // 拉「最近 2 小时开过 App」的在线商家 —— 防止上线一次忘下线的人长期挂旧点。#20260822
+  // 冷启动期:只要「曾经上线过」(is_online=true,不再按 2 小时新鲜度过滤)就显示在地图上。
+  // 配合已停掉的 24h 自动下线 cron,上过线的商家会持续显示,直到自己手动下线。#20260924
   const loadOnlineProviders = useCallback(() => {
-    const freshCutoff = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString()
     supabase.from('users')
       .select('id, name, avatar_url, online_lat, online_lng, skill_tags')
       .eq('is_online', true)
-      .gte('last_seen_at', freshCutoff)
       .not('online_lat', 'is', null)
       .not('online_lng', 'is', null)
       .limit(50)
