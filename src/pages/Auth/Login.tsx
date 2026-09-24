@@ -63,7 +63,19 @@ export default function Login() {
     setPhoneLoading(true); setPhoneError(null)
     const { error } = await supabase.auth.signInWithOtp({ phone: e164 })
     setPhoneLoading(false)
-    if (error) { setPhoneError('验证码发送失败，请稍后重试'); return }
+    if (error) {
+      const m = (error.message || '').toLowerCase()
+      const status = (error as { status?: number }).status
+      if (status === 429 || m.includes('rate') || m.includes('too many')) {
+        setPhoneError('请求过于频繁，请等 1 分钟后再重试')
+      } else {
+        // 短信可能已发出(网络慢/超时时前端会误报失败)——仍打开验证码输入框,
+        // 让已收到短信的用户可以直接输入,不至于卡死。
+        setPhoneError('若已收到短信，请直接输入验证码；未收到可点「重新获取」')
+      }
+      setOtpSent(true)
+      return
+    }
     setOtpSent(true)
   }
 
