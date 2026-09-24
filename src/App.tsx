@@ -188,7 +188,7 @@ export default function App() {
 
       const { data: profile } = await supabase
         .from('users')
-        .select('role')
+        .select('role, skill_tags, bio, business_type, is_online, online_lat')
         .eq('id', authUser.id)
         .single()
 
@@ -201,25 +201,35 @@ export default function App() {
         return
       }
 
-      // 商家默认「上线接单」:没有显式选择过模式的服务商(有已发布服务)默认上线,
-      // 让平台冷启动时地图/商家展示看起来是活的。已显式切到「用户/下线」的尊重其选择。
-      // App-wide「上线接单」tint follows the SAME signal as the identity card
-      // (tcs_profile_mode) so the blue always matches what the card says.
+      // 商家默认「上线接单」:没有显式选择过模式的商家默认上线,让平台冷启动时
+      // 地图/商家展示看起来是活的。「商家」判定放宽为满足任一:填了技能标签 / 自我简介 /
+      // 选了企业身份 / 点过上线接单(现在在线或曾拿过定位坐标)/ 发过服务。
+      // 已显式切到「用户/下线」的尊重其选择,仍可随时手动下线。
       try {
         const savedMode = localStorage.getItem('tcs_profile_mode')
         let online = savedMode === 'provider'
         if (savedMode === null) {
-          // 没选过 → 判断是不是商家(有在售服务),是则默认上线并记住
-          let isProv = localStorage.getItem('tcs_has_services') === 'true'
-          if (!isProv) {
+          const p = profile as {
+            skill_tags?: string[] | null; bio?: string | null
+            business_type?: string | null; is_online?: boolean | null; online_lat?: number | null
+          } | null
+          let isMerchant =
+            (Array.isArray(p?.skill_tags) && p.skill_tags.length > 0) ||
+            (!!p?.bio && p.bio.trim().length > 0) ||
+            p?.business_type === 'business' ||
+            p?.is_online === true ||
+            p?.online_lat != null ||
+            localStorage.getItem('tcs_has_services') === 'true'
+          if (!isMerchant) {
+            // 兜底:上面信号都没有,再查一次有没有发过服务
             const { count } = await supabase.from('services')
               .select('id', { head: true, count: 'exact' })
               .eq('provider_id', authUser.id).eq('is_available', true).limit(1)
             if (!isActive) return
-            isProv = (count ?? 0) > 0
-            try { localStorage.setItem('tcs_has_services', isProv ? 'true' : 'false') } catch { /* ignore */ }
+            isMerchant = (count ?? 0) > 0
+            try { localStorage.setItem('tcs_has_services', isMerchant ? 'true' : 'false') } catch { /* ignore */ }
           }
-          if (isProv) {
+          if (isMerchant) {
             try { localStorage.setItem('tcs_profile_mode', 'provider') } catch { /* ignore */ }
             online = true
           }
