@@ -1,17 +1,17 @@
 import { Home, Bot, Plus, MessageSquare, User } from 'lucide-react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuthStore } from '../../store/authStore'
-import { useCallback, useEffect, useState } from 'react'
-import { supabase } from '../../lib/supabase'
+import { useState } from 'react'
 import { useLeadAlertsStore } from '../../store/leadAlertsStore'
 import { useAiChatStore } from '../../store/aiChatStore'
+import { useUnreadCount } from '../../store/unreadStore'
 import PublishSheet from '../PublishSheet/PublishSheet'
 
 export default function BottomNav() {
   const navigate = useNavigate()
   const { pathname, search } = useLocation()
   const user = useAuthStore((s) => s.user)
-  const [unread, setUnread] = useState(0)
+  const unread = useUnreadCount()   // 全局共享:与 MessagesButton 共用一个频道+一次查询
   const leadCount = useLeadAlertsStore((s) => s.count)
   const [publishOpen, setPublishOpen] = useState(false)
   const openAiChat = useAiChatStore((s) => s.setOpen)
@@ -22,28 +22,6 @@ export default function BottomNav() {
     pathname === '/post' ||
     pathname.startsWith('/conversation/') ||
     pathname.startsWith('/admin')
-
-  const fetchUnread = useCallback(async () => {
-    if (!user) { setUnread(0); return }
-    const { data } = await supabase
-      .from('conversations')
-      .select('client_unread, provider_unread, client_id')
-      .or(`client_id.eq.${user.id},provider_id.eq.${user.id}`)
-    if (!data) return
-    setUnread(data.reduce((sum, r) =>
-      sum + ((r.client_id === user.id ? r.client_unread : r.provider_unread) ?? 0), 0))
-  }, [user])
-
-  // 挂载/登录态变化拉一次即可,后续靠 realtime 频道更新,不再每次切页重查。
-  useEffect(() => { fetchUnread() }, [fetchUnread])
-
-  useEffect(() => {
-    if (!user) return
-    const ch = supabase.channel('bottomnav-unread')
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'conversations' }, fetchUnread)
-      .subscribe()
-    return () => { supabase.removeChannel(ch) }
-  }, [user, fetchUnread])
 
   if (hidden) return null
 

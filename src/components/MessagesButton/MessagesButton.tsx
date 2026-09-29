@@ -1,15 +1,15 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { supabase } from '../../lib/supabase'
 import Mascot from '../Mascot/Mascot'
 import { useAuthStore } from '../../store/authStore'
+import { useUnreadCount } from '../../store/unreadStore'
 
 interface Props { grouped?: boolean }
 
 export default function MessagesButton({ grouped }: Props) {
   const user = useAuthStore((s) => s.user)
   const navigate = useNavigate()
-  const [unread, setUnread] = useState(0)
+  const unread = useUnreadCount()   // 全局共享:一个频道 + 一次查询,与 BottomNav 共用
 
   // Tab title badge + flashing when unread > 0
   // Safari throttles setInterval in background tabs, so we ALSO update the title
@@ -56,43 +56,6 @@ export default function MessagesButton({ grouped }: Props) {
       document.title = original
     }
   }, [unread])
-
-  const fetchUnread = useCallback(async () => {
-    if (!user) {
-      setUnread(0)
-      return
-    }
-
-    const { data } = await supabase
-      .from('conversations')
-      .select('client_unread, provider_unread, client_id')
-      .or(`client_id.eq.${user.id},provider_id.eq.${user.id}`)
-
-    if (!data) return
-
-    const total = data.reduce((sum, row) => {
-      const mine = row.client_id === user.id ? row.client_unread : row.provider_unread
-      return sum + (mine ?? 0)
-    }, 0)
-    setUnread(total)
-  }, [user])
-
-  // 只在挂载/登录态变化时拉一次;之后靠下面的 realtime 频道保持最新,
-  // 不再每次切页都重查(省一堆没必要的请求)。
-  useEffect(() => {
-    fetchUnread()
-  }, [fetchUnread])
-
-  useEffect(() => {
-    if (!user) return
-
-    const channel = supabase
-      .channel('global-unread')
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'conversations' }, fetchUnread)
-      .subscribe()
-
-    return () => { supabase.removeChannel(channel) }
-  }, [user, fetchUnread])
 
   if (!user) return null
 
