@@ -43,6 +43,14 @@ export async function subscribeToWebPush(userId: string): Promise<boolean> {
     const auth   = json.keys?.auth
     if (!json.endpoint || !p256dh || !auth) return false
 
+    // 端点是设备固定的:每次开 App 都重写同一行纯属浪费(实测占了大量 DB 写入/Disk IO)。
+    // 只有 用户/端点 变了,或距上次登记超过 7 天,才真正写库。
+    const sig = `${userId}|${json.endpoint}`
+    try {
+      const prev = JSON.parse(localStorage.getItem('tcs_push_reg') || 'null') as { sig?: string; ts?: number } | null
+      if (prev && prev.sig === sig && Date.now() - (prev.ts ?? 0) < 7 * 24 * 60 * 60 * 1000) return true
+    } catch { /* ignore */ }
+
     // A push endpoint is browser/device-scoped, so cross-user duplicates would
     // leak notifications. The DB trigger `push_subs_endpoint_dedupe` enforces
     // single-owner-per-endpoint atomically with this upsert.
@@ -57,6 +65,7 @@ export async function subscribeToWebPush(userId: string): Promise<boolean> {
       },
       { onConflict: 'user_id,endpoint' }
     )
+    try { localStorage.setItem('tcs_push_reg', JSON.stringify({ sig, ts: Date.now() })) } catch { /* ignore */ }
     return true
   } catch (err) {
     console.warn('[webPush] subscribe failed:', err)
@@ -73,6 +82,7 @@ export async function unsubscribeFromWebPush(userId: string): Promise<void> {
     const sub = await reg.pushManager.getSubscription()
     if (!sub) return
     await sub.unsubscribe()
+    try { localStorage.removeItem('tcs_push_reg') } catch { /* ignore */ }
     await supabase.from('push_subscriptions').delete().eq('user_id', userId).eq('endpoint', sub.endpoint)
   } catch (err) {
     console.warn('[webPush] unsubscribe failed:', err)
